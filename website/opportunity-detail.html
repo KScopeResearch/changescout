@@ -380,6 +380,45 @@
     margin-right: 6px;
   }
 
+  .generate-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .generate-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--blue-soft);
+    background: var(--blue-soft);
+    color: #1d4ed8;
+    cursor: pointer;
+  }
+
+  .generate-btn:hover {
+    background: var(--blue);
+    color: #fff;
+  }
+
+  .generate-output {
+    display: none;
+    margin-top: 10px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    white-space: pre-line;
+    color: var(--text);
+  }
+
+  .generate-output.is-visible {
+    display: block;
+  }
+
   /* Sources */
   .section--muted .section-heading,
   .section--muted .eyebrow {
@@ -567,6 +606,31 @@
         <div class="action-item__row"><span class="action-item__row-label">対象企業</span>既存顧客のうち補助金対象条件に該当する18社（製造業）</div>
         <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
         <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</div>
+        <div class="generate-actions">
+          <button type="button" class="generate-btn" data-generate="mail">✉️ メール生成</button>
+          <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
+          <button type="button" class="generate-btn" data-generate="proposal">📄 提案資料生成</button>
+        </div>
+        <div class="generate-output" data-output-for="mail">件名：【ご案内】ものづくり補助金の対象拡大について
+
+○○様
+
+いつもお世話になっております。株式会社フィールドDXの担当です。
+このたび、ものづくり補助金の対象要件が拡大され、DX関連投資（業務システム導入・IoT設備等）も新たに対象となりました。
+貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。
+一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。</div>
+        <div class="generate-output" data-output-for="talk">「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。
+実は今月、ものづくり補助金の対象がDX投資にも広がりまして、これまで対象外だった設備投資やシステム導入も補助対象になったんです。
+もし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。
+詳しい要件や申請のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」</div>
+        <div class="generate-output" data-output-for="proposal">【提案資料アウトライン（自動生成）】
+1. 表紙：ものづくり補助金 対象拡大のご案内
+2. 制度概要：対象要件の拡大内容（DX関連投資が新規対象に）
+3. 貴社への想定インパクト：対象条件・活用余地
+4. 導入支援内容：弊社のDX導入支援サービス概要
+5. 導入ステップとスケジュール
+6. 費用感・補助金活用後の実質負担
+7. 次のアクション：ヒアリングのご案内</div>
       </div>
     </div>
   </section>
@@ -590,6 +654,20 @@
   </section>
 
 </div>
+
+<script>
+  document.querySelectorAll(".action-item").forEach((item) => {
+    item.querySelectorAll("[data-generate]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const type = btn.getAttribute("data-generate");
+        const output = item.querySelector(`[data-output-for="${type}"]`);
+        const wasVisible = output.classList.contains("is-visible");
+        item.querySelectorAll(".generate-output").forEach((el) => el.classList.remove("is-visible"));
+        if (!wasVisible) output.classList.add("is-visible");
+      });
+    });
+  });
+</script>
 
 </body>
 </html>
