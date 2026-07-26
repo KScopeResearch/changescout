@@ -40,3 +40,12 @@ Phase 3（MVP Validation）準備。`docs/validation/USER_INTERVIEW_GUIDE.md`で
 - 評価軸2・3で具体的なコメント（賞賛のみでなく指摘を含む）が1件以上得られた場合、`docs/strategy/ROADMAP.md`のPhase 3移行条件2（判断理由・推奨アクションへの外部評価）を満たしたとみなす。
 - 評価軸1・4・5は、条件2そのものではないが、Phase 3で実際にAI生成へ投資すべきかどうかの判断材料として`docs/strategy/ROADMAP.md`のRemaining Issues（初期ユーザー検証）に反映する。
 - 個々のヒアリング結果は`docs/validation/FEEDBACK_TEMPLATE.md`で記録し、本ファイルの評価軸に沿って集計する。
+
+## Phase 3開始前レビュー記録（2026-07-27、実ユーザーではなく内部レビュー）
+
+実ユーザーヒアリングの代わりに、開発者自身が`docs/validation/DEMO_SCENARIO.md`に沿って製造業・建設業・士業の3プロフィールで実機確認した記録。**これは評価軸の正式なスコアリング対象ではなく**、Week 2の実ユーザーヒアリングに進む前の品質チェックとして実施した。
+
+- 評価軸1（理解可能性）・2（判断理由の納得感）・3（推奨アクションの実行可能性）に相当する部分：Dashboard・Opportunity Detail・AI Transparencyの一貫した物語構造を確認。判断理由・推奨アクションが検知内容と論理的に繋がっており、顧客層・商材の自由入力を伴うと説得力が増すことを確認した。
+- 評価軸3（実行可能性）に影響する新規発見：メール／トーク／提案資料生成テンプレートの署名が、企業名入力と連動しておらず「株式会社フィールドDX」のまま表示される。デモシナリオの「Action Planの確認」ステップで生成ボタンを押す場面に直撃するため、「これなら明日からできる」という実行可能性の実感を損なうリスクがある（詳細は`docs/strategy/FINAL_MVP_PLAN.md`の新規Must Fix参照）。
+- 評価軸4（AI推定表現）：Dashboard/Detail/AI Transparency/Action Planの範囲は整理済み。LP・オンボーディングには残課題あり（`docs/strategy/ROADMAP.md`のRemaining Issues参照）。
+- 評価軸5（継続利用意向）：内部レビューのため評価対象外。Week 2の実ユーザーヒアリングで確認する。

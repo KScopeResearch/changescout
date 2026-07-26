@@ -91,5 +91,9 @@ Phase 2-3で対象外としたAI Action Plan（Dashboard）とRecommended Action
 初期顧客候補に見せる際に「壊れている」と感じさせないための、デモ品質・一貫性向上を目的とした最小変更。新しいアーキテクチャや生成ロジックの追加は行っていない。
 
 - **IT・DX支援業種のフル対応**：`website/data/market-changes.json`のmc-007（既存エントリ）に`impact`/`reason`/`action`/`overview1`/`overview2`/`why_now`/`tag_class`/`action_plan`を追加し、Phase 2-3/2-4のJSON駆動の仕組み（`fetchMarketChanges()`/`pickMarketChange()`）だけでCard1・Opportunity Detail・AI Action Plan/Recommended Actionが連携するようにした。新規MarketChangeの追加ではなく、既存エントリの不足フィールド補完で対応（新しいMarketChangeモデルの変更は行っていない）。あわせて`mock-dashboard.html`/`opportunity-detail.html`の`overrides`オブジェクトと`breakdownOverrides`にも`it-dx`キーを追加し、JSON取得失敗時のフォールバック表示も他業種と同水準にした。これにより、対応業種は製造業・建設業・士業・IT・DX支援の4業種になった（「その他」はPhase 2-4からAI Action Plan/Recommended Actionのみ対応のまま、変更なし）。
-- **企業名パーソナライズ**：`changescout_profile`に`companyName`（企業名、任意項目）を追加。`company-profile.html`に入力欄を追加し、Dashboard 2箇所・Opportunity Detail 1箇所の固定デモ企業名「株式会社フィールドDX」を、入力があった場合のみ置き換える。未入力時は現状表示を維持。メール／トーク／提案資料生成テンプレート内の署名部分は今回のスコープ外（別途対応候補として`docs/strategy/FINAL_MVP_PLAN.md`に記載）。
+- **企業名パーソナライズ**：`changescout_profile`に`companyName`（企業名、任意項目）を追加。`company-profile.html`に入力欄を追加し、Dashboard 2箇所・Opportunity Detail 1箇所の固定デモ企業名「株式会社フィールドDX」を、入力があった場合のみ置き換える。未入力時は現状表示を維持。
+
+## Phase 3開始前 Must Fix（生成テンプレート署名の企業名対応）
+
+Phase 3開始前レビュー（2026-07-27）で、メール生成テンプレート（`a1Mail`/`genMail`）の署名部分「株式会社フィールドDXの担当です」が企業名入力と連動していないことが発覚。静的デフォルト・ハードコード`overrides`・JSON駆動（`action_plan.templates.mail`）の3経路すべてで、テキスト確定後に企業名置換を再適用する形で対応（`personalizeCompanyName()`を静的デフォルト用に、各レンダリング関数の末尾で経路別に置換を追加）。営業トーク／提案資料テンプレートには企業名の記載がないため対応不要。
 - **AI表現の整合性**：Dashboard/Opportunity Detail/AI Transparency/AI Action Planの範囲を確認し、「AIが算出した貴社の機会スコア」を「AI推定による貴社の機会スコア」に修正（唯一の過大表現だった箇所）。他の「AI推定値」等の表記は既存のまま維持。LP・オンボーディング（`index.html`等）に残る同種の表現は今回のスコープ外とし、`docs/strategy/ROADMAP.md`のRemaining Issuesに記録した。
