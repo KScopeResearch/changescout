@@ -767,24 +767,25 @@
       <div class="score-copy">
         <p class="score-copy__eyebrow">AIが算出した貴社の機会スコア</p>
         <p class="score-copy__headline">貴社に、大きなビジネスチャンスが届いています</p>
-        <p class="breakdown-label">業種別内訳（関連業界）</p>
+        <p class="breakdown-label" id="breakdownLabel">業種別内訳（関連業界）</p>
         <div class="industry-breakdown">
-          <div class="industry-row">
-            <span class="industry-row__label">製造業</span>
-            <div class="bar"><div class="bar__fill" style="width:92%"></div></div>
-            <span class="industry-row__value">92</span>
+          <div class="industry-row" id="industryRow1">
+            <span class="industry-row__label" id="industryLabel1">製造業</span>
+            <div class="bar"><div class="bar__fill" id="industryBar1" style="width:92%"></div></div>
+            <span class="industry-row__value" id="industryValue1">92</span>
           </div>
-          <div class="industry-row">
-            <span class="industry-row__label">建設業</span>
-            <div class="bar"><div class="bar__fill" style="width:84%"></div></div>
-            <span class="industry-row__value">84</span>
+          <div class="industry-row" id="industryRow2">
+            <span class="industry-row__label" id="industryLabel2">建設業</span>
+            <div class="bar"><div class="bar__fill" id="industryBar2" style="width:84%"></div></div>
+            <span class="industry-row__value" id="industryValue2">84</span>
           </div>
-          <div class="industry-row">
-            <span class="industry-row__label">卸売・小売業</span>
-            <div class="bar"><div class="bar__fill" style="width:71%"></div></div>
-            <span class="industry-row__value">71</span>
+          <div class="industry-row" id="industryRow3">
+            <span class="industry-row__label" id="industryLabel3">卸売・小売業</span>
+            <div class="bar"><div class="bar__fill" id="industryBar3" style="width:71%"></div></div>
+            <span class="industry-row__value" id="industryValue3">71</span>
           </div>
         </div>
+        <p class="ai-estimate-note">AI推定値：公開情報・登録プロフィール情報をもとに算出</p>
       </div>
     </div>
   </section>
@@ -1093,6 +1094,52 @@
 
     const topicsHeading = document.getElementById("topicsHeading");
     if (topicsHeading) topicsHeading.textContent = industry ? `${industry}向け市場変化` : "登録情報をもとにした市場変化";
+
+    // ② 貴社のビジネスチャンス breakdown: replace the fixed cross-industry
+    // comparison (製造業92/建設業84/卸売・小売71) with categories relevant to
+    // the saved profile, so the section doesn't contradict the profile-driven
+    // content elsewhere on the page. Values are illustrative AI estimates,
+    // not confirmed figures — the ai-estimate-note under the bars covers this.
+    // Falls back to the static default breakdown when no match is found.
+    const breakdownOverrides = {
+      manufacturing: [
+        { label: "設備投資機会", value: 88 },
+        { label: "補助制度影響", value: 82 },
+        { label: "新規営業機会", value: 75 },
+      ],
+      construction: [
+        { label: "制度改正影響", value: 90 },
+        { label: "既存顧客対応", value: 78 },
+        { label: "営業機会", value: 70 },
+      ],
+      professional: [
+        { label: "制度変更", value: 85 },
+        { label: "顧客支援機会", value: 80 },
+        { label: "相談需要", value: 74 },
+      ],
+      other: [
+        { label: "登録情報ベースの市場変化", value: 80 },
+      ],
+    };
+
+    const breakdownRows = breakdownOverrides[profile.industry];
+    if (breakdownRows) {
+      const breakdownLabel = document.getElementById("breakdownLabel");
+      if (breakdownLabel) breakdownLabel.textContent = "貴社の機会内訳（AI推定）";
+
+      [1, 2, 3].forEach((n) => {
+        const row = document.getElementById(`industryRow${n}`);
+        const data = breakdownRows[n - 1];
+        if (!row) return;
+        if (!data) {
+          row.style.display = "none";
+          return;
+        }
+        document.getElementById(`industryLabel${n}`).textContent = data.label;
+        document.getElementById(`industryBar${n}`).style.width = `${data.value}%`;
+        document.getElementById(`industryValue${n}`).textContent = data.value;
+      });
+    }
 
     // Card 1 and Action Plan #1 mirror the exact same industry override used on
     // opportunity-detail.html, so Dashboard → Detail reads as one consistent story.
