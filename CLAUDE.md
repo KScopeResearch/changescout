@@ -39,6 +39,15 @@ Almost all substantive content in this repo is written in **Japanese**. Match th
 
 When asked to help with strategy, product ideas, or reports in this repo, evaluate suggestions against the decision rule and target market above rather than proposing generic SaaS ideas.
 
+## Product Principles
+
+- ChangeScoutは市場変化を営業機会へ変換するサービス
+- 数値は確定値ではなくAI推定値として扱う
+- 推測によるプロフィール補完は禁止
+- ユーザー入力情報と公開情報を明示的に区別する
+- 「なぜこの提案なのか」を説明可能にする
+- UI改善より、価値検証を優先する
+
 ## ChangeScout UI terminology (`website/`)
 
 The dashboard mockups (`mock-dashboard.html`, `opportunity-detail.html`) use fixed Japanese labels with specific meanings. Use these terms consistently in any UI copy:
