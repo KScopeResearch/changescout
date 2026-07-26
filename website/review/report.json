@@ -1,14 +1,14 @@
 {
-  "commit": "b9e305d30607ca4407ff274beaf2410f1b97612c",
-  "commitShort": "b9e305d",
-  "generatedAt": "2026-07-26T08:45:39.972Z",
+  "commit": "a7bb2dccdd4e2d1055025ca8d5c6df5f872286c3",
+  "commitShort": "a7bb2dc",
+  "generatedAt": "2026-07-26T09:00:20.286Z",
   "summary": {
     "total": 6,
     "passed": 6,
     "failed": 0
   },
   "uxSummary": {
-    "avgLoadTimeMs": 361,
+    "avgLoadTimeMs": 342,
     "keyValueAboveFold": "6/6",
     "ctaVisible": "6/6"
   },
@@ -22,7 +22,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 346,
+        "loadTimeMs": 359,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -36,7 +36,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 435,
+        "loadTimeMs": 415,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -50,7 +50,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 367,
+        "loadTimeMs": 391,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -78,7 +78,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 440,
+        "loadTimeMs": 289,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -92,7 +92,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 227,
+        "loadTimeMs": 250,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
