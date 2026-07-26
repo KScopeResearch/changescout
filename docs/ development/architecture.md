@@ -13,3 +13,4 @@
 
 - 現在の市場変化・Opportunity内容はすべて静的なハードコード（`overrides`オブジェクト）。実データ・生成ロジックへの置き換えが必要。
 - バックエンド・データベースは未着手（`database/opportunities.csv`も空）。
+- Phase 2-1として、上記ハードコードを置き換えるための `MarketChange` / `Opportunity` データモデルを設計済み。詳細は[data-model.md](./data-model.md)を参照。現時点では設計のみで実装は未着手。
