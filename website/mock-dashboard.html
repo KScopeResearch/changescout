@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChangeScout Weekly ｜ ダッシュボードモックアップ</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #0f172a;
+    --text-muted: #667085;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --orange: #f97316;
+    --orange-soft: #fff1e6;
+    --neutral-soft: #f1f2f4;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
+    --shadow-sm: 0 8px 20px -16px rgba(15, 23, 42, 0.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* Header */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--blue), var(--orange));
+    flex-shrink: 0;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .brand__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid #ffd9bd;
+  }
+
+  .beta-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  .page-title {
+    margin: 0 0 6px;
+    font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.1rem);
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .page-subtitle {
+    margin: 0 0 40px;
+    color: var(--text-muted);
+    font-size: 1rem;
+  }
+
+  h2.section-heading {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0 0 18px;
+  }
+
+  section {
+    margin-bottom: 48px;
+  }
+
+  /* ① Opportunity Score */
+  .score-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 36px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+  }
+
+  .score-ring svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--neutral-soft);
+    stroke-width: 12;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: url(#ringGradient);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 327;
+    stroke-dashoffset: 26;
+  }
+
+  .score-ring__value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-ring__num {
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .score-ring__max {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .score-copy {
+    flex: 1;
+    min-width: 220px;
+  }
+
+  .score-copy__eyebrow {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--blue);
+    letter-spacing: 0.04em;
+    margin: 0 0 8px;
+  }
+
+  .score-copy__headline {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 10px;
+  }
+
+  .score-copy__body {
+    color: var(--text-muted);
+    margin: 0;
+    max-width: 460px;
+  }
+
+  /* ② 今週の重要トピック */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .topic-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .topic-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+
+  .tag--orange { background: var(--orange-soft); color: #c2530f; }
+  .tag--blue { background: var(--blue-soft); color: #1d4ed8; }
+  .tag--neutral { background: var(--neutral-soft); color: #475467; }
+
+  .topic-card__score {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-muted);
+  }
+
+  .topic-card__score b {
+    color: var(--text);
+    font-size: 0.95rem;
+  }
+
+  .topic-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .topic-card__row {
+    font-size: 0.88rem;
+  }
+
+  .topic-card__row-label {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+
+  .topic-card__row p {
+    margin: 0;
+  }
+
+  .bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--neutral-soft);
+    overflow: hidden;
+  }
+
+  .bar__fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue), var(--orange));
+  }
+
+  /* ③ AIの提案 */
+  .ai-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px 32px;
+  }
+
+  .ai-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .ai-card__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--blue), var(--orange));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .ai-card__title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .checklist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .checklist li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 8px;
+    border-radius: var(--radius-sm);
+  }
+
+  .checklist li:hover {
+    background: var(--bg);
+  }
+
+  .checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .checklist span.label {
+    font-size: 0.95rem;
+  }
+
+  /* ④ 注目ニュース */
+  .news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .news-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .news-card__thumb {
+    height: 96px;
+  }
+
+  .news-card__body {
+    padding: 18px 20px 22px;
+  }
+
+  .news-card__title {
+    margin: 0 0 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .news-card__meta {
+    margin: 0;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .topic-grid,
+    .news-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      padding: 24px 16px 64px;
+    }
+
+    .topbar {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .score-card {
+      padding: 24px;
+      gap: 24px;
+    }
+
+    .topic-grid,
+    .news-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <div class="brand__text">
+        <span class="brand__name">ChangeScout Weekly</span>
+        <span class="brand__sub">市場の変化を、ビジネスチャンスへ。</span>
+      </div>
+    </div>
+    <span class="beta-badge">BETA</span>
+  </header>
+
+  <p class="page-subtitle" style="margin-top:-24px;">2026.07.20 – 2026.07.26 のレポート（サンプル）</p>
+
+  <!-- ① 今週のOpportunity Score -->
+  <section>
+    <div class="score-card">
+      <div class="score-ring">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2563eb" />
+              <stop offset="100%" stop-color="#f97316" />
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="60" cy="60" r="52" />
+          <circle class="ring-progress" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" />
+        </svg>
+        <div class="score-ring__value">
+          <span class="score-ring__num">92</span>
+          <span class="score-ring__max">/ 100</span>
+        </div>
+      </div>
+      <div class="score-copy">
+        <p class="score-copy__eyebrow">今週の Opportunity Score</p>
+        <p class="score-copy__headline">今週は大きなチャンスがあります</p>
+        <p class="score-copy__body">
+          補助金制度の対象拡大と法改正が重なり、営業・提案につながる変化が多く検知されました。
+          下記の重要トピックとAIの提案をご確認ください。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 今週の重要トピック -->
+  <section>
+    <h2 class="section-heading">今週の重要トピック</h2>
+    <div class="topic-grid">
+
+      <article class="topic-card">
+        <div class="topic-card__head">
+          <span class="tag tag--orange">補助金</span>
+          <span class="topic-card__score">Score <b>95</b></span>
+        </div>
+        <div class="bar"><div class="bar__fill" style="width:95%"></div></div>
+        <h3 class="topic-card__title">補助金対象拡大</h3>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">影響</span>
+          <p>製造業への営業機会増加</p>
+        </div>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">推奨アクション</span>
+          <p>対象企業へ営業開始</p>
+        </div>
+      </article>
+
+      <article class="topic-card">
+        <div class="topic-card__head">
+          <span class="tag tag--blue">法改正</span>
+          <span class="topic-card__score">Score <b>88</b></span>
+        </div>
+        <div class="bar"><div class="bar__fill" style="width:88%"></div></div>
+        <h3 class="topic-card__title">建設業法の一部改正</h3>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">影響</span>
+          <p>許可要件の変更により既存顧客に影響</p>
+        </div>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">推奨アクション</span>
+          <p>既存顧客へ影響説明資料を送付</p>
+        </div>
+      </article>
+
+      <article class="topic-card">
+        <div class="topic-card__head">
+          <span class="tag tag--neutral">新サービス動向</span>
+          <span class="topic-card__score">Score <b>76</b></span>
+        </div>
+        <div class="bar"><div class="bar__fill" style="width:76%"></div></div>
+        <h3 class="topic-card__title">競合A社が新サービスを発表</h3>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">影響</span>
+          <p>差別化ポイントの見直しが必要</p>
+        </div>
+        <div class="topic-card__row">
+          <span class="topic-card__row-label">推奨アクション</span>
+          <p>自社サービスの比較資料を作成</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ③ AIの提案 -->
+  <section>
+    <h2 class="section-heading">AIの提案</h2>
+    <div class="ai-card">
+      <div class="ai-card__head">
+        <span class="ai-card__icon">AI</span>
+        <h3 class="ai-card__title">今週やるべきこと</h3>
+      </div>
+      <ul class="checklist">
+        <li><span class="checkbox"></span><span class="label">補助金対象企業へメール送信</span></li>
+        <li><span class="checkbox"></span><span class="label">LPを更新</span></li>
+        <li><span class="checkbox"></span><span class="label">新サービス調査</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ④ 今週の注目ニュース -->
+  <section style="margin-bottom: 0;">
+    <h2 class="section-heading">今週の注目ニュース</h2>
+    <div class="news-grid">
+
+      <article class="news-card">
+        <div class="news-card__thumb" style="background: linear-gradient(135deg, #eaf1ff, #dbe7ff);"></div>
+        <div class="news-card__body">
+          <p class="news-card__title">中小企業庁、DX推進補助金の第2次公募を開始</p>
+          <p class="news-card__meta">中小企業庁 ・ 2026.07.24</p>
+        </div>
+      </article>
+
+      <article class="news-card">
+        <div class="news-card__thumb" style="background: linear-gradient(135deg, #fff1e6, #ffe1c7);"></div>
+        <div class="news-card__body">
+          <p class="news-card__title">建設業法の一部改正が可決、2027年施行へ</p>
+          <p class="news-card__meta">国土交通省 ・ 2026.07.22</p>
+        </div>
+      </article>
+
+      <article class="news-card">
+        <div class="news-card__thumb" style="background: linear-gradient(135deg, #f1f2f4, #e4e6ea);"></div>
+        <div class="news-card__body">
+          <p class="news-card__title">競合A社、新規事業向けAIツールを発表</p>
+          <p class="news-card__meta">業界ニュース ・ 2026.07.20</p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
