@@ -766,7 +766,8 @@
       </div>
       <div class="score-copy">
         <p class="score-copy__eyebrow">AIが算出した貴社の機会スコア</p>
-        <p class="score-copy__headline">貴社に、大きなビジネスチャンスが届いています</p>
+        <p class="score-copy__headline" id="scoreCopyHeadline">貴社に、大きなビジネスチャンスが届いています</p>
+        <p class="summary-subtitle" id="scoreCopySubtitle" hidden></p>
         <p class="breakdown-label" id="breakdownLabel">業種別内訳（関連業界）</p>
         <div class="industry-breakdown">
           <div class="industry-row" id="industryRow1">
@@ -1121,6 +1122,42 @@
         { label: "登録情報ベースの市場変化", value: 80 },
       ],
     };
+
+    // score-copy headline: replace the generic "大きなビジネスチャンスが届いて
+    // います" claim with a measured "検知しました" statement per industry, plus
+    // a soft supporting line ("...につながる可能性があります") so the section
+    // reads as an AI estimate rather than a confirmed opportunity. No profile
+    // keeps the original headline and no supporting line at all.
+    const headlineOverrides = {
+      manufacturing: {
+        headline: "製造業に関連する市場変化を検知しました",
+        sub: "設備投資や補助金関連の営業機会につながる可能性があります",
+      },
+      construction: {
+        headline: "建設業に関連する市場変化を検知しました",
+        sub: "既存顧客対応や法改正関連の営業機会につながる可能性があります",
+      },
+      professional: {
+        headline: "顧客支援につながる制度変化を検知しました",
+        sub: "顧問先への提案や相談対応の機会につながる可能性があります",
+      },
+      other: {
+        headline: "登録情報をもとに市場変化を検知しました",
+        sub: "登録情報に関連する営業機会につながる可能性があります",
+      },
+    };
+
+    const headlineData = headlineOverrides[profile.industry];
+    if (headlineData) {
+      const scoreCopyHeadline = document.getElementById("scoreCopyHeadline");
+      if (scoreCopyHeadline) scoreCopyHeadline.textContent = headlineData.headline;
+
+      const scoreCopySubtitle = document.getElementById("scoreCopySubtitle");
+      if (scoreCopySubtitle) {
+        scoreCopySubtitle.textContent = headlineData.sub;
+        scoreCopySubtitle.hidden = false;
+      }
+    }
 
     const breakdownRows = breakdownOverrides[profile.industry];
     if (breakdownRows) {
