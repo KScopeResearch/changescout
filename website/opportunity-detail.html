@@ -816,6 +816,30 @@
         genTalk: "「本日は、貴社の登録情報をもとに検知した市場変化についてご案内できればと思いご連絡しました。\n貴社の事業内容と関連性が高いと考えられる動きがありましたので、詳しい内容を5分ほどでご説明できますが、少しお時間いただけますか？」",
         genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：市場変化のご案内\n2. 概要：検知された変化の内容\n3. 貴社への想定インパクト：登録情報をもとにした関連度\n4. ご提案内容：弊社の支援サービス概要\n5. 次のアクション：ヒアリングのご案内",
       },
+      "it-dx": {
+        tag: "税制改正",
+        tagClass: "tag--blue",
+        title: "中小企業のDX推進を後押しする税制優遇拡充",
+        fact: "中小企業のDX推進・業務改善ニーズが高まる見通し（経済産業省）",
+        overview1: "経済産業省は2026年7月、中小企業のDX投資を対象とした税額控除・特別償却の適用要件を緩和し、業務システム導入やクラウド活用への投資を後押しすることを発表しました。",
+        overview2: "これにより、コスト面でDX投資を先送りしていた中小企業でも導入に踏み切りやすい環境が整いつつあり、業務改善・DX導入を支援する事業者にとっては新たな提案機会が生まれています。",
+        impact: "貴社（IT・DX支援）のDX導入提案需要への影響",
+        reason: "貴社がIT・DX支援事業者として、税制優遇を切り口にした提案を行う好機であるため",
+        action: "既存のDX導入支援対象顧客への情報提供を開始",
+        whyNow: "顧客企業の改善課題が顕在化する前に、税制優遇を切り口とした提案機会を作ることができます。",
+        evidence: [
+          { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12" },
+          { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12" },
+        ],
+        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち、DX投資を検討している層に税制優遇の情報が刺さる見込みです。また、これまでコスト面で導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合のDX支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
+        actionTitle: "DX投資減税を切り口に既存顧客へ提案を行う",
+        actionTarget: "既存顧客のうちDX投資検討層に該当する顧客",
+        actionReason: "税制優遇の適用要件緩和により、DX投資を検討する顧客の関心が高まっているため",
+        actionEffect: "新規商談化率の向上、既存顧客からの追加相談が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】DX投資に関する税制優遇の拡充について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、中小企業のDX投資を対象とした税額控除・特別償却の適用要件が緩和されました。\n貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、貴社のDX投資に関する朗報についてご案内できればと思いご連絡しました。\n実は、中小企業のDX投資に対する税額控除の要件が緩和されまして、これまで導入を迷われていたシステムやクラウドサービスも対象になる可能性があります。\nもし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や活用のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：DX投資減税のご案内\n2. 制度概要：税額控除・特別償却の適用要件緩和\n3. 貴社への想定インパクト：対象条件・活用余地\n4. 導入支援内容：弊社のDX導入支援サービス概要\n5. 導入ステップとスケジュール\n6. 費用感・減税適用後の実質負担\n7. 次のアクション：ヒアリングのご案内",
+      },
     };
 
     let profile;
@@ -1096,6 +1120,23 @@
 
     const recommendedActionEl = document.getElementById("recommendedAction");
     if (recommendedActionEl) recommendedActionEl.dataset.source = "json";
+  })();
+
+  // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
+  // with the entered 企業名, if any. impactDetailBody is only ever set by the
+  // sync personalizeFromProfile() block above (no JSON overlay touches it),
+  // so running this once after that block is safe. Leaves the current
+  // display untouched when 企業名 isn't entered.
+  (function personalizeCompanyName() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.companyName) return;
+    const el = document.getElementById("impactDetailBody");
+    if (el) el.textContent = el.textContent.replace("株式会社フィールドDX", profile.companyName);
   })();
 </script>
 

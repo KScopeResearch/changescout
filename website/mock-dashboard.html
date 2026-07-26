@@ -717,7 +717,7 @@
     <span class="beta-badge">BETA</span>
   </header>
 
-  <p class="page-subtitle" style="margin-top:-24px;">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
+  <p class="page-subtitle" style="margin-top:-24px;" id="reportCompanyNameSubtitle">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
   <!-- ① ビジネス機会サマリー -->
   <section>
@@ -765,7 +765,7 @@
         </div>
       </div>
       <div class="score-copy">
-        <p class="score-copy__eyebrow">AIが算出した貴社の機会スコア</p>
+        <p class="score-copy__eyebrow">AI推定による貴社の機会スコア</p>
         <p class="score-copy__headline" id="scoreCopyHeadline">貴社に、大きなビジネスチャンスが届いています</p>
         <p class="summary-subtitle" id="scoreCopySubtitle" hidden></p>
         <p class="breakdown-label" id="breakdownLabel">業種別内訳（関連業界）</p>
@@ -797,7 +797,7 @@
     <div class="panel-card">
       <div class="panel-card__head">
         <span class="panel-card__icon">DX</span>
-        <h3 class="panel-card__title">株式会社フィールドDX 様への影響</h3>
+        <h3 class="panel-card__title" id="reportCompanyNameImpactTitle">株式会社フィールドDX 様への影響</h3>
       </div>
       <div class="stat-grid">
         <div class="stat-tile">
@@ -1122,6 +1122,11 @@
       other: [
         { label: "登録情報ベースの市場変化", value: 80 },
       ],
+      "it-dx": [
+        { label: "DX投資提案機会", value: 86 },
+        { label: "税制優遇関連問い合わせ", value: 79 },
+        { label: "既存顧客フォロー", value: 72 },
+      ],
     };
 
     // score-copy headline: replace the generic "大きなビジネスチャンスが届いて
@@ -1145,6 +1150,10 @@
       other: {
         headline: "登録情報をもとに市場変化を検知しました",
         sub: "登録情報に関連する営業機会につながる可能性があります",
+      },
+      "it-dx": {
+        headline: "IT・DX支援に関連する市場変化を検知しました",
+        sub: "DX投資や業務改善関連の営業機会につながる可能性があります",
       },
     };
 
@@ -1358,6 +1367,47 @@
           effect: "提案時の失注防止、差別化ポイントの明確化",
         },
       },
+      "it-dx": {
+        card1: {
+          tag: "税制改正",
+          title: "中小企業のDX推進を後押しする税制優遇拡充",
+          fact: "中小企業のDX推進・業務改善ニーズが高まる見通し（経済産業省）",
+          impact: "貴社（IT・DX支援）のDX導入提案需要への影響",
+          reason: "貴社がIT・DX支援事業者として、税制優遇を切り口にした提案を行う好機であるため",
+          action: "既存のDX導入支援対象顧客への情報提供を開始",
+        },
+        card2: {
+          impact: "既存顧客のシステム投資判断に影響",
+          reason: "貴社の既存顧客（DX導入検討層）が、税制優遇を機に投資判断を前倒しする可能性があるため",
+          action: "既存顧客へ制度変更の案内を送付する",
+        },
+        card3: {
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+        },
+        action1: {
+          title: "DX投資減税を切り口に既存顧客へ提案を行う",
+          target: "既存顧客のうちDX投資検討層に該当する顧客",
+          reason: "税制優遇の適用要件緩和により、DX投資を検討する顧客の関心が高まっているため",
+          effect: "新規商談化率の向上、既存顧客からの追加相談が見込まれる（想定売上機会 最大400万円）",
+          mail: "件名：【ご案内】DX投資に関する税制優遇の拡充について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、中小企業のDX投資を対象とした税額控除・特別償却の適用要件が緩和されました。\n貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+          talk: "「本日は、貴社のDX投資に関する朗報についてご案内できればと思いご連絡しました。\n実は、中小企業のDX投資に対する税額控除の要件が緩和されまして、これまで導入を迷われていたシステムやクラウドサービスも対象になる可能性があります。\nもし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や活用のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+          proposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：DX投資減税のご案内\n2. 制度概要：税額控除・特別償却の適用要件緩和\n3. 貴社への想定インパクト：対象条件・活用余地\n4. 導入支援内容：弊社のDX導入支援サービス概要\n5. 導入ステップとスケジュール\n6. 費用感・減税適用後の実質負担\n7. 次のアクション：ヒアリングのご案内",
+        },
+        action2: {
+          title: "LPに最新のDX投資減税情報を反映する",
+          target: "Web経由のDX導入検討見込み客全般",
+          reason: "税制優遇への関心が高まっているタイミングで、検索流入・問い合わせを強化するため",
+          effect: "サイト経由のリード獲得数の増加",
+        },
+        action3: {
+          title: "競合のDX支援サービスを調査し比較資料を作成する",
+          target: "商談中のDX導入見込み客（比較検討フェーズ）",
+          reason: "競合がDX支援サービスを強化しており、提案時の差別化が必要なため",
+          effect: "提案時の失注防止、差別化ポイントの明確化",
+        },
+      },
     };
 
     const content = overrides[profile.industry];
@@ -1565,6 +1615,25 @@
 
     const actionPlan1El = document.getElementById("actionPlan1");
     if (actionPlan1El) actionPlan1El.dataset.source = "json";
+  })();
+
+  // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
+  // with the entered 企業名, if any. Independent of industry matching (this
+  // text isn't industry-specific), so it runs regardless of which content
+  // path (static/override/json) rendered Card1. Leaves the current display
+  // untouched when 企業名 isn't entered.
+  (function personalizeCompanyName() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.companyName) return;
+    ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = el.textContent.replace("株式会社フィールドDX", profile.companyName);
+    });
   })();
 </script>
 

@@ -235,6 +235,12 @@
     <form action="profile-complete.html" method="get">
 
       <div class="form-section">
+        <label class="form-section__label" for="companyName">企業名<span style="font-weight:400;color:var(--text-muted);">（任意）</span></label>
+        <p class="form-section__hint">レポート表示に使用します。個人事業主の場合は屋号等でも構いません</p>
+        <input type="text" id="companyName" name="companyName" placeholder="例：株式会社サンプル商事">
+      </div>
+
+      <div class="form-section">
         <label class="form-section__label" for="industry">業種</label>
         <select id="industry" name="industry" required>
           <option value="">選択してください</option>
