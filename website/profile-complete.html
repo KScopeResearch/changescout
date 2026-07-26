@@ -289,6 +289,7 @@
   <div class="info-card">
     <h2 class="info-card__title">あなたの会社情報</h2>
     <dl class="info-list">
+      <div class="info-row" id="infoCompanyNameRow" style="display:none;"><dt>企業名</dt><dd id="infoCompanyName">—</dd></div>
       <div class="info-row"><dt>業種</dt><dd id="infoIndustry">—</dd></div>
       <div class="info-row"><dt>顧客層</dt><dd id="infoCustomerSegment">—</dd></div>
       <div class="info-row"><dt>商材</dt><dd id="infoProduct">—</dd></div>
@@ -368,6 +369,16 @@
   setText("infoCustomerSegment", getValue("customerSegment"));
   setText("infoProduct", getValue("product"));
   setText("infoRegion", regionLabels[getValue("region")]);
+
+  // Should Fix (Phase 3 pre-review): show 企業名 only when entered — unlike
+  // the other rows, which always show with a "—" placeholder, a blank
+  // company name row would look broken rather than "not provided".
+  const companyName = getValue("companyName");
+  if (companyName) {
+    setText("infoCompanyName", companyName);
+    const row = document.getElementById("infoCompanyNameRow");
+    if (row) row.style.display = "flex";
+  }
 </script>
 
 </body>

@@ -937,7 +937,16 @@
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
       if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
-      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+      if (!lines.length) return;
+      // Should Fix (Phase 3 pre-review): Proposal is a numbered outline, so a
+      // trailing prose paragraph reads as a formatting mistake. Append as a
+      // labeled, bulleted supplement instead. Mail/Talk keep the original
+      // prose paragraph unchanged.
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
     };
 
     appendTarget("actionTarget");
@@ -1123,7 +1132,12 @@
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
       if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
-      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+      if (!lines.length) return;
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
     });
 
     // Must Fix (Phase 3 pre-review): re-apply the same 企業名 substitution the

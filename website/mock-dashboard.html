@@ -818,7 +818,7 @@
         </div>
       </div>
       <p class="ai-estimate-note">AI推定値：公開情報・登録プロフィール情報をもとに算出</p>
-      <p class="panel-card__body">
+      <p class="panel-card__body" id="impactNarrative">
         今週検出された変化のうち、貴社の主要顧客層（製造業・建設業向けIT・DX導入支援）に直接関係する項目が3件あります。
         特に「補助金対象拡大」は新規営業リードの増加が見込まれるため、優先的な対応を推奨します。
       </p>
@@ -1427,6 +1427,13 @@
     const card1El = document.getElementById("card1");
     if (card1El) card1El.dataset.source = "override";
 
+    // Must Fix (Phase 3 pre-review): "貴社への影響" narrative used to be a fixed
+    // paragraph describing the demo persona's own customer base, contradicting
+    // whatever the user actually entered. Build it from Card1's own content
+    // instead, and only mention customerSegment when the user provided one.
+    const impactSubject = profile.customerSegment ? `${profile.customerSegment}に関連する市場変化` : "貴社に関連する市場変化";
+    setText("impactNarrative", `今週検出された変化のうち、${impactSubject}を確認しました。特に「${content.card1.title}」は、${content.card1.action}につながる可能性があります。`);
+
     setText("card2Impact", content.card2.impact);
     setText("card2Reason", content.card2.reason);
     setText("card2Action", content.card2.action);
@@ -1501,7 +1508,16 @@
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
       if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
-      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+      if (!lines.length) return;
+      // Should Fix (Phase 3 pre-review): Proposal is a numbered outline, so a
+      // trailing prose paragraph reads as a formatting mistake. Append as a
+      // labeled, bulleted supplement instead. Mail/Talk keep the original
+      // prose paragraph unchanged.
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
     };
 
     ["a1Target", "a2Target", "a3Target"].forEach(appendTarget);
@@ -1555,6 +1571,11 @@
       const actionEl = document.getElementById("card1Action");
       if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
     }
+
+    // Must Fix (Phase 3 pre-review): re-build "貴社への影響" narrative from the
+    // JSON-sourced Card1 content, same rule as the sync block.
+    const impactSubject = profile.customerSegment ? `${profile.customerSegment}に関連する市場変化` : "貴社に関連する市場変化";
+    setText("impactNarrative", `今週検出された変化のうち、${impactSubject}を確認しました。特に「${match.title}」は、${match.action}につながる可能性があります。`);
 
     const card1El = document.getElementById("card1");
     if (card1El) card1El.dataset.source = "json";
@@ -1618,7 +1639,12 @@
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
       if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
-      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+      if (!lines.length) return;
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
     });
 
     // Must Fix (Phase 3 pre-review): re-apply the same 企業名 substitution the
