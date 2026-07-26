@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Review ｜ ChangeScout Weekly</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #0f172a;
+    --text-muted: #667085;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --orange: #f97316;
+    --orange-soft: #fff1e6;
+    --green: #16a34a;
+    --green-soft: #eafaf0;
+    --red: #dc2626;
+    --red-soft: #fdecec;
+    --neutral-soft: #f1f2f4;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 8px 20px -16px rgba(15, 23, 42, 0.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--blue), var(--orange));
+    flex-shrink: 0;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .brand__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid #ffd9bd;
+  }
+
+  .beta-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  h1.page-title {
+    margin: 0 0 24px;
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 1.9rem);
+    font-weight: 800;
+  }
+
+  .meta-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .meta-tile__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .meta-tile__value {
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .meta-tile__value--link a {
+    color: var(--blue);
+    text-decoration: none;
+  }
+
+  .meta-tile__value--link a:hover {
+    text-decoration: underline;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+
+  .shot-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .shot-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .shot-card__label {
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-transform: capitalize;
+  }
+
+  .status-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .status-badge--pass {
+    background: var(--green-soft);
+    color: var(--green);
+  }
+
+  .status-badge--fail {
+    background: var(--red-soft);
+    color: var(--red);
+  }
+
+  .shot-card img {
+    display: block;
+    width: 100%;
+    border-bottom: 1px solid var(--border);
+    background: var(--neutral-soft);
+  }
+
+  .shot-card__body {
+    padding: 14px 18px 18px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .shot-card__body a {
+    color: var(--blue);
+    text-decoration: none;
+    word-break: break-all;
+  }
+
+  .shot-card__body a:hover {
+    text-decoration: underline;
+  }
+
+  .shot-card__row {
+    margin-top: 4px;
+  }
+
+  .placeholder {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 900px) {
+    .meta-card {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <div class="brand__text">
+        <span class="brand__name">ChangeScout Weekly</span>
+        <span class="brand__sub">市場の変化を、ビジネスチャンスへ。</span>
+      </div>
+    </div>
+    <span class="beta-badge">BETA</span>
+  </header>
+
+  <h1 class="page-title">UI Review</h1>
+
+  <div class="meta-card" id="metaCard">
+    <div>
+      <div class="meta-tile__label">Commit</div>
+      <div class="meta-tile__value" id="metaCommit">読み込み中...</div>
+    </div>
+    <div>
+      <div class="meta-tile__label">Generated At</div>
+      <div class="meta-tile__value" id="metaGeneratedAt">読み込み中...</div>
+    </div>
+    <div>
+      <div class="meta-tile__label">Test Result</div>
+      <div class="meta-tile__value" id="metaSummary">読み込み中...</div>
+    </div>
+    <div>
+      <div class="meta-tile__label">Raw Data</div>
+      <div class="meta-tile__value meta-tile__value--link"><a href="report.json">report.json</a></div>
+    </div>
+  </div>
+
+  <div class="grid" id="shotGrid">
+    <p class="placeholder">report.json を読み込み中...</p>
+  </div>
+
+</div>
+
+<script>
+  fetch("report.json")
+    .then((res) => res.json())
+    .then((report) => {
+      document.getElementById("metaCommit").textContent = report.commitShort;
+      document.getElementById("metaGeneratedAt").textContent = new Date(report.generatedAt).toLocaleString("ja-JP");
+      document.getElementById("metaSummary").textContent = `${report.summary.passed} / ${report.summary.total} passed`;
+
+      const grid = document.getElementById("shotGrid");
+      grid.innerHTML = "";
+
+      report.results.forEach((result) => {
+        const card = document.createElement("div");
+        card.className = "shot-card";
+        card.innerHTML = `
+          <div class="shot-card__head">
+            <span class="shot-card__label">${result.label}</span>
+            <span class="status-badge ${result.passed ? "status-badge--pass" : "status-badge--fail"}">
+              ${result.passed ? "PASS" : "FAIL"}
+            </span>
+          </div>
+          <a href="${result.screenshot}" target="_blank" rel="noopener">
+            <img src="${result.screenshot}" alt="${result.label} screenshot" loading="lazy">
+          </a>
+          <div class="shot-card__body">
+            <div class="shot-card__row">URL: <a href="${result.url}" target="_blank" rel="noopener">${result.url}</a></div>
+            <div class="shot-card__row">Console errors: ${result.consoleErrors}</div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    })
+    .catch(() => {
+      document.getElementById("shotGrid").innerHTML =
+        '<p class="placeholder">report.json の読み込みに失敗しました。npm run review を実行して生成してください。</p>';
+    });
+</script>
+
+</body>
+</html>

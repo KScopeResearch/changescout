@@ -1,0 +1,48 @@
+{
+  "commit": "40b90e0c4860dff0cc0b730328fc81e11223cdff",
+  "commitShort": "40b90e0",
+  "generatedAt": "2026-07-26T05:11:25.839Z",
+  "summary": {
+    "total": 4,
+    "passed": 4,
+    "failed": 0
+  },
+  "results": [
+    {
+      "label": "desktop dashboard",
+      "project": "desktop",
+      "page": "mock-dashboard.html",
+      "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
+      "screenshot": "../screenshots/desktop-mock-dashboard.png",
+      "passed": true,
+      "consoleErrors": 0
+    },
+    {
+      "label": "desktop opportunity detail",
+      "project": "desktop",
+      "page": "opportunity-detail.html",
+      "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
+      "screenshot": "../screenshots/desktop-opportunity-detail.png",
+      "passed": true,
+      "consoleErrors": 0
+    },
+    {
+      "label": "mobile dashboard",
+      "project": "mobile",
+      "page": "mock-dashboard.html",
+      "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
+      "screenshot": "../screenshots/mobile-mock-dashboard.png",
+      "passed": true,
+      "consoleErrors": 0
+    },
+    {
+      "label": "mobile opportunity detail",
+      "project": "mobile",
+      "page": "opportunity-detail.html",
+      "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
+      "screenshot": "../screenshots/mobile-opportunity-detail.png",
+      "passed": true,
+      "consoleErrors": 0
+    }
+  ]
+}

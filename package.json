@@ -6,7 +6,8 @@
   "scripts": {
     "check": "playwright test",
     "check:ui": "playwright test --ui",
-    "check:report": "playwright show-report"
+    "check:report": "playwright show-report",
+    "review": "playwright test && node scripts/generate-review.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0"
