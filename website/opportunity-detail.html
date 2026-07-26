@@ -613,7 +613,7 @@
           <div class="stat-tile__value stat-tile__value--accent">最大400万円</div>
         </div>
       </div>
-      <p class="ai-estimate-note">公開情報・プロフィール情報をもとにしたAI推定です</p>
+      <p class="ai-estimate-note">AI推定値：公開情報・登録プロフィール情報をもとに算出</p>
       <p class="panel-card__body" id="impactDetailBody">
         貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。
         また、これまで投資予算の制約で導入を見送っていた製造業の見込み客層にもアプローチの余地が生まれます。
@@ -694,6 +694,8 @@
       <div class="action-item__row" id="rowProduct" hidden><span class="action-item__row-label">商材</span><span id="genProduct"></span></div>
       <div class="action-item__row" id="rowRegion" hidden><span class="action-item__row-label">営業地域</span><span id="genRegion"></span></div>
       <div class="action-item__row" id="rowMarketChange" hidden><span class="action-item__row-label">検知した市場変化</span><span id="genMarketChange"></span></div>
+      <div class="action-item__row" id="rowReferences" hidden><span class="action-item__row-label">参照情報</span><span id="genReferences"></span></div>
+      <div class="action-item__row" id="rowAnalysisTiming" hidden><span class="action-item__row-label">分析タイミング</span><span id="genAnalysisTiming"></span></div>
     </div>
   </section>
 
@@ -917,12 +919,15 @@
     // Show the AI transparency panel: which profile inputs and detected market change
     // shaped this page's content. Only shown when a profile exists; each row is shown
     // only when that specific value is actually available (nothing is guessed).
+    // "other" is an internal classification only — the AI Transparency panel
+    // must never surface the literal word "その他", so it shows the same
+    // neutral phrasing used for the market-change wording instead.
     const industryLabels = {
       "it-dx": "IT・DX支援",
       construction: "建設",
       professional: "士業",
       manufacturing: "製造業",
-      other: "その他",
+      other: "登録情報ベース",
     };
 
     const whyGeneratedSection = document.getElementById("whyGeneratedSection");
@@ -942,6 +947,11 @@
       showRow("rowProduct", "genProduct", profile.product);
       showRow("rowRegion", "genRegion", regionLabel);
       showRow("rowMarketChange", "genMarketChange", content.fact);
+      // Static disclosure rows: what kind of information this mock draws on,
+      // and when — not live-fetched data, so kept to wording that doesn't
+      // imply real-time retrieval.
+      showRow("rowReferences", "genReferences", "プロフィール情報／公開されている市場情報／業界制度・法改正情報");
+      showRow("rowAnalysisTiming", "genAnalysisTiming", "2026年7月時点");
     }
   })();
 </script>
