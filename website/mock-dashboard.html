@@ -122,11 +122,30 @@
     margin: 0 0 18px;
   }
 
+  .eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+
   section {
     margin-bottom: 48px;
   }
 
-  /* ① Opportunity Score */
+  section.section--muted .section-heading {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+  }
+
+  section.section--muted .eyebrow {
+    color: var(--text-muted);
+  }
+
+  /* ② 業界別ビジネスチャンス指数 */
   .score-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -135,7 +154,7 @@
     padding: 36px;
     display: flex;
     align-items: center;
-    gap: 36px;
+    gap: 40px;
     flex-wrap: wrap;
   }
 
@@ -163,7 +182,7 @@
     stroke-width: 12;
     stroke-linecap: round;
     stroke-dasharray: 327;
-    stroke-dashoffset: 26;
+    stroke-dashoffset: 59;
   }
 
   .score-ring__value {
@@ -189,7 +208,7 @@
 
   .score-copy {
     flex: 1;
-    min-width: 220px;
+    min-width: 260px;
   }
 
   .score-copy__eyebrow {
@@ -201,18 +220,113 @@
   }
 
   .score-copy__headline {
-    font-size: 1.35rem;
+    font-size: 1.3rem;
     font-weight: 800;
-    margin: 0 0 10px;
+    margin: 0 0 16px;
   }
 
-  .score-copy__body {
-    color: var(--text-muted);
+  .industry-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .industry-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .industry-row__label {
+    width: 116px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .industry-row__value {
+    width: 34px;
+    text-align: right;
+    font-weight: 800;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  /* ③ 貴社への影響 */
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px 32px;
+  }
+
+  .panel-card__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .panel-card__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--blue), var(--orange));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .panel-card__title {
     margin: 0;
-    max-width: 460px;
+    font-size: 1.05rem;
+    font-weight: 800;
   }
 
-  /* ② 今週の重要トピック */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .stat-tile {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-tile__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .stat-tile__value {
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .stat-tile__value--accent {
+    color: var(--orange);
+  }
+
+  .panel-card__body {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  /* ④ 検出されたビジネスチャンス */
   .topic-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -295,116 +409,126 @@
     background: linear-gradient(90deg, var(--blue), var(--orange));
   }
 
-  /* ③ AIの提案 */
-  .ai-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    padding: 28px 32px;
-  }
-
-  .ai-card__head {
-    display: flex;
+  .card-link {
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .ai-card__icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, var(--blue), var(--orange));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-weight: 800;
+    gap: 6px;
+    margin-top: 4px;
     font-size: 0.85rem;
-    flex-shrink: 0;
-  }
-
-  .ai-card__title {
-    margin: 0;
-    font-size: 1.05rem;
     font-weight: 800;
+    color: var(--blue);
+    text-decoration: none;
   }
 
-  .checklist {
+  .card-link:hover {
+    text-decoration: underline;
+  }
+
+  /* ⑤ AI Action Plan */
+  .action-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 16px;
   }
 
-  .checklist li {
+  .action-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+  }
+
+  .action-item__head {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
-    padding: 12px 8px;
-    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
   }
 
-  .checklist li:hover {
-    background: var(--bg);
+  .action-item__title {
+    font-weight: 800;
+    font-size: 0.98rem;
   }
 
-  .checkbox {
-    width: 20px;
-    height: 20px;
-    border-radius: 6px;
-    border: 2px solid var(--border);
+  .priority {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .priority--high {
+    background: var(--orange-soft);
+    color: #c2530f;
+  }
+
+  .priority--mid {
+    background: var(--blue-soft);
+    color: #1d4ed8;
+  }
+
+  .action-item__row {
+    font-size: 0.87rem;
+    margin-top: 8px;
+    color: var(--text-muted);
+  }
+
+  .action-item__row-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 6px;
+  }
+
+  /* ⑥ 根拠情報 */
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .source-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .checklist span.label {
-    font-size: 0.95rem;
+  .source-item__title {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 600;
   }
 
-  /* ④ 注目ニュース */
-  .news-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-  }
-
-  .news-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .news-card__thumb {
-    height: 96px;
-  }
-
-  .news-card__body {
-    padding: 18px 20px 22px;
-  }
-
-  .news-card__title {
-    margin: 0 0 10px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    line-height: 1.5;
-  }
-
-  .news-card__meta {
-    margin: 0;
+  .source-item__meta {
     font-size: 0.78rem;
     color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   /* Responsive */
   @media (max-width: 900px) {
-    .topic-grid,
-    .news-grid {
+    .topic-grid {
       grid-template-columns: repeat(2, 1fr);
+    }
+
+    .stat-grid {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -423,9 +547,12 @@
       gap: 24px;
     }
 
-    .topic-grid,
-    .news-grid {
+    .topic-grid {
       grid-template-columns: 1fr;
+    }
+
+    .source-item {
+      flex-wrap: wrap;
     }
   }
 </style>
@@ -445,10 +572,11 @@
     <span class="beta-badge">BETA</span>
   </header>
 
-  <p class="page-subtitle" style="margin-top:-24px;">2026.07.20 – 2026.07.26 のレポート（サンプル）</p>
+  <p class="page-subtitle" style="margin-top:-24px;">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
-  <!-- ① 今週のOpportunity Score -->
+  <!-- ② 業界別ビジネスチャンス指数 -->
   <section>
+    <h2 class="section-heading">業界別ビジネスチャンス指数</h2>
     <div class="score-card">
       <div class="score-ring">
         <svg viewBox="0 0 120 120">
@@ -462,24 +590,66 @@
           <circle class="ring-progress" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" />
         </svg>
         <div class="score-ring__value">
-          <span class="score-ring__num">92</span>
-          <span class="score-ring__max">/ 100</span>
+          <span class="score-ring__num">82</span>
+          <span class="score-ring__max">関連業界平均</span>
         </div>
       </div>
       <div class="score-copy">
-        <p class="score-copy__eyebrow">今週の Opportunity Score</p>
-        <p class="score-copy__headline">今週は大きなチャンスがあります</p>
-        <p class="score-copy__body">
-          補助金制度の対象拡大と法改正が重なり、営業・提案につながる変化が多く検知されました。
-          下記の重要トピックとAIの提案をご確認ください。
-        </p>
+        <p class="score-copy__eyebrow">貴社の関連業界における指数</p>
+        <p class="score-copy__headline">関連業界で大きなビジネスチャンスが発生しています</p>
+        <div class="industry-breakdown">
+          <div class="industry-row">
+            <span class="industry-row__label">製造業</span>
+            <div class="bar"><div class="bar__fill" style="width:92%"></div></div>
+            <span class="industry-row__value">92</span>
+          </div>
+          <div class="industry-row">
+            <span class="industry-row__label">建設業</span>
+            <div class="bar"><div class="bar__fill" style="width:84%"></div></div>
+            <span class="industry-row__value">84</span>
+          </div>
+          <div class="industry-row">
+            <span class="industry-row__label">卸売・小売業</span>
+            <div class="bar"><div class="bar__fill" style="width:71%"></div></div>
+            <span class="industry-row__value">71</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- ② 今週の重要トピック -->
+  <!-- ③ 貴社への影響 -->
   <section>
-    <h2 class="section-heading">今週の重要トピック</h2>
+    <h2 class="section-heading">貴社への影響</h2>
+    <div class="panel-card">
+      <div class="panel-card__head">
+        <span class="panel-card__icon">DX</span>
+        <h3 class="panel-card__title">株式会社フィールドDX 様への影響</h3>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定影響度</div>
+          <div class="stat-tile__value stat-tile__value--accent">高</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">関連する変化</div>
+          <div class="stat-tile__value">3件</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定インパクト</div>
+          <div class="stat-tile__value">新規リード 最大12社</div>
+        </div>
+      </div>
+      <p class="panel-card__body">
+        今週検出された変化のうち、貴社の主要顧客層（製造業・建設業向けIT・DX導入支援）に直接関係する項目が3件あります。
+        特に「補助金対象拡大」は新規営業リードの増加が見込まれるため、優先的な対応を推奨します。
+      </p>
+    </div>
+  </section>
+
+  <!-- ④ 検出されたビジネスチャンス -->
+  <section>
+    <h2 class="section-heading">検出されたビジネスチャンス</h2>
     <div class="topic-grid">
 
       <article class="topic-card">
@@ -497,6 +667,7 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p>対象企業へ営業開始</p>
         </div>
+        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
       </article>
 
       <article class="topic-card">
@@ -514,6 +685,7 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p>既存顧客へ影響説明資料を送付</p>
         </div>
+        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
       </article>
 
       <article class="topic-card">
@@ -531,56 +703,65 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p>自社サービスの比較資料を作成</p>
         </div>
+        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
       </article>
 
     </div>
   </section>
 
-  <!-- ③ AIの提案 -->
+  <!-- ⑤ AI Action Plan -->
   <section>
-    <h2 class="section-heading">AIの提案</h2>
-    <div class="ai-card">
-      <div class="ai-card__head">
-        <span class="ai-card__icon">AI</span>
-        <h3 class="ai-card__title">今週やるべきこと</h3>
-      </div>
-      <ul class="checklist">
-        <li><span class="checkbox"></span><span class="label">補助金対象企業へメール送信</span></li>
-        <li><span class="checkbox"></span><span class="label">LPを更新</span></li>
-        <li><span class="checkbox"></span><span class="label">新サービス調査</span></li>
+    <h2 class="section-heading">AI Action Plan</h2>
+    <div class="panel-card">
+      <ul class="action-list">
+        <li class="action-item">
+          <div class="action-item__head">
+            <span class="action-item__title">補助金対象企業へ営業メールを送信する</span>
+            <span class="priority priority--high">優先度：高</span>
+          </div>
+          <div class="action-item__row"><span class="action-item__row-label">理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため（関連トピック：補助金対象拡大）</div>
+          <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる</div>
+        </li>
+        <li class="action-item">
+          <div class="action-item__head">
+            <span class="action-item__title">LPに最新の補助金・法改正情報を反映する</span>
+            <span class="priority priority--mid">優先度：中</span>
+          </div>
+          <div class="action-item__row"><span class="action-item__row-label">理由</span>検索流入や関心層への訴求力を高めるため（関連トピック：補助金対象拡大／建設業法の一部改正）</div>
+          <div class="action-item__row"><span class="action-item__row-label">期待効果</span>サイト経由のリード獲得数の増加</div>
+        </li>
+        <li class="action-item">
+          <div class="action-item__head">
+            <span class="action-item__title">競合A社の新サービスを調査し比較資料を作成する</span>
+            <span class="priority priority--mid">優先度：中</span>
+          </div>
+          <div class="action-item__row"><span class="action-item__row-label">理由</span>競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため（関連トピック：競合A社が新サービスを発表）</div>
+          <div class="action-item__row"><span class="action-item__row-label">期待効果</span>提案時の失注防止、差別化ポイントの明確化</div>
+        </li>
       </ul>
     </div>
   </section>
 
-  <!-- ④ 今週の注目ニュース -->
-  <section style="margin-bottom: 0;">
-    <h2 class="section-heading">今週の注目ニュース</h2>
-    <div class="news-grid">
-
-      <article class="news-card">
-        <div class="news-card__thumb" style="background: linear-gradient(135deg, #eaf1ff, #dbe7ff);"></div>
-        <div class="news-card__body">
-          <p class="news-card__title">中小企業庁、DX推進補助金の第2次公募を開始</p>
-          <p class="news-card__meta">中小企業庁 ・ 2026.07.24</p>
-        </div>
-      </article>
-
-      <article class="news-card">
-        <div class="news-card__thumb" style="background: linear-gradient(135deg, #fff1e6, #ffe1c7);"></div>
-        <div class="news-card__body">
-          <p class="news-card__title">建設業法の一部改正が可決、2027年施行へ</p>
-          <p class="news-card__meta">国土交通省 ・ 2026.07.22</p>
-        </div>
-      </article>
-
-      <article class="news-card">
-        <div class="news-card__thumb" style="background: linear-gradient(135deg, #f1f2f4, #e4e6ea);"></div>
-        <div class="news-card__body">
-          <p class="news-card__title">競合A社、新規事業向けAIツールを発表</p>
-          <p class="news-card__meta">業界ニュース ・ 2026.07.20</p>
-        </div>
-      </article>
-
+  <!-- ⑥ 根拠情報 -->
+  <section class="section--muted" style="margin-bottom: 0;">
+    <p class="eyebrow">SOURCES</p>
+    <h2 class="section-heading">根拠情報（ニュース・出典）</h2>
+    <div class="source-list">
+      <div class="source-item">
+        <span class="source-dot" style="background:#f97316;"></span>
+        <span class="source-item__title">中小企業庁、DX推進補助金の第2次公募を開始</span>
+        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+      </div>
+      <div class="source-item">
+        <span class="source-dot" style="background:#2563eb;"></span>
+        <span class="source-item__title">建設業法の一部改正が可決、2027年施行へ</span>
+        <span class="source-item__meta">国土交通省 ・ 2026.07.22</span>
+      </div>
+      <div class="source-item">
+        <span class="source-dot" style="background:#667085;"></span>
+        <span class="source-item__title">競合A社、新規事業向けAIツールを発表</span>
+        <span class="source-item__meta">業界ニュース ・ 2026.07.20</span>
+      </div>
     </div>
   </section>
 

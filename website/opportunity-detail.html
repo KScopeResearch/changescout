@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>補助金対象拡大 ｜ ChangeScout Weekly</title>
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #0f172a;
+    --text-muted: #667085;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --orange: #f97316;
+    --orange-soft: #fff1e6;
+    --neutral-soft: #f1f2f4;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
+    --shadow-sm: 0 8px 20px -16px rgba(15, 23, 42, 0.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--blue), var(--orange));
+    flex-shrink: 0;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .brand__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid #ffd9bd;
+  }
+
+  .beta-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 20px;
+  }
+
+  .back-link:hover {
+    color: var(--blue);
+  }
+
+  .eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+
+  section {
+    margin-bottom: 40px;
+  }
+
+  h2.section-heading {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0 0 18px;
+  }
+
+  .tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+
+  .tag--orange { background: var(--orange-soft); color: #c2530f; }
+  .tag--blue { background: var(--blue-soft); color: #1d4ed8; }
+  .tag--neutral { background: var(--neutral-soft); color: #475467; }
+
+  /* Hero */
+  .detail-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 36px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+
+  .detail-hero__ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+  }
+
+  .detail-hero__ring svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--neutral-soft);
+    stroke-width: 12;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: url(#ringGradient);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 327;
+    stroke-dashoffset: 16;
+  }
+
+  .detail-hero__ring-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .detail-hero__ring-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .detail-hero__ring-max {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .detail-hero__copy {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .detail-hero__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 10px 0 0;
+  }
+
+  /* Panel card (shared style) */
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px 32px;
+  }
+
+  .panel-card__body {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  .panel-card__body + .panel-card__body {
+    margin-top: 12px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .stat-tile {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-tile__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .stat-tile__value {
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .stat-tile__value--accent {
+    color: var(--orange);
+  }
+
+  /* Action item (shared style) */
+  .action-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+  }
+
+  .action-item__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .action-item__title {
+    font-weight: 800;
+    font-size: 0.98rem;
+  }
+
+  .priority {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .priority--high {
+    background: var(--orange-soft);
+    color: #c2530f;
+  }
+
+  .action-item__row {
+    font-size: 0.87rem;
+    margin-top: 8px;
+    color: var(--text-muted);
+  }
+
+  .action-item__row-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 6px;
+  }
+
+  /* Sources */
+  .section--muted .section-heading,
+  .section--muted .eyebrow {
+    color: var(--text-muted);
+  }
+
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .source-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .source-item__title {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 600;
+  }
+
+  .source-item__meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      padding: 24px 16px 64px;
+    }
+
+    .detail-hero {
+      padding: 24px;
+      gap: 20px;
+    }
+
+    .stat-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .source-item {
+      flex-wrap: wrap;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand__mark" aria-hidden="true"></span>
+      <div class="brand__text">
+        <span class="brand__name">ChangeScout Weekly</span>
+        <span class="brand__sub">市場の変化を、ビジネスチャンスへ。</span>
+      </div>
+    </div>
+    <span class="beta-badge">BETA</span>
+  </header>
+
+  <a class="back-link" href="mock-dashboard.html">← ダッシュボードに戻る</a>
+
+  <!-- Hero -->
+  <section>
+    <div class="detail-hero">
+      <div class="detail-hero__ring">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2563eb" />
+              <stop offset="100%" stop-color="#f97316" />
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="60" cy="60" r="52" />
+          <circle class="ring-progress" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" />
+        </svg>
+        <div class="detail-hero__ring-value">
+          <span class="detail-hero__ring-num">95</span>
+          <span class="detail-hero__ring-max">/ 100</span>
+        </div>
+      </div>
+      <div class="detail-hero__copy">
+        <span class="tag tag--orange">補助金</span>
+        <h1 class="detail-hero__title">補助金対象拡大</h1>
+      </div>
+    </div>
+  </section>
+
+  <!-- 詳細説明 -->
+  <section>
+    <h2 class="section-heading">概要</h2>
+    <div class="panel-card">
+      <p class="panel-card__body">
+        経済産業省は2026年7月、ものづくり補助金の対象要件を拡大し、DX関連投資（業務システム導入・IoT設備・省力化ツール等）を新たに対象に含めることを発表しました。
+      </p>
+      <p class="panel-card__body">
+        これにより、これまで対象外だった多くの製造業がIT・DX投資の補助を受けられるようになり、
+        導入支援を提供する事業者にとっては新規の商談機会が広がると見込まれます。
+      </p>
+    </div>
+  </section>
+
+  <!-- 貴社への影響（詳細） -->
+  <section>
+    <h2 class="section-heading">貴社への影響（詳細）</h2>
+    <div class="panel-card">
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定影響度</div>
+          <div class="stat-tile__value stat-tile__value--accent">高</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">関連する既存顧客</div>
+          <div class="stat-tile__value">18社</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定新規リード</div>
+          <div class="stat-tile__value">最大12社</div>
+        </div>
+      </div>
+      <p class="panel-card__body">
+        貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。
+        また、これまで投資予算の制約で導入を見送っていた製造業の見込み客層にもアプローチの余地が生まれます。
+        競合の導入支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。
+      </p>
+    </div>
+  </section>
+
+  <!-- AI Action Plan（該当項目） -->
+  <section>
+    <h2 class="section-heading">AI Action Plan（このチャンスに関連するアクション）</h2>
+    <div class="panel-card">
+      <div class="action-item">
+        <div class="action-item__head">
+          <span class="action-item__title">補助金対象企業へ営業メールを送信する</span>
+          <span class="priority priority--high">優先度：高</span>
+        </div>
+        <div class="action-item__row"><span class="action-item__row-label">理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
+        <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 根拠情報 -->
+  <section class="section--muted" style="margin-bottom: 0;">
+    <p class="eyebrow">SOURCES</p>
+    <h2 class="section-heading">根拠情報（ニュース・出典）</h2>
+    <div class="source-list">
+      <div class="source-item">
+        <span class="source-dot" style="background:#f97316;"></span>
+        <span class="source-item__title">中小企業庁、DX推進補助金の第2次公募を開始</span>
+        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+      </div>
+      <div class="source-item">
+        <span class="source-dot" style="background:#667085;"></span>
+        <span class="source-item__title">ものづくり補助金 公募要領（改定版）</span>
+        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>
