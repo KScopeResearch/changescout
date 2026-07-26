@@ -1268,6 +1268,54 @@
     setText("a3Mail", content.action3.mail);
     setText("a3Talk", content.action3.talk);
     setText("a3Proposal", content.action3.proposal);
+
+    // Layer the company's own free-text profile (顧客層・商材・営業地域) on top of the
+    // industry theme, so the recommendation/action/generated copy reads as written for
+    // this specific company. Never invents a product/customer segment the user didn't enter.
+    const regionLabels = {
+      nationwide: "全国",
+      kanto: "関東",
+      kansai: "関西",
+      chubu: "中部・東海",
+      kyushu: "九州・沖縄",
+      other: "その他",
+    };
+    const regionLabel = regionLabels[profile.region];
+
+    const appendTarget = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) el.textContent += `（${extras.join("・")}が中心）`;
+    };
+
+    const appendReason = (id) => {
+      const el = document.getElementById(id);
+      if (!el || !profile.product) return;
+      el.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    };
+
+    const appendAction = (id) => {
+      const el = document.getElementById(id);
+      if (!el || !profile.customerSegment) return;
+      el.textContent += `（${profile.customerSegment}を中心に）`;
+    };
+
+    const appendGenerated = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+    };
+
+    ["a1Target", "a2Target", "a3Target"].forEach(appendTarget);
+    ["a1Reason", "a2Reason", "a3Reason"].forEach(appendReason);
+    ["card1Action", "card2Action", "card3Action"].forEach(appendAction);
+    ["a1Mail", "a2Mail", "a3Mail", "a1Talk", "a2Talk", "a3Talk", "a1Proposal", "a2Proposal", "a3Proposal"].forEach(appendGenerated);
   })();
 </script>
 
