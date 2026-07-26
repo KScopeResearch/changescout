@@ -2,6 +2,26 @@
 
 Phase 2-1: 市場変化データモデル設計。現在のHTMLモック（`website/mock-dashboard.html`, `website/opportunity-detail.html`）が固定文字列でハードコードしている内容を、将来データ・AI生成へ移行できる構造として整理する。**設計のみであり、今回は実装変更を行わない。**
 
+## Entity関係と責務
+
+```
+MarketChange
+    ↓
+Opportunity
+    ↓
+ActionPlan
+```
+
+| Entity | 責務 |
+|---|---|
+| `MarketChange` | 市場変化・制度変更・ニュース等の**客観情報**。企業プロフィールに依存しない |
+| `Opportunity` | `MarketChange` × `CompanyProfile` から生まれる、企業ごとの**影響・判断理由** |
+| `ActionPlan`（Phase 2-4で`action_plan`として実装） | 営業担当者が実際に**取る行動**（誰に・何を・どうやって） |
+
+**設計ドキュメント（本ファイル）上ではこの3層は責務が混在していない**：MarketChangeは`impact`/`reason`/`action`のような企業依存フィールドを持たず、それらはOpportunity（下記2節）に、営業行動固有のテンプレートはActionPlanに、それぞれ明確に分離している。
+
+**ただし実装（`website/data/market-changes.json`）は責務が混在している**：Phase 2-3で`impact`/`reason`/`action`/`overview1`/`overview2`/`why_now`を、Phase 2-4で`action_plan`を、いずれも実装速度を優先してMarketChangeオブジェクトへ直接内包した（各Phaseの実装メモ内で「本来はOpportunity生成ロジックが持つべき値の暫定的な内包」と明記済み）。これは意図的なMVP期間中の技術的負債であり、実際にOpportunity生成ロジックを実装する際（Phase 3以降）は、この2つのフィールド群を`MarketChange`から切り離し、`Opportunity`/`ActionPlan`として独立させる必要がある。
+
 ## 1. MarketChange（市場変化）
 
 市場で起きた変化そのものを表す、企業プロフィールに依存しない客観情報。

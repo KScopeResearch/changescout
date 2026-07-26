@@ -1,6 +1,43 @@
 ＃architecture.md
 
-## 現在のアーキテクチャ（website/）
+## Current Architecture
+
+```
+CompanyProfile（company-profile.htmlでの入力）
+        ↓
+localStorage（changescout_profile キー）
+        ↓
+MarketChange JSON（website/data/market-changes.json、fetchMarketChanges()で取得）
+        ↓
+Opportunity Renderer（pickMarketChange()でCompanyProfile.industryに一致する1件を選択し、
+                      Dashboard Card1 / Opportunity Detailの該当項目を描画）
+        ↓
+ActionPlan Renderer（同じMarketChangeエントリのaction_plan値を
+                      AI Action Plan #1 / Recommended Actionへ描画）
+```
+
+各段階は失敗時に手前の状態へフォールバックする（JSON取得失敗・業種未一致→既存のハードコード`overrides`、プロフィール未入力→静的HTML）。詳細はPhase 2-3/2-4の節を参照。
+
+- **現在は静的サイト＋JSON駆動MVP**：ビルドツール・バックエンド・データベースを持たない。GitHub Pagesでホスティングし、`website/data/market-changes.json`を唯一の可変データソースとして`fetch`する。
+- **UIとデータソースを分離している**：HTML/CSS側の構造（`personalizeFromProfile()`によるDOM書き換え）はそのままに、データの出どころだけを「ハードコード`overrides`」→「`market-changes.json`」→（将来）「API」と差し替えられる形にしてある。
+
+## Future Architecture（構想・未着手）
+
+```
+MarketChange JSON
+        ↓
+API（MarketChange / Opportunity生成エンドポイント）
+        ↓
+Database（MarketChange・Opportunity・ActionPlanの永続化）
+        ↓
+AI Pipeline（実際のOpportunity生成・スコアリング。現状はすべて人手で書かれたテンプレート）
+```
+
+- **将来API置換可能な設計**：`website/js/market-data.js`の`fetchMarketChanges()`が唯一のデータ取得窓口になっているため、この関数の中身を実APIへの`fetch`に差し替えるだけで、呼び出し側（Card1・Detail・ActionPlanの描画ロジック）は変更不要。
+- 着手条件は`docs/strategy/ROADMAP.md`の「Phase 3移行条件」を参照。現時点では技術的な置換可能性を確保しているのみで、実装判断はしていない。
+- **移行ポイント（MarketChange/Opportunity/ActionPlanの分離）**：`website/data/market-changes.json`は現在、実装速度優先で`impact`/`reason`/`action`/`overview1`/`overview2`/`why_now`（Opportunity相当）と`action_plan`（ActionPlan相当）をMarketChangeオブジェクトへ直接内包している（意図的なMVP期間中の技術的負債。詳細は`data-model.md`の「Entity関係と責務」を参照）。Database導入時は、この1つのJSONオブジェクトを`market_changes`テーブルと、これを参照する`opportunities`テーブル・`action_plans`テーブルへ分割することが、責務分離を実装に反映させる具体的な移行ポイントになる。
+
+## 現在のアーキテクチャ詳細（website/）
 
 - 静的マルチページサイト（ビルドツール・バックエンドなし）。各HTMLファイルはインラインの`<style>`/`<script>`を持つ自己完結構成。
 - ページ構成：`index.html`（LP）→ `company-profile.html`（会社プロフィール入力）→ `profile-complete.html`（登録完了・レポートプレビュー）→ `mock-dashboard.html`（ダッシュボード）→ `opportunity-detail.html`（詳細）
@@ -27,3 +64,24 @@
 - **将来API置換可能性**：`fetchMarketChanges()`は`fetch("data/market-changes.json")`を1箇所に閉じ込めており、将来この行を実APIエンドポイントへの`fetch`に差し替えるだけで、呼び出し側（Card1・Detailの描画ロジック）は変更不要な構造にしてある。
 
 **今回あえて動的化しなかった部分**：Dashboard Card2・Card3、AI Action Plan、Opportunity DetailのRecommended Action（`actionTarget`/`actionReason`/`actionEffect`/メール・トーク・提案資料生成）は今回の検証範囲外とし、既存のハードコード`overrides`のまま。
+
+## Phase 2-4 実装内容（AI Action Plan / Recommended ActionのJSON駆動化）
+
+Phase 2-3で対象外としたAI Action Plan（Dashboard）とRecommended Action（Opportunity Detail）まで、同一のMarketChangeデータソースで一貫表示できるよう拡張。UIデザイン・既存ラベル（判断理由・推奨アクション）は変更していない。
+
+- **データモデル拡張**：`website/data/market-changes.json`の各MarketChangeエントリに`action_plan`（`title`/`target`/`reason`/`expected_effect`/`templates.{mail,talk,proposal}`）を追加。市場変化そのものの情報（`impact`/`reason`/`action`等）とは別フィールドとして分離し、根拠のない数値・成果保証表現は含めていない。対象はmc-001/mc-003/mc-005/mc-009（manufacturing/construction/professional/other）の4件。
+- **MarketChange → ActionPlanデータフロー**：
+  ```
+  website/data/market-changes.json
+          │ fetchMarketChanges() + pickMarketChange()（js/market-data.js、Phase 2-3と共通）
+          ▼
+  MarketChange.action_plan
+          │ 同一エントリを参照
+          ├─▶ Dashboard AI Action Plan #1（a1Title/a1Target/a1Reason/a1Effect/a1Mail/a1Talk/a1Proposal）
+          └─▶ Opportunity Detail Recommended Action（actionTitle/actionTarget/actionReason/actionEffect/genMail/genTalk/genProposal）
+  ```
+  優先順位は「JSON `action_plan` → 既存`overrides` → 静的HTML」。`customerSegment`/`product`/`region`の補完レイヤーはJSON上書き後に再適用し、未入力項目は推測しない。
+- **JSON駆動化した範囲**：AI Action Plan #1 / Recommended Action本体・メール・トーク・提案資料生成（テンプレート参照のみ、生成ロジックはPhase 3以降）。
+- **固定のまま残した範囲**：Dashboard Card2・Card3、AI Action Plan #2・#3、プロフィール未入力時の全表示。
+- **検証**：`#actionPlan1`（Dashboard）・`#recommendedAction`（Detail）に`data-source`属性（`static`/`override`/`json`）を付与し、Phase 2-3と同じ方式で描画経路を確認可能にした。
+- **将来API化時の置換ポイント**：`action_plan`は現状JSON内に静的に埋め込んでいるが、本来はOpportunity生成ロジックが動的に算出すべき値（`data-model.md`のOpportunity定義に対応）。将来は`fetchMarketChanges()`の返り値、または新設する`fetchOpportunity(marketChangeId, companyProfile)`のようなAPI呼び出しに置き換えることを想定し、呼び出し側（Dashboard/Detailの描画ロジック）の構造は変更不要。

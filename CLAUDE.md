@@ -4,29 +4,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository status
 
-ChangeScout (社内コードネーム: Project Lighthouse) is a solo-founder AI market-intelligence business. ChangeScout is an MVP web application prototype for validating AI-powered market change discovery and sales opportunity generation.
+ChangeScout (社内コードネーム: Project Lighthouse) is a solo-founder AI market-intelligence business. ChangeScout is a JSON-driven MVP web application for validating AI-powered market change discovery and sales opportunity generation — no longer a static-only prototype.
 
 The repository contains:
-- `website/`: frontend prototype and user experience flows
+- `website/`: the main application. A static multi-page site (no backend/database) that renders from a single MarketChange data source (`website/data/market-changes.json`, fetched by `website/js/market-data.js`), with the pre-JSON hardcoded content kept as a fallback layer. See `docs/ development/architecture.md` for the current/future data flow.
 - `docs/`: product and technical documentation
 - Playwright-based review automation
 
-**Development focus**: Currently validating product experience and AI-generated opportunity explanation before production implementation.
+**Development focus**: Phase 2 (Data-driven MVP — profile input, personalization, and a shared MarketChange/Opportunity/ActionPlan data flow across Dashboard, Opportunity Detail, and AI Action Plan) is complete. The current priority is real-user value validation before investing in real AI generation (see `docs/strategy/ROADMAP.md` "Phase 3移行条件").
 
 Almost all substantive content in this repo is written in **Japanese**. Match that language when editing or adding to existing docs unless told otherwise.
 
 ## Directory layout and intent
 
 - `docs/strategy/PROJECT.md` — the project charter: mission, vision, target market, revenue strategy, product portfolio candidates, and decision rules for what gets built. This is the authoritative source of business direction; read it before proposing new products or features. See summary below.
-- `docs/strategy/ROADMAP.md` — roadmap (currently a stub).
-- `docs/ development/` — architecture/dev docs (currently stubs: `README.md`, `architecture.md`). Note the literal leading space in the folder name (`docs/ development`, not `docs/development`) — preserve it exactly when referencing this path.
+- `docs/strategy/ROADMAP.md` — roadmap. Not a stub anymore: tracks completed phases (Phase 1/2), Phase 3 entry conditions, and an Out of Scope list. Untracked/private per `.gitignore` — see the UI terminology section below for why.
+- `docs/ development/` — architecture/dev docs. Not stubs anymore: `architecture.md` (current + future data flow), `data-model.md` (MarketChange/Opportunity/ActionPlan entity design), `sample-data.md` and `sample-market-changes.json` (sample MarketChange data and Opportunity generation examples), `README.md`. Note the literal leading space in the folder name (`docs/ development`, not `docs/development`) — preserve it exactly when referencing this path.
 - `docs/marketing/`, `docs/meeting/`, `docs/BRAND.md` — marketing notes, meeting minutes, and brand guidelines (currently stubs).
-- `database/opportunities.csv` — intended as a running database of market/business opportunities (currently empty).
+- `database/opportunities.csv` — intended as a running database of market/business opportunities (currently empty; `website/data/market-changes.json` is the working substitute for now).
 - `reports/Report-001.md` — market/opportunity reports produced for the business (currently empty).
 - `products/` — intended home for individual product definitions under the Project Lighthouse portfolio (currently a stub).
 - `prompts/chatgpt.md`, `prompts/claude.md`, `prompts/gemini.md` — per-AI prompt/role notes corresponding to the "AI Roles" division below (currently stubs).
-- `src/` — intended home for shared/reusable application code once development starts (currently a stub).
-- `website/` — intended home for the marketing/product website (currently a stub).
+- `src/` — intended home for shared/reusable application code once development starts (currently a stub; `website/js/` now holds the first piece of shared frontend code).
+- `website/` — the main application (see Repository status above). No longer a stub.
 
 ## Project charter summary (from `docs/strategy/PROJECT.md`)
 
@@ -52,8 +52,9 @@ When asked to help with strategy, product ideas, or reports in this repo, evalua
 - 数値は確定値ではなくAI推定値として扱う
 - 推測によるプロフィール補完は禁止
 - ユーザー入力情報と公開情報を明示的に区別する
-- 「なぜこの提案なのか」を説明可能にする
+- 「なぜこの提案なのか」を説明可能にする（AI Transparency）
 - UI改善より、価値検証を優先する
+- Dashboard・Opportunity Detail・AI Action Planは同一のMarketChangeデータソースから描画し、ページ間で内容が食い違わないようにする
 
 ## ChangeScout UI terminology (`website/`)
 
