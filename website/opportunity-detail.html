@@ -570,15 +570,18 @@
   <section>
     <h2 class="section-heading">Why Now（なぜ今か）</h2>
     <div class="panel-card">
-      <p class="panel-card__body">
-        本補助金の申請受付には期限があり、対応の早さがそのまま採択率に直結します。着手が遅れるほど、見込み客への提案余地は狭まります。
-      </p>
-      <p class="panel-card__body">
-        同業の導入支援事業者もこの制度への言及を強め始めており、認知が広がりきる前の先行アプローチが商談化率を左右します。
-      </p>
-      <p class="panel-card__body">
-        対象拡大の発表直後である今は、対象企業の経営者の関心が最も高まっているタイミングでもあり、最も反応を得やすい時期です。
-      </p>
+      <div id="whyNowDefault">
+        <p class="panel-card__body">
+          本補助金の申請受付には期限があり、対応の早さがそのまま採択率に直結します。着手が遅れるほど、見込み客への提案余地は狭まります。
+        </p>
+        <p class="panel-card__body">
+          同業の導入支援事業者もこの制度への言及を強め始めており、認知が広がりきる前の先行アプローチが商談化率を左右します。
+        </p>
+        <p class="panel-card__body">
+          対象拡大の発表直後である今は、対象企業の経営者の関心が最も高まっているタイミングでもあり、最も反応を得やすい時期です。
+        </p>
+      </div>
+      <p class="panel-card__body" id="whyNowPersonalized" hidden></p>
     </div>
   </section>
 
@@ -663,13 +666,13 @@
     <div class="source-list">
       <div class="source-item">
         <span class="source-dot" style="background:#f97316;"></span>
-        <span class="source-item__title">中小企業庁、DX推進補助金の第2次公募を開始</span>
-        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+        <span class="source-item__title" id="evidenceTitle1">中小企業庁、DX推進補助金の第2次公募を開始</span>
+        <span class="source-item__meta" id="evidenceMeta1">中小企業庁 ・ 2026.07.24</span>
       </div>
       <div class="source-item">
         <span class="source-dot" style="background:#667085;"></span>
-        <span class="source-item__title">ものづくり補助金 公募要領（改定版）</span>
-        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+        <span class="source-item__title" id="evidenceTitle2">ものづくり補助金 公募要領（改定版）</span>
+        <span class="source-item__meta" id="evidenceMeta2">中小企業庁 ・ 2026.07.24</span>
       </div>
     </div>
   </section>
@@ -704,6 +707,11 @@
         impact: "貴社（製造業）の設備投資需要への影響",
         reason: "貴社が製造業として、DX関連の設備投資を検討する好機であるため",
         action: "既存製造業顧客への情報提供を開始",
+        whyNow: "補助制度の拡充により設備投資検討企業が増加しており、早期接触による提案機会が生まれています。",
+        evidence: [
+          { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24" },
+          { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24" },
+        ],
       },
       construction: {
         tag: "法改正",
@@ -715,6 +723,11 @@
         impact: "貴社（建設業）の許可要件・実務対応への影響",
         reason: "貴社が建設業として、法改正への早期対応が求められるため",
         action: "建設業の顧客・現場担当者へ改正内容を共有",
+        whyNow: "制度変更への対応準備が必要となるため、既存顧客への早期情報提供が有効です。",
+        evidence: [
+          { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
+          { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
+        ],
       },
       professional: {
         tag: "制度改正",
@@ -726,6 +739,11 @@
         impact: "顧問先企業への補助金・法改正の助言ニーズへの影響",
         reason: "貴社が士業として、顧問先へのタイムリーな情報提供価値が高まるため",
         action: "顧問先企業へ制度変更の案内を送付",
+        whyNow: "制度改正対応への相談需要が高まる前に、顧客への情報提供を開始することが重要です。",
+        evidence: [
+          { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20" },
+          { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20" },
+        ],
       },
     };
 
@@ -755,6 +773,21 @@
     setText("summaryImpact", content.impact);
     setText("summaryReason", content.reason);
     setText("summaryAction", content.action);
+
+    const whyNowDefault = document.getElementById("whyNowDefault");
+    const whyNowPersonalized = document.getElementById("whyNowPersonalized");
+    if (whyNowDefault && whyNowPersonalized && content.whyNow) {
+      whyNowDefault.hidden = true;
+      whyNowPersonalized.textContent = content.whyNow;
+      whyNowPersonalized.hidden = false;
+    }
+
+    if (content.evidence) {
+      setText("evidenceTitle1", content.evidence[0].title);
+      setText("evidenceMeta1", content.evidence[0].meta);
+      setText("evidenceTitle2", content.evidence[1].title);
+      setText("evidenceMeta2", content.evidence[1].meta);
+    }
   })();
 </script>
 
