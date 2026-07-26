@@ -145,10 +145,10 @@
     color: var(--text-muted);
   }
 
-  /* ① 今週のサマリー */
+  /* ① ビジネス機会サマリー */
   .kpi-strip {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 20px;
   }
 
@@ -157,7 +157,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    padding: 24px 28px;
+    padding: 22px 16px;
     text-align: center;
   }
 
@@ -171,7 +171,7 @@
   }
 
   .kpi-card__value {
-    font-size: 1.6rem;
+    font-size: 1.3rem;
     font-weight: 800;
   }
 
@@ -599,6 +599,10 @@
     .stat-grid {
       grid-template-columns: repeat(2, 1fr);
     }
+
+    .kpi-strip {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
 
   @media (max-width: 640px) {
@@ -651,21 +655,25 @@
 
   <p class="page-subtitle" style="margin-top:-24px;">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
-  <!-- ① 今週のサマリー -->
+  <!-- ① ビジネス機会サマリー -->
   <section>
-    <h2 class="section-heading">今週のサマリー</h2>
+    <h2 class="section-heading">ビジネス機会サマリー</h2>
     <div class="kpi-strip">
       <div class="kpi-card">
-        <div class="kpi-card__label">今週の営業機会数</div>
+        <div class="kpi-card__label">検知件数</div>
         <div class="kpi-card__value">3件</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__label">対象企業数</div>
+        <div class="kpi-card__value">30社</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card__label">推定商談価値</div>
         <div class="kpi-card__value kpi-card__value--accent">最大 1,200万円/年</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-card__label">優先企業数</div>
-        <div class="kpi-card__value">18社</div>
+        <div class="kpi-card__label">優先対応数</div>
+        <div class="kpi-card__value">1件</div>
       </div>
     </div>
   </section>
