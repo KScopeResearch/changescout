@@ -1,0 +1,14 @@
+{
+  "name": "changescout",
+  "private": true,
+  "version": "0.0.0",
+  "description": "ChangeScout browser verification environment (Playwright)",
+  "scripts": {
+    "check": "playwright test",
+    "check:ui": "playwright test --ui",
+    "check:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}
