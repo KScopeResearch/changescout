@@ -3,6 +3,12 @@ test-results/
 playwright-report/
 screenshots/
 
+# Confidential business docs (kept locally, not published to the public repo)
+docs/strategy/
+docs/marketing/
+docs/meeting/
+docs/BRAND.md
+
 # Published verification screenshots (served via GitHub Pages)
 !website/screenshots/
 !website/screenshots/**
