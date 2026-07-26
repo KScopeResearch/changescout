@@ -626,7 +626,7 @@
   <section>
     <h2 class="section-heading">Recommended Action（AI推奨アクション）</h2>
     <div class="panel-card">
-      <div class="action-item">
+      <div class="action-item" id="recommendedAction" data-source="static">
         <div class="action-item__head">
           <div class="action-item__head-left">
             <span class="rank-badge">1</span>
@@ -870,6 +870,8 @@
     setText("genMail", content.genMail);
     setText("genTalk", content.genTalk);
     setText("genProposal", content.genProposal);
+    const recommendedActionEl = document.getElementById("recommendedAction");
+    if (recommendedActionEl) recommendedActionEl.dataset.source = "override";
 
     // Layer the company's own free-text profile (顧客層・商材・営業地域) on top of the
     // industry theme, so the recommendation/action/generated copy reads as written for
@@ -1026,6 +1028,74 @@
 
     const detailHeroEl = document.getElementById("detailHero");
     if (detailHeroEl) detailHeroEl.dataset.source = "json";
+  })();
+
+  // Phase 2-4: minimal data-driven Recommended Action. Reuses the same
+  // fetch + matching helpers and the same MarketChange.action_plan entry
+  // as mock-dashboard.html's AI Action Plan #1 (Phase 2-4), so Dashboard
+  // and Detail never show two different generated texts for the same
+  // recommendation. Mail/talk/proposal are template lookups only — no
+  // generation happens here (that's Phase 3+). Any failure (no profile,
+  // fetch error, no match, incomplete action_plan) leaves the sync
+  // block's Recommended Action result in place.
+  (async function loadRecommendedActionFromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry);
+    const plan = match && match.action_plan;
+    if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("actionTitle", plan.title);
+    setText("actionTarget", plan.target);
+    setText("actionReason", plan.reason);
+    setText("actionEffect", plan.expected_effect);
+    setText("genMail", plan.templates.mail);
+    setText("genTalk", plan.templates.talk);
+    setText("genProposal", plan.templates.proposal);
+
+    // Re-apply the same profile free-text layering the sync block already
+    // applies to actionTarget/actionReason/genMail/genTalk/genProposal,
+    // since we just overwrote their text from JSON. Never invents an
+    // unentered field.
+    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
+    const regionLabel = regionLabels[profile.region];
+
+    const targetEl = document.getElementById("actionTarget");
+    if (targetEl) {
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) targetEl.textContent += `（${extras.join("・")}が中心）`;
+    }
+
+    const reasonEl = document.getElementById("actionReason");
+    if (reasonEl && profile.product) {
+      reasonEl.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    }
+
+    ["genMail", "genTalk", "genProposal"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+    });
+
+    const recommendedActionEl = document.getElementById("recommendedAction");
+    if (recommendedActionEl) recommendedActionEl.dataset.source = "json";
   })();
 </script>
 

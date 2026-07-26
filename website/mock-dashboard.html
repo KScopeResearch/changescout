@@ -920,7 +920,7 @@
     <h2 class="section-heading">AI Action Plan</h2>
     <div class="panel-card">
       <ul class="action-list">
-        <li class="action-item">
+        <li class="action-item" id="actionPlan1" data-source="static">
           <div class="action-item__head">
             <div class="action-item__head-left">
               <span class="rank-badge">1</span>
@@ -1392,6 +1392,8 @@
     setText("a1Mail", content.action1.mail);
     setText("a1Talk", content.action1.talk);
     setText("a1Proposal", content.action1.proposal);
+    const actionPlan1El = document.getElementById("actionPlan1");
+    if (actionPlan1El) actionPlan1El.dataset.source = "override";
 
     setText("a2Title", content.action2.title);
     setText("a2Target", content.action2.target);
@@ -1498,6 +1500,71 @@
 
     const card1El = document.getElementById("card1");
     if (card1El) card1El.dataset.source = "json";
+  })();
+
+  // Phase 2-4: minimal data-driven AI Action Plan item 1. Reuses the same
+  // fetch + matching helpers as Card1 (Phase 2-3), so Dashboard Card1,
+  // AI Action Plan #1, and Opportunity Detail's Recommended Action all
+  // trace back to the same MarketChange.action_plan entry. Action Plan
+  // items #2/#3 are untouched. Any failure (no profile, fetch error, no
+  // match, incomplete action_plan) leaves the sync block's result in place.
+  (async function loadActionPlan1FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry);
+    const plan = match && match.action_plan;
+    if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("a1Title", plan.title);
+    setText("a1Target", plan.target);
+    setText("a1Reason", plan.reason);
+    setText("a1Effect", plan.expected_effect);
+    setText("a1Mail", plan.templates.mail);
+    setText("a1Talk", plan.templates.talk);
+    setText("a1Proposal", plan.templates.proposal);
+
+    // Re-apply the same profile free-text layering the sync block already
+    // applies to a1Target/a1Reason/a1Mail/a1Talk/a1Proposal, since we just
+    // overwrote their text from JSON. Never invents an unentered field.
+    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
+    const regionLabel = regionLabels[profile.region];
+
+    const targetEl = document.getElementById("a1Target");
+    if (targetEl) {
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) targetEl.textContent += `（${extras.join("・")}が中心）`;
+    }
+
+    const reasonEl = document.getElementById("a1Reason");
+    if (reasonEl && profile.product) {
+      reasonEl.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    }
+
+    ["a1Mail", "a1Talk", "a1Proposal"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
+    });
+
+    const actionPlan1El = document.getElementById("actionPlan1");
+    if (actionPlan1El) actionPlan1El.dataset.source = "json";
   })();
 </script>
 
