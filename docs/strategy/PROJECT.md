@@ -1,9 +1,10 @@
 # PROJECT.md
 
-# Kaleidoscope Labs Project Charter
+# ChangeScout Project Charter
 Version: 0.1
 Last Updated: 2026-07-26
 
+AIが市場の変化を見つけ、新しいビジネスチャンスを届ける。
 ---
 
 # Mission
