@@ -1,14 +1,14 @@
 {
-  "commit": "42e3e8318604e78d9cdd5f94978ab6fca9090bf1",
-  "commitShort": "42e3e83",
-  "generatedAt": "2026-07-26T09:23:56.855Z",
+  "commit": "f45c71cd45fd1c3336d00d2069c3e0626ff4792a",
+  "commitShort": "f45c71c",
+  "generatedAt": "2026-07-26T09:35:29.284Z",
   "summary": {
     "total": 8,
     "passed": 8,
     "failed": 0
   },
   "uxSummary": {
-    "avgLoadTimeMs": 327,
+    "avgLoadTimeMs": 340,
     "keyValueAboveFold": "8/8",
     "ctaVisible": "8/8"
   },
@@ -22,7 +22,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 369,
+        "loadTimeMs": 372,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -36,7 +36,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 455,
+        "loadTimeMs": 480,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -50,7 +50,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 450,
+        "loadTimeMs": 452,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -64,7 +64,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 348,
+        "loadTimeMs": 323,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -78,7 +78,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 213,
+        "loadTimeMs": 310,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -92,7 +92,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 308,
+        "loadTimeMs": 325,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -106,7 +106,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 295,
+        "loadTimeMs": 281,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -120,7 +120,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 181,
+        "loadTimeMs": 177,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
