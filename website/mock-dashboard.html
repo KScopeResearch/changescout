@@ -185,6 +185,12 @@
     color: var(--orange);
   }
 
+  .ai-estimate-note {
+    margin: 12px 0 0;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
   /* ② 貴社のビジネスチャンス */
   .score-card {
     background: var(--surface);
@@ -723,7 +729,7 @@
         <div class="kpi-card__value">3件</div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-card__label">対象企業数</div>
+        <div class="kpi-card__label">影響候補企業数</div>
         <div class="kpi-card__value">30社</div>
       </div>
       <div class="kpi-card">
@@ -735,6 +741,7 @@
         <div class="kpi-card__value">1件</div>
       </div>
     </div>
+    <p class="ai-estimate-note">公開情報・プロフィール情報をもとにしたAI推定です</p>
   </section>
 
   <!-- ② 貴社のビジネスチャンス -->
@@ -804,10 +811,11 @@
           <div class="stat-tile__value">新規リード 最大12社</div>
         </div>
         <div class="stat-tile">
-          <div class="stat-tile__label">推定売上機会</div>
+          <div class="stat-tile__label">想定売上機会</div>
           <div class="stat-tile__value stat-tile__value--accent">最大 1,200万円/年</div>
         </div>
       </div>
+      <p class="ai-estimate-note">公開情報・プロフィール情報をもとにしたAI推定です</p>
       <p class="panel-card__body">
         今週検出された変化のうち、貴社の主要顧客層（製造業・建設業向けIT・DX導入支援）に直接関係する項目が3件あります。
         特に「補助金対象拡大」は新規営業リードの増加が見込まれるため、優先的な対応を推奨します。
@@ -830,7 +838,7 @@
         <p class="topic-card__fact" id="card1Fact">補助金対象拡大（経済産業省）</p>
         <div class="topic-card__meta">
           <span class="priority priority--high">あなたへの重要度：高</span>
-          <span class="topic-card__target">対象企業 18社</span>
+          <span class="topic-card__target">影響候補企業 18社</span>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">影響</span>
@@ -857,7 +865,7 @@
         <p class="topic-card__fact">建設業法の一部改正（国土交通省）</p>
         <div class="topic-card__meta">
           <span class="priority priority--mid">あなたへの重要度：中</span>
-          <span class="topic-card__target">対象企業 9社</span>
+          <span class="topic-card__target">影響候補企業 9社</span>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">影響</span>
@@ -884,7 +892,7 @@
         <p class="topic-card__fact">競合A社が新サービスを発表</p>
         <div class="topic-card__meta">
           <span class="priority priority--mid">あなたへの重要度：中</span>
-          <span class="topic-card__target">対象企業 5社</span>
+          <span class="topic-card__target">影響候補企業 5社</span>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">影響</span>
@@ -902,6 +910,7 @@
       </article>
 
     </div>
+    <p class="ai-estimate-note">公開情報・プロフィール情報をもとにしたAI推定です</p>
   </section>
 
   <!-- ⑤ AI Action Plan -->
@@ -917,9 +926,9 @@
             </div>
             <span class="priority priority--high">優先度：高</span>
           </div>
-          <div class="action-item__row"><span class="action-item__row-label">対象企業</span><span id="a1Target">既存顧客のうち補助金対象条件に該当する18社（製造業）</span></div>
+          <div class="action-item__row"><span class="action-item__row-label">影響候補企業</span><span id="a1Target">既存顧客のうち補助金対象条件に該当する18社（製造業）</span></div>
           <div class="action-item__row"><span class="action-item__row-label">推奨理由</span><span id="a1Reason">補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため（関連トピック：製造業への新規開拓チャンス）</span></div>
-          <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="a1Effect">新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</span></div>
+          <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="a1Effect">新規商談化率の向上、問い合わせ増加が見込まれる（想定売上機会 最大400万円）</span></div>
           <div class="generate-actions">
             <button type="button" class="generate-btn" data-generate="mail">✉️ メール生成</button>
             <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
@@ -954,7 +963,7 @@
             </div>
             <span class="priority priority--mid">優先度：中</span>
           </div>
-          <div class="action-item__row"><span class="action-item__row-label">対象企業</span><span id="a2Target">Web経由の新規流入見込み客全般</span></div>
+          <div class="action-item__row"><span class="action-item__row-label">影響候補企業</span><span id="a2Target">Web経由の新規流入見込み客全般</span></div>
           <div class="action-item__row"><span class="action-item__row-label">推奨理由</span><span id="a2Reason">検索流入や関心層への訴求力を高めるため（関連トピック：製造業への新規開拓チャンス／既存顧客への提案チャンス）</span></div>
           <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="a2Effect">サイト経由のリード獲得数の増加</span></div>
           <div class="generate-actions">
@@ -985,7 +994,7 @@
             </div>
             <span class="priority priority--mid">優先度：中</span>
           </div>
-          <div class="action-item__row"><span class="action-item__row-label">対象企業</span><span id="a3Target">商談中の既存見込み客（比較検討フェーズ）</span></div>
+          <div class="action-item__row"><span class="action-item__row-label">影響候補企業</span><span id="a3Target">商談中の既存見込み客（比較検討フェーズ）</span></div>
           <div class="action-item__row"><span class="action-item__row-label">推奨理由</span><span id="a3Reason">競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため（関連トピック：差別化提案のチャンス）</span></div>
           <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="a3Effect">提案時の失注防止、差別化ポイントの明確化</span></div>
           <div class="generate-actions">
@@ -1108,7 +1117,7 @@
           title: "補助金対象企業へ営業メールを送信する",
           target: "既存顧客のうち補助金対象条件に該当する18社（製造業）",
           reason: "補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため（関連トピック：補助金対象拡大）",
-          effect: "新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）",
+          effect: "新規商談化率の向上、問い合わせ増加が見込まれる（想定売上機会 最大400万円）",
           mail: "件名：【ご案内】ものづくり補助金の対象拡大について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、ものづくり補助金の対象要件が拡大され、DX関連投資（業務システム導入・IoT設備等）も新たに対象となりました。\n貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
           talk: "「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。\n実は今月、ものづくり補助金の対象がDX投資にも広がりまして、これまで対象外だった設備投資やシステム導入も補助対象になったんです。\nもし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や申請のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
           proposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：ものづくり補助金 対象拡大のご案内\n2. 制度概要：対象要件の拡大内容（DX関連投資が新規対象に）\n3. 貴社への想定インパクト：対象条件・活用余地\n4. 導入支援内容：弊社のDX導入支援サービス概要\n5. 導入ステップとスケジュール\n6. 費用感・補助金活用後の実質負担\n7. 次のアクション：ヒアリングのご案内",
@@ -1149,7 +1158,7 @@
           title: "建設業顧客へ改正内容の説明を実施する",
           target: "既存顧客のうち建設業法改正の影響を受ける18社（建設業）",
           reason: "建設業法改正により、対応準備が必要な既存顧客への早期フォローが重要になっているため",
-          effect: "既存顧客との信頼関係強化、追加相談・商談機会の創出が見込まれる（推定売上機会 最大400万円）",
+          effect: "既存顧客との信頼関係強化、追加相談・商談機会の創出が見込まれる（想定売上機会 最大400万円）",
           mail: "件名：【ご案内】建設業法改正への対応について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、建設業許可制度および取引適正化に関する建設業法の一部改正が決定しました。\n貴社の許可要件や契約実務に影響する可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
           talk: "「本日は、建設業法の改正についてご案内できればと思いご連絡しました。\n許可要件や下請取引に関するルールが見直される予定で、対応の準備が必要になる可能性があります。\n詳しい変更点や対応のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
           proposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：建設業法改正への対応ご案内\n2. 制度概要：許可要件・取引適正化ルールの変更内容\n3. 貴社への想定インパクト：対応が必要な項目\n4. 対応支援内容：弊社の建設業向け支援サービス概要\n5. 対応ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
@@ -1196,7 +1205,7 @@
           title: "顧問先企業へ制度改正の案内を送付する",
           target: "顧問先企業のうち制度改正の影響を受ける18社",
           reason: "制度改正により、顧問先からの相談ニーズが高まる前に情報提供を行う好機であるため",
-          effect: "顧問契約の継続率向上、追加相談機会の創出が見込まれる（推定売上機会 最大400万円）",
+          effect: "顧問契約の継続率向上、追加相談機会の創出が見込まれる（想定売上機会 最大400万円）",
           mail: "件名：【ご案内】制度改正に関する情報提供について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、複数の制度改正が同時期に実施されることが決定しました。\n顧問先企業様への説明・相談対応の準備として、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
           talk: "「本日は、直近で相次いでいる制度改正についてご案内できればと思いご連絡しました。\n複数の制度変更が重なっており、顧問先企業様からの相談が増えることが見込まれます。\n詳しい変更点や情報提供の進め方など、5分ほどでご説明できますので、少しお時間いただけますか？」",
           proposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：制度改正に関する情報提供ご案内\n2. 制度概要：今回の改正内容と対象範囲\n3. 顧問先への想定インパクト：相談が増える論点\n4. 情報提供支援内容：弊社の案内資料・説明サポート\n5. 実施ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
@@ -1218,6 +1227,47 @@
           mail: "件名：【比較資料】競合の士業向け支援サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の士業向け支援サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは情報提供の速さ・カスタマイズ性の点で優位性がございます。",
           talk: "「競合の士業向けサービスも比較検討されているとのことですが、弊社との大きな違いは情報提供の速さとカスタマイズ性の部分です。\n特に貴社のような規模の事務所様には、この点を特に評価いただいております。」",
           proposal: "【競合比較資料アウトライン】\n1. 競合の士業向け支援サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 士業事務所での導入実績・声",
+        },
+      },
+      other: {
+        card1: {
+          tag: "市場変化",
+          title: "登録情報に基づく市場変化を検知",
+          fact: "貴社の登録情報に関連する可能性のある市場変化が検出されました",
+          impact: "貴社（登録情報ベース）の事業への影響",
+          reason: "貴社の登録情報をもとに、関連性が高いと判断されたため",
+          action: "詳細を確認し、関連度の高い顧客へ情報提供を検討",
+        },
+        card2: {
+          impact: "関連する業界・取引先の動向への影響が考えられます",
+          reason: "貴社の登録情報と関連性が見込まれるため",
+          action: "関連する取引先へ状況を確認する",
+        },
+        card3: {
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+        },
+        action1: {
+          title: "登録情報に関連する見込み客へ情報提供を行う",
+          target: "登録情報をもとに抽出した関連候補18社",
+          reason: "検知された市場変化が貴社の登録情報と関連性が高いと判断されるため（関連トピック：市場変化の検知）",
+          effect: "新規商談化率の向上、問い合わせ増加が見込まれる（想定売上機会 最大400万円）",
+          mail: "件名：【ご案内】貴社に関連する可能性のある市場変化について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\n貴社の登録情報をもとに、関連性が高いと考えられる市場変化を検知いたしました。\n詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+          talk: "「本日は、貴社の登録情報をもとに検知した市場変化についてご案内できればと思いご連絡しました。\n貴社の事業内容と関連性が高いと考えられる動きがありましたので、詳しい内容を5分ほどでご説明できますが、少しお時間いただけますか？」",
+          proposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：市場変化のご案内\n2. 概要：検知された変化の内容\n3. 貴社への想定インパクト：登録情報をもとにした関連度\n4. ご提案内容：弊社の支援サービス概要\n5. 次のアクション：ヒアリングのご案内",
+        },
+        action2: {
+          title: "LPに最新の業界動向を反映する",
+          target: "Web経由の新規流入見込み客全般",
+          reason: "検索流入や関心層への訴求力を高めるため",
+          effect: "サイト経由のリード獲得数の増加",
+        },
+        action3: {
+          title: "競合の新サービスを調査し比較資料を作成する",
+          target: "商談中の既存見込み客（比較検討フェーズ）",
+          reason: "競合の動向により、提案時の差別化ポイントが弱まるリスクがあるため",
+          effect: "提案時の失注防止、差別化ポイントの明確化",
         },
       },
     };
