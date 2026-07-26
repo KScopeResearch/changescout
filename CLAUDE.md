@@ -4,7 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository status
 
-This repo is the early-stage scaffold for **ChangeScout** (社内コードネーム: Project Lighthouse), a solo-founder AI market-intelligence business. It is currently a **planning/documentation repository, not an application** — most directories contain only placeholder `README.md` stub files (a single header line), and there is no build system, package manager, source code, or test suite yet. Do not assume standard build/lint/test commands exist; check before inventing tooling. When the first real product is scaffolded inside `src/`, `products/`, or `website/`, this file should be updated with actual dev/build/test commands and real architecture notes.
+ChangeScout (社内コードネーム: Project Lighthouse) is a solo-founder AI market-intelligence business. ChangeScout is an MVP web application prototype for validating AI-powered market change discovery and sales opportunity generation.
+
+The repository contains:
+- `website/`: frontend prototype and user experience flows
+- `docs/`: product and technical documentation
+- Playwright-based review automation
+
+**Development focus**: Currently validating product experience and AI-generated opportunity explanation before production implementation.
 
 Almost all substantive content in this repo is written in **Japanese**. Match that language when editing or adding to existing docs unless told otherwise.
 
