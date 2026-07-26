@@ -677,6 +677,19 @@
     </div>
   </section>
 
+  <!-- Why This Recommendation -->
+  <section id="whyGeneratedSection" hidden>
+    <p class="eyebrow">AI TRANSPARENCY</p>
+    <h2 class="section-heading">この提案が生成された理由</h2>
+    <div class="panel-card">
+      <div class="action-item__row" id="rowIndustry" hidden><span class="action-item__row-label">業種</span><span id="genIndustry"></span></div>
+      <div class="action-item__row" id="rowCustomerSegment" hidden><span class="action-item__row-label">顧客層</span><span id="genCustomerSegment"></span></div>
+      <div class="action-item__row" id="rowProduct" hidden><span class="action-item__row-label">商材</span><span id="genProduct"></span></div>
+      <div class="action-item__row" id="rowRegion" hidden><span class="action-item__row-label">営業地域</span><span id="genRegion"></span></div>
+      <div class="action-item__row" id="rowMarketChange" hidden><span class="action-item__row-label">検知した市場変化</span><span id="genMarketChange"></span></div>
+    </div>
+  </section>
+
 </div>
 
 <script>
@@ -869,6 +882,36 @@
     appendReason("actionReason");
     appendAction("summaryAction");
     ["genMail", "genTalk", "genProposal"].forEach(appendGenerated);
+
+    // Show the AI transparency panel: which profile inputs and detected market change
+    // shaped this page's content. Only shown when a profile exists; each row is shown
+    // only when that specific value is actually available (nothing is guessed).
+    const industryLabels = {
+      "it-dx": "IT・DX支援",
+      construction: "建設",
+      professional: "士業",
+      manufacturing: "製造業",
+      other: "その他",
+    };
+
+    const whyGeneratedSection = document.getElementById("whyGeneratedSection");
+    if (whyGeneratedSection) {
+      whyGeneratedSection.hidden = false;
+
+      const showRow = (rowId, valueId, value) => {
+        const row = document.getElementById(rowId);
+        const valueEl = document.getElementById(valueId);
+        if (!row || !valueEl || !value) return;
+        valueEl.textContent = value;
+        row.hidden = false;
+      };
+
+      showRow("rowIndustry", "genIndustry", industryLabels[profile.industry]);
+      showRow("rowCustomerSegment", "genCustomerSegment", profile.customerSegment);
+      showRow("rowProduct", "genProduct", profile.product);
+      showRow("rowRegion", "genRegion", regionLabel);
+      showRow("rowMarketChange", "genMarketChange", content.fact);
+    }
   })();
 </script>
 
