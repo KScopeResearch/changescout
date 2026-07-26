@@ -16,6 +16,12 @@ const pages = [
     title: /製造業への新規開拓チャンス/,
     heading: "製造業への新規開拓チャンス",
   },
+  {
+    path: "company-profile.html",
+    key: "company profile",
+    title: /ChangeScout Weekly/,
+    heading: "会社プロフィールを教えてください",
+  },
 ];
 
 const fragmentDir = path.join("test-results", "review-fragments");

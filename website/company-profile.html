@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>会社プロフィール入力 ｜ ChangeScout Weekly</title>
+<title>会社プロフィール ｜ ChangeScout Weekly</title>
 <style>
   :root {
     --bg: #f7f8fa;
@@ -152,7 +152,6 @@
   }
 
   input[type="text"],
-  input[type="number"],
   select {
     width: 100%;
     padding: 12px 14px;
@@ -169,31 +168,6 @@
     outline: none;
     border-color: var(--blue);
     box-shadow: 0 0 0 3px var(--blue-soft);
-  }
-
-  .checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .checkbox-option {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    background: var(--bg);
-    font-size: 0.88rem;
-    cursor: pointer;
-  }
-
-  .checkbox-option input {
-    accent-color: var(--blue);
-    width: 16px;
-    height: 16px;
-    flex-shrink: 0;
   }
 
   .btn-primary {
@@ -232,10 +206,6 @@
     .panel-card {
       padding: 24px;
     }
-
-    .checkbox-grid {
-      grid-template-columns: 1fr;
-    }
   }
 </style>
 </head>
@@ -254,20 +224,14 @@
     <span class="beta-badge">BETA</span>
   </header>
 
-  <p class="eyebrow">SETUP ・ 1/1</p>
-  <h1 class="page-title">貴社のビジネスチャンスを見つけるために、<br>会社プロフィールを教えてください</h1>
+  <p class="eyebrow">COMPANY PROFILE</p>
+  <h1 class="page-title">あなた向けの分析のために、<br>会社プロフィールを教えてください</h1>
   <p class="page-lead">
-    ここで入力した内容は、貴社に関連する業界・商談規模・対象企業数の分析に使われます。
-    後から設定画面でいつでも変更できます。
+    業種・顧客層・商材・営業地域をもとに、AIが貴社に合ったビジネスチャンスだけを選び出します。
   </p>
 
   <div class="panel-card">
-    <form action="mock-dashboard.html" method="get">
-
-      <div class="form-section">
-        <label class="form-section__label" for="companyName">会社名</label>
-        <input type="text" id="companyName" name="companyName" placeholder="例：株式会社フィールドDX" required>
-      </div>
+    <form action="profile-complete.html" method="get">
 
       <div class="form-section">
         <label class="form-section__label" for="industry">業種</label>
@@ -282,43 +246,31 @@
       </div>
 
       <div class="form-section">
-        <span class="form-section__label">主なターゲット業種（複数選択可）</span>
-        <p class="form-section__hint">「業種別内訳」チャートの分析対象になります</p>
-        <div class="checkbox-grid">
-          <label class="checkbox-option"><input type="checkbox" name="targetIndustry" value="manufacturing" checked>製造業</label>
-          <label class="checkbox-option"><input type="checkbox" name="targetIndustry" value="construction" checked>建設業</label>
-          <label class="checkbox-option"><input type="checkbox" name="targetIndustry" value="retail">卸売・小売業</label>
-          <label class="checkbox-option"><input type="checkbox" name="targetIndustry" value="other">その他</label>
-        </div>
+        <label class="form-section__label" for="customerSegment">顧客層</label>
+        <p class="form-section__hint">主にどのような企業を顧客としていますか</p>
+        <input type="text" id="customerSegment" name="customerSegment" placeholder="例：製造業の中小企業（従業員50〜300名）" required>
       </div>
 
       <div class="form-section">
-        <label class="form-section__label" for="dealSize">平均商談単価（概算）</label>
-        <select id="dealSize" name="dealSize" required>
+        <label class="form-section__label" for="product">商材</label>
+        <p class="form-section__hint">提供しているサービス・製品を教えてください</p>
+        <input type="text" id="product" name="product" placeholder="例：ERPパッケージ導入支援" required>
+      </div>
+
+      <div class="form-section">
+        <label class="form-section__label" for="region">営業地域</label>
+        <select id="region" name="region" required>
           <option value="">選択してください</option>
-          <option value="lt50">〜50万円</option>
-          <option value="50-200">50〜200万円</option>
-          <option value="200-500">200〜500万円</option>
-          <option value="gt500">500万円〜</option>
+          <option value="nationwide">全国</option>
+          <option value="kanto">関東</option>
+          <option value="kansai">関西</option>
+          <option value="chubu">中部・東海</option>
+          <option value="kyushu">九州・沖縄</option>
+          <option value="other">その他</option>
         </select>
       </div>
 
-      <div class="form-section">
-        <label class="form-section__label" for="existingCustomers">既存顧客数（概算）</label>
-        <input type="number" id="existingCustomers" name="existingCustomers" min="0" placeholder="例：18" required>
-      </div>
-
-      <div class="form-section">
-        <span class="form-section__label">関心のある変化の種類（複数選択可）</span>
-        <div class="checkbox-grid">
-          <label class="checkbox-option"><input type="checkbox" name="interest" value="subsidy" checked>補助金</label>
-          <label class="checkbox-option"><input type="checkbox" name="interest" value="law" checked>法改正</label>
-          <label class="checkbox-option"><input type="checkbox" name="interest" value="news">業界ニュース</label>
-          <label class="checkbox-option"><input type="checkbox" name="interest" value="newservice">新サービス動向</label>
-        </div>
-      </div>
-
-      <button type="submit" class="btn-primary">分析を開始する</button>
+      <button type="submit" class="btn-primary">プロフィールを保存する</button>
       <p class="form-note">入力内容は分析のパーソナライズにのみ使用します。</p>
     </form>
   </div>

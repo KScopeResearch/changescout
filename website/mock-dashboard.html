@@ -427,6 +427,19 @@
     color: var(--text-muted);
   }
 
+  .topic-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .topic-card__target {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
   .topic-card__row {
     font-size: 0.88rem;
   }
@@ -769,9 +782,13 @@
         <div class="bar"><div class="bar__fill" style="width:95%"></div></div>
         <h3 class="topic-card__title">製造業への新規開拓チャンス</h3>
         <p class="topic-card__fact">補助金対象拡大（経済産業省）</p>
+        <div class="topic-card__meta">
+          <span class="priority priority--high">あなたへの重要度：高</span>
+          <span class="topic-card__target">対象企業 18社</span>
+        </div>
         <div class="topic-card__row">
-          <span class="topic-card__row-label">影響</span>
-          <p>製造業への営業機会増加</p>
+          <span class="topic-card__row-label">重要理由</span>
+          <p>貴社の主要ターゲットである製造業への新規開拓機会が広がるため</p>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">推奨アクション</span>
@@ -788,9 +805,13 @@
         <div class="bar"><div class="bar__fill" style="width:88%"></div></div>
         <h3 class="topic-card__title">既存顧客への提案チャンス</h3>
         <p class="topic-card__fact">建設業法の一部改正（国土交通省）</p>
+        <div class="topic-card__meta">
+          <span class="priority priority--mid">あなたへの重要度：中</span>
+          <span class="topic-card__target">対象企業 9社</span>
+        </div>
         <div class="topic-card__row">
-          <span class="topic-card__row-label">影響</span>
-          <p>許可要件の変更により既存顧客に影響</p>
+          <span class="topic-card__row-label">重要理由</span>
+          <p>貴社の既存顧客（建設業）に直接影響するため、早期のフォローが信頼維持につながる</p>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">推奨アクション</span>
@@ -807,9 +828,13 @@
         <div class="bar"><div class="bar__fill" style="width:76%"></div></div>
         <h3 class="topic-card__title">差別化提案のチャンス</h3>
         <p class="topic-card__fact">競合A社が新サービスを発表</p>
+        <div class="topic-card__meta">
+          <span class="priority priority--mid">あなたへの重要度：中</span>
+          <span class="topic-card__target">対象企業 5社</span>
+        </div>
         <div class="topic-card__row">
-          <span class="topic-card__row-label">影響</span>
-          <p>差別化ポイントの見直しが必要</p>
+          <span class="topic-card__row-label">重要理由</span>
+          <p>商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため</p>
         </div>
         <div class="topic-card__row">
           <span class="topic-card__row-label">推奨アクション</span>
