@@ -1,1 +1,1 @@
-# kscope-labs
+# ChangeScout
