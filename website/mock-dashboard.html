@@ -1508,6 +1508,14 @@
     ["a1Reason", "a2Reason", "a3Reason"].forEach(appendReason);
     ["card1Action", "card2Action", "card3Action"].forEach(appendAction);
     ["a1Mail", "a2Mail", "a3Mail", "a1Talk", "a2Talk", "a3Talk", "a1Proposal", "a2Proposal", "a3Proposal"].forEach(appendGenerated);
+
+    // Must Fix (Phase 3 pre-review): the generated mail template signs off with
+    // the fixed demo company name. Replace it with 企業名 if entered, same rule
+    // as elsewhere (leave untouched when not entered).
+    if (profile.companyName) {
+      const a1MailEl = document.getElementById("a1Mail");
+      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+    }
   })();
 
   // Phase 2-3: minimal data-driven Card1. Overlays website/data/market-changes.json
@@ -1613,6 +1621,13 @@
       if (lines.length) el.textContent += `\n\n${lines.join("\n")}`;
     });
 
+    // Must Fix (Phase 3 pre-review): re-apply the same 企業名 substitution the
+    // sync block already applies to a1Mail, since we just overwrote it from JSON.
+    if (profile.companyName) {
+      const a1MailEl = document.getElementById("a1Mail");
+      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+    }
+
     const actionPlan1El = document.getElementById("actionPlan1");
     if (actionPlan1El) actionPlan1El.dataset.source = "json";
   })();
@@ -1630,7 +1645,7 @@
       profile = null;
     }
     if (!profile || !profile.companyName) return;
-    ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle"].forEach((id) => {
+    ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle", "a1Mail"].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.textContent = el.textContent.replace("株式会社フィールドDX", profile.companyName);
     });
