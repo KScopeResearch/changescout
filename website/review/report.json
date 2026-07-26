@@ -1,13 +1,22 @@
 {
-  "commit": "c6772643a188d0c9b791b9ff61c427a3da26b7c9",
-  "commitShort": "c677264",
-  "generatedAt": "2026-07-26T06:28:51.271Z",
+  "commit": "1dc8493c0afe5206d3dd774a140a0a6d43015227",
+  "commitShort": "1dc8493",
+  "generatedAt": "2026-07-26T06:48:07.672Z",
   "summary": {
-    "total": 4,
-    "passed": 4,
+    "total": 6,
+    "passed": 6,
     "failed": 0
   },
   "results": [
+    {
+      "label": "desktop company profile",
+      "project": "desktop",
+      "page": "company-profile.html",
+      "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
+      "screenshot": "../screenshots/desktop-company-profile.png",
+      "passed": true,
+      "consoleErrors": 0
+    },
     {
       "label": "desktop dashboard",
       "project": "desktop",
@@ -23,6 +32,15 @@
       "page": "opportunity-detail.html",
       "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
       "screenshot": "../screenshots/desktop-opportunity-detail.png",
+      "passed": true,
+      "consoleErrors": 0
+    },
+    {
+      "label": "mobile company profile",
+      "project": "mobile",
+      "page": "company-profile.html",
+      "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
+      "screenshot": "../screenshots/mobile-company-profile.png",
       "passed": true,
       "consoleErrors": 0
     },
