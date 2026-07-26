@@ -531,7 +531,7 @@
           <span class="tag tag--orange">補助金</span>
           <span class="tag tag--blue">確信度：高</span>
         </div>
-        <h1 class="detail-hero__title">製造業への新規開拓チャンス</h1>
+        <h1 class="detail-hero__title" id="detailTitle">製造業への新規開拓チャンス</h1>
         <p class="detail-hero__fact">補助金対象拡大（経済産業省）</p>
         <div class="score-breakdown">
           <div class="score-breakdown__row"><span>営業機会度</span><b>95</b></div>
@@ -539,6 +539,16 @@
         </div>
         <p class="detail-hero__relevance">貴社の既存顧客18社に直接関係する変化です。対応が早いほど、採択率と商談化率が上がります。</p>
       </div>
+    </div>
+  </section>
+
+  <!-- サマリー -->
+  <section>
+    <h2 class="section-heading">サマリー</h2>
+    <div class="panel-card">
+      <div class="action-item__row"><span class="action-item__row-label">影響</span><span id="summaryImpact">製造業の既存顧客・見込み客への提案機会が増加</span></div>
+      <div class="action-item__row"><span class="action-item__row-label">判断理由</span><span id="summaryReason">貴社の主要ターゲットである製造業への新規開拓機会が広がるため</span></div>
+      <div class="action-item__row"><span class="action-item__row-label">推奨アクション</span><span id="summaryAction">対象企業へ営業開始</span></div>
     </div>
   </section>
 
@@ -678,6 +688,57 @@
       });
     });
   });
+
+  // Personalize the title/影響/判断理由/推奨アクション based on the company profile saved
+  // from company-profile.html. Falls back to the default wording when no profile is saved.
+  (function personalizeFromProfile() {
+    const overrides = {
+      manufacturing: {
+        title: "製造業向け設備投資支援のチャンス",
+        impact: "貴社（製造業）の設備投資需要への影響",
+        reason: "貴社が製造業として、DX関連の設備投資を検討する好機であるため",
+        action: "既存製造業顧客への情報提供を開始",
+      },
+      construction: {
+        title: "建設業向け法改正対応のチャンス",
+        impact: "貴社（建設業）の許可要件・実務対応への影響",
+        reason: "貴社が建設業として、法改正への早期対応が求められるため",
+        action: "建設業の顧客・現場担当者へ改正内容を共有",
+      },
+      professional: {
+        title: "士業向け助言機会の拡大チャンス",
+        impact: "顧問先企業への補助金・法改正の助言ニーズへの影響",
+        reason: "貴社が士業として、顧問先へのタイムリーな情報提供価値が高まるため",
+        action: "顧問先企業へ制度変更の案内を送付",
+      },
+      other: {
+        title: "貴社向けビジネスチャンス",
+        impact: "貴社の事業に関連する市場変化への影響",
+        reason: "貴社の事業内容に関連する変化として検出されたため",
+        action: "詳細を確認し、関連する顧客・案件への影響を検討",
+      },
+    };
+
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+
+    const content = profile && overrides[profile.industry];
+    if (!content) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+
+    setText("detailTitle", content.title);
+    setText("summaryImpact", content.impact);
+    setText("summaryReason", content.reason);
+    setText("summaryAction", content.action);
+  })();
 </script>
 
 </body>
