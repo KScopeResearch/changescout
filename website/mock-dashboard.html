@@ -145,7 +145,41 @@
     color: var(--text-muted);
   }
 
-  /* ① 貴社のビジネスチャンス */
+  /* ① 今週のサマリー */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    text-align: center;
+  }
+
+  .kpi-card__label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+  }
+
+  .kpi-card__value {
+    font-size: 1.6rem;
+    font-weight: 800;
+  }
+
+  .kpi-card__value--accent {
+    color: var(--orange);
+  }
+
+  /* ② 貴社のビジネスチャンス */
   .score-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -252,7 +286,7 @@
     flex-shrink: 0;
   }
 
-  /* ② 貴社への影響 */
+  /* ③ 貴社への影響 */
   .panel-card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -335,7 +369,7 @@
     color: var(--text-muted);
   }
 
-  /* ③ 検出されたビジネスチャンス */
+  /* ④ 検出されたビジネスチャンス */
   .topic-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -439,7 +473,7 @@
     text-decoration: underline;
   }
 
-  /* ④ AI Action Plan */
+  /* ⑤ AI Action Plan */
   .action-list {
     list-style: none;
     margin: 0;
@@ -521,7 +555,7 @@
     margin-right: 6px;
   }
 
-  /* ⑤ 根拠情報 */
+  /* ⑥ 根拠情報 */
   .source-list {
     display: flex;
     flex-direction: column;
@@ -577,6 +611,10 @@
       gap: 12px;
     }
 
+    .kpi-strip {
+      grid-template-columns: 1fr;
+    }
+
     .score-card {
       padding: 24px;
       gap: 24px;
@@ -613,7 +651,26 @@
 
   <p class="page-subtitle" style="margin-top:-24px;">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
-  <!-- ① 貴社のビジネスチャンス -->
+  <!-- ① 今週のサマリー -->
+  <section>
+    <h2 class="section-heading">今週のサマリー</h2>
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-card__label">推定売上機会</div>
+        <div class="kpi-card__value kpi-card__value--accent">最大 1,200万円/年</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__label">対象企業数</div>
+        <div class="kpi-card__value">30社</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-card__label">優先対応件数</div>
+        <div class="kpi-card__value">3件</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 貴社のビジネスチャンス -->
   <section>
     <h2 class="section-heading">貴社のビジネスチャンス</h2>
     <div class="score-card">
@@ -658,7 +715,7 @@
     </div>
   </section>
 
-  <!-- ② 貴社への影響 -->
+  <!-- ③ 貴社への影響 -->
   <section>
     <h2 class="section-heading">貴社への影響</h2>
     <div class="panel-card">
@@ -691,7 +748,7 @@
     </div>
   </section>
 
-  <!-- ③ 検出されたビジネスチャンス -->
+  <!-- ④ 検出されたビジネスチャンス -->
   <section>
     <h2 class="section-heading">検出されたビジネスチャンス</h2>
     <div class="topic-grid">
@@ -756,7 +813,7 @@
     </div>
   </section>
 
-  <!-- ④ AI Action Plan -->
+  <!-- ⑤ AI Action Plan -->
   <section>
     <h2 class="section-heading">AI Action Plan</h2>
     <div class="panel-card">
@@ -770,7 +827,7 @@
             <span class="priority priority--high">優先度：高</span>
           </div>
           <div class="action-item__row"><span class="action-item__row-label">対象企業</span>既存顧客のうち補助金対象条件に該当する18社（製造業）</div>
-          <div class="action-item__row"><span class="action-item__row-label">理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため（関連トピック：製造業への新規開拓チャンス）</div>
+          <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため（関連トピック：製造業への新規開拓チャンス）</div>
           <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</div>
         </li>
         <li class="action-item">
@@ -782,7 +839,7 @@
             <span class="priority priority--mid">優先度：中</span>
           </div>
           <div class="action-item__row"><span class="action-item__row-label">対象企業</span>Web経由の新規流入見込み客全般</div>
-          <div class="action-item__row"><span class="action-item__row-label">理由</span>検索流入や関心層への訴求力を高めるため（関連トピック：製造業への新規開拓チャンス／既存顧客への提案チャンス）</div>
+          <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>検索流入や関心層への訴求力を高めるため（関連トピック：製造業への新規開拓チャンス／既存顧客への提案チャンス）</div>
           <div class="action-item__row"><span class="action-item__row-label">期待効果</span>サイト経由のリード獲得数の増加</div>
         </li>
         <li class="action-item">
@@ -794,14 +851,14 @@
             <span class="priority priority--mid">優先度：中</span>
           </div>
           <div class="action-item__row"><span class="action-item__row-label">対象企業</span>商談中の既存見込み客（比較検討フェーズ）</div>
-          <div class="action-item__row"><span class="action-item__row-label">理由</span>競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため（関連トピック：差別化提案のチャンス）</div>
+          <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため（関連トピック：差別化提案のチャンス）</div>
           <div class="action-item__row"><span class="action-item__row-label">期待効果</span>提案時の失注防止、差別化ポイントの明確化</div>
         </li>
       </ul>
     </div>
   </section>
 
-  <!-- ⑤ 根拠情報 -->
+  <!-- ⑥ 根拠情報 -->
   <section class="section--muted" style="margin-bottom: 0;">
     <p class="eyebrow">SOURCES</p>
     <h2 class="section-heading">根拠情報（ニュース・出典）</h2>

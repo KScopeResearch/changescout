@@ -213,6 +213,22 @@
     min-width: 240px;
   }
 
+  .detail-hero__score-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 10px;
+  }
+
+  .detail-hero__badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
   .detail-hero__title {
     font-size: 1.5rem;
     font-weight: 800;
@@ -223,6 +239,26 @@
     font-size: 0.85rem;
     color: var(--text-muted);
     margin: 6px 0 0;
+  }
+
+  .score-breakdown {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .score-breakdown__row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .score-breakdown__row b {
+    color: var(--text);
+    font-size: 1rem;
   }
 
   /* Panel card (shared style) */
@@ -441,9 +477,17 @@
         </div>
       </div>
       <div class="detail-hero__copy">
-        <span class="tag tag--orange">補助金</span>
+        <p class="detail-hero__score-label">市場変化スコア</p>
+        <div class="detail-hero__badges">
+          <span class="tag tag--orange">補助金</span>
+          <span class="tag tag--blue">確信度：高</span>
+        </div>
         <h1 class="detail-hero__title">製造業への新規開拓チャンス</h1>
         <p class="detail-hero__fact">補助金対象拡大（経済産業省）</p>
+        <div class="score-breakdown">
+          <div class="score-breakdown__row"><span>営業機会度</span><b>95</b></div>
+          <div class="score-breakdown__row"><span>緊急度</span><b>90</b></div>
+        </div>
       </div>
     </div>
   </section>
@@ -521,7 +565,7 @@
           <span class="priority priority--high">優先度：高</span>
         </div>
         <div class="action-item__row"><span class="action-item__row-label">対象企業</span>既存顧客のうち補助金対象条件に該当する18社（製造業）</div>
-        <div class="action-item__row"><span class="action-item__row-label">理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
+        <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
         <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</div>
       </div>
     </div>
