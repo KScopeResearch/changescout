@@ -962,16 +962,16 @@
             <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
             <button type="button" class="generate-btn" data-generate="proposal">📄 提案資料生成</button>
           </div>
-          <div class="generate-output" data-output-for="mail">件名：【共有】LPコピー更新のご相談
+          <div class="generate-output" data-output-for="mail" id="a2Mail">件名：【共有】LPコピー更新のご相談
 
 マーケティングご担当者様
 
 直近の補助金対象拡大・建設業法改正を踏まえ、LPのコピーを更新したいと考えています。
 反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。</div>
-          <div class="generate-output" data-output-for="talk">「本日はお問い合わせありがとうございます。
+          <div class="generate-output" data-output-for="talk" id="a2Talk">「本日はお問い合わせありがとうございます。
 実は今、補助金の対象が拡大されたタイミングで、製造業のお客様からのご相談が増えています。
 まずは御社の状況を伺えればと思うのですが、現在ご検討中の設備投資などはございますか？」</div>
-          <div class="generate-output" data-output-for="proposal">【LP改善提案アウトライン】
+          <div class="generate-output" data-output-for="proposal" id="a2Proposal">【LP改善提案アウトライン】
 1. 現状のLP流入・CVR課題
 2. 反映すべき最新情報（補助金対象拡大／建設業法改正）
 3. 更新後のコピー案
@@ -993,15 +993,15 @@
             <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
             <button type="button" class="generate-btn" data-generate="proposal">📄 提案資料生成</button>
           </div>
-          <div class="generate-output" data-output-for="mail">件名：【比較資料】競合A社新サービスとの違いについて
+          <div class="generate-output" data-output-for="mail" id="a3Mail">件名：【比較資料】競合A社新サービスとの違いについて
 
 ○○様
 
 先日ご質問いただいた競合A社の新サービスとの違いについて、比較資料をまとめましたのでご確認ください。
 弊社サービスは導入後のサポート体制・カスタマイズ性の点で優位性がございます。</div>
-          <div class="generate-output" data-output-for="talk">「競合A社さんの新サービスも比較検討されているとのことですが、弊社との大きな違いはサポート体制とカスタマイズ性の部分です。
+          <div class="generate-output" data-output-for="talk" id="a3Talk">「競合A社さんの新サービスも比較検討されているとのことですが、弊社との大きな違いはサポート体制とカスタマイズ性の部分です。
 特に貴社のような規模の企業様には、この点を特に評価いただいております。」</div>
-          <div class="generate-output" data-output-for="proposal">【競合比較資料アウトライン】
+          <div class="generate-output" data-output-for="proposal" id="a3Proposal">【競合比較資料アウトライン】
 1. 競合A社新サービスの概要
 2. 自社サービスとの機能比較表
 3. 自社の優位性ポイント
@@ -1159,12 +1159,18 @@
           target: "Web経由の建設業見込み客全般",
           reason: "建設業法改正への関心が高まっているタイミングで、検索流入・問い合わせを強化するため",
           effect: "サイト経由のリード獲得数の増加",
+          mail: "件名：【共有】LPコピー更新のご相談\n\nマーケティングご担当者様\n\n直近の建設業法改正を踏まえ、LPのコピーを更新したいと考えています。\n反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。",
+          talk: "「本日はお問い合わせありがとうございます。\n実は今、建設業法改正のタイミングで、建設業のお客様からのご相談が増えています。\nまずは御社の状況を伺えればと思うのですが、現在許可要件や契約実務でお困りの点はございますか？」",
+          proposal: "【LP改善提案アウトライン】\n1. 現状のLP流入・CVR課題\n2. 反映すべき最新情報（建設業法改正）\n3. 更新後のコピー案\n4. 想定される流入・問い合わせ増加効果",
         },
         action3: {
           title: "競合の建設業支援サービスを調査し比較資料を作成する",
           target: "商談中の建設業見込み客（比較検討フェーズ）",
           reason: "競合が建設業向け支援サービスを強化しており、提案時の差別化が必要なため",
           effect: "提案時の失注防止、建設業顧客への差別化ポイントの明確化",
+          mail: "件名：【比較資料】競合の建設業向けサービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の建設業向け支援サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは建設業許可・取引実務のサポート体制の点で優位性がございます。",
+          talk: "「競合の建設業向けサービスも比較検討されているとのことですが、弊社との大きな違いは許可・取引実務のサポート体制の部分です。\n特に貴社のような規模の建設会社様には、この点を特に評価いただいております。」",
+          proposal: "【競合比較資料アウトライン】\n1. 競合の建設業向けサービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 建設業導入企業の声・実績",
         },
       },
       professional: {
@@ -1200,12 +1206,18 @@
           target: "Web経由の士業見込み客・顧問先候補全般",
           reason: "制度改正への関心が高まっているタイミングで、相談窓口としての認知を高めるため",
           effect: "サイト経由の相談・問い合わせ増加",
+          mail: "件名：【共有】LPコピー更新のご相談\n\nマーケティングご担当者様\n\n直近の制度改正を踏まえ、LPのコピーを更新したいと考えています。\n反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。",
+          talk: "「本日はお問い合わせありがとうございます。\n実は今、複数の制度改正が重なるタイミングで、顧問先様からのご相談が増えています。\nまずは御社の状況を伺えればと思うのですが、現在気になっている制度変更はございますか？」",
+          proposal: "【LP改善提案アウトライン】\n1. 現状のLP流入・CVR課題\n2. 反映すべき最新情報（制度改正の動向）\n3. 更新後のコピー案\n4. 想定される相談・問い合わせ増加効果",
         },
         action3: {
           title: "競合の士業向け支援サービスを調査し比較資料を作成する",
           target: "商談を検討している士業見込み客",
           reason: "競合が士業向け支援を強化しており、差別化ポイントの明確化が必要なため",
           effect: "失注防止、士業顧客への差別化ポイントの明確化",
+          mail: "件名：【比較資料】競合の士業向け支援サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の士業向け支援サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは情報提供の速さ・カスタマイズ性の点で優位性がございます。",
+          talk: "「競合の士業向けサービスも比較検討されているとのことですが、弊社との大きな違いは情報提供の速さとカスタマイズ性の部分です。\n特に貴社のような規模の事務所様には、この点を特に評価いただいております。」",
+          proposal: "【競合比較資料アウトライン】\n1. 競合の士業向け支援サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 士業事務所での導入実績・声",
         },
       },
     };
@@ -1245,11 +1257,17 @@
     setText("a2Target", content.action2.target);
     setText("a2Reason", content.action2.reason);
     setText("a2Effect", content.action2.effect);
+    setText("a2Mail", content.action2.mail);
+    setText("a2Talk", content.action2.talk);
+    setText("a2Proposal", content.action2.proposal);
 
     setText("a3Title", content.action3.title);
     setText("a3Target", content.action3.target);
     setText("a3Reason", content.action3.reason);
     setText("a3Effect", content.action3.effect);
+    setText("a3Mail", content.action3.mail);
+    setText("a3Talk", content.action3.talk);
+    setText("a3Proposal", content.action3.proposal);
   })();
 </script>
 
