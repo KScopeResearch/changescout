@@ -28,6 +28,14 @@ const pages = [
     uxKeySelector: ".page-title",
     uxCtaSelector: ".btn-primary",
   },
+  {
+    path: "profile-complete.html",
+    key: "profile complete",
+    title: /あなた専用分析を作成しました/,
+    heading: "あなた専用分析を作成しました",
+    uxKeySelector: ".complete-card__title",
+    uxCtaSelector: ".btn-primary",
+  },
 ];
 
 const fragmentDir = path.join("test-results", "review-fragments");

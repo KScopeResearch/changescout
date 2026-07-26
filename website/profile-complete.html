@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>プロフィール登録完了 ｜ ChangeScout Weekly</title>
+<title>あなた専用分析を作成しました ｜ ChangeScout Weekly</title>
 <style>
   :root {
     --bg: #f7f8fa;
@@ -36,7 +36,7 @@
   }
 
   .page {
-    max-width: 560px;
+    max-width: 620px;
     margin: 0 auto;
     padding: 32px 24px 80px;
   }
@@ -131,7 +131,96 @@
 
   .complete-card__body {
     color: var(--text-muted);
-    margin: 0 0 28px;
+    margin: 0;
+  }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    margin-top: 20px;
+  }
+
+  .info-card__title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin: 0 0 16px;
+  }
+
+  .info-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.88rem;
+  }
+
+  .info-row dt {
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .info-row dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+
+  .tag--orange { background: var(--orange-soft); color: #c2530f; }
+  .tag--blue { background: var(--blue-soft); color: #1d4ed8; }
+  .tag--neutral { background: var(--neutral-soft); color: #475467; }
+
+  .preview-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .preview-kpi {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+
+  .preview-kpi__value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--orange);
+  }
+
+  .preview-kpi__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .cta-row {
+    text-align: center;
+    margin-top: 28px;
   }
 
   .btn-primary {
@@ -147,6 +236,8 @@
     background: var(--orange);
     text-decoration: none;
     box-shadow: var(--shadow-sm);
+    border: none;
+    cursor: pointer;
   }
 
   .btn-primary:hover {
@@ -160,6 +251,14 @@
 
     .complete-card {
       padding: 36px 24px;
+    }
+
+    .info-card {
+      padding: 20px;
+    }
+
+    .preview-kpis {
+      grid-template-columns: 1fr;
     }
   }
 </style>
@@ -183,13 +282,84 @@
     <div class="complete-card__icon" aria-hidden="true">✓</div>
     <h1 class="complete-card__title">あなた専用分析を作成しました</h1>
     <p class="complete-card__body">
-      入力いただいた会社プロフィールをもとに、AIが貴社に合ったビジネスチャンスの検出を開始しました。
-      準備が整い次第、ダッシュボードでご確認いただけます。
+      入力いただいた会社プロフィールをもとに、AIが貴社専用のビジネスチャンス分析を作成しました。
     </p>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">あなたの会社情報</h2>
+    <dl class="info-list">
+      <div class="info-row"><dt>業種</dt><dd id="infoIndustry">—</dd></div>
+      <div class="info-row"><dt>顧客層</dt><dd id="infoCustomerSegment">—</dd></div>
+      <div class="info-row"><dt>商材</dt><dd id="infoProduct">—</dd></div>
+      <div class="info-row"><dt>営業地域</dt><dd id="infoRegion">—</dd></div>
+    </dl>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">分析対象カテゴリ</h2>
+    <div class="category-tags">
+      <span class="tag tag--orange">補助金</span>
+      <span class="tag tag--blue">法改正</span>
+      <span class="tag tag--neutral">業界ニュース</span>
+      <span class="tag tag--neutral">新サービス動向</span>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">作成されたレポート内容</h2>
+    <div class="preview-kpis">
+      <div class="preview-kpi">
+        <div class="preview-kpi__value">3件</div>
+        <div class="preview-kpi__label">検出されたビジネスチャンス</div>
+      </div>
+      <div class="preview-kpi">
+        <div class="preview-kpi__value">30社</div>
+        <div class="preview-kpi__label">対象企業数</div>
+      </div>
+      <div class="preview-kpi">
+        <div class="preview-kpi__value">最大1,200万円</div>
+        <div class="preview-kpi__label">推定商談価値（年間）</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-row">
     <a class="btn-primary" href="mock-dashboard.html">ダッシュボードを見る →</a>
   </div>
 
 </div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+
+  const industryLabels = {
+    "it-dx": "IT・DX支援",
+    construction: "建設",
+    professional: "士業",
+    manufacturing: "製造業",
+    other: "その他",
+  };
+
+  const regionLabels = {
+    nationwide: "全国",
+    kanto: "関東",
+    kansai: "関西",
+    chubu: "中部・東海",
+    kyushu: "九州・沖縄",
+    other: "その他",
+  };
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || "—";
+  };
+
+  setText("infoIndustry", industryLabels[params.get("industry")]);
+  setText("infoCustomerSegment", params.get("customerSegment"));
+  setText("infoProduct", params.get("product"));
+  setText("infoRegion", regionLabels[params.get("region")]);
+</script>
 
 </body>
 </html>
