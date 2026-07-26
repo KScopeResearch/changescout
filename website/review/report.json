@@ -1,11 +1,16 @@
 {
-  "commit": "298b93d9cb7e8ccb5b697017a4ae61eabefccf54",
-  "commitShort": "298b93d",
-  "generatedAt": "2026-07-26T08:28:11.362Z",
+  "commit": "7a65c88a11adfeec6745bd1e174e73a254d8a8dd",
+  "commitShort": "7a65c88",
+  "generatedAt": "2026-07-26T08:40:28.493Z",
   "summary": {
     "total": 6,
     "passed": 6,
     "failed": 0
+  },
+  "uxSummary": {
+    "avgLoadTimeMs": 310,
+    "keyValueAboveFold": "6/6",
+    "ctaVisible": "6/6"
   },
   "results": [
     {
@@ -15,7 +20,12 @@
       "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
       "screenshot": "../screenshots/desktop-company-profile.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 334,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     },
     {
       "label": "desktop dashboard",
@@ -24,7 +34,12 @@
       "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
       "screenshot": "../screenshots/desktop-mock-dashboard.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 312,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     },
     {
       "label": "desktop opportunity detail",
@@ -33,7 +48,12 @@
       "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
       "screenshot": "../screenshots/desktop-opportunity-detail.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 259,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     },
     {
       "label": "mobile company profile",
@@ -42,7 +62,12 @@
       "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
       "screenshot": "../screenshots/mobile-company-profile.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 181,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     },
     {
       "label": "mobile dashboard",
@@ -51,7 +76,12 @@
       "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
       "screenshot": "../screenshots/mobile-mock-dashboard.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 406,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     },
     {
       "label": "mobile opportunity detail",
@@ -60,7 +90,12 @@
       "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
       "screenshot": "../screenshots/mobile-opportunity-detail.png",
       "passed": true,
-      "consoleErrors": 0
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 369,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
     }
   ]
 }
