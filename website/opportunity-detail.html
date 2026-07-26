@@ -528,11 +528,11 @@
       <div class="detail-hero__copy">
         <p class="detail-hero__score-label">あなたの会社への重要度</p>
         <div class="detail-hero__badges">
-          <span class="tag tag--orange">補助金</span>
+          <span class="tag tag--orange" id="detailTag">補助金</span>
           <span class="tag tag--blue">確信度：高</span>
         </div>
         <h1 class="detail-hero__title" id="detailTitle">製造業への新規開拓チャンス</h1>
-        <p class="detail-hero__fact">補助金対象拡大（経済産業省）</p>
+        <p class="detail-hero__fact" id="detailFact">補助金対象拡大（経済産業省）</p>
         <div class="score-breakdown">
           <div class="score-breakdown__row"><span>営業機会度</span><b>95</b></div>
           <div class="score-breakdown__row"><span>緊急度</span><b>90</b></div>
@@ -556,10 +556,10 @@
   <section>
     <h2 class="section-heading">概要</h2>
     <div class="panel-card">
-      <p class="panel-card__body">
+      <p class="panel-card__body" id="overviewPara1">
         経済産業省は2026年7月、ものづくり補助金の対象要件を拡大し、DX関連投資（業務システム導入・IoT設備・省力化ツール等）を新たに対象に含めることを発表しました。
       </p>
-      <p class="panel-card__body">
+      <p class="panel-card__body" id="overviewPara2">
         これにより、これまで対象外だった多くの製造業がIT・DX投資の補助を受けられるようになり、
         導入支援を提供する事業者にとっては新規の商談機会が広がると見込まれます。
       </p>
@@ -689,33 +689,43 @@
     });
   });
 
-  // Personalize the title/影響/判断理由/推奨アクション based on the company profile saved
-  // from company-profile.html. Falls back to the default wording when no profile is saved.
+  // Personalize the title/fact/概要/影響/判断理由/推奨アクション based on the company profile
+  // saved from company-profile.html, so the whole page reads as one consistent story.
+  // Falls back to the default wording when no profile is saved (or industry is "other").
   (function personalizeFromProfile() {
     const overrides = {
       manufacturing: {
-        title: "製造業向け設備投資支援のチャンス",
+        tag: "補助金",
+        tagClass: "tag--orange",
+        title: "補助金対象拡大",
+        fact: "中小企業向け設備投資支援策が拡充（経済産業省）",
+        overview1: "経済産業省は2026年7月、中小企業向けの設備投資支援策を拡充し、生産設備の更新やIoT・省力化投資への補助を強化することを発表しました。",
+        overview2: "これにより、これまで投資を先送りしていた製造業の中小企業でも設備投資に踏み切りやすい環境が整いつつあり、導入支援を提供する事業者にとっては新たな商談機会が生まれています。",
         impact: "貴社（製造業）の設備投資需要への影響",
         reason: "貴社が製造業として、DX関連の設備投資を検討する好機であるため",
         action: "既存製造業顧客への情報提供を開始",
       },
       construction: {
-        title: "建設業向け法改正対応のチャンス",
+        tag: "法改正",
+        tagClass: "tag--blue",
+        title: "建設業法改正",
+        fact: "建設業許可・取引適正化に関する制度変更（国土交通省）",
+        overview1: "国土交通省は2026年、建設業許可制度および取引の適正化に関する建設業法の一部改正を決定しました。許可要件の見直しや下請取引の適正化ルールが強化されます。",
+        overview2: "これにより、建設業の既存顧客・取引先は許可要件や契約実務の見直しが必要になる見込みです。早期の情報提供や対応支援が、顧客との信頼関係強化につながります。",
         impact: "貴社（建設業）の許可要件・実務対応への影響",
         reason: "貴社が建設業として、法改正への早期対応が求められるため",
         action: "建設業の顧客・現場担当者へ改正内容を共有",
       },
       professional: {
-        title: "士業向け助言機会の拡大チャンス",
+        tag: "制度改正",
+        tagClass: "tag--neutral",
+        title: "制度変更による業務需要変化",
+        fact: "企業対応が必要となる制度改正が増加",
+        overview1: "近年、補助金制度や関連法規の改正が相次いでおり、企業側での対応判断や書類対応の負担が増しています。複数の制度変更が同時期に重なるケースも増加しています。",
+        overview2: "これにより、顧問先企業からの相談ニーズが高まっており、士業事務所にとっては、適時のアドバイスや情報提供を通じた関係強化の好機となっています。",
         impact: "顧問先企業への補助金・法改正の助言ニーズへの影響",
         reason: "貴社が士業として、顧問先へのタイムリーな情報提供価値が高まるため",
         action: "顧問先企業へ制度変更の案内を送付",
-      },
-      other: {
-        title: "貴社向けビジネスチャンス",
-        impact: "貴社の事業に関連する市場変化への影響",
-        reason: "貴社の事業内容に関連する変化として検出されたため",
-        action: "詳細を確認し、関連する顧客・案件への影響を検討",
       },
     };
 
@@ -734,7 +744,14 @@
       if (el) el.textContent = value;
     };
 
+    setText("detailTag", content.tag);
+    const tagEl = document.getElementById("detailTag");
+    if (tagEl) tagEl.className = `tag ${content.tagClass}`;
+
     setText("detailTitle", content.title);
+    setText("detailFact", content.fact);
+    setText("overviewPara1", content.overview1);
+    setText("overviewPara2", content.overview2);
     setText("summaryImpact", content.impact);
     setText("summaryReason", content.reason);
     setText("summaryAction", content.action);
