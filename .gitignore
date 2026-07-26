@@ -2,3 +2,7 @@ node_modules/
 test-results/
 playwright-report/
 screenshots/
+
+# Published verification screenshots (served via GitHub Pages)
+!website/screenshots/
+!website/screenshots/**
