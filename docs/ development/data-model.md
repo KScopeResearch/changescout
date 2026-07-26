@@ -34,7 +34,7 @@ ActionPlan
 | `summary` | 一行要約 | `detailFact` / `card{n}Fact` |
 | `source` | 発表元 | `evidenceMeta{n}` の発表元部分（例：中小企業庁） |
 | `published_date` | 公開日 | `evidenceMeta{n}` の日付部分（例：2026.07.24） |
-| `target_industries` | 関連する業種（複数可） | `overrides` オブジェクトのキー（manufacturing/construction/professional/other） |
+| `target_industries` | 関連する業種（複数可） | `overrides` オブジェクトのキー（manufacturing/construction/professional/other/it-dx） |
 | `evidence` | 根拠情報のリスト（`{title, source, date}`） | Evidenceセクション（`evidenceTitle{n}`/`evidenceMeta{n}`） |
 
 **意図的に含めない項目**：ユーザー提示の例には `opportunity_type` と `recommended_actions` が含まれていたが、これらはMarketChange単体では決まらず、企業プロフィールと組み合わせて初めて決まる値のため、後述の `Opportunity` 側に置く。MarketChangeに持たせると「同じ市場変化でも会社によって異なるはずの推奨アクション」を1つの変化に固定してしまい、パーソナライズの前提と矛盾するため過剰設計として除外する。
@@ -65,16 +65,17 @@ MarketChange + CompanyProfile → Opportunity → Dashboard Card / Opportunity D
 
 ## 3. CompanyProfileとOpportunity生成の関係
 
-現在 `company-profile.html` が `localStorage`（キー `changescout_profile`）に保存する4項目のうち、どれがOpportunity生成にどう使われるかを整理する。
+現在 `company-profile.html` が `localStorage`（キー `changescout_profile`）に保存する5項目のうち、どれがOpportunity生成にどう使われるかを整理する。`companyName`はWeek1 Must Fixで追加した項目。
 
 | CompanyProfileの項目 | Opportunity生成での役割 |
 |---|---|
+| `companyName`（企業名、任意） | 業種に依存しない表示置換のみ。入力がある場合、固定デモ企業名「株式会社フィールドDX」をDashboard/Opportunity Detailの該当箇所で置き換える。Opportunity生成ロジック自体には使わない |
 | `industry`（業種） | **主キー**。どの `MarketChange`／どのOpportunityテンプレートを選ぶかを決める一次分類。未選択時は既定表示のまま（パーソナライズしない） |
 | `customerSegment`（顧客層） | 補完レイヤー。入力がある場合のみ `affected_company_estimate` や `reason` に「（〇〇が中心）」等の形で追記 |
 | `product`（商材） | 補完レイヤー。入力がある場合のみ `reason` や `generated_content` に「貴社の商材『〇〇』との親和性も…」等の形で追記 |
 | `region`（営業地域） | 補完レイヤー。入力がある場合のみ `affected_company_estimate` に「〇〇エリアが中心」等の形で追記 |
 
-**注意**：`customerSegment`／`product`／`region` が未入力の場合、その項目に関する記述は一切追加しない。存在しない情報を推測・捏造してテンプレートを埋めることは禁止する（`CLAUDE.md` Product Principles「推測によるプロフィール補完は禁止」に対応）。
+**注意**：`customerSegment`／`product`／`region`／`companyName`が未入力の場合、その項目に関する記述は一切追加しない（`companyName`未入力時は固定デモ企業名の表示を維持）。存在しない情報を推測・捏造してテンプレートを埋めることは禁止する（`CLAUDE.md` Product Principles「推測によるプロフィール補完は禁止」に対応）。
 
 ## 4. AI Transparency仕様
 

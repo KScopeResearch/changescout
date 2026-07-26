@@ -41,7 +41,7 @@ AI Pipeline（実際のOpportunity生成・スコアリング。現状はすべ�
 
 - 静的マルチページサイト（ビルドツール・バックエンドなし）。各HTMLファイルはインラインの`<style>`/`<script>`を持つ自己完結構成。
 - ページ構成：`index.html`（LP）→ `company-profile.html`（会社プロフィール入力）→ `profile-complete.html`（登録完了・レポートプレビュー）→ `mock-dashboard.html`（ダッシュボード）→ `opportunity-detail.html`（詳細）
-- パーソナライズは`localStorage`キー`changescout_profile`（`{industry, customerSegment, product, region}`）を介して行う。各ページの`personalizeFromProfile()`が業種別の`overrides`オブジェクトを参照し、DOM要素をidベースで書き換える。
+- パーソナライズは`localStorage`キー`changescout_profile`（`{companyName, industry, customerSegment, product, region}`）を介して行う。各ページの`personalizeFromProfile()`が業種別の`overrides`オブジェクトを参照し、DOM要素をidベースで書き換える。`companyName`（企業名、任意項目）のみ業種に依存せず、固定デモ企業名「株式会社フィールドDX」をDashboard/Opportunity Detailの該当箇所で置き換える用途に使う（Week1 Must Fix）。
 - 自由入力項目（顧客層・商材・地域）は業種オーバーライドの上に「補完レイヤー」として追記するのみで、未入力の項目は推測・捏造しない。
 - ホスティングはGitHub Pages（`.github/workflows/deploy-pages.yml`、`website/`配下をpush時に自動デプロイ）。
 - Playwright（`tests/pages.spec.js`）で8ケース（desktop/mobile × 4ページ）を検証し、`scripts/generate-review.js`が`website/review/report.json`を生成。`website/review/index.html`でファイルアップロードなしにAIレビュー可能。
@@ -85,3 +85,11 @@ Phase 2-3で対象外としたAI Action Plan（Dashboard）とRecommended Action
 - **固定のまま残した範囲**：Dashboard Card2・Card3、AI Action Plan #2・#3、プロフィール未入力時の全表示。
 - **検証**：`#actionPlan1`（Dashboard）・`#recommendedAction`（Detail）に`data-source`属性（`static`/`override`/`json`）を付与し、Phase 2-3と同じ方式で描画経路を確認可能にした。
 - **将来API化時の置換ポイント**：`action_plan`は現状JSON内に静的に埋め込んでいるが、本来はOpportunity生成ロジックが動的に算出すべき値（`data-model.md`のOpportunity定義に対応）。将来は`fetchMarketChanges()`の返り値、または新設する`fetchOpportunity(marketChangeId, companyProfile)`のようなAPI呼び出しに置き換えることを想定し、呼び出し側（Dashboard/Detailの描画ロジック）の構造は変更不要。
+
+## Week1 Must Fix 実装内容（`docs/strategy/FINAL_MVP_PLAN.md`対応）
+
+初期顧客候補に見せる際に「壊れている」と感じさせないための、デモ品質・一貫性向上を目的とした最小変更。新しいアーキテクチャや生成ロジックの追加は行っていない。
+
+- **IT・DX支援業種のフル対応**：`website/data/market-changes.json`のmc-007（既存エントリ）に`impact`/`reason`/`action`/`overview1`/`overview2`/`why_now`/`tag_class`/`action_plan`を追加し、Phase 2-3/2-4のJSON駆動の仕組み（`fetchMarketChanges()`/`pickMarketChange()`）だけでCard1・Opportunity Detail・AI Action Plan/Recommended Actionが連携するようにした。新規MarketChangeの追加ではなく、既存エントリの不足フィールド補完で対応（新しいMarketChangeモデルの変更は行っていない）。あわせて`mock-dashboard.html`/`opportunity-detail.html`の`overrides`オブジェクトと`breakdownOverrides`にも`it-dx`キーを追加し、JSON取得失敗時のフォールバック表示も他業種と同水準にした。これにより、対応業種は製造業・建設業・士業・IT・DX支援の4業種になった（「その他」はPhase 2-4からAI Action Plan/Recommended Actionのみ対応のまま、変更なし）。
+- **企業名パーソナライズ**：`changescout_profile`に`companyName`（企業名、任意項目）を追加。`company-profile.html`に入力欄を追加し、Dashboard 2箇所・Opportunity Detail 1箇所の固定デモ企業名「株式会社フィールドDX」を、入力があった場合のみ置き換える。未入力時は現状表示を維持。メール／トーク／提案資料生成テンプレート内の署名部分は今回のスコープ外（別途対応候補として`docs/strategy/FINAL_MVP_PLAN.md`に記載）。
+- **AI表現の整合性**：Dashboard/Opportunity Detail/AI Transparency/AI Action Planの範囲を確認し、「AIが算出した貴社の機会スコア」を「AI推定による貴社の機会スコア」に修正（唯一の過大表現だった箇所）。他の「AI推定値」等の表記は既存のまま維持。LP・オンボーディング（`index.html`等）に残る同種の表現は今回のスコープ外とし、`docs/strategy/ROADMAP.md`のRemaining Issuesに記録した。
