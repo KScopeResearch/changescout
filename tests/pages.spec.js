@@ -5,12 +5,12 @@ const pages = [
   {
     path: "mock-dashboard.html",
     title: /ChangeScout Weekly/,
-    heading: "業界別ビジネスチャンス指数",
+    heading: "貴社のビジネスチャンス",
   },
   {
     path: "opportunity-detail.html",
-    title: /補助金対象拡大/,
-    heading: "補助金対象拡大",
+    title: /製造業への新規開拓チャンス/,
+    heading: "製造業への新規開拓チャンス",
   },
 ];
 

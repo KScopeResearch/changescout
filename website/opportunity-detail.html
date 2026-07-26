@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>補助金対象拡大 ｜ ChangeScout Weekly</title>
+<title>製造業への新規開拓チャンス ｜ ChangeScout Weekly</title>
 <style>
   :root {
     --bg: #f7f8fa;
@@ -219,6 +219,12 @@
     margin: 10px 0 0;
   }
 
+  .detail-hero__fact {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 6px 0 0;
+  }
+
   /* Panel card (shared style) */
   .panel-card {
     background: var(--surface);
@@ -239,7 +245,7 @@
 
   .stat-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 20px;
   }
@@ -283,6 +289,26 @@
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 10px;
+  }
+
+  .action-item__head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    flex-shrink: 0;
   }
 
   .action-item__title {
@@ -416,7 +442,8 @@
       </div>
       <div class="detail-hero__copy">
         <span class="tag tag--orange">補助金</span>
-        <h1 class="detail-hero__title">補助金対象拡大</h1>
+        <h1 class="detail-hero__title">製造業への新規開拓チャンス</h1>
+        <p class="detail-hero__fact">補助金対象拡大（経済産業省）</p>
       </div>
     </div>
   </section>
@@ -431,6 +458,22 @@
       <p class="panel-card__body">
         これにより、これまで対象外だった多くの製造業がIT・DX投資の補助を受けられるようになり、
         導入支援を提供する事業者にとっては新規の商談機会が広がると見込まれます。
+      </p>
+    </div>
+  </section>
+
+  <!-- Why Now -->
+  <section>
+    <h2 class="section-heading">Why Now（なぜ今か）</h2>
+    <div class="panel-card">
+      <p class="panel-card__body">
+        本補助金の申請受付には期限があり、対応の早さがそのまま採択率に直結します。着手が遅れるほど、見込み客への提案余地は狭まります。
+      </p>
+      <p class="panel-card__body">
+        同業の導入支援事業者もこの制度への言及を強め始めており、認知が広がりきる前の先行アプローチが商談化率を左右します。
+      </p>
+      <p class="panel-card__body">
+        対象拡大の発表直後である今は、対象企業の経営者の関心が最も高まっているタイミングでもあり、最も反応を得やすい時期です。
       </p>
     </div>
   </section>
@@ -452,6 +495,10 @@
           <div class="stat-tile__label">想定新規リード</div>
           <div class="stat-tile__value">最大12社</div>
         </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">推定売上機会</div>
+          <div class="stat-tile__value stat-tile__value--accent">最大400万円</div>
+        </div>
       </div>
       <p class="panel-card__body">
         貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。
@@ -467,11 +514,15 @@
     <div class="panel-card">
       <div class="action-item">
         <div class="action-item__head">
-          <span class="action-item__title">補助金対象企業へ営業メールを送信する</span>
+          <div class="action-item__head-left">
+            <span class="rank-badge">1</span>
+            <span class="action-item__title">補助金対象企業へ営業メールを送信する</span>
+          </div>
           <span class="priority priority--high">優先度：高</span>
         </div>
+        <div class="action-item__row"><span class="action-item__row-label">対象企業</span>既存顧客のうち補助金対象条件に該当する18社（製造業）</div>
         <div class="action-item__row"><span class="action-item__row-label">理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
-        <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる</div>
+        <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</div>
       </div>
     </div>
   </section>
