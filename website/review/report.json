@@ -1,16 +1,16 @@
 {
-  "commit": "a7bb2dccdd4e2d1055025ca8d5c6df5f872286c3",
-  "commitShort": "a7bb2dc",
-  "generatedAt": "2026-07-26T09:00:20.286Z",
+  "commit": "42e3e8318604e78d9cdd5f94978ab6fca9090bf1",
+  "commitShort": "42e3e83",
+  "generatedAt": "2026-07-26T09:23:56.855Z",
   "summary": {
-    "total": 6,
-    "passed": 6,
+    "total": 8,
+    "passed": 8,
     "failed": 0
   },
   "uxSummary": {
-    "avgLoadTimeMs": 342,
-    "keyValueAboveFold": "6/6",
-    "ctaVisible": "6/6"
+    "avgLoadTimeMs": 327,
+    "keyValueAboveFold": "8/8",
+    "ctaVisible": "8/8"
   },
   "results": [
     {
@@ -22,7 +22,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 359,
+        "loadTimeMs": 369,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -36,7 +36,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 415,
+        "loadTimeMs": 455,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -50,7 +50,21 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 391,
+        "loadTimeMs": 450,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "desktop profile complete",
+      "project": "desktop",
+      "page": "profile-complete.html",
+      "url": "https://kscoperesearch.github.io/changescout/profile-complete.html",
+      "screenshot": "../screenshots/desktop-profile-complete.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 348,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -64,7 +78,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 350,
+        "loadTimeMs": 213,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -78,7 +92,7 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 289,
+        "loadTimeMs": 308,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
@@ -92,7 +106,21 @@
       "passed": true,
       "consoleErrors": 0,
       "ux": {
-        "loadTimeMs": 250,
+        "loadTimeMs": 295,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "mobile profile complete",
+      "project": "mobile",
+      "page": "profile-complete.html",
+      "url": "https://kscoperesearch.github.io/changescout/profile-complete.html",
+      "screenshot": "../screenshots/mobile-profile-complete.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 181,
         "keyValueAboveFold": true,
         "ctaVisible": true
       }
