@@ -607,7 +607,7 @@
           <div class="stat-tile__value stat-tile__value--accent">最大400万円</div>
         </div>
       </div>
-      <p class="panel-card__body">
+      <p class="panel-card__body" id="impactDetailBody">
         貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。
         また、これまで投資予算の制約で導入を見送っていた製造業の見込み客層にもアプローチの余地が生まれます。
         競合の導入支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。
@@ -623,19 +623,19 @@
         <div class="action-item__head">
           <div class="action-item__head-left">
             <span class="rank-badge">1</span>
-            <span class="action-item__title">補助金対象企業へ営業メールを送信する</span>
+            <span class="action-item__title" id="actionTitle">補助金対象企業へ営業メールを送信する</span>
           </div>
           <span class="priority priority--high">優先度：高</span>
         </div>
-        <div class="action-item__row"><span class="action-item__row-label">対象企業</span>既存顧客のうち補助金対象条件に該当する18社（製造業）</div>
-        <div class="action-item__row"><span class="action-item__row-label">推奨理由</span>補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</div>
-        <div class="action-item__row"><span class="action-item__row-label">期待効果</span>新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</div>
+        <div class="action-item__row"><span class="action-item__row-label">対象企業</span><span id="actionTarget">既存顧客のうち補助金対象条件に該当する18社（製造業）</span></div>
+        <div class="action-item__row"><span class="action-item__row-label">推奨理由</span><span id="actionReason">補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</span></div>
+        <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="actionEffect">新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）</span></div>
         <div class="generate-actions">
           <button type="button" class="generate-btn" data-generate="mail">✉️ メール生成</button>
           <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
           <button type="button" class="generate-btn" data-generate="proposal">📄 提案資料生成</button>
         </div>
-        <div class="generate-output" data-output-for="mail">件名：【ご案内】ものづくり補助金の対象拡大について
+        <div class="generate-output" data-output-for="mail" id="genMail">件名：【ご案内】ものづくり補助金の対象拡大について
 
 ○○様
 
@@ -643,11 +643,11 @@
 このたび、ものづくり補助金の対象要件が拡大され、DX関連投資（業務システム導入・IoT設備等）も新たに対象となりました。
 貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。
 一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。</div>
-        <div class="generate-output" data-output-for="talk">「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。
+        <div class="generate-output" data-output-for="talk" id="genTalk">「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。
 実は今月、ものづくり補助金の対象がDX投資にも広がりまして、これまで対象外だった設備投資やシステム導入も補助対象になったんです。
 もし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。
 詳しい要件や申請のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」</div>
-        <div class="generate-output" data-output-for="proposal">【提案資料アウトライン（自動生成）】
+        <div class="generate-output" data-output-for="proposal" id="genProposal">【提案資料アウトライン（自動生成）】
 1. 表紙：ものづくり補助金 対象拡大のご案内
 2. 制度概要：対象要件の拡大内容（DX関連投資が新規対象に）
 3. 貴社への想定インパクト：対象条件・活用余地
@@ -712,6 +712,14 @@
           { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24" },
           { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24" },
         ],
+        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。また、これまで投資予算の制約で導入を見送っていた製造業の見込み客層にもアプローチの余地が生まれます。競合の導入支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
+        actionTitle: "補助金対象企業へ営業メールを送信する",
+        actionTarget: "既存顧客のうち補助金対象条件に該当する18社（製造業）",
+        actionReason: "補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため",
+        actionEffect: "新規商談化率の向上、問い合わせ増加が見込まれる（推定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】ものづくり補助金の対象拡大について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、ものづくり補助金の対象要件が拡大され、DX関連投資（業務システム導入・IoT設備等）も新たに対象となりました。\n貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。\n実は今月、ものづくり補助金の対象がDX投資にも広がりまして、これまで対象外だった設備投資やシステム導入も補助対象になったんです。\nもし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や申請のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：ものづくり補助金 対象拡大のご案内\n2. 制度概要：対象要件の拡大内容（DX関連投資が新規対象に）\n3. 貴社への想定インパクト：対象条件・活用余地\n4. 導入支援内容：弊社のDX導入支援サービス概要\n5. 導入ステップとスケジュール\n6. 費用感・補助金活用後の実質負担\n7. 次のアクション：ヒアリングのご案内",
       },
       construction: {
         tag: "法改正",
@@ -728,6 +736,14 @@
           { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
           { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
         ],
+        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が今回の建設業法改正の影響を受ける見込みです。また、これまで対応を後回しにしていた建設業の既存取引先にも、早期のフォローアップの余地が生まれます。競合の対応支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが信頼維持・商談化率に影響すると考えられます。",
+        actionTitle: "建設業顧客へ改正内容の説明を実施する",
+        actionTarget: "既存顧客のうち建設業法改正の影響を受ける18社（建設業）",
+        actionReason: "建設業法改正により、対応準備が必要な既存顧客への早期フォローが重要になっているため",
+        actionEffect: "既存顧客との信頼関係強化、追加相談・商談機会の創出が見込まれる（推定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】建設業法改正への対応について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、建設業許可制度および取引適正化に関する建設業法の一部改正が決定しました。\n貴社の許可要件や契約実務に影響する可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、建設業法の改正についてご案内できればと思いご連絡しました。\n許可要件や下請取引に関するルールが見直される予定で、対応の準備が必要になる可能性があります。\n詳しい変更点や対応のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：建設業法改正への対応ご案内\n2. 制度概要：許可要件・取引適正化ルールの変更内容\n3. 貴社への想定インパクト：対応が必要な項目\n4. 対応支援内容：弊社の建設業向け支援サービス概要\n5. 対応ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
       },
       professional: {
         tag: "制度改正",
@@ -744,6 +760,14 @@
           { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20" },
           { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20" },
         ],
+        impactDetail: "貴社（株式会社フィールドDX）の顧問先企業のうち18社が今回の制度改正の影響を受ける見込みです。また、これまで積極的な情報提供を行っていなかった顧問先にも、相談機会を生み出す余地があります。他の士業事務所もこの動きへの言及を強める可能性が高く、早期のアプローチが信頼維持・関係強化に影響すると考えられます。",
+        actionTitle: "顧問先企業へ制度改正の案内を送付する",
+        actionTarget: "顧問先企業のうち制度改正の影響を受ける18社",
+        actionReason: "制度改正により、顧問先からの相談ニーズが高まる前に情報提供を行う好機であるため",
+        actionEffect: "顧問契約の継続率向上、追加相談機会の創出が見込まれる（推定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】制度改正に関する情報提供について\n\n○○様\n\nいつもお世話になっております。株式会社フィールドDXの担当です。\nこのたび、複数の制度改正が同時期に実施されることが決定しました。\n顧問先企業様への説明・相談対応の準備として、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、直近で相次いでいる制度改正についてご案内できればと思いご連絡しました。\n複数の制度変更が重なっており、顧問先企業様からの相談が増えることが見込まれます。\n詳しい変更点や情報提供の進め方など、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：制度改正に関する情報提供ご案内\n2. 制度概要：今回の改正内容と対象範囲\n3. 顧問先への想定インパクト：相談が増える論点\n4. 情報提供支援内容：弊社の案内資料・説明サポート\n5. 実施ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
       },
     };
 
@@ -788,6 +812,15 @@
       setText("evidenceTitle2", content.evidence[1].title);
       setText("evidenceMeta2", content.evidence[1].meta);
     }
+
+    setText("impactDetailBody", content.impactDetail);
+    setText("actionTitle", content.actionTitle);
+    setText("actionTarget", content.actionTarget);
+    setText("actionReason", content.actionReason);
+    setText("actionEffect", content.actionEffect);
+    setText("genMail", content.genMail);
+    setText("genTalk", content.genTalk);
+    setText("genProposal", content.genProposal);
   })();
 </script>
 
