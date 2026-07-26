@@ -20,6 +20,11 @@ const fragments = fs
 
 const commit = execSync("git rev-parse HEAD", { cwd: rootDir }).toString().trim();
 
+const withUx = fragments.filter((f) => f.ux && f.ux.loadTimeMs != null);
+const avgLoadTimeMs = withUx.length
+  ? Math.round(withUx.reduce((sum, f) => sum + f.ux.loadTimeMs, 0) / withUx.length)
+  : null;
+
 const report = {
   commit,
   commitShort: commit.slice(0, 7),
@@ -28,6 +33,13 @@ const report = {
     total: fragments.length,
     passed: fragments.filter((f) => f.passed).length,
     failed: fragments.filter((f) => !f.passed).length,
+  },
+  // Proxy checks for "a first-time user understands the value within 5 minutes":
+  // fast load, core value visible without scrolling, and a clear next action.
+  uxSummary: {
+    avgLoadTimeMs,
+    keyValueAboveFold: `${withUx.filter((f) => f.ux.keyValueAboveFold).length}/${withUx.length}`,
+    ctaVisible: `${withUx.filter((f) => f.ux.ctaVisible).length}/${withUx.length}`,
   },
   results: fragments,
 };

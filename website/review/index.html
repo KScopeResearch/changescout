@@ -118,7 +118,7 @@
     padding: 24px 28px;
     margin-bottom: 32px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
     gap: 16px;
   }
 
@@ -134,6 +134,12 @@
   .meta-tile__value {
     font-size: 1.05rem;
     font-weight: 800;
+  }
+
+  .meta-tile__sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 4px;
   }
 
   .meta-tile__value--link a {
@@ -224,10 +230,6 @@
   }
 
   @media (max-width: 900px) {
-    .meta-card {
-      grid-template-columns: repeat(2, 1fr);
-    }
-
     .grid {
       grid-template-columns: 1fr;
     }
@@ -265,6 +267,11 @@
       <div class="meta-tile__value" id="metaSummary">読み込み中...</div>
     </div>
     <div>
+      <div class="meta-tile__label">UX Check（初回体験）</div>
+      <div class="meta-tile__value" id="metaUxLoad">読み込み中...</div>
+      <div class="meta-tile__sub" id="metaUxDetail"></div>
+    </div>
+    <div>
       <div class="meta-tile__label">Raw Data</div>
       <div class="meta-tile__value meta-tile__value--link"><a href="report.json">report.json</a></div>
     </div>
@@ -283,6 +290,11 @@
       document.getElementById("metaCommit").textContent = report.commitShort;
       document.getElementById("metaGeneratedAt").textContent = new Date(report.generatedAt).toLocaleString("ja-JP");
       document.getElementById("metaSummary").textContent = `${report.summary.passed} / ${report.summary.total} passed`;
+
+      const ux = report.uxSummary || {};
+      document.getElementById("metaUxLoad").textContent = ux.avgLoadTimeMs != null ? `平均 ${ux.avgLoadTimeMs}ms` : "-";
+      document.getElementById("metaUxDetail").textContent =
+        `ファーストビュー表示 ${ux.keyValueAboveFold ?? "-"} ・ 次のアクション明確 ${ux.ctaVisible ?? "-"}`;
 
       const grid = document.getElementById("shotGrid");
       grid.innerHTML = "";
@@ -303,6 +315,9 @@
           <div class="shot-card__body">
             <div class="shot-card__row">URL: <a href="${result.url}" target="_blank" rel="noopener">${result.url}</a></div>
             <div class="shot-card__row">Console errors: ${result.consoleErrors}</div>
+            <div class="shot-card__row">読み込み時間: ${result.ux?.loadTimeMs ?? "-"}ms</div>
+            <div class="shot-card__row">ファーストビューに主要価値: ${result.ux?.keyValueAboveFold ? "✓" : "✕"}</div>
+            <div class="shot-card__row">次のアクションが明確: ${result.ux?.ctaVisible ? "✓" : "✕"}</div>
           </div>
         `;
         grid.appendChild(card);
