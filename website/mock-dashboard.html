@@ -116,6 +116,12 @@
     font-size: 1rem;
   }
 
+  .summary-subtitle {
+    margin: -12px 0 18px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
   h2.section-heading {
     font-size: 1.05rem;
     font-weight: 800;
@@ -709,10 +715,11 @@
 
   <!-- ① ビジネス機会サマリー -->
   <section>
-    <h2 class="section-heading">ビジネス機会サマリー</h2>
+    <h2 class="section-heading" id="summaryHeading">ビジネス機会サマリー</h2>
+    <p class="summary-subtitle" id="summarySubtitle">あなた向けに生成された結果です</p>
     <div class="kpi-strip">
       <div class="kpi-card">
-        <div class="kpi-card__label">今週の営業機会数</div>
+        <div class="kpi-card__label" id="kpiOpportunityLabel">今週の営業機会数</div>
         <div class="kpi-card__value">3件</div>
       </div>
       <div class="kpi-card">
@@ -810,7 +817,7 @@
 
   <!-- ④ 検出されたビジネスチャンス -->
   <section>
-    <h2 class="section-heading">検出されたビジネスチャンス</h2>
+    <h2 class="section-heading" id="topicsHeading">検出されたビジネスチャンス</h2>
     <div class="topic-grid">
 
       <article class="topic-card">
@@ -1041,6 +1048,40 @@
       });
     });
   });
+
+  // Personalize headings based on the company profile saved from company-profile.html.
+  // Falls back to the default generic wording when no profile has been saved.
+  (function personalizeFromProfile() {
+    const industryLabels = {
+      "it-dx": "IT・DX支援",
+      construction: "建設",
+      professional: "士業",
+      manufacturing: "製造業",
+      other: "その他",
+    };
+
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+
+    const industry = profile && industryLabels[profile.industry];
+    if (!industry) return;
+
+    const summaryHeading = document.getElementById("summaryHeading");
+    if (summaryHeading) summaryHeading.textContent = `${industry}向けビジネス機会サマリー`;
+
+    const summarySubtitle = document.getElementById("summarySubtitle");
+    if (summarySubtitle) summarySubtitle.textContent = `${industry}向けに生成された結果です`;
+
+    const kpiOpportunityLabel = document.getElementById("kpiOpportunityLabel");
+    if (kpiOpportunityLabel) kpiOpportunityLabel.textContent = `${industry}向け営業機会数`;
+
+    const topicsHeading = document.getElementById("topicsHeading");
+    if (topicsHeading) topicsHeading.textContent = `${industry}向け市場変化`;
+  })();
 </script>
 
 </body>

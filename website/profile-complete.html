@@ -331,7 +331,16 @@
 </div>
 
 <script>
+  // Prefer the profile saved to localStorage by company-profile.html; fall back to the
+  // URL query string (e.g. when this page is opened directly without going through the form).
   const params = new URLSearchParams(location.search);
+  let stored = null;
+  try {
+    stored = JSON.parse(localStorage.getItem("changescout_profile"));
+  } catch (e) {
+    stored = null;
+  }
+  const getValue = (key) => (stored && stored[key]) || params.get(key) || "";
 
   const industryLabels = {
     "it-dx": "IT・DX支援",
@@ -355,10 +364,10 @@
     if (el) el.textContent = value || "—";
   };
 
-  setText("infoIndustry", industryLabels[params.get("industry")]);
-  setText("infoCustomerSegment", params.get("customerSegment"));
-  setText("infoProduct", params.get("product"));
-  setText("infoRegion", regionLabels[params.get("region")]);
+  setText("infoIndustry", industryLabels[getValue("industry")]);
+  setText("infoCustomerSegment", getValue("customerSegment"));
+  setText("infoProduct", getValue("product"));
+  setText("infoRegion", regionLabels[getValue("region")]);
 </script>
 
 </body>
