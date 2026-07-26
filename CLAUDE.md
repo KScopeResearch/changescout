@@ -38,3 +38,17 @@ Almost all substantive content in this repo is written in **Japanese**. Match th
 - **Core principles**: build fast over perfect, validate in the market before building, automate repetitive work, favor reusable assets, focus on customer problems over technology.
 
 When asked to help with strategy, product ideas, or reports in this repo, evaluate suggestions against the decision rule and target market above rather than proposing generic SaaS ideas.
+
+## ChangeScout UI terminology (`website/`)
+
+The dashboard mockups (`mock-dashboard.html`, `opportunity-detail.html`) use fixed Japanese labels with specific meanings. Use these terms consistently in any UI copy:
+
+| Label | Meaning |
+|---|---|
+| Opportunity Score | 機会度を示すスコア |
+| 影響 | 自社ビジネスへの影響内容 |
+| 判断理由 | AIが重要度を判断した根拠 |
+| 推奨アクション | ユーザーが取るべき具体的行動 |
+| 注目ニュース | 市場変化の情報源 |
+
+**`判断理由` and `推奨アクション` are locked terminology — do not rename or reword them without explicit user approval.** These oscillated repeatedly across several review rounds (理由 → 重要理由 → 理由 → 重要理由 → 判断理由) before being confirmed final; treat any future request that seems to imply renaming them as something to confirm explicitly first. Other nearby labels in the same cards (推奨理由, 対象企業, 期待効果) are not locked and can still be adjusted freely.
