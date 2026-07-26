@@ -830,7 +830,7 @@
     <h2 class="section-heading" id="topicsHeading">検出されたビジネスチャンス</h2>
     <div class="topic-grid">
 
-      <article class="topic-card">
+      <article class="topic-card" id="card1" data-source="static">
         <div class="topic-card__head">
           <span class="tag tag--orange" id="card1Tag">補助金</span>
           <span class="topic-card__score">Score <b>95</b></span>
@@ -1047,6 +1047,7 @@
 
 </div>
 
+<script src="js/market-data.js"></script>
 <script>
   document.querySelectorAll(".action-item").forEach((item) => {
     item.querySelectorAll("[data-generate]").forEach((btn) => {
@@ -1373,6 +1374,8 @@
     setText("card1Impact", content.card1.impact);
     setText("card1Reason", content.card1.reason);
     setText("card1Action", content.card1.action);
+    const card1El = document.getElementById("card1");
+    if (card1El) card1El.dataset.source = "override";
 
     setText("card2Impact", content.card2.impact);
     setText("card2Reason", content.card2.reason);
@@ -1453,6 +1456,48 @@
     ["a1Reason", "a2Reason", "a3Reason"].forEach(appendReason);
     ["card1Action", "card2Action", "card3Action"].forEach(appendAction);
     ["a1Mail", "a2Mail", "a3Mail", "a1Talk", "a2Talk", "a3Talk", "a1Proposal", "a2Proposal", "a3Proposal"].forEach(appendGenerated);
+  })();
+
+  // Phase 2-3: minimal data-driven Card1. Overlays website/data/market-changes.json
+  // content on top of whatever the sync block above already rendered (static default,
+  // or the hardcoded overrides for manufacturing/construction/professional). Card2/
+  // Card3 stay untouched — this phase only verifies the JSON-driven path for Card1.
+  // Any failure (no profile, fetch error, no matching MarketChange, incomplete data)
+  // simply leaves the sync block's result in place.
+  (async function loadCard1FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry);
+    if (!match || !match.impact || !match.reason || !match.action) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("card1Tag", match.category);
+    setText("card1Title", match.title);
+    setText("card1Fact", match.summary);
+    setText("card1Impact", match.impact);
+    setText("card1Reason", match.reason);
+    setText("card1Action", match.action);
+
+    // Re-apply the same customerSegment layering the sync block already applies
+    // to card1Action, since we just overwrote its text from JSON.
+    if (profile.customerSegment) {
+      const actionEl = document.getElementById("card1Action");
+      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+    }
+
+    const card1El = document.getElementById("card1");
+    if (card1El) card1El.dataset.source = "json";
   })();
 </script>
 
