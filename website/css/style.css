@@ -251,15 +251,14 @@ section {
 }
 
 .hero__visual {
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 .hero__illustration {
-  position: absolute;
-  top: -70px;
-  right: -110px;
-  width: 460px;
-  z-index: 0;
+  width: 300px;
   pointer-events: none;
 }
 
