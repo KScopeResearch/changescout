@@ -1910,6 +1910,205 @@
     if (actionPlan1El) actionPlan1El.dataset.source = "json";
   })();
 
+  // Card2/Card3, same pattern as loadCard1FromMarketChanges but reading the
+  // industry's 2nd/3rd matching MarketChange entry (pickMarketChange's index
+  // argument), so all 3 topic cards are JSON-driven, not just Card1.
+  (async function loadCard2FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, 1);
+    if (!match || !match.impact || !match.reason || !match.action) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("card2Tag", match.category);
+    setText("card2Title", match.title);
+    setText("card2Fact", match.summary);
+    setText("card2Impact", match.impact);
+    setText("card2Reason", match.reason);
+    setText("card2Action", match.action);
+
+    if (profile.customerSegment) {
+      const actionEl = document.getElementById("card2Action");
+      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+    }
+
+    const card2El = document.getElementById("card2");
+    if (card2El) card2El.dataset.source = "json";
+  })();
+
+  (async function loadCard3FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, 2);
+    if (!match || !match.impact || !match.reason || !match.action) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("card3Tag", match.category);
+    setText("card3Title", match.title);
+    setText("card3Fact", match.summary);
+    setText("card3Impact", match.impact);
+    setText("card3Reason", match.reason);
+    setText("card3Action", match.action);
+
+    if (profile.customerSegment) {
+      const actionEl = document.getElementById("card3Action");
+      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+    }
+
+    const card3El = document.getElementById("card3");
+    if (card3El) card3El.dataset.source = "json";
+  })();
+
+  // AI Action Plan #2/#3, same pattern as loadActionPlan1FromMarketChanges
+  // but reading the industry's 2nd/3rd matching MarketChange's action_plan.
+  (async function loadActionPlan2FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, 1);
+    const plan = match && match.action_plan;
+    if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("a2Title", plan.title);
+    setText("a2Target", plan.target);
+    setText("a2Reason", plan.reason);
+    setText("a2Effect", plan.expected_effect);
+    setText("a2Mail", plan.templates.mail);
+    setText("a2Talk", plan.templates.talk);
+    setText("a2Proposal", plan.templates.proposal);
+
+    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
+    const regionLabel = regionLabels[profile.region];
+
+    const targetEl = document.getElementById("a2Target");
+    if (targetEl) {
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) targetEl.textContent += `（${extras.join("・")}が中心）`;
+    }
+
+    const reasonEl = document.getElementById("a2Reason");
+    if (reasonEl && profile.product) {
+      reasonEl.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    }
+
+    ["a2Mail", "a2Talk", "a2Proposal"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (!lines.length) return;
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
+    });
+
+    if (profile.companyName) {
+      const a2MailEl = document.getElementById("a2Mail");
+      if (a2MailEl) a2MailEl.textContent = a2MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+    }
+  })();
+
+  (async function loadActionPlan3FromMarketChanges() {
+    let profile;
+    try {
+      profile = JSON.parse(localStorage.getItem("changescout_profile"));
+    } catch (e) {
+      profile = null;
+    }
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, 2);
+    const plan = match && match.action_plan;
+    if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
+
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el && value != null) el.textContent = value;
+    };
+
+    setText("a3Title", plan.title);
+    setText("a3Target", plan.target);
+    setText("a3Reason", plan.reason);
+    setText("a3Effect", plan.expected_effect);
+    setText("a3Mail", plan.templates.mail);
+    setText("a3Talk", plan.templates.talk);
+    setText("a3Proposal", plan.templates.proposal);
+
+    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
+    const regionLabel = regionLabels[profile.region];
+
+    const targetEl = document.getElementById("a3Target");
+    if (targetEl) {
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) targetEl.textContent += `（${extras.join("・")}が中心）`;
+    }
+
+    const reasonEl = document.getElementById("a3Reason");
+    if (reasonEl && profile.product) {
+      reasonEl.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    }
+
+    ["a3Mail", "a3Talk", "a3Proposal"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (!lines.length) return;
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
+    });
+
+    if (profile.companyName) {
+      const a3MailEl = document.getElementById("a3Mail");
+      if (a3MailEl) a3MailEl.textContent = a3MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+    }
+  })();
+
   // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
   // with the entered 企業名, if any. Independent of industry matching (this
   // text isn't industry-specific), so it runs regardless of which content

@@ -16,11 +16,12 @@ async function fetchMarketChanges() {
   }
 }
 
-function pickMarketChange(marketChanges, industry) {
+// index selects which of the industry's matching entries to return (in
+// array order): 0 = Card1/topic1 (default), 1 = Card2/topic2, 2 = Card3/topic3.
+function pickMarketChange(marketChanges, industry, index = 0) {
   if (!marketChanges || !industry) return null;
-  return (
-    marketChanges.find(
-      (mc) => Array.isArray(mc.target_industries) && mc.target_industries.includes(industry)
-    ) || null
+  const matches = marketChanges.filter(
+    (mc) => Array.isArray(mc.target_industries) && mc.target_industries.includes(industry)
   );
+  return matches[index] || null;
 }

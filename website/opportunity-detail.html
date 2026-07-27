@@ -1498,7 +1498,7 @@
   // generated texts for the same MarketChange. Recommended Action (mail/talk/
   // proposal generation) is out of scope for this phase and stays untouched.
   (async function loadDetailFromMarketChanges() {
-    if (topicKey !== "1") return;
+    const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
 
     let profile;
     try {
@@ -1509,7 +1509,7 @@
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
-    const match = pickMarketChange(marketChanges, profile.industry);
+    const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
     if (!match || !match.impact || !match.reason || !match.action || !match.overview1 || !match.overview2) return;
 
     const setText = (id, value) => {
@@ -1572,7 +1572,7 @@
   // fetch error, no match, incomplete action_plan) leaves the sync
   // block's Recommended Action result in place.
   (async function loadRecommendedActionFromMarketChanges() {
-    if (topicKey !== "1") return;
+    const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
 
     let profile;
     try {
@@ -1583,7 +1583,7 @@
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
-    const match = pickMarketChange(marketChanges, profile.industry);
+    const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
     const plan = match && match.action_plan;
     if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
 
