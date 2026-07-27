@@ -1106,44 +1106,49 @@
     // content elsewhere on the page. Values are illustrative AI estimates,
     // not confirmed figures — the ai-estimate-note under the bars covers this.
     // Falls back to the static default breakdown when no match is found.
+    // Labels mirror Card1/Card2/Card3's own titles below (in the same order),
+    // so this breakdown reads as "these 3 bars = those 3 cards" instead of a
+    // disconnected set of generic category names.
     const breakdownOverrides = {
       manufacturing: [
-        { label: "設備投資機会", value: 88 },
-        { label: "補助制度影響", value: 82 },
-        { label: "新規営業機会", value: 75 },
+        { label: "補助金対象拡大", value: 88 },
+        { label: "取引先建設業者への影響確認", value: 82 },
+        { label: "差別化提案のチャンス", value: 75 },
       ],
       construction: [
-        { label: "制度改正影響", value: 90 },
-        { label: "既存顧客対応", value: 78 },
-        { label: "営業機会", value: 70 },
+        { label: "建設業法改正", value: 90 },
+        { label: "自社の許可要件・契約実務の見直し", value: 78 },
+        { label: "建設業向け差別化提案のチャンス", value: 70 },
       ],
       professional: [
-        { label: "制度変更", value: 85 },
-        { label: "顧客支援機会", value: 80 },
-        { label: "相談需要", value: 74 },
+        { label: "制度変更による業務需要変化", value: 85 },
+        { label: "顧問先の建設業クライアントへの対応", value: 80 },
+        { label: "士業向け差別化提案のチャンス", value: 74 },
       ],
       other: [
-        { label: "登録情報ベースの市場変化", value: 80 },
+        { label: "登録情報に基づく市場変化を検知", value: 80 },
+        { label: "関連する取引先動向の確認", value: 73 },
+        { label: "差別化提案のチャンス", value: 66 },
       ],
       "it-dx": [
-        { label: "DX投資提案機会", value: 86 },
-        { label: "税制優遇関連問い合わせ", value: 79 },
-        { label: "既存顧客フォロー", value: 72 },
+        { label: "税制優遇拡充への対応", value: 86 },
+        { label: "既存顧客のシステム投資判断への対応", value: 79 },
+        { label: "差別化提案のチャンス", value: 72 },
       ],
       ec: [
-        { label: "表示義務対応機会", value: 87 },
-        { label: "送料改定影響", value: 79 },
-        { label: "新規営業機会", value: 73 },
+        { label: "特定商取引法・景品表示法の改正", value: 87 },
+        { label: "物流パートナーの配送料改定への対応", value: 79 },
+        { label: "EC事業者向け差別化提案のチャンス", value: 73 },
       ],
       "freelance-dev": [
-        { label: "契約条件見直し機会", value: 84 },
-        { label: "取引先対応影響", value: 76 },
-        { label: "新規案件機会", value: 68 },
+        { label: "フリーランス新法の運用強化", value: 84 },
+        { label: "主要取引先の契約内容再確認", value: 76 },
+        { label: "差別化提案のチャンス", value: 68 },
       ],
       consultant: [
-        { label: "補助金活用提案機会", value: 89 },
-        { label: "経営計画見直し需要", value: 81 },
-        { label: "新規相談機会", value: 73 },
+        { label: "補助金制度の再編・拡充", value: 89 },
+        { label: "顧問先サプライチェーンの状況確認", value: 81 },
+        { label: "差別化提案のチャンス", value: 73 },
       ],
     };
 
