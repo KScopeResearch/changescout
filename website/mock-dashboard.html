@@ -645,6 +645,20 @@
     flex: 1;
     font-size: 0.88rem;
     font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .source-item__title:hover {
+    text-decoration: underline;
+  }
+
+  .source-item__title::after {
+    content: "\2197";
+    display: inline-block;
+    margin-left: 4px;
+    font-weight: 400;
+    color: var(--text-muted);
   }
 
   .source-item__meta {
@@ -1029,17 +1043,17 @@
     <div class="source-list">
       <div class="source-item">
         <span class="source-dot" style="background:#f97316;"></span>
-        <span class="source-item__title">中小企業庁、DX推進補助金の第2次公募を開始</span>
+        <a class="source-item__title" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">中小企業庁、DX推進補助金の第2次公募を開始</a>
         <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
       </div>
       <div class="source-item">
         <span class="source-dot" style="background:#2563eb;"></span>
-        <span class="source-item__title">建設業法の一部改正が可決、2027年施行へ</span>
+        <a class="source-item__title" href="https://www.mlit.go.jp" target="_blank" rel="noopener">建設業法の一部改正が可決、2027年施行へ</a>
         <span class="source-item__meta">国土交通省 ・ 2026.07.22</span>
       </div>
       <div class="source-item">
         <span class="source-dot" style="background:#667085;"></span>
-        <span class="source-item__title">競合A社、新規事業向けAIツールを発表</span>
+        <a class="source-item__title" href="https://www.nikkei.com" target="_blank" rel="noopener">競合A社、新規事業向けAIツールを発表</a>
         <span class="source-item__meta">業界ニュース ・ 2026.07.20</span>
       </div>
     </div>

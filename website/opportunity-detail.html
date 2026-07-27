@@ -466,6 +466,20 @@
     flex: 1;
     font-size: 0.88rem;
     font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .source-item__title:hover {
+    text-decoration: underline;
+  }
+
+  .source-item__title::after {
+    content: "\2197";
+    display: inline-block;
+    margin-left: 4px;
+    font-weight: 400;
+    color: var(--text-muted);
   }
 
   .source-item__meta {
@@ -673,12 +687,12 @@
     <div class="source-list">
       <div class="source-item">
         <span class="source-dot" style="background:#f97316;"></span>
-        <span class="source-item__title" id="evidenceTitle1">中小企業庁、DX推進補助金の第2次公募を開始</span>
+        <a class="source-item__title" id="evidenceTitle1" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">中小企業庁、DX推進補助金の第2次公募を開始</a>
         <span class="source-item__meta" id="evidenceMeta1">中小企業庁 ・ 2026.07.24</span>
       </div>
       <div class="source-item">
         <span class="source-dot" style="background:#667085;"></span>
-        <span class="source-item__title" id="evidenceTitle2">ものづくり補助金 公募要領（改定版）</span>
+        <a class="source-item__title" id="evidenceTitle2" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">ものづくり補助金 公募要領（改定版）</a>
         <span class="source-item__meta" id="evidenceMeta2">中小企業庁 ・ 2026.07.24</span>
       </div>
     </div>
@@ -739,8 +753,8 @@
         action: "既存製造業顧客への情報提供を開始",
         whyNow: "補助制度の拡充により設備投資検討企業が増加しており、早期接触による提案機会が生まれています。",
         evidence: [
-          { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24" },
-          { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24" },
+          { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724.html" },
+          { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724-2.html" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。また、これまで投資予算の制約で導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合他社もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
         actionTitle: "補助金対象企業へ営業メールを送信する",
@@ -763,8 +777,8 @@
         action: "建設業の顧客・現場担当者へ改正内容を共有",
         whyNow: "制度変更への対応準備が必要となるため、既存顧客への早期情報提供が有効です。",
         evidence: [
-          { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
-          { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
+          { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+          { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が今回の建設業法改正の影響を受ける見込みです。また、これまで対応を後回しにしていた既存取引先にも、早期のフォローアップの余地が生まれます。競合他社もこの制度への言及を強める可能性が高く、早期のアプローチが信頼維持・商談化率に影響すると考えられます。",
         actionTitle: "建設業顧客へ改正内容の説明を実施する",
@@ -787,8 +801,8 @@
         action: "顧問先企業へ制度変更の案内を送付",
         whyNow: "制度改正対応への相談需要が高まる前に、顧客への情報提供を開始することが重要です。",
         evidence: [
-          { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20" },
-          { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20" },
+          { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20", url: "https://www.e-gov.go.jp/elaws/search/87752" },
+          { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO87753072026000/" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の顧問先企業のうち18社が今回の制度改正の影響を受ける見込みです。また、これまで積極的な情報提供を行っていなかった顧問先にも、相談機会を生み出す余地があります。他の士業事務所もこの動きへの言及を強める可能性が高く、早期のアプローチが信頼維持・関係強化に影響すると考えられます。",
         actionTitle: "顧問先企業へ制度改正の案内を送付する",
@@ -811,8 +825,8 @@
         action: "詳細を確認し、関連度の高い顧客へ情報提供を検討",
         whyNow: "検知された変化への関心が高まる前に、早期の情報提供が有効と考えられます。",
         evidence: [
-          { title: "登録情報に関連する市場変化を検知", meta: "公開情報 ・ 2026.07.24" },
-          { title: "関連分野の動向まとめ", meta: "公開情報 ・ 2026.07.24" },
+          { title: "登録情報に関連する市場変化を検知", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12345" },
+          { title: "関連分野の動向まとめ", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12346" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の登録情報をもとに、関連候補となる既存顧客・見込み客が一定数存在すると推定されます。特定の業界に限定した分析ではないため、詳細は実際の事業内容と照らし合わせてご確認ください。競合他社も同様の情報に接触する可能性があり、早期のアプローチが商談化率に影響すると考えられます。",
         actionTitle: "登録情報に関連する見込み客へ情報提供を行う",
@@ -835,8 +849,8 @@
         action: "既存のDX導入支援対象顧客への情報提供を開始",
         whyNow: "顧客企業の改善課題が顕在化する前に、税制優遇を切り口とした提案機会を作ることができます。",
         evidence: [
-          { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12" },
-          { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12" },
+          { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12", url: "https://www.meti.go.jp/press/2026/07/20260712000.html" },
+          { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0712-2.html" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち、DX投資を検討している層に税制優遇の情報が刺さる見込みです。また、これまでコスト面で導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合のDX支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
         actionTitle: "DX投資減税を切り口に既存顧客へ提案を行う",
@@ -859,8 +873,8 @@
         action: "自社サイトの表示・解約導線を見直し、改修を依頼する",
         whyNow: "表示義務の運用強化により対応の緊急度が高まっているタイミングでの、早期の情報提供が有効です。",
         evidence: [
-          { title: "消費者庁、定期購入契約の解約手続きに関するガイドラインを改定", meta: "消費者庁 ・ 2026.07.18" },
-          { title: "特定商取引法に基づく通信販売の表示義務、運用強化について", meta: "消費者庁 ・ 2026.07.18" },
+          { title: "消費者庁、定期購入契約の解約手続きに関するガイドラインを改定", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23699/" },
+          { title: "特定商取引法に基づく通信販売の表示義務、運用強化について", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23700/" },
         ],
         impactDetail: "貴社が運営するECサイトの表示内容・解約導線が、今回の運用強化の対象となる見込みです。早期にサイトの改修を進めることで、行政指導のリスクを避け、消費者からの信頼を維持できます。対応が後手に回るEC事業者も一定数存在すると見込まれ、早期の対応が信頼維持において有利に働くと考えられます。",
         actionTitle: "自社サイトの表示・解約導線を見直し、改修を依頼する",
@@ -883,8 +897,8 @@
         action: "主要取引先企業へ契約条件見直しの提案を行う",
         whyNow: "運用強化のタイミングで契約条件を見直す開発者が増えており、早期の情報提供が信頼構築につながります。",
         evidence: [
-          { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15" },
-          { title: "特定受託事業者取引適正化法 実務ガイドライン（改定版）", meta: "厚生労働省 ・ 2026.07.15" },
+          { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15", url: "https://www.jftc.go.jp/houdou/pressrelease/2026/07/20260715.html" },
+          { title: "特定受託事業者取引適正化法 実務ガイドライン（改定版）", meta: "厚生労働省 ・ 2026.07.15", url: "https://www.mhlw.go.jp/stf/newpage_24661.html" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の主要取引先企業のうち、複数社が今回のフリーランス新法運用強化の対象となる見込みです。契約条件を早期に整理することで、取引先との信頼関係を強化できる可能性があります。他のフリーランス人材やエージェント経由の候補者もこの動きへの対応をアピールする可能性が高く、早期の対応が選定・単価交渉に影響すると考えられます。",
         actionTitle: "主要取引先企業へ契約条件見直しの提案を行う",
@@ -907,8 +921,8 @@
         action: "顧問先企業へ補助金制度の再編内容を案内",
         whyNow: "補助金の再編直後は制度理解が追いつかない企業が多く、早期の情報提供が信頼構築につながります。",
         evidence: [
-          { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21" },
-          { title: "事業再構築補助金（後継施策）公募要領", meta: "中小企業庁 ・ 2026.07.21" },
+          { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721.html" },
+          { title: "事業再構築補助金（後継施策）公募要領", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721-2.html" },
         ],
         impactDetail: "貴社（株式会社フィールドDX）の顧問先企業のうち18社が今回の補助金制度再編の対象条件に該当する見込みです。また、これまで補助金活用に消極的だった顧問先にも、経営計画見直しの提案機会が生まれます。他の経営コンサルタントもこの制度への言及を強める可能性が高く、早期のアプローチが信頼維持・提案機会に影響すると考えられます。",
         actionTitle: "顧問先企業へ補助金制度再編の案内を送付する",
@@ -938,8 +952,8 @@
           action: "取引のある建設業者へ制度変更の確認を行う",
           whyNow: "取引先の対応が後手に回ると、案件の進行に影響する可能性があるため、早期の状況確認が有効です。",
           evidence: [
-            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
-            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
+            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
           ],
           impactDetail: "貴社が発注する工事案件のうち、複数の取引先建設業者が今回の建設業法改正の対象となる見込みです。早期に状況を確認することで、案件遅延のリスクを抑え、取引先との信頼関係を維持できます。",
           actionTitle: "取引のある建設業者へ制度変更の確認を行う",
@@ -962,8 +976,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合A社、製造業向け新サービスを発表", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "製造業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合A社、製造業向け新サービスを発表", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO26582072026000/" },
+            { title: "製造業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO26583072026000/" },
           ],
           impactDetail: "商談中の見込み客のうち、競合A社の新サービスと比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合A社の新サービスを調査し比較資料を作成する",
@@ -988,8 +1002,8 @@
           action: "社内の許可要件・契約書式を早期に見直す",
           whyNow: "許可更新・契約更新のタイミングと改正時期が重なる場合、対応の遅れがそのままリスクになるため、早めの着手が重要です。",
           evidence: [
-            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
-            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
+            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
           ],
           impactDetail: "貴社自身の建設業許可要件・下請契約書式が、今回の建設業法改正の対象となる見込みです。社内の対応を早期に進めることで、許可更新や取引先との契約手続きを改正後もスムーズに進められます。",
           actionTitle: "社内の許可要件・契約書式を早期に見直す",
@@ -1012,8 +1026,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合建設会社のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "建設業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合建設会社のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27543072026000/" },
+            { title: "建設業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27544072026000/" },
           ],
           impactDetail: "商談中の見込み客のうち、競合サービスと比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合建設会社の動向を調査し比較資料を作成する",
@@ -1038,8 +1052,8 @@
           action: "建設業クライアントへ改正内容の案内を送付",
           whyNow: "建設業クライアントの許可更新・契約更新のタイミングと重なる前に、案内を行うことが重要です。",
           evidence: [
-            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22" },
-            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22" },
+            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
           ],
           impactDetail: "顧問先企業のうち建設業を営む複数社が、今回の建設業法改正の対象となる見込みです。早期の案内により、他の制度改正とあわせた相談機会の創出が期待できます。",
           actionTitle: "建設業クライアントへ改正内容の案内を送付する",
@@ -1062,8 +1076,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合士業事務所のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "士業支援サービス市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合士業事務所のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO28504072026000/" },
+            { title: "士業支援サービス市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO28505072026000/" },
           ],
           impactDetail: "商談・相談中の見込み客のうち、競合の士業事務所と比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合士業事務所の動向を調査し比較資料を作成する",
@@ -1088,8 +1102,8 @@
           action: "関連する取引先へ状況を確認する",
           whyNow: "取引先の状況変化への対応が遅れると、関係維持や商談機会の損失につながる可能性があります。",
           evidence: [
-            { title: "関連業界の動向まとめ", meta: "公開情報 ・ 2026.07.24" },
-            { title: "取引先動向に関する参考情報", meta: "公開情報 ・ 2026.07.24" },
+            { title: "関連業界の動向まとめ", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/22738" },
+            { title: "取引先動向に関する参考情報", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/22739" },
           ],
           impactDetail: "貴社の登録情報に関連する取引先の一部で、状況の変化が見込まれます。特定の業界に限定した分析ではないため、詳細は実際の取引状況と照らし合わせてご確認ください。",
           actionTitle: "関連する取引先へ状況を確認する",
@@ -1112,8 +1126,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合他社の新サービス発表の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "関連市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合他社の新サービス発表の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO30426072026000/" },
+            { title: "関連市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO30427072026000/" },
           ],
           impactDetail: "商談中の見込み客のうち、競合の新サービスと比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合の新サービスを調査し比較資料を作成する",
@@ -1138,8 +1152,8 @@
           action: "既存顧客へ制度変更の案内を送付する",
           whyNow: "税制優遇の適用期限や要件を正しく理解しないまま投資判断が先送りされるケースがあるため、早期の情報提供が有効です。",
           evidence: [
-            { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12" },
-            { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12" },
+            { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12", url: "https://www.meti.go.jp/press/2026/07/20260712000.html" },
+            { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0712-2.html" },
           ],
           impactDetail: "既存顧客のうちDX投資を検討中の複数社が、今回の税制優遇の対象となる見込みです。早期の案内により、投資判断の後押しと商談停滞の防止が期待できます。",
           actionTitle: "既存顧客へ制度変更の案内を送付する",
@@ -1162,8 +1176,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合のDX支援サービス強化の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "DX支援市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合のDX支援サービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO29465072026000/" },
+            { title: "DX支援市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO29466072026000/" },
           ],
           impactDetail: "商談中のDX導入見込み客のうち、競合サービスと比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合のDX支援サービスを調査し比較資料を作成する",
@@ -1188,8 +1202,8 @@
           action: "物流パートナーへ配送料改定の詳細を確認する",
           whyNow: "配送料改定と表示義務対応の時期が重なっており、まとめて対応することで手戻りを防げます。",
           evidence: [
-            { title: "主要物流事業者、配送料改定を発表", meta: "業界紙 ・ 2026.07.19" },
-            { title: "EC物流コストの動向に関する調査", meta: "業界団体 ・ 2026.07.19" },
+            { title: "主要物流事業者、配送料改定を発表", meta: "業界紙 ・ 2026.07.19", url: "https://www.nikkei.com/article/DGXZQO31387071926000/" },
+            { title: "EC物流コストの動向に関する調査", meta: "業界団体 ・ 2026.07.19", url: "https://www.nikkei.com/article/DGXZQO31388071926000/" },
           ],
           impactDetail: "貴社が利用する物流パートナーの配送料改定により、送料表示や利益率への影響が見込まれます。表示義務対応とあわせて早期に確認することで、手戻りのない対応が可能です。",
           actionTitle: "物流パートナーへ配送料改定の詳細を確認する",
@@ -1212,8 +1226,8 @@
           action: "自社サイトとの差別化ポイントを整理する",
           whyNow: "購入直前で他サイトと比較された際、その場で違いを伝えられることが購入完了率に直結します。",
           evidence: [
-            { title: "競合ECサイトの決済・ポイント施策導入の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "EC決済・ポイント市場の動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合ECサイトの決済・ポイント施策導入の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO52529072026000/" },
+            { title: "EC決済・ポイント市場の動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO52530072026000/" },
           ],
           impactDetail: "購入を比較検討中のお客様のうち、競合の新施策と比較している可能性のある層が一定数見込まれます。早期に差別化ポイントを整理することで、購入完了率の向上が期待できます。",
           actionTitle: "競合ECサイトの決済・ポイント施策を調査し差別化ポイントを整理する",
@@ -1238,8 +1252,8 @@
           action: "主要取引先へ現行契約内容の再確認を依頼する",
           whyNow: "担当者交代の時期は契約条件の齟齬が起こりやすいため、早めの再確認が有効です。",
           evidence: [
-            { title: "フリーランス新法運用強化を受けた発注企業の契約管理動向", meta: "業界団体 ・ 2026.07.16" },
-            { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15" },
+            { title: "フリーランス新法運用強化を受けた発注企業の契約管理動向", meta: "業界団体 ・ 2026.07.16", url: "https://www.nikkei.com/article/DGXZQO53490071626000/" },
+            { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15", url: "https://www.jftc.go.jp/houdou/pressrelease/2026/07/20260715.html" },
           ],
           impactDetail: "主要取引先のうち、発注担当者の交代が見込まれる企業では、契約内容の齟齬が生じるリスクがあります。早期の再確認により、円滑な取引継続につなげられます。",
           actionTitle: "主要取引先へ現行契約内容の再確認を依頼する",
@@ -1262,8 +1276,8 @@
           action: "自身の実績・強みをまとめた提案資料を作成",
           whyNow: "商談中に他候補との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "フリーランス人材市場の競合動向まとめ", meta: "業界団体 ・ 2026.07.20" },
-            { title: "エージェント経由人材の活用動向", meta: "業界紙 ・ 2026.07.20" },
+            { title: "フリーランス人材市場の競合動向まとめ", meta: "業界団体 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO54451072026000/" },
+            { title: "エージェント経由人材の活用動向", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO54452072026000/" },
           ],
           impactDetail: "商談中の案件のうち、他のフリーランス開発者やエージェント経由の候補者と比較検討されている可能性のある案件があります。早期に差別化ポイントを整理することで、商談での説明力を高められます。",
           actionTitle: "競合となるフリーランス・エージェント経由人材の動向を調査する",
@@ -1288,8 +1302,8 @@
           action: "顧問先へ取引先企業の状況確認を提案する",
           whyNow: "取引先の資金繰り・投資判断の変化は、顧問先企業の事業継続にも影響するため、早期の状況把握が重要です。",
           evidence: [
-            { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21" },
-            { title: "サプライチェーン企業の補助金活用動向調査", meta: "業界団体 ・ 2026.07.21" },
+            { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721.html" },
+            { title: "サプライチェーン企業の補助金活用動向調査", meta: "業界団体 ・ 2026.07.21", url: "https://www.nikkei.com/article/DGXZQO55413072126000/" },
           ],
           impactDetail: "顧問先企業の取引先のうち、補助金制度再編の影響を受ける企業が一定数存在すると見込まれます。サプライチェーン全体を俯瞰した助言により、顧問契約の価値向上が期待できます。",
           actionTitle: "顧問先へ取引先企業の状況確認を提案する",
@@ -1312,8 +1326,8 @@
           action: "自社サービスの比較資料を作成",
           whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
           evidence: [
-            { title: "競合コンサルタントの補助金活用支援強化の動き", meta: "業界ニュース ・ 2026.07.20" },
-            { title: "経営コンサルティング市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20" },
+            { title: "競合コンサルタントの補助金活用支援強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO56373072026000/" },
+            { title: "経営コンサルティング市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO56374072026000/" },
           ],
           impactDetail: "商談・相談中の見込み客のうち、競合コンサルタントと比較検討している可能性のある案件が複数あります。早期に比較資料を用意することで、商談での説明力を高められます。",
           actionTitle: "競合コンサルタント・支援サービスを調査し比較資料を作成する",
@@ -1366,11 +1380,18 @@
       whyNowPersonalized.hidden = false;
     }
 
+    const setLink = (id, href) => {
+      const el = document.getElementById(id);
+      if (el && href) el.href = href;
+    };
+
     if (content.evidence) {
       setText("evidenceTitle1", content.evidence[0].title);
       setText("evidenceMeta1", content.evidence[0].meta);
+      setLink("evidenceTitle1", content.evidence[0].url);
       setText("evidenceTitle2", content.evidence[1].title);
       setText("evidenceMeta2", content.evidence[1].meta);
+      setLink("evidenceTitle2", content.evidence[1].url);
     }
 
     setText("impactDetailBody", content.impactDetail);
@@ -1535,10 +1556,16 @@
     }
 
     if (Array.isArray(match.evidence) && match.evidence.length >= 2) {
+      const setLink = (id, href) => {
+        const el = document.getElementById(id);
+        if (el && href) el.href = href;
+      };
       setText("evidenceTitle1", match.evidence[0].title);
       setText("evidenceMeta1", `${match.evidence[0].source} ・ ${match.evidence[0].date}`);
+      setLink("evidenceTitle1", match.evidence[0].url);
       setText("evidenceTitle2", match.evidence[1].title);
       setText("evidenceMeta2", `${match.evidence[1].source} ・ ${match.evidence[1].date}`);
+      setLink("evidenceTitle2", match.evidence[1].url);
     }
 
     setText("summaryImpact", match.impact);
