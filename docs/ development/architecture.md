@@ -96,4 +96,13 @@ Phase 2-3で対象外としたAI Action Plan（Dashboard）とRecommended Action
 ## Phase 3開始前 Must Fix（生成テンプレート署名の企業名対応）
 
 Phase 3開始前レビュー（2026-07-27）で、メール生成テンプレート（`a1Mail`/`genMail`）の署名部分「株式会社フィールドDXの担当です」が企業名入力と連動していないことが発覚。静的デフォルト・ハードコード`overrides`・JSON駆動（`action_plan.templates.mail`）の3経路すべてで、テキスト確定後に企業名置換を再適用する形で対応（`personalizeCompanyName()`を静的デフォルト用に、各レンダリング関数の末尾で経路別に置換を追加）。営業トーク／提案資料テンプレートには企業名の記載がないため対応不要。
-- **AI表現の整合性**：Dashboard/Opportunity Detail/AI Transparency/AI Action Planの範囲を確認し、「AIが算出した貴社の機会スコア」を「AI推定による貴社の機会スコア」に修正（唯一の過大表現だった箇所）。他の「AI推定値」等の表記は既存のまま維持。LP・オンボーディング（`index.html`等）に残る同種の表現は今回のスコープ外とし、`docs/strategy/ROADMAP.md`のRemaining Issuesに記録した。
+- **AI表現の整合性**：Dashboard/Opportunity Detail/AI Transparency/AI Action Planの範囲を確認し、「AIが算出した貴社の機会スコア」を「AI推定による貴社の機会スコア」に修正（唯一の過大表現だった箇所）。他の「AI推定値」等の表記は既存のまま維持。
+
+## Phase 3実ユーザー検証前 最終品質改善（2026-07-27）
+
+外部デモ直前の品質監査で、Dashboard「貴社への影響」の固定文言（業種・入力プロフィールと矛盾する内容が常に表示される問題）を発見し、Card1の実データから動的生成する方式に修正（`id="impactNarrative"`、override経路・JSON経路の両方に対応、customerSegment未入力時は汎用文言にフォールバック）。あわせて発見した副次的な問題も修正：
+- profile-complete.htmlの企業名表示欠落と、`.info-row`のCSS（`display:flex`）が`hidden`属性を上書きしていた表示バグ（インラインstyleに変更して解消）
+- メール／トーク／提案資料生成テンプレートの企業名置換ロジックが、JSON駆動パス（`loadActionPlan1FromMarketChanges`/`loadRecommendedActionFromMarketChanges`）に重複して存在し未修正だった箇所
+- 提案資料（Proposal）生成テンプレートの末尾に、番号付きアウトラインと不釣り合いな散文が続いていた問題（【補足】形式の箇条書きに変更、Mail/Talkは変更なし）
+
+その後、company-profile.html・profile-complete.htmlに残っていた「AIが貴社に合ったビジネスチャンスだけを選び出します」「AIが貴社専用のビジネスチャンス分析を作成しました」という言い切り表現も、実装実態（テンプレートベースの提案・AI推定）に合わせて修正した。LP（`index.html`）に残る同種の表現はデモ導線（`docs/validation/DEMO_SCENARIO.md`）がLPを経由しないため対応を見送り、`docs/strategy/ROADMAP.md`のRemaining Issuesに記録済み。
