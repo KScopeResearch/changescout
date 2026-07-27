@@ -169,6 +169,25 @@ section {
   flex-shrink: 0;
 }
 
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.brand__sub {
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+}
+
+.brand--footer .brand__sub {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.brand__name--scout {
+  color: var(--color-accent);
+}
+
 .nav {
   display: flex;
   gap: 32px;
@@ -733,12 +752,6 @@ section {
   color: #fff;
   justify-content: center;
   margin-bottom: 12px;
-}
-
-.site-footer__tagline {
-  margin: 0 0 16px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
 }
 
 .site-footer__copy {
