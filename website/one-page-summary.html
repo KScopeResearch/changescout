@@ -1,6 +1,7 @@
 <!doctype html>
 <title>ChangeScout 一枚概要資料</title>
 <meta name="description" content="ChangeScoutテスターご協力のお願い、A4一枚概要（印刷・PDF化用）">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <style>
   :root {
     --bg: #f2f1ec;
@@ -117,8 +118,6 @@
   .brand__mark {
     width: 30px;
     height: 30px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, var(--blue), var(--orange));
     flex-shrink: 0;
   }
   .brand__name {
@@ -341,7 +340,12 @@
 
     <div class="zone-header">
       <div class="brand">
-        <span class="brand__mark" aria-hidden="true"></span>
+        <svg class="brand__mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="42" cy="42" r="24" fill="none" stroke="#16213a" stroke-width="9"/>
+        <line x1="59" y1="59" x2="80" y2="80" stroke="#16213a" stroke-width="11" stroke-linecap="round"/>
+        <polyline points="27,50 36,40 44,46" fill="none" stroke="#2563eb" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="44,46 55,26" fill="none" stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
         <div>
           <div class="brand__name">ChangeScout</div>
           <div class="brand__tagline">市場の変化を、ビジネスチャンスへ。</div>
