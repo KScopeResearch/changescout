@@ -284,7 +284,7 @@
   }
 
   .industry-row__label {
-    width: 116px;
+    width: 240px;
     font-size: 0.85rem;
     font-weight: 700;
     flex-shrink: 0;
@@ -296,6 +296,14 @@
     font-weight: 800;
     font-size: 0.9rem;
     flex-shrink: 0;
+  }
+
+  /* .bar has no width/flex of its own (shared with .topic-card's vertical
+     layout, where block-level width:auto is correct) — without this, the
+     bar collapses to 0 width here since .industry-row is a flex row. */
+  .industry-row .bar {
+    flex: 1;
+    min-width: 60px;
   }
 
   /* ③ 貴社への影響 */
@@ -695,6 +703,22 @@
 
     .kpi-strip {
       grid-template-columns: 1fr;
+    }
+
+    .industry-row {
+      flex-wrap: wrap;
+    }
+
+    .industry-row__label {
+      width: 100%;
+    }
+
+    .industry-row .bar {
+      order: 1;
+    }
+
+    .industry-row__value {
+      order: 2;
     }
 
     .score-card {
