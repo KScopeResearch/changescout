@@ -285,6 +285,14 @@
 </div>
 
 <script>
+  // Carries the company name over from the LP signup form (index.html), so
+  // testers who already typed it there don't have to type it again.
+  const prefillCompanyName = new URLSearchParams(location.search).get("companyName");
+  if (prefillCompanyName) {
+    const companyNameInput = document.getElementById("companyName");
+    if (companyNameInput) companyNameInput.value = prefillCompanyName;
+  }
+
   document.querySelector("form").addEventListener("submit", (event) => {
     const profile = Object.fromEntries(new FormData(event.target).entries());
     localStorage.setItem("changescout_profile", JSON.stringify(profile));

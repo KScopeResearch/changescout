@@ -6,6 +6,7 @@
   var nav = document.getElementById("mainNav");
   var signupForm = document.getElementById("signupForm");
   var signupSuccess = document.getElementById("signupSuccess");
+  var signupSuccessDemoLink = document.getElementById("signupSuccessDemoLink");
 
   function updateHeaderState() {
     if (!header) return;
@@ -66,6 +67,13 @@
       if (!signupForm.checkValidity()) {
         signupForm.reportValidity();
         return;
+      }
+
+      if (signupSuccessDemoLink) {
+        var companyName = (signupForm.elements.company.value || "").trim();
+        signupSuccessDemoLink.href = companyName
+          ? "company-profile.html?companyName=" + encodeURIComponent(companyName)
+          : "company-profile.html";
       }
 
       signupForm.hidden = true;
