@@ -109,18 +109,10 @@
     text-align: center;
   }
 
-  .complete-card__icon {
-    width: 56px;
-    height: 56px;
-    margin: 0 auto 20px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--blue), var(--orange));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #fff;
-    font-size: 1.5rem;
-    font-weight: 800;
+  .complete-card__illustration {
+    width: 200px;
+    margin: -12px auto 4px;
+    display: block;
   }
 
   .complete-card__title {
@@ -279,7 +271,22 @@
   </header>
 
   <div class="complete-card">
-    <div class="complete-card__icon" aria-hidden="true">✓</div>
+    <svg class="complete-card__illustration" viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="55" cy="70" r="4" fill="#f97316" opacity="0.55" />
+      <circle cx="255" cy="80" r="3.5" fill="#2563eb" opacity="0.55" />
+      <circle cx="40" cy="190" r="3" fill="#2563eb" opacity="0.55" />
+      <circle cx="260" cy="210" r="4" fill="#f97316" opacity="0.55" />
+      <path d="M140,150 L225,192 L140,234 L55,192 Z" fill="#e2e8f0" />
+      <path d="M55,192 L140,234 L140,244 L55,202 Z" fill="#dbe3ee" />
+      <path d="M140,234 L225,192 L225,202 L140,244 Z" fill="#cbd5e1" />
+      <path d="M186.75,168.5 L206.75,179.5 L186.75,190.5 L166.75,179.5 Z" fill="rgb(251,164,104)" />
+      <path d="M166.75,179.5 L186.75,190.5 L186.75,202.5 L166.75,191.5 Z" fill="#f97316" />
+      <path d="M186.75,190.5 L206.75,179.5 L206.75,191.5 L186.75,202.5 Z" fill="rgb(179,83,16)" />
+      <path d="M135.75,119.7 L185.75,144.7 L135.75,169.7 L85.75,144.7 Z" fill="rgb(113,154,242)" />
+      <path d="M85.75,144.7 L135.75,169.7 L135.75,185.7 L85.75,160.7 Z" fill="#2563eb" />
+      <path d="M135.75,169.7 L185.75,144.7 L185.75,160.7 L135.75,185.7 Z" fill="rgb(27,71,169)" />
+      <path d="M119.75,144.7 L131.75,155.7 L153.75,131.7" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    </svg>
     <h1 class="complete-card__title">貴社専用の分析が完了しました</h1>
     <p class="complete-card__body">
       入力いただいた会社プロフィールをもとに、貴社向けの分析結果をご用意しました。

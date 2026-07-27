@@ -441,6 +441,25 @@
     color: var(--text-muted);
   }
 
+  .section-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .section-illustration {
+    width: 130px;
+    flex-shrink: 0;
+    display: none;
+  }
+
+  @media (min-width: 720px) {
+    .section-illustration {
+      display: block;
+    }
+  }
+
   .source-list {
     display: flex;
     flex-direction: column;
@@ -682,8 +701,33 @@
 
   <!-- Evidence -->
   <section class="section--muted" style="margin-bottom: 0;">
-    <p class="eyebrow">SOURCES</p>
-    <h2 class="section-heading">Evidence（根拠情報）</h2>
+    <div class="section-header-row">
+      <div>
+        <p class="eyebrow">SOURCES</p>
+        <h2 class="section-heading">Evidence（根拠情報）</h2>
+      </div>
+      <svg class="section-illustration" viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="220" cy="40" r="3" fill="#2563eb" opacity="0.55" />
+        <circle cx="230" cy="90" r="3.5" fill="#f97316" opacity="0.55" />
+        <circle cx="40" cy="80" r="2.5" fill="#2563eb" opacity="0.55" />
+        <path d="M140,110 L230,155 L140,200 L50,155 Z" fill="#e2e8f0" />
+        <path d="M50,155 L140,200 L140,208 L50,163 Z" fill="#dbe3ee" />
+        <path d="M140,200 L230,155 L230,163 L140,208 Z" fill="#cbd5e1" />
+        <path d="M95,115.5 L108,122 L95,128.5 L82,122 Z" fill="rgb(113,154,242)" />
+        <path d="M82,122 L95,128.5 L95,150.5 L82,144 Z" fill="#2563eb" />
+        <path d="M95,128.5 L108,122 L108,144 L95,150.5 Z" fill="rgb(27,71,169)" />
+        <path d="M131,97.5 L144,104 L131,110.5 L118,104 Z" fill="rgb(113,154,242)" />
+        <path d="M118,104 L131,110.5 L131,150.5 L118,144 Z" fill="#2563eb" />
+        <path d="M131,110.5 L144,104 L144,144 L131,150.5 Z" fill="rgb(27,71,169)" />
+        <path d="M167,107.5 L180,114 L167,120.5 L154,114 Z" fill="rgb(251,164,104)" />
+        <path d="M154,114 L167,120.5 L167,150.5 L154,144 Z" fill="#f97316" />
+        <path d="M167,120.5 L180,114 L180,144 L167,150.5 Z" fill="rgb(179,83,16)" />
+        <path d="M78,42 L100,78" stroke="#f97316" stroke-width="1.6" stroke-dasharray="3 4" opacity="0.4" fill="none" />
+        <path d="M70,25 L94,37 L70,49 L46,37 Z" fill="rgb(251,164,104)" />
+        <path d="M46,37 L70,49 L70,54 L46,42 Z" fill="#f97316" />
+        <path d="M70,49 L94,37 L94,42 L70,54 Z" fill="rgb(179,83,16)" />
+      </svg>
+    </div>
     <div class="source-list">
       <div class="source-item">
         <span class="source-dot" style="background:#f97316;"></span>

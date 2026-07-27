@@ -219,6 +219,7 @@ section {
 .hero {
   padding-top: 64px;
   padding-bottom: 96px;
+  overflow: hidden;
 }
 
 .hero__inner {
@@ -249,8 +250,29 @@ section {
   gap: 16px;
 }
 
+.hero__visual {
+  position: relative;
+}
+
+.hero__illustration {
+  position: absolute;
+  top: -70px;
+  right: -110px;
+  width: 460px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .hero__illustration {
+    display: none;
+  }
+}
+
 /* Report card mockup */
 .report-card {
+  position: relative;
+  z-index: 1;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
