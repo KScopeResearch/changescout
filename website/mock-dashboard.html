@@ -854,17 +854,17 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p id="card1Action">対象企業へ営業開始</p>
         </div>
-        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
+        <a class="card-link" href="opportunity-detail.html?topic=1">詳細を見る →</a>
       </article>
 
-      <article class="topic-card">
+      <article class="topic-card" id="card2" data-source="static">
         <div class="topic-card__head">
-          <span class="tag tag--blue">法改正</span>
+          <span class="tag tag--blue" id="card2Tag">法改正</span>
           <span class="topic-card__score">Score <b>88</b></span>
         </div>
         <div class="bar"><div class="bar__fill" style="width:88%"></div></div>
-        <h3 class="topic-card__title">既存顧客への提案チャンス</h3>
-        <p class="topic-card__fact">建設業法の一部改正（国土交通省）</p>
+        <h3 class="topic-card__title" id="card2Title">既存顧客への提案チャンス</h3>
+        <p class="topic-card__fact" id="card2Fact">建設業法の一部改正（国土交通省）</p>
         <div class="topic-card__meta">
           <span class="priority priority--mid">あなたへの重要度：中</span>
           <span class="topic-card__target">影響候補企業 9社</span>
@@ -881,17 +881,17 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p id="card2Action">既存顧客へ影響説明資料を送付</p>
         </div>
-        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
+        <a class="card-link" href="opportunity-detail.html?topic=2">詳細を見る →</a>
       </article>
 
-      <article class="topic-card">
+      <article class="topic-card" id="card3" data-source="static">
         <div class="topic-card__head">
-          <span class="tag tag--neutral">新サービス動向</span>
+          <span class="tag tag--neutral" id="card3Tag">新サービス動向</span>
           <span class="topic-card__score">Score <b>76</b></span>
         </div>
         <div class="bar"><div class="bar__fill" style="width:76%"></div></div>
-        <h3 class="topic-card__title">差別化提案のチャンス</h3>
-        <p class="topic-card__fact">競合A社が新サービスを発表</p>
+        <h3 class="topic-card__title" id="card3Title">差別化提案のチャンス</h3>
+        <p class="topic-card__fact" id="card3Fact">競合A社が新サービスを発表</p>
         <div class="topic-card__meta">
           <span class="priority priority--mid">あなたへの重要度：中</span>
           <span class="topic-card__target">影響候補企業 5社</span>
@@ -908,7 +908,7 @@
           <span class="topic-card__row-label">推奨アクション</span>
           <p id="card3Action">自社サービスの比較資料を作成</p>
         </div>
-        <a class="card-link" href="opportunity-detail.html">詳細を見る →</a>
+        <a class="card-link" href="opportunity-detail.html?topic=3">詳細を見る →</a>
       </article>
 
     </div>
@@ -1231,11 +1231,17 @@
           action: "既存製造業顧客への情報提供を開始",
         },
         card2: {
+          tag: "法改正",
+          title: "取引先建設業者への影響確認",
+          fact: "建設業法の一部改正が、発注先の建設業者に影響（国土交通省）",
           impact: "自社の工事発注先である建設業者の取引条件に影響",
           reason: "貴社が発注者として、建設業者との契約実務を確認する必要があるため",
           action: "取引のある建設業者へ制度変更の確認を行う",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "差別化提案のチャンス",
+          fact: "競合A社が製造業向け新サービスを発表",
           impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
           reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "自社サービスの比較資料を作成",
@@ -1254,12 +1260,18 @@
           target: "Web経由の新規流入見込み客全般",
           reason: "検索流入や関心層への訴求力を高めるため（関連トピック：補助金対象拡大）",
           effect: "サイト経由のリード獲得数の増加",
+          mail: "件名：【共有】LPコピー更新のご相談\n\nマーケティングご担当者様\n\n直近の補助金対象拡大を踏まえ、LPのコピーを更新したいと考えています。\n反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。",
+          talk: "「本日はお問い合わせありがとうございます。\n実は今、ものづくり補助金の対象拡大のタイミングで、製造業のお客様からのご相談が増えています。\nまずは御社の状況を伺えればと思うのですが、現在検討されている設備投資はございますか？」",
+          proposal: "【LP改善提案アウトライン】\n1. 現状のLP流入・CVR課題\n2. 反映すべき最新情報（補助金対象拡大の動向）\n3. 更新後のコピー案\n4. 想定される流入・問い合わせ増加効果",
         },
         action3: {
           title: "競合A社の新サービスを調査し比較資料を作成する",
           target: "商談中の既存見込み客（比較検討フェーズ）",
           reason: "競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため",
           effect: "提案時の失注防止、差別化ポイントの明確化",
+          mail: "件名：【比較資料】競合A社の新サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合A社の新サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは製造業向け導入実績・サポート体制の点で優位性がございます。",
+          talk: "「競合A社の新サービスも比較検討されているとのことですが、弊社との大きな違いは製造業向けの導入実績とサポート体制の部分です。\n特に貴社のような規模の製造業様には、この点を特に評価いただいております。」",
+          proposal: "【競合比較資料アウトライン】\n1. 競合A社の新サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 製造業導入企業の声・実績",
         },
       },
       construction: {
@@ -1272,11 +1284,17 @@
           action: "建設業の顧客・現場担当者へ改正内容を共有",
         },
         card2: {
+          tag: "法改正",
+          title: "自社の許可要件・契約実務の見直し",
+          fact: "建設業法の一部改正により、自社の許可要件・契約実務にも対応が必要に（国土交通省）",
           impact: "貴社（建設業）自身の許可要件・下請取引の実務に直接影響",
           reason: "貴社が建設業として、法改正への対応準備が必要であるため",
           action: "社内の許可要件・契約書式を早期に見直す",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "建設業向け差別化提案のチャンス",
+          fact: "競合が建設業向け支援サービスを強化",
           impact: "建設業向け商談中の見込み客が競合と比較検討する可能性が高まる",
           reason: "建設業の商談中案件で、競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "建設業向け自社サービスの比較資料を作成",
@@ -1319,11 +1337,17 @@
           action: "顧問先企業へ制度変更の案内を送付",
         },
         card2: {
+          tag: "制度改正",
+          title: "顧問先の建設業クライアントへの対応",
+          fact: "建設業法の改正が、顧問先の建設業クライアントにも影響（国土交通省）",
           impact: "顧問先の建設業クライアントへの助言ニーズへの影響",
           reason: "貴社が士業として、建設業クライアントへの改正内容の説明機会が生まれるため",
           action: "建設業クライアントへ改正内容の案内を送付",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "士業向け差別化提案のチャンス",
+          fact: "競合の士業向け支援サービスが強化",
           impact: "商談・相談中の見込み客が競合事務所やツールと比較検討する可能性が高まる",
           reason: "士業向けの商談で、競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "士業向け自社サービスの比較資料を作成",
@@ -1366,11 +1390,17 @@
           action: "詳細を確認し、関連度の高い顧客へ情報提供を検討",
         },
         card2: {
+          tag: "市場変化",
+          title: "関連する取引先動向の確認",
+          fact: "貴社の登録情報に関連する取引先動向の変化を検知",
           impact: "関連する業界・取引先の動向への影響が考えられます",
           reason: "貴社の登録情報と関連性が見込まれるため",
           action: "関連する取引先へ状況を確認する",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "差別化提案のチャンス",
+          fact: "競合の新サービスが発表",
           impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
           reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "自社サービスの比較資料を作成",
@@ -1389,12 +1419,18 @@
           target: "Web経由の新規流入見込み客全般",
           reason: "検索流入や関心層への訴求力を高めるため",
           effect: "サイト経由のリード獲得数の増加",
+          mail: "件名：【共有】LPコピー更新のご相談\n\nマーケティングご担当者様\n\n直近の業界動向を踏まえ、LPのコピーを更新したいと考えています。\n反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。",
+          talk: "「本日はお問い合わせありがとうございます。\n実は今、関連する業界動向のタイミングで、お客様からのご相談が増えています。\nまずは御社の状況を伺えればと思うのですが、現在気になっている点はございますか？」",
+          proposal: "【LP改善提案アウトライン】\n1. 現状のLP流入・CVR課題\n2. 反映すべき最新情報（業界動向）\n3. 更新後のコピー案\n4. 想定される流入・問い合わせ増加効果",
         },
         action3: {
           title: "競合の新サービスを調査し比較資料を作成する",
           target: "商談中の既存見込み客（比較検討フェーズ）",
           reason: "競合の動向により、提案時の差別化ポイントが弱まるリスクがあるため",
           effect: "提案時の失注防止、差別化ポイントの明確化",
+          mail: "件名：【比較資料】競合の新サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の新サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは導入実績・サポート体制の点で優位性がございます。",
+          talk: "「競合の新サービスも比較検討されているとのことですが、弊社との大きな違いは導入実績とサポート体制の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          proposal: "【競合比較資料アウトライン】\n1. 競合の新サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 導入企業の声・実績",
         },
       },
       "it-dx": {
@@ -1407,11 +1443,17 @@
           action: "既存のDX導入支援対象顧客への情報提供を開始",
         },
         card2: {
+          tag: "税制改正",
+          title: "既存顧客のシステム投資判断への対応",
+          fact: "DX投資促進税制の適用要件緩和が、既存顧客の投資判断に影響（経済産業省）",
           impact: "既存顧客のシステム投資判断に影響",
           reason: "貴社の既存顧客（DX導入検討層）が、税制優遇を機に投資判断を前倒しする可能性があるため",
           action: "既存顧客へ制度変更の案内を送付する",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "差別化提案のチャンス",
+          fact: "競合のDX支援サービスが強化",
           impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
           reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "自社サービスの比較資料を作成",
@@ -1430,12 +1472,18 @@
           target: "Web経由のDX導入検討見込み客全般",
           reason: "税制優遇への関心が高まっているタイミングで、検索流入・問い合わせを強化するため",
           effect: "サイト経由のリード獲得数の増加",
+          mail: "件名：【共有】LPコピー更新のご相談\n\nマーケティングご担当者様\n\n直近のDX投資減税を踏まえ、LPのコピーを更新したいと考えています。\n反映希望箇所の草案を添付しますので、来週までにご確認いただけますでしょうか。",
+          talk: "「本日はお問い合わせありがとうございます。\n実は今、DX投資減税のタイミングで、DX導入を検討されるお客様からのご相談が増えています。\nまずは御社の状況を伺えればと思うのですが、現在検討されているシステム投資はございますか？」",
+          proposal: "【LP改善提案アウトライン】\n1. 現状のLP流入・CVR課題\n2. 反映すべき最新情報（DX投資減税の動向）\n3. 更新後のコピー案\n4. 想定される流入・問い合わせ増加効果",
         },
         action3: {
           title: "競合のDX支援サービスを調査し比較資料を作成する",
           target: "商談中のDX導入見込み客（比較検討フェーズ）",
           reason: "競合がDX支援サービスを強化しており、提案時の差別化が必要なため",
           effect: "提案時の失注防止、差別化ポイントの明確化",
+          mail: "件名：【比較資料】競合のDX支援サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合のDX支援サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは導入実績・サポート体制の点で優位性がございます。",
+          talk: "「競合のDX支援サービスも比較検討されているとのことですが、弊社との大きな違いは導入実績とサポート体制の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          proposal: "【競合比較資料アウトライン】\n1. 競合のDX支援サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 導入企業の声・実績",
         },
       },
       ec: {
@@ -1448,11 +1496,17 @@
           action: "既存EC事業者顧客へ表示義務対応の案内を送付",
         },
         card2: {
+          tag: "業界動向",
+          title: "物流パートナーの配送料改定への対応",
+          fact: "主要物流事業者が配送料の改定を発表",
           impact: "物流パートナーの配送料改定が、貴社の送料表示・利益率に影響",
           reason: "貴社がEC事業者として、送料改定を踏まえた表示内容の見直しが必要になるため",
           action: "物流パートナーへ配送料改定の詳細を確認する",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "EC事業者向け差別化提案のチャンス",
+          fact: "競合ECサイトが新しい決済・ポイント還元施策を導入",
           impact: "競合ECサイトが新しい決済・ポイント還元施策を導入し、比較検討される可能性が高まる",
           reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "自社サービスの比較資料を作成",
@@ -1495,11 +1549,17 @@
           action: "主要取引先企業へ契約条件見直しの提案を行う",
         },
         card2: {
+          tag: "制度改正",
+          title: "主要取引先の契約内容再確認",
+          fact: "発注企業の担当者交代に伴う契約内容の齟齬リスクが顕在化",
           impact: "主要取引先の発注担当者が変わるタイミングで、契約内容の再確認が必要になる可能性",
           reason: "貴社がフリーランス開発者として、担当者交代時に契約条件の齟齬が生じるリスクがあるため",
           action: "主要取引先へ現行契約内容の再確認を依頼する",
         },
         card3: {
+          tag: "業界動向",
+          title: "差別化提案のチャンス",
+          fact: "競合となるフリーランス・エージェント経由人材が増加",
           impact: "商談中の案件で、他のフリーランス開発者やエージェント経由の人材と比較検討される可能性が高まる",
           reason: "商談中の案件で他の候補と比較される可能性が高く、対応次第で失注リスクがあるため",
           action: "自身の実績・強みをまとめた提案資料を作成",
@@ -1542,11 +1602,17 @@
           action: "顧問先企業へ補助金制度の再編内容を案内",
         },
         card2: {
+          tag: "業界動向",
+          title: "顧問先サプライチェーンの状況確認",
+          fact: "顧問先企業の取引先の経営状況にも補助金制度再編の影響が波及する可能性",
           impact: "顧問先の取引先企業（サプライヤー等）の経営状況にも影響が及ぶ可能性",
           reason: "貴社が経営コンサルタントとして、顧問先のサプライチェーン全体を俯瞰した助言価値が高まるため",
           action: "顧問先へ取引先企業の状況確認を提案する",
         },
         card3: {
+          tag: "新サービス動向",
+          title: "差別化提案のチャンス",
+          fact: "競合コンサルタント・支援サービスが補助金活用支援を強化",
           impact: "商談・相談中の見込み客が競合コンサルタントやツールと比較検討する可能性が高まる",
           reason: "経営コンサルタント向けの商談で、競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
           action: "自社サービスの比較資料を作成",
@@ -1605,13 +1671,23 @@
     const impactSubject = profile.customerSegment ? `${profile.customerSegment}に関連する市場変化` : "貴社に関連する市場変化";
     setText("impactNarrative", `今週検出された変化のうち、${impactSubject}を確認しました。特に「${content.card1.title}」は、${content.card1.action}につながる可能性があります。`);
 
+    setText("card2Tag", content.card2.tag);
+    setText("card2Title", content.card2.title);
+    setText("card2Fact", content.card2.fact);
     setText("card2Impact", content.card2.impact);
     setText("card2Reason", content.card2.reason);
     setText("card2Action", content.card2.action);
+    const card2El = document.getElementById("card2");
+    if (card2El) card2El.dataset.source = "override";
 
+    setText("card3Tag", content.card3.tag);
+    setText("card3Title", content.card3.title);
+    setText("card3Fact", content.card3.fact);
     setText("card3Impact", content.card3.impact);
     setText("card3Reason", content.card3.reason);
     setText("card3Action", content.card3.action);
+    const card3El = document.getElementById("card3");
+    if (card3El) card3El.dataset.source = "override";
 
     setText("a1Title", content.action1.title);
     setText("a1Target", content.action1.target);
