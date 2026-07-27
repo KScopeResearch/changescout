@@ -258,7 +258,9 @@ section {
 }
 
 .hero__illustration {
-  width: 300px;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
   pointer-events: none;
 }
 
