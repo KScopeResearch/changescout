@@ -7,7 +7,8 @@
     "check": "playwright test",
     "check:ui": "playwright test --ui",
     "check:report": "playwright show-report",
-    "review": "playwright test && node scripts/generate-review.js"
+    "review": "playwright test && node scripts/generate-review.js",
+    "quality": "node scripts/run-quality-checks.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0"
