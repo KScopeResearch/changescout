@@ -7,7 +7,11 @@
 
 async function fetchMarketChanges() {
   try {
-    const res = await fetch("data/market-changes.json");
+    // no-store: this file is updated frequently during the beta and GitHub
+    // Pages doesn't send strong cache-busting headers, so a returning
+    // tester's browser can silently keep serving stale content otherwise
+    // (observed firsthand during Phase 3 pre-review testing).
+    const res = await fetch("data/market-changes.json", { cache: "no-store" });
     if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data.market_changes) ? data.market_changes : null;

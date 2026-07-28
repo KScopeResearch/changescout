@@ -1190,46 +1190,54 @@
     // Labels mirror Card1/Card2/Card3's own titles below (in the same order),
     // so this breakdown reads as "these 3 bars = those 3 cards" instead of a
     // disconnected set of generic category names.
+    // Phase 3 pre-review fix: these values previously used an independent,
+    // hand-picked number set that didn't match the Score badge shown on the
+    // actual topic card below (id="card1/2/3", hardcoded 95/88/76 in the
+    // static HTML markup for every industry). A tester correctly flagged
+    // this as "the score in the breakdown doesn't match the cards". Since
+    // the card badges are the same 95/88/76 across all industries by
+    // design, the breakdown values now mirror that exactly so the two
+    // sections of the dashboard never visibly disagree.
     const breakdownOverrides = {
       manufacturing: [
-        { label: "ものづくり補助金と新事業進出補助金の統合", value: 88 },
-        { label: "取引先建設業者への影響確認", value: 82 },
-        { label: "事業承継・M&A補助金（14次公募）", value: 75 },
+        { label: "ものづくり補助金と新事業進出補助金の統合", value: 95 },
+        { label: "取引先建設業者への影響確認", value: 88 },
+        { label: "事業承継・M&A補助金（14次公募）", value: 76 },
       ],
       construction: [
-        { label: "建設業法改正", value: 90 },
-        { label: "自社の許可要件・契約実務の見直し", value: 78 },
-        { label: "経営事項審査（経審）の改正、2026年7月1日施行", value: 70 },
+        { label: "建設業法改正", value: 95 },
+        { label: "自社の許可要件・契約実務の見直し", value: 88 },
+        { label: "経営事項審査（経審）の改正、2026年7月1日施行", value: 76 },
       ],
       professional: [
-        { label: "インボイス制度 仕入税額控除の経過措置見直し", value: 85 },
-        { label: "顧問先の建設業クライアントへの対応", value: 80 },
-        { label: "相続登記義務化、経過措置の期限が近づく", value: 74 },
+        { label: "インボイス制度 仕入税額控除の経過措置見直し", value: 95 },
+        { label: "顧問先の建設業クライアントへの対応", value: 88 },
+        { label: "相続登記義務化、経過措置の期限が近づく", value: 76 },
       ],
       other: [
-        { label: "2026年度 最低賃金改定の議論が大詰め", value: 80 },
-        { label: "「労務費の適切な転嫁のための価格交渉に関する指針」改正", value: 73 },
-        { label: "経営者保証に依らない融資への転換が加速", value: 66 },
+        { label: "2026年度 最低賃金改定の議論が大詰め", value: 95 },
+        { label: "「労務費の適切な転嫁のための価格交渉に関する指針」改正", value: 88 },
+        { label: "経営者保証に依らない融資への転換が加速", value: 76 },
       ],
       "it-dx": [
-        { label: "「デジタル化・AI導入補助金2026」への名称変更・新規公募", value: 86 },
-        { label: "既存顧客のシステム投資判断への対応", value: 79 },
-        { label: "「サイバーセキュリティお助け隊サービス」の活用が拡大", value: 72 },
+        { label: "「デジタル化・AI導入補助金2026」への名称変更・新規公募", value: 95 },
+        { label: "既存顧客のシステム投資判断への対応", value: 88 },
+        { label: "「サイバーセキュリティお助け隊サービス」の活用が拡大", value: 76 },
       ],
       ec: [
-        { label: "「デジタル取引・特定商取引法等検討会」設置", value: 87 },
-        { label: "物流パートナーの配送料改定への対応", value: 79 },
-        { label: "「送料無料」表示の見直しが進む", value: 73 },
+        { label: "「デジタル取引・特定商取引法等検討会」設置", value: 95 },
+        { label: "物流パートナーの配送料改定への対応", value: 88 },
+        { label: "「送料無料」表示の見直しが進む", value: 76 },
       ],
       "freelance-dev": [
-        { label: "フリーランス新法の運用強化", value: 84 },
-        { label: "主要取引先の契約内容再確認", value: 76 },
-        { label: "フリーランス労災保険の特別加入対象が全業種に拡大", value: 68 },
+        { label: "生成AI活用スキルで月単価に10万円の差", value: 95 },
+        { label: "IT人材不足、2030年に最大79万人へ拡大の試算", value: 88 },
+        { label: "フリーランス労災保険の特別加入対象が全業種に拡大", value: 76 },
       ],
       consultant: [
-        { label: "中小企業向け補助金制度の再編・拡充", value: 89 },
-        { label: "顧問先サプライチェーンの状況確認", value: 81 },
-        { label: "「経営力向上計画」の認定が20万件に迫る", value: 73 },
+        { label: "中小企業向け補助金制度の再編・拡充", value: 95 },
+        { label: "顧問先サプライチェーンの状況確認", value: 88 },
+        { label: "「経営力向上計画」の認定が20万件に迫る", value: 76 },
       ],
     };
 
