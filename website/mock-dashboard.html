@@ -1166,6 +1166,70 @@
     });
   });
 
+  // ② 貴社の機会スコア: previously a fixed "82" shown for every visitor,
+  // unrelated to the 3 topic cards' own Score badges below (95/88/76) — a
+  // tester flagged that the number had no visible basis and didn't move
+  // with the cards. Now computed as the average of those same 3 card
+  // scores, so it always traces back to numbers the visitor can see and
+  // check for themselves.
+  (function updateOpportunityScore() {
+    const cardScores = ["card1", "card2", "card3"]
+      .map((id) => document.querySelector(`#${id} .topic-card__score b`))
+      .map((el) => Number(el && el.textContent))
+      .filter((n) => Number.isFinite(n));
+    if (!cardScores.length) return;
+
+    const avgScore = Math.round(cardScores.reduce((sum, n) => sum + n, 0) / cardScores.length);
+
+    const scoreRingNum = document.querySelector(".score-ring__num");
+    if (scoreRingNum) scoreRingNum.textContent = avgScore;
+
+    const ringProgress = document.querySelector(".ring-progress");
+    if (ringProgress) ringProgress.style.strokeDashoffset = 327 * (1 - avgScore / 100);
+
+    const scoreCopyEyebrow = document.querySelector(".score-copy__eyebrow");
+    if (scoreCopyEyebrow) scoreCopyEyebrow.textContent = "AI推定による貴社の機会スコア（3つのビジネスチャンスのスコア平均）";
+  })();
+
+  // ① 貴社のビジネスチャンス headline: previously a static per-industry phrase
+  // ("○○に関連する制度変化を検知しました") with no reference to what the 3
+  // cards below actually said — a tester flagged the mismatch. Now built
+  // from Card1's own title, called once after the sync fallback content is
+  // applied and again once the JSON-driven title (loadCard1FromMarketChanges)
+  // resolves, so the headline always matches whichever title ends up shown.
+  const headlineSubtitles = {
+    manufacturing: "設備投資や補助金関連の営業機会につながる可能性があります",
+    construction: "既存顧客対応や法改正関連の営業機会につながる可能性があります",
+    professional: "顧問先への提案や相談対応の機会につながる可能性があります",
+    other: "登録情報に関連する営業機会につながる可能性があります",
+    "it-dx": "DX投資や業務改善関連の営業機会につながる可能性があります",
+    ec: "表示義務対応や送料改定関連の営業機会につながる可能性があります",
+    "freelance-dev": "契約条件の見直しや取引先との関係強化につながる可能性があります",
+    consultant: "顧問先への補助金活用提案や経営計画見直しの機会につながる可能性があります",
+  };
+
+  function updateOpportunityHeadline(cardTitle) {
+    const profile = getProfile();
+    if (!profile || !cardTitle) return;
+    const industry = industryLabels[profile.industry];
+    const isOther = profile.industry === "other";
+    if (!industry && !isOther) return;
+
+    const scoreCopyHeadline = document.getElementById("scoreCopyHeadline");
+    if (scoreCopyHeadline) {
+      scoreCopyHeadline.textContent = industry
+        ? `「${cardTitle}」など、${industry}に関連するビジネスチャンスを検知しました`
+        : `「${cardTitle}」など、登録情報に関連するビジネスチャンスを検知しました`;
+    }
+
+    const sub = headlineSubtitles[profile.industry];
+    const scoreCopySubtitle = document.getElementById("scoreCopySubtitle");
+    if (scoreCopySubtitle && sub) {
+      scoreCopySubtitle.textContent = sub;
+      scoreCopySubtitle.hidden = false;
+    }
+  }
+
   // Personalize headings based on the company profile saved from company-profile.html.
   // Falls back to the default generic wording when no profile has been saved.
   (function personalizeFromProfile() {
@@ -1250,57 +1314,12 @@
       ],
     };
 
-    // score-copy headline: replace the generic "大きなビジネスチャンスが届いて
-    // います" claim with a measured "検知しました" statement per industry, plus
-    // a soft supporting line ("...につながる可能性があります") so the section
-    // reads as an AI estimate rather than a confirmed opportunity. No profile
-    // keeps the original headline and no supporting line at all.
-    const headlineOverrides = {
-      manufacturing: {
-        headline: "製造業に関連する市場変化を検知しました",
-        sub: "設備投資や補助金関連の営業機会につながる可能性があります",
-      },
-      construction: {
-        headline: "建設業に関連する市場変化を検知しました",
-        sub: "既存顧客対応や法改正関連の営業機会につながる可能性があります",
-      },
-      professional: {
-        headline: "顧客支援につながる制度変化を検知しました",
-        sub: "顧問先への提案や相談対応の機会につながる可能性があります",
-      },
-      other: {
-        headline: "登録情報をもとに市場変化を検知しました",
-        sub: "登録情報に関連する営業機会につながる可能性があります",
-      },
-      "it-dx": {
-        headline: "IT・DX支援に関連する市場変化を検知しました",
-        sub: "DX投資や業務改善関連の営業機会につながる可能性があります",
-      },
-      ec: {
-        headline: "EC事業者に関連する市場変化を検知しました",
-        sub: "表示義務対応や送料改定関連の営業機会につながる可能性があります",
-      },
-      "freelance-dev": {
-        headline: "フリーランス開発者に関連する制度変化を検知しました",
-        sub: "契約条件の見直しや取引先との関係強化につながる可能性があります",
-      },
-      consultant: {
-        headline: "経営コンサルタントに関連する制度変化を検知しました",
-        sub: "顧問先への補助金活用提案や経営計画見直しの機会につながる可能性があります",
-      },
-    };
-
-    const headlineData = headlineOverrides[profile.industry];
-    if (headlineData) {
-      const scoreCopyHeadline = document.getElementById("scoreCopyHeadline");
-      if (scoreCopyHeadline) scoreCopyHeadline.textContent = headlineData.headline;
-
-      const scoreCopySubtitle = document.getElementById("scoreCopySubtitle");
-      if (scoreCopySubtitle) {
-        scoreCopySubtitle.textContent = headlineData.sub;
-        scoreCopySubtitle.hidden = false;
-      }
-    }
+    // score-copy headline: now built from Card1's own title once it's known
+    // (see updateOpportunityHeadline, defined earlier in this file and
+    // called below once content.card1 is applied) instead of a generic
+    // per-industry phrase disconnected from the cards. The supporting line
+    // ("...につながる可能性があります") stays industry-specific via
+    // headlineSubtitles.
 
     const breakdownRows = breakdownOverrides[profile.industry];
     if (breakdownRows) {
@@ -1762,6 +1781,8 @@
     const card1El = document.getElementById("card1");
     if (card1El) card1El.dataset.source = "override";
 
+    updateOpportunityHeadline(content.card1.title);
+
     // Must Fix (Phase 3 pre-review): "貴社への影響" narrative used to be a fixed
     // paragraph describing the demo persona's own customer base, contradicting
     // whatever the user actually entered. Build it from Card1's own content
@@ -1897,6 +1918,8 @@
     setText("card1Impact", match.impact);
     setText("card1Reason", match.reason);
     setText("card1Action", match.action);
+
+    updateOpportunityHeadline(match.title);
 
     // Re-apply the same customerSegment layering the sync block already applies
     // to card1Action, since we just overwrote its text from JSON.
