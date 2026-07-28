@@ -8,6 +8,10 @@
   var signupSuccess = document.getElementById("signupSuccess");
   var signupSuccessDemoLink = document.getElementById("signupSuccessDemoLink");
 
+  // backend/signup-form/README.md の手順でデプロイしたGoogle Apps ScriptウェブアプリのURLに置き換える。
+  var SIGNUP_ENDPOINT_URL =
+    "https://script.google.com/macros/s/AKfycbz7Ov6aP9havC3CSVYPFVEM8pc0kEZ9MD9voJIxHjmJ3wPWtYmOjaRV3JALWY9Lpp90/exec";
+
   function updateHeaderState() {
     if (!header) return;
     header.classList.toggle("is-scrolled", window.scrollY > 8);
@@ -74,6 +78,24 @@
         signupSuccessDemoLink.href = companyName
           ? "company-profile.html?companyName=" + encodeURIComponent(companyName)
           : "company-profile.html";
+      }
+
+      if (SIGNUP_ENDPOINT_URL && SIGNUP_ENDPOINT_URL.indexOf("REPLACE_WITH") !== 0) {
+        // no-cors + text/plain: Apps ScriptウェブアプリはCORSプリフライトに対応していないため、
+        // プリフライトを発生させない送信方法を使う。レスポンス内容は読めないため成否は判定できない。
+        fetch(SIGNUP_ENDPOINT_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify({
+            company: (signupForm.elements.company.value || "").trim(),
+            name: (signupForm.elements.name.value || "").trim(),
+            email: (signupForm.elements.email.value || "").trim(),
+            interest: (signupForm.elements.interest.value || "").trim(),
+          }),
+        }).catch(function () {
+          // 送信失敗時もユーザー体験は止めない（成功画面はそのまま表示する）。
+        });
       }
 
       signupForm.hidden = true;
