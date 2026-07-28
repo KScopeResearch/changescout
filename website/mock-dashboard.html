@@ -1208,35 +1208,32 @@
     consultant: "顧問先への補助金活用提案や経営計画見直しの機会につながる可能性があります",
   };
 
-  // Card titles range from 6 to 30 characters (see website/data/market-changes.json),
-  // so quoting Card1's title in full made the headline unreadably long for the
-  // longer ones. Truncate before embedding it, and drop the redundant industry
-  // name from the headline itself (it's already shown just above in
-  // summaryHeading, and still appears in the supporting subtitle line below).
-  function truncateForHeadline(text, max) {
-    if (text.length <= max) return text;
-    let cut = text.slice(0, max);
-    // Some titles contain their own 「」 quote pair (e.g. 「デジタル化・AI導入補助
-    // 金2026」への名称変更・新規公募) — a naive slice can land inside the pair and
-    // leave a dangling 「. If so, either extend to the nearby closing bracket or
-    // back off before the opening one, so the truncated title stays balanced.
-    if ((cut.match(/「/g) || []).length > (cut.match(/」/g) || []).length) {
-      const closeIndex = text.indexOf("」", max);
-      cut = closeIndex !== -1 && closeIndex - max <= 6 ? text.slice(0, closeIndex + 1) : cut.slice(0, cut.lastIndexOf("「"));
-    }
-    return `${cut}…`;
-  }
-
-  function updateOpportunityHeadline(cardTitle) {
+  // Quoting Card1's title alone skewed the headline toward "this one card is
+  // a business chance," which doesn't hold for every card (some are neutral
+  // compliance/制度 changes rather than clear opportunities), and full titles
+  // (6-30 chars) made it long besides. Summarize all 3 cards via their own
+  // category tags instead (補助金/法改正/税制改正/... — always short, 3-7
+  // chars) and use the neutral "市場変化" wording the rest of the app already
+  // uses for this data (MarketChange), rather than presupposing "chance."
+  // Re-run after each card's tag is set (sync fallback, then each card's own
+  // async JSON load) so the summary always reflects whichever tags are
+  // currently shown, however far the JSON loads have progressed.
+  function updateOpportunityHeadline() {
     const profile = getProfile();
-    if (!profile || !cardTitle) return;
+    if (!profile) return;
     const industry = industryLabels[profile.industry];
     const isOther = profile.industry === "other";
     if (!industry && !isOther) return;
 
+    const tags = ["card1Tag", "card2Tag", "card3Tag"]
+      .map((id) => document.getElementById(id) && document.getElementById(id).textContent)
+      .filter(Boolean);
+    if (!tags.length) return;
+    const uniqueTags = [...new Set(tags)];
+
     const scoreCopyHeadline = document.getElementById("scoreCopyHeadline");
     if (scoreCopyHeadline) {
-      scoreCopyHeadline.textContent = `${truncateForHeadline(cardTitle, 18)}など、3件のビジネスチャンスを検知しました`;
+      scoreCopyHeadline.textContent = `${uniqueTags.join("・")}など、${tags.length}件の市場変化を検知しました`;
     }
 
     const sub = headlineSubtitles[profile.industry];
@@ -1798,8 +1795,6 @@
     const card1El = document.getElementById("card1");
     if (card1El) card1El.dataset.source = "override";
 
-    updateOpportunityHeadline(content.card1.title);
-
     // Must Fix (Phase 3 pre-review): "貴社への影響" narrative used to be a fixed
     // paragraph describing the demo persona's own customer base, contradicting
     // whatever the user actually entered. Build it from Card1's own content
@@ -1824,6 +1819,8 @@
     setText("card3Action", content.card3.action);
     const card3El = document.getElementById("card3");
     if (card3El) card3El.dataset.source = "override";
+
+    updateOpportunityHeadline();
 
     setText("a1Title", content.action1.title);
     setText("a1Target", content.action1.target);
@@ -1936,7 +1933,7 @@
     setText("card1Reason", match.reason);
     setText("card1Action", match.action);
 
-    updateOpportunityHeadline(match.title);
+    updateOpportunityHeadline();
 
     // Re-apply the same customerSegment layering the sync block already applies
     // to card1Action, since we just overwrote its text from JSON.
@@ -2049,6 +2046,8 @@
 
     const card2El = document.getElementById("card2");
     if (card2El) card2El.dataset.source = "json";
+
+    updateOpportunityHeadline();
   })();
 
   (async function loadCard3FromMarketChanges() {
@@ -2075,6 +2074,8 @@
 
     const card3El = document.getElementById("card3");
     if (card3El) card3El.dataset.source = "json";
+
+    updateOpportunityHeadline();
   })();
 
   // AI Action Plan #2/#3, same pattern as loadActionPlan1FromMarketChanges
