@@ -299,6 +299,7 @@
 
 </div>
 
+<script src="js/profile.js"></script>
 <script>
   // Carries the company name over from the LP signup form (index.html), so
   // testers who already typed it there don't have to type it again.
@@ -310,7 +311,7 @@
 
   document.querySelector("form").addEventListener("submit", (event) => {
     const profile = Object.fromEntries(new FormData(event.target).entries());
-    localStorage.setItem("changescout_profile", JSON.stringify(profile));
+    saveProfile(profile);
   });
 </script>
 

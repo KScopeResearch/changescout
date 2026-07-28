@@ -350,47 +350,26 @@
 
 </div>
 
+<script src="js/profile.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/render.js"></script>
 <script>
   // Prefer the profile saved to localStorage by company-profile.html; fall back to the
   // URL query string (e.g. when this page is opened directly without going through the form).
   const params = new URLSearchParams(location.search);
-  let stored = null;
-  try {
-    stored = JSON.parse(localStorage.getItem("changescout_profile"));
-  } catch (e) {
-    stored = null;
-  }
+  const stored = getProfile();
   const getValue = (key) => (stored && stored[key]) || params.get(key) || "";
 
-  const industryLabels = {
-    "it-dx": "IT・DX支援",
-    construction: "建設",
-    professional: "士業",
-    manufacturing: "製造業",
-    ec: "消費者向けEC事業者",
-    "freelance-dev": "フリーランス開発者",
-    consultant: "経営コンサルタント",
-    other: "その他",
-  };
+  // Shared industryLabels (js/labels.js) has no "other" key by design (see
+  // its comment); this page displays "other" as a plain value, so it's
+  // handled here as a page-specific fallback.
+  const industryValue = getValue("industry");
+  const industryLabel = industryLabels[industryValue] || (industryValue === "other" ? "その他" : "");
 
-  const regionLabels = {
-    nationwide: "全国",
-    kanto: "関東",
-    kansai: "関西",
-    chubu: "中部・東海",
-    kyushu: "九州・沖縄",
-    other: "その他",
-  };
-
-  const setText = (id, value) => {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value || "—";
-  };
-
-  setText("infoIndustry", industryLabels[getValue("industry")]);
-  setText("infoCustomerSegment", getValue("customerSegment"));
-  setText("infoProduct", getValue("product"));
-  setText("infoRegion", regionLabels[getValue("region")]);
+  setTextOrDash("infoIndustry", industryLabel);
+  setTextOrDash("infoCustomerSegment", getValue("customerSegment"));
+  setTextOrDash("infoProduct", getValue("product"));
+  setTextOrDash("infoRegion", regionLabels[getValue("region")]);
 
   // Should Fix (Phase 3 pre-review): show 企業名 only when entered — unlike
   // the other rows, which always show with a "—" placeholder, a blank

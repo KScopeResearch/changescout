@@ -771,6 +771,9 @@
 </div>
 
 <script src="js/market-data.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/render.js"></script>
 <script>
   // Which of Dashboard's 3 topic cards linked here (?topic=1|2|3). Card1 is the
   // only topic backed by website/data/market-changes.json; Card2/Card3 route to
@@ -811,7 +814,7 @@
           { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724.html" },
           { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724-2.html" },
         ],
-        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。また、これまで投資予算の制約で導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合他社もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
+        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち18社が、統合後の新制度の対象条件に該当する見込みです。また、これまで制度の変更に気づいていなかった見込み客層にもアプローチの余地が生まれます。競合他社もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
         actionTitle: "補助金対象企業へ営業メールを送信する",
         actionTarget: "既存顧客のうち補助金対象条件に該当する18社",
         actionReason: "補助金対象拡大により、対象となる見込み客の関心が高まっているため",
@@ -859,7 +862,7 @@
           { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20", url: "https://www.e-gov.go.jp/elaws/search/87752" },
           { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO87753072026000/" },
         ],
-        impactDetail: "貴社（株式会社フィールドDX）の顧問先企業のうち18社が今回の制度改正の影響を受ける見込みです。また、これまで積極的な情報提供を行っていなかった顧問先にも、相談機会を生み出す余地があります。他の士業事務所もこの動きへの言及を強める可能性が高く、早期のアプローチが信頼維持・関係強化に影響すると考えられます。",
+        impactDetail: "貴社（株式会社フィールドDX）の顧問先企業のうち18社が、免税事業者との取引に伴うインボイス経過措置の見直しの影響を受ける見込みです。また、これまで積極的な情報提供を行っていなかった顧問先にも、相談機会を生み出す余地があります。他の士業事務所もこの動きへの言及を強める可能性が高く、早期のアプローチが信頼維持・関係強化に影響すると考えられます。",
         actionTitle: "顧問先企業へ制度改正の案内を送付する",
         actionTarget: "顧問先企業のうち制度改正の影響を受ける18社",
         actionReason: "制度改正により、顧問先からの相談ニーズが高まる前に情報提供を行う好機であるため",
@@ -883,7 +886,7 @@
           { title: "登録情報に関連する市場変化を検知", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12345" },
           { title: "関連分野の動向まとめ", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12346" },
         ],
-        impactDetail: "貴社（株式会社フィールドDX）の登録情報をもとに、関連候補となる既存顧客・見込み客が一定数存在すると推定されます。特定の業界に限定した分析ではないため、詳細は実際の事業内容と照らし合わせてご確認ください。競合他社も同様の情報に接触する可能性があり、早期のアプローチが商談化率に影響すると考えられます。",
+        impactDetail: "貴社（株式会社フィールドDX）の取引先のうち、労務費の価格転嫁交渉を持ちかけてくる可能性がある企業が一定数存在すると推定されます。特定の業界に限定した分析ではないため、詳細は実際の取引先の状況と照らし合わせてご確認ください。同様の交渉は業種を問わず広がると見込まれ、早期の状況確認が交渉への備えに影響すると考えられます。",
         actionTitle: "登録情報に関連する見込み客へ情報提供を行う",
         actionTarget: "登録情報をもとに抽出した関連候補18社",
         actionReason: "検知された市場変化が貴社の登録情報と関連性が高いと判断されるため",
@@ -907,7 +910,7 @@
           { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12", url: "https://www.meti.go.jp/press/2026/07/20260712000.html" },
           { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0712-2.html" },
         ],
-        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち、DX投資を検討している層に税制優遇の情報が刺さる見込みです。また、これまでコスト面で導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合のDX支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
+        impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち、IT導入補助金の名称変更に気づいていない層に情報提供の余地があります。また、これまで「制度が終了した」と誤解して導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合のIT・DX支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
         actionTitle: "DX投資減税を切り口に既存顧客へ提案を行う",
         actionTarget: "既存顧客のうちDX投資検討層に該当する顧客",
         actionReason: "税制優遇の適用要件緩和により、DX投資を検討する顧客の関心が高まっているため",
@@ -931,7 +934,7 @@
           { title: "消費者庁、定期購入契約の解約手続きに関するガイドラインを改定", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23699/" },
           { title: "特定商取引法に基づく通信販売の表示義務、運用強化について", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23700/" },
         ],
-        impactDetail: "貴社が運営するECサイトの表示内容・解約導線が、今回の運用強化の対象となる見込みです。早期にサイトの改修を進めることで、行政指導のリスクを避け、消費者からの信頼を維持できます。対応が後手に回るEC事業者も一定数存在すると見込まれ、早期の対応が信頼維持において有利に働くと考えられます。",
+        impactDetail: "貴社が運営するECサイトの解約導線・広告表示が、次期特定商取引法改正の検討対象となる見込みです。早期に運用実態を点検しておくことで、中間とりまとめ後の対応をスムーズに進められます。対応が後手に回るEC事業者も一定数存在すると見込まれ、早期の点検が信頼維持において有利に働くと考えられます。",
         actionTitle: "自社サイトの表示・解約導線を見直し、改修を依頼する",
         actionTarget: "自社ECサイトの制作・運用を委託しているパートナー企業（Web制作会社・システムベンダー）",
         actionReason: "表示義務の運用強化により、自社サイトの表示内容・解約導線を早期に見直す必要があるため",
@@ -1396,22 +1399,12 @@
       },
     };
 
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
 
     const content = topicKey === "1"
       ? profile && overrides[profile.industry]
       : profile && topicOverrides[profile.industry] && topicOverrides[profile.industry][topicKey];
     if (!content) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el) el.textContent = value;
-    };
 
     setText("detailTag", content.tag);
     const tagEl = document.getElementById("detailTag");
@@ -1463,14 +1456,6 @@
     // Layer the company's own free-text profile (顧客層・商材・営業地域) on top of the
     // industry theme, so the recommendation/action/generated copy reads as written for
     // this specific company. Never invents a product/customer segment the user didn't enter.
-    const regionLabels = {
-      nationwide: "全国",
-      kanto: "関東",
-      kansai: "関西",
-      chubu: "中部・東海",
-      kyushu: "九州・沖縄",
-      other: "その他",
-    };
     const regionLabel = regionLabels[profile.region];
 
     const appendTarget = (id) => {
@@ -1530,17 +1515,10 @@
     // only when that specific value is actually available (nothing is guessed).
     // "other" is an internal classification only — the AI Transparency panel
     // must never surface the literal word "その他", so it shows the same
-    // neutral phrasing used for the market-change wording instead.
-    const industryLabels = {
-      "it-dx": "IT・DX支援",
-      construction: "建設",
-      professional: "士業",
-      manufacturing: "製造業",
-      ec: "EC事業者",
-      "freelance-dev": "フリーランス開発者",
-      consultant: "経営コンサルタント",
-      other: "登録情報ベース",
-    };
+    // neutral phrasing used for the market-change wording instead. Shared
+    // industryLabels (js/labels.js) has no "other" key by design, so that
+    // case is handled here as a page-specific fallback.
+    const industryLabel = industryLabels[profile.industry] || (profile.industry === "other" ? "登録情報ベース" : undefined);
 
     const whyGeneratedSection = document.getElementById("whyGeneratedSection");
     if (whyGeneratedSection) {
@@ -1554,7 +1532,7 @@
         row.hidden = false;
       };
 
-      showRow("rowIndustry", "genIndustry", industryLabels[profile.industry]);
+      showRow("rowIndustry", "genIndustry", industryLabel);
       showRow("rowCustomerSegment", "genCustomerSegment", profile.customerSegment);
       showRow("rowProduct", "genProduct", profile.product);
       showRow("rowRegion", "genRegion", regionLabel);
@@ -1576,22 +1554,12 @@
   (async function loadDetailFromMarketChanges() {
     const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
 
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
     if (!match || !match.impact || !match.reason || !match.action || !match.overview1 || !match.overview2) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("detailTag", match.category);
     const tagEl = document.getElementById("detailTag");
@@ -1656,23 +1624,13 @@
   (async function loadRecommendedActionFromMarketChanges() {
     const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
 
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
     const plan = match && match.action_plan;
     if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("actionTitle", plan.title);
     setText("actionTarget", plan.target);
@@ -1686,7 +1644,6 @@
     // applies to actionTarget/actionReason/genMail/genTalk/genProposal,
     // since we just overwrote their text from JSON. Never invents an
     // unentered field.
-    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
     const regionLabel = regionLabels[profile.region];
 
     const targetEl = document.getElementById("actionTarget");
@@ -1733,12 +1690,7 @@
   // so running this once after that block is safe. Leaves the current
   // display untouched when 企業名 isn't entered.
   (function personalizeCompanyName() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.companyName) return;
     ["impactDetailBody", "genMail"].forEach((id) => {
       const el = document.getElementById(id);

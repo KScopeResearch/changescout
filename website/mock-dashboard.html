@@ -1141,6 +1141,9 @@
 </div>
 
 <script src="js/market-data.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/render.js"></script>
 <script>
   document.querySelectorAll(".action-item").forEach((item) => {
     item.querySelectorAll("[data-generate]").forEach((btn) => {
@@ -1157,22 +1160,7 @@
   // Personalize headings based on the company profile saved from company-profile.html.
   // Falls back to the default generic wording when no profile has been saved.
   (function personalizeFromProfile() {
-    const industryLabels = {
-      "it-dx": "IT・DX支援",
-      construction: "建設",
-      professional: "士業",
-      manufacturing: "製造業",
-      ec: "EC事業者",
-      "freelance-dev": "フリーランス開発者",
-      consultant: "経営コンサルタント",
-    };
-
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
 
     // "other" is an internal classification only — it must never surface as
     // literal text ("その他向け...") in user-facing copy, so it falls back to
@@ -1748,11 +1736,6 @@
     const content = overrides[profile.industry];
     if (!content) return;
 
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
-
     setText("card1Tag", content.card1.tag);
     setText("card1Title", content.card1.title);
     setText("card1Fact", content.card1.fact);
@@ -1816,14 +1799,6 @@
     // Layer the company's own free-text profile (顧客層・商材・営業地域) on top of the
     // industry theme, so the recommendation/action/generated copy reads as written for
     // this specific company. Never invents a product/customer segment the user didn't enter.
-    const regionLabels = {
-      nationwide: "全国",
-      kanto: "関東",
-      kansai: "関西",
-      chubu: "中部・東海",
-      kyushu: "九州・沖縄",
-      other: "その他",
-    };
     const regionLabel = regionLabels[profile.region];
 
     const appendTarget = (id) => {
@@ -1886,22 +1861,12 @@
   // Any failure (no profile, fetch error, no matching MarketChange, incomplete data)
   // simply leaves the sync block's result in place.
   (async function loadCard1FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry);
     if (!match || !match.impact || !match.reason || !match.action) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("card1Tag", match.category);
     setText("card1Title", match.title);
@@ -1933,23 +1898,13 @@
   // items #2/#3 are untouched. Any failure (no profile, fetch error, no
   // match, incomplete action_plan) leaves the sync block's result in place.
   (async function loadActionPlan1FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry);
     const plan = match && match.action_plan;
     if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("a1Title", plan.title);
     setText("a1Target", plan.target);
@@ -1962,7 +1917,6 @@
     // Re-apply the same profile free-text layering the sync block already
     // applies to a1Target/a1Reason/a1Mail/a1Talk/a1Proposal, since we just
     // overwrote their text from JSON. Never invents an unentered field.
-    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
     const regionLabel = regionLabels[profile.region];
 
     const targetEl = document.getElementById("a1Target");
@@ -2007,22 +1961,12 @@
   // industry's 2nd/3rd matching MarketChange entry (pickMarketChange's index
   // argument), so all 3 topic cards are JSON-driven, not just Card1.
   (async function loadCard2FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, 1);
     if (!match || !match.impact || !match.reason || !match.action) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("card2Tag", match.category);
     setText("card2Title", match.title);
@@ -2041,22 +1985,12 @@
   })();
 
   (async function loadCard3FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, 2);
     if (!match || !match.impact || !match.reason || !match.action) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("card3Tag", match.category);
     setText("card3Title", match.title);
@@ -2077,23 +2011,13 @@
   // AI Action Plan #2/#3, same pattern as loadActionPlan1FromMarketChanges
   // but reading the industry's 2nd/3rd matching MarketChange's action_plan.
   (async function loadActionPlan2FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, 1);
     const plan = match && match.action_plan;
     if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("a2Title", plan.title);
     setText("a2Target", plan.target);
@@ -2103,7 +2027,6 @@
     setText("a2Talk", plan.templates.talk);
     setText("a2Proposal", plan.templates.proposal);
 
-    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
     const regionLabel = regionLabels[profile.region];
 
     const targetEl = document.getElementById("a2Target");
@@ -2140,23 +2063,13 @@
   })();
 
   (async function loadActionPlan3FromMarketChanges() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.industry) return;
 
     const marketChanges = await fetchMarketChanges();
     const match = pickMarketChange(marketChanges, profile.industry, 2);
     const plan = match && match.action_plan;
     if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
-
-    const setText = (id, value) => {
-      const el = document.getElementById(id);
-      if (el && value != null) el.textContent = value;
-    };
 
     setText("a3Title", plan.title);
     setText("a3Target", plan.target);
@@ -2166,7 +2079,6 @@
     setText("a3Talk", plan.templates.talk);
     setText("a3Proposal", plan.templates.proposal);
 
-    const regionLabels = { nationwide: "全国", kanto: "関東", kansai: "関西", chubu: "中部・東海", kyushu: "九州・沖縄", other: "その他" };
     const regionLabel = regionLabels[profile.region];
 
     const targetEl = document.getElementById("a3Target");
@@ -2208,12 +2120,7 @@
   // path (static/override/json) rendered Card1. Leaves the current display
   // untouched when 企業名 isn't entered.
   (function personalizeCompanyName() {
-    let profile;
-    try {
-      profile = JSON.parse(localStorage.getItem("changescout_profile"));
-    } catch (e) {
-      profile = null;
-    }
+    const profile = getProfile();
     if (!profile || !profile.companyName) return;
     ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle", "a1Mail"].forEach((id) => {
       const el = document.getElementById(id);
