@@ -804,19 +804,19 @@
     <div class="kpi-strip">
       <div class="kpi-card">
         <div class="kpi-card__label" id="kpiOpportunityLabel">今週の営業機会数</div>
-        <div class="kpi-card__value">3件</div>
+        <div class="kpi-card__value" id="kpiOpportunityValue">3件</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card__label">影響候補企業数</div>
-        <div class="kpi-card__value">30社</div>
+        <div class="kpi-card__value" id="kpiCompanyValue">30社</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card__label">推定商談価値</div>
-        <div class="kpi-card__value kpi-card__value--accent">最大 1,200万円/年</div>
+        <div class="kpi-card__value kpi-card__value--accent" id="kpiDealValue">最大 1,200万円/年</div>
       </div>
       <div class="kpi-card">
         <div class="kpi-card__label">優先対応数</div>
-        <div class="kpi-card__value">1件</div>
+        <div class="kpi-card__value" id="kpiPriorityValue">1件</div>
       </div>
     </div>
     <p class="ai-estimate-note">AI推定値：公開情報・登録プロフィール情報をもとに算出</p>
@@ -2182,6 +2182,39 @@
       const a3MailEl = document.getElementById("a3Mail");
       if (a3MailEl) a3MailEl.textContent = a3MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
     }
+  })();
+
+  // 今週の営業機会数／影響候補企業数／推定商談価値／優先対応数: previously 4
+  // fixed values (3件/30社/最大1,200万円/1件) shown identically for every
+  // industry, with no visible connection to the 3 cards below — the same
+  // "no traceable basis" complaint a tester raised about 機会スコア. Now
+  // computed from each matched topic's own target_company_count /
+  // estimated_deal_value_max (market-changes.json), summed across the 3
+  // matched topics so the KPI strip genuinely varies per industry.
+  // 優先対応数 counts topics whose Card position carries the "高" priority
+  // badge — currently only Card1 (position 0), since the Score badges
+  // (95/88/76) are still fixed per position for every industry, so this
+  // will read "1件" everywhere today. It's still computed from the actual
+  // match count rather than hardcoded, and will start varying the moment
+  // per-topic scores become industry-specific.
+  (async function loadKpiFromMarketChanges() {
+    const profile = getProfile();
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const matches = [0, 1, 2]
+      .map((index) => pickMarketChange(marketChanges, profile.industry, index))
+      .filter(Boolean);
+    if (!matches.length) return;
+
+    const companyTotal = matches.reduce((sum, m) => sum + (m.target_company_count || 0), 0);
+    const dealValueTotal = matches.reduce((sum, m) => sum + (m.estimated_deal_value_max || 0), 0);
+    const priorityCount = matches.filter((m) => matches.indexOf(m) === 0).length;
+
+    setText("kpiOpportunityValue", `${matches.length}件`);
+    setText("kpiCompanyValue", `${companyTotal}社`);
+    setText("kpiDealValue", `最大 ${dealValueTotal.toLocaleString()}万円/年`);
+    setText("kpiPriorityValue", `${priorityCount}件`);
   })();
 
   // Phase 3 pre-review fix: the dashboard's own "根拠情報" section (distinct
