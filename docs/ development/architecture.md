@@ -106,3 +106,47 @@ Phase 3開始前レビュー（2026-07-27）で、メール生成テンプレー
 - 提案資料（Proposal）生成テンプレートの末尾に、番号付きアウトラインと不釣り合いな散文が続いていた問題（【補足】形式の箇条書きに変更、Mail/Talkは変更なし）
 
 その後、company-profile.html・profile-complete.htmlに残っていた「AIが貴社に合ったビジネスチャンスだけを選び出します」「AIが貴社専用のビジネスチャンス分析を作成しました」という言い切り表現も、実装実態（テンプレートベースの提案・AI推定）に合わせて修正した。LP（`index.html`）に残る同種の表現はデモ導線（`docs/validation/DEMO_SCENARIO.md`）がLPを経由しないため対応を見送り、`docs/strategy/ROADMAP.md`のRemaining Issuesに記録済み。
+
+## Phase 3実ユーザー検証準備期間の実装内容（2026-07-27〜28）
+
+Phase 3開始判断後、実ユーザーに見せる前提でデモの完成度・一貫性を大きく引き上げた一連の変更。新しいデータモデルやバックエンドの追加は行っていない（引き続き静的サイト＋JSON駆動）。
+
+### Card2・Card3のJSON駆動化（Phase 2-3/2-4で対象外としていた範囲の解消）
+
+Phase 2-3/2-4では「今回あえて動的化しなかった部分」としてDashboard Card2・Card3、AI Action Plan #2・#3、Opportunity DetailのRecommended Actionはハードコード`overrides`のままだった。これを解消し、**Card1と同じ仕組みでCard2・Card3も含めた全3件がJSON駆動になった**。
+
+- `website/js/market-data.js`の`pickMarketChange(marketChanges, industry, index)`に第3引数（何番目の一致エントリを取得するか）を追加。デフォルト`0`のため既存のCard1呼び出し箇所は変更不要。
+- `website/data/market-changes.json`は業種ごとに正確に3件（Card1/Card2/Card3用）を保持する構造に統一。従来存在したが未使用だった業種ごとの2件目（`mc-002`/`mc-004`/`mc-006`/`mc-008`/`mc-010`）をCard2用として正式に接続し、Card3用のエントリを新規追加した。
+- `mock-dashboard.html`に`loadCard2FromMarketChanges`/`loadCard3FromMarketChanges`/`loadActionPlan2FromMarketChanges`/`loadActionPlan3FromMarketChanges`を追加し、Card1と同じ「JSON → 既存`overrides` → 静的HTML」の優先順位・`data-source`属性による経路確認の仕組みをCard2・Card3・AI Action Plan #2・#3にも適用。
+- `opportunity-detail.html`の`loadDetailFromMarketChanges`/`loadRecommendedActionFromMarketChanges`は、`?topic=1|2|3`クエリパラメータから`pickMarketChange`のindexを算出する形に一般化（従来はtopic=1固定）。
+- 「その他」のCard1（`mc-009`）も、従来欠けていた`overview1`/`overview2`/`why_now`/`impact`/`reason`/`action`を補完し、他業種と同水準でJSON駆動になった。
+
+### 対応業種の拡大（4業種 → 8業種）
+
+`ec`（消費者向けEC事業者）・`freelance-dev`（フリーランス開発者）・`consultant`（経営コンサルタント）の3業種を追加し、`company-profile.html`の業種選択肢は製造業・建設業・士業・IT・DX支援・EC事業者・フリーランス開発者・経営コンサルタント・その他の8業種になった。各業種にCard1〜3・AI Action Plan #1〜3（メール／トーク／提案資料テンプレート含む）をフル実装。
+
+### 「当事者 vs 顧客」の業種混同を業種横断で修正
+
+士業のCard3・AI Action Plan #3が「士業向け支援サービス」「士業事務所での導入実績」のように、士業事務所に何かを売り込むベンダーの文体になっており、Card1・Card2（貴社＝士業事務所として顧問先に助言する設定）と矛盾していた問題を修正。同様の混同を建設業（Card1提案資料・Card3）、製造業（Card1のimpactDetail・action_plan）、EC事業者（Card1〜3のほぼ全体）でも発見し、それぞれ「貴社＝その業種の当事者」という一貫した設定に書き直した。IT・DX支援のみ「他社にDX支援サービスを提供する会社」であること自体が業種の定義なので対象外。
+
+### Evidence（根拠情報）へのリンク追加
+
+`market-changes.json`の`evidence`配列の各要素に`url`フィールドを追加（全24エントリ・47件）。実在する省庁・情報源のドメインへのリンクだが、個別記事のパス自体は架空（既存のdisclaimer通り、根拠情報そのものはサンプルデータのまま）。`opportunity-detail.html`・`mock-dashboard.html`双方でEvidenceのタイトルを`<a target="_blank">`化し、外部リンクである旨のアイコン（↗）を追加。
+
+### イラスト・ロゴの追加
+
+- 全ページに手描きSVGのイラストを追加（外部素材ライブラリ不使用）。LP・profile-complete.htmlは「虫眼鏡でバーチャートを分析する」構図に統一。
+- ユーザー提供のライセンス済みストックイラスト（人物が虫眼鏡でバーチャートを見るイラスト）をLPのヒーロー画像として採用。Python/Pillowでピンクのアクセント色のみをHSV色相シフトしてブランドカラーのオレンジに変更（肌・髪・服・背景は色相帯を分けて非対象化し、対象外のまま）。
+- ロゴ（`website/favicon.svg`、全ページ共通の`.brand__mark`）を新規制定。虫眼鏡＋トレンドライン（青→オレンジ）のモチーフ。ワードマークは「Change」（既定色）「Scout」（オレンジ）「Weekly」（青、サフィックスとして付く場合のみ）で色分け。これまでfaviconは未設定だった。
+
+### その他の細かな修正
+
+- `company-profile.html`の`customerSegment`/`product`/`region`から不要な`required`属性を削除（ドキュメント上は任意項目のはずが必須化されていたバグ）。
+- LPのβ登録フォーム送信後、入力した会社名を`?companyName=`で`company-profile.html`へ引き継ぐ導線を追加。
+- 「機会内訳」の3本のバーラベルを、対応するCard1〜3の実際のタイトルと1:1で一致するよう修正（従来は無関係な汎用カテゴリ名だった）。あわせて`.bar`に`flex`指定が無く実際には幅0pxで非表示になっていたレイアウトバグを修正（`.industry-row .bar`にスコープした`flex:1`を追加）。
+
+### 未解決のまま残っている既知の課題
+
+- **LPのβ登録フォーム（`#signup`）にバックエンドが存在しない**：`website/js/main.js`の送信処理は`event.preventDefault()`後、画面上の成功表示を切り替えるのみで、入力データ（会社名・氏名・メール・関心分野）はどこにも送信・保存されない。Formspree等の外部フォーム送信サービスへの接続を提案済みだが、アカウント作成が必要なため未着手（利用者側でのアカウント作成・エンドポイント発行待ち）。
+- Evidence（根拠情報）のURLは実在ドメインだが個別記事は架空のまま。実データ化（Phase 3移行条件・ROADMAP.md参照）は未着手。
+- Card2・Card3がJSON駆動になったことで、`market-changes.json`が担うMarketChange/Opportunity/ActionPlanの責務混在（`data-model.md`参照）の対象範囲も3倍（24エントリ）に拡大した。データベース移行時の分割対象がその分増えている。

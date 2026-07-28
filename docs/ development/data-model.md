@@ -22,6 +22,8 @@ ActionPlan
 
 **ただし実装（`website/data/market-changes.json`）は責務が混在している**：Phase 2-3で`impact`/`reason`/`action`/`overview1`/`overview2`/`why_now`を、Phase 2-4で`action_plan`を、いずれも実装速度を優先してMarketChangeオブジェクトへ直接内包した（各Phaseの実装メモ内で「本来はOpportunity生成ロジックが持つべき値の暫定的な内包」と明記済み）。これは意図的なMVP期間中の技術的負債であり、実際にOpportunity生成ロジックを実装する際（Phase 3以降）は、この2つのフィールド群を`MarketChange`から切り離し、`Opportunity`/`ActionPlan`として独立させる必要がある。
 
+**2026-07-28時点の補足**：この責務混在は、Card1のみが対象だったPhase 2-4時点から、Card2・Card3もJSON駆動になったことで対象範囲が3倍（全8業種×3件＝24エントリ）に拡大している。データベース移行時に分割すべきレコード数がその分増えている、という点を除き、方針・分割方法自体に変更はない。
+
 ## 1. MarketChange（市場変化）
 
 市場で起きた変化そのものを表す、企業プロフィールに依存しない客観情報。
@@ -34,8 +36,8 @@ ActionPlan
 | `summary` | 一行要約 | `detailFact` / `card{n}Fact` |
 | `source` | 発表元 | `evidenceMeta{n}` の発表元部分（例：中小企業庁） |
 | `published_date` | 公開日 | `evidenceMeta{n}` の日付部分（例：2026.07.24） |
-| `target_industries` | 関連する業種（複数可） | `overrides` オブジェクトのキー（manufacturing/construction/professional/other/it-dx） |
-| `evidence` | 根拠情報のリスト（`{title, source, date}`） | Evidenceセクション（`evidenceTitle{n}`/`evidenceMeta{n}`） |
+| `target_industries` | 関連する業種（複数可） | `overrides` オブジェクトのキー（manufacturing/construction/professional/it-dx/ec/freelance-dev/consultant/other、2026-07-28に3業種追加し全8業種） |
+| `evidence` | 根拠情報のリスト（`{title, source, date, url}`） | Evidenceセクション（`evidenceTitle{n}`/`evidenceMeta{n}`、`url`は2026-07-28追加。リンク先ドメインは実在するが個別記事は架空） |
 
 **意図的に含めない項目**：ユーザー提示の例には `opportunity_type` と `recommended_actions` が含まれていたが、これらはMarketChange単体では決まらず、企業プロフィールと組み合わせて初めて決まる値のため、後述の `Opportunity` 側に置く。MarketChangeに持たせると「同じ市場変化でも会社によって異なるはずの推奨アクション」を1つの変化に固定してしまい、パーソナライズの前提と矛盾するため過剰設計として除外する。
 

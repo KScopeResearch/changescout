@@ -4,9 +4,9 @@ Phase 3（MVP Validation）準備。ヒアリング前に見せる10分デモの
 
 ## 対象業種の選び方（重要）
 
-現時点でDashboard Card1 / Opportunity Detail / AI Action Planの3箇所すべてが同一のMarketChangeデータから一貫して連携しているのは**製造業・建設業・士業**の3業種のみ（`website/data/market-changes.json`参照）。デモは相手の業種に近いものをこの3つから選ぶか、なければ最も近い業種で代替する。
+2026-07-28時点で、Dashboard Card1〜3 / Opportunity Detail / AI Action Plan #1〜3のすべてが同一のMarketChangeデータから一貫して連携しているのは**製造業・建設業・士業・IT・DX支援・EC事業者・フリーランス開発者・経営コンサルタント・その他**の全8業種（`website/data/market-changes.json`参照）。デモは相手の業種に最も近いものを自由に選んでよい。
 
-「その他」業種はAI Action Plan（推奨アクション部分）のみがデータ連携しており、Card1・Opportunity Detailは業種横断の汎用表示にとどまるため、フルデモの主役には使わない（参考として軽く見せる程度に留める）。
+「その他」も含め全業種でCard1〜3・AI Action Plan #1〜3が業種専用のコンテンツで揃っているため、以前のように特定3業種に絞ったり「その他」を軽く見せる程度に留める必要はない。
 
 ## デモ前に伝えておくこと（正直な前提共有）
 

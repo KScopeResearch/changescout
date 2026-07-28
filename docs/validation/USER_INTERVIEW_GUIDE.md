@@ -4,8 +4,8 @@ Phase 3（MVP Validation）準備。`docs/strategy/ROADMAP.md`の「Phase 3移�
 
 ## 想定ユーザー
 
-- `docs/strategy/PROJECT.md`のターゲット市場のうち、現時点でDashboard/Opportunity Detail/AI Action Planがすべて連携済みの3業種（製造業・建設業・士業）に該当する中小企業の経営者・経営企画・新規事業担当者を優先する。
-- 「その他」業種はAI Action Plan（推奨アクション）のみJSON駆動化されており、Card1/Opportunity Detailの内容は業種横断の汎用表示にとどまるため、今回のヒアリング対象としては優先度を下げる。
+- `docs/strategy/PROJECT.md`のターゲット市場のうち、2026-07-28時点でDashboard/Opportunity Detail/AI Action Planがすべて連携済みの8業種（製造業・建設業・士業・IT・DX支援・EC事業者・フリーランス開発者・経営コンサルタント・その他）に該当する中小企業の経営者・経営企画・新規事業担当者を優先する。
+- 「その他」を含む全業種でCard1〜3・AI Action Plan #1〜3が業種専用コンテンツで揃っているため、以前のように「その他」の優先度を下げる必要はない。
 - 既存顧客・取引先など、ChangeScoutというサービス名を初めて聞く相手を基本とする（社内関係者など前提知識がある相手は、理解度検証としてのバイアスがかかるため補助的な位置づけにとどめる）。
 
 ## ヒアリング目的
