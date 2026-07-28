@@ -1129,20 +1129,20 @@
       </svg>
     </div>
     <div class="source-list">
-      <div class="source-item">
+      <div class="source-item" id="sourceItem1">
         <span class="source-dot" style="background:#f97316;"></span>
-        <a class="source-item__title" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">中小企業庁、DX推進補助金の第2次公募を開始</a>
-        <span class="source-item__meta">中小企業庁 ・ 2026.07.24</span>
+        <a class="source-item__title" id="source1Title" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">中小企業庁、DX推進補助金の第2次公募を開始</a>
+        <span class="source-item__meta" id="source1Meta">中小企業庁 ・ 2026.07.24</span>
       </div>
-      <div class="source-item">
+      <div class="source-item" id="sourceItem2">
         <span class="source-dot" style="background:#2563eb;"></span>
-        <a class="source-item__title" href="https://www.mlit.go.jp" target="_blank" rel="noopener">建設業法の一部改正が可決、2027年施行へ</a>
-        <span class="source-item__meta">国土交通省 ・ 2026.07.22</span>
+        <a class="source-item__title" id="source2Title" href="https://www.mlit.go.jp" target="_blank" rel="noopener">建設業法の一部改正が可決、2027年施行へ</a>
+        <span class="source-item__meta" id="source2Meta">国土交通省 ・ 2026.07.22</span>
       </div>
-      <div class="source-item">
+      <div class="source-item" id="sourceItem3">
         <span class="source-dot" style="background:#667085;"></span>
-        <a class="source-item__title" href="https://www.nikkei.com" target="_blank" rel="noopener">競合A社、新規事業向けAIツールを発表</a>
-        <span class="source-item__meta">業界ニュース ・ 2026.07.20</span>
+        <a class="source-item__title" id="source3Title" href="https://www.nikkei.com" target="_blank" rel="noopener">競合A社、新規事業向けAIツールを発表</a>
+        <span class="source-item__meta" id="source3Meta">業界ニュース ・ 2026.07.20</span>
       </div>
     </div>
   </section>
@@ -2141,6 +2141,30 @@
       const a3MailEl = document.getElementById("a3Mail");
       if (a3MailEl) a3MailEl.textContent = a3MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
     }
+  })();
+
+  // Phase 3 pre-review fix: the dashboard's own "根拠情報" section (distinct
+  // from each topic's own Evidence shown on opportunity-detail.html) was
+  // 100% static HTML — fixed placeholder titles/URLs that never changed
+  // regardless of industry. A tester correctly caught this; hard-reloading
+  // did nothing because it was never a caching issue, the content was
+  // simply never wired to the MarketChange data the 3 cards above already
+  // use. Pulls each topic's own primary evidence[0] into the matching slot.
+  (async function loadSourcesFromMarketChanges() {
+    const profile = getProfile();
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    [0, 1, 2].forEach((index) => {
+      const match = pickMarketChange(marketChanges, profile.industry, index);
+      const evidence = match && Array.isArray(match.evidence) && match.evidence[0];
+      if (!evidence) return;
+      const n = index + 1;
+      setText(`source${n}Title`, evidence.title);
+      setText(`source${n}Meta`, `${evidence.source} ・ ${evidence.date}`);
+      const titleEl = document.getElementById(`source${n}Title`);
+      if (titleEl && evidence.url) titleEl.href = evidence.url;
+    });
   })();
 
   // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
