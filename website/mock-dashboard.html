@@ -1208,6 +1208,25 @@
     consultant: "顧問先への補助金活用提案や経営計画見直しの機会につながる可能性があります",
   };
 
+  // Card titles range from 6 to 30 characters (see website/data/market-changes.json),
+  // so quoting Card1's title in full made the headline unreadably long for the
+  // longer ones. Truncate before embedding it, and drop the redundant industry
+  // name from the headline itself (it's already shown just above in
+  // summaryHeading, and still appears in the supporting subtitle line below).
+  function truncateForHeadline(text, max) {
+    if (text.length <= max) return text;
+    let cut = text.slice(0, max);
+    // Some titles contain their own 「」 quote pair (e.g. 「デジタル化・AI導入補助
+    // 金2026」への名称変更・新規公募) — a naive slice can land inside the pair and
+    // leave a dangling 「. If so, either extend to the nearby closing bracket or
+    // back off before the opening one, so the truncated title stays balanced.
+    if ((cut.match(/「/g) || []).length > (cut.match(/」/g) || []).length) {
+      const closeIndex = text.indexOf("」", max);
+      cut = closeIndex !== -1 && closeIndex - max <= 6 ? text.slice(0, closeIndex + 1) : cut.slice(0, cut.lastIndexOf("「"));
+    }
+    return `${cut}…`;
+  }
+
   function updateOpportunityHeadline(cardTitle) {
     const profile = getProfile();
     if (!profile || !cardTitle) return;
@@ -1217,9 +1236,7 @@
 
     const scoreCopyHeadline = document.getElementById("scoreCopyHeadline");
     if (scoreCopyHeadline) {
-      scoreCopyHeadline.textContent = industry
-        ? `「${cardTitle}」など、${industry}に関連するビジネスチャンスを検知しました`
-        : `「${cardTitle}」など、登録情報に関連するビジネスチャンスを検知しました`;
+      scoreCopyHeadline.textContent = `${truncateForHeadline(cardTitle, 18)}など、3件のビジネスチャンスを検知しました`;
     }
 
     const sub = headlineSubtitles[profile.industry];
