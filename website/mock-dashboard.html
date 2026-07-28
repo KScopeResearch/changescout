@@ -1816,9 +1816,15 @@
       el.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
     };
 
+    // Only append when the action text is actually about reaching out to the
+    // company's own customers ("顧客"/"クライアント"/"顧問先"/"見込み客"). Internal
+    // work ("社内の...見直す") or outreach to a vendor/partner ("物流パートナーへ")
+    // isn't about the customerSegment the user entered, so appending it there
+    // read as a non-sequitur (Phase 3 pre-review finding).
     const appendAction = (id) => {
       const el = document.getElementById(id);
       if (!el || !profile.customerSegment) return;
+      if (!/顧客|クライアント|顧問先|見込み客/.test(el.textContent)) return;
       el.textContent += `（${profile.customerSegment}を中心に）`;
     };
 
@@ -1827,7 +1833,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       // Should Fix (Phase 3 pre-review): Proposal is a numbered outline, so a
       // trailing prose paragraph reads as a formatting mistake. Append as a
@@ -1879,7 +1885,9 @@
     // to card1Action, since we just overwrote its text from JSON.
     if (profile.customerSegment) {
       const actionEl = document.getElementById("card1Action");
-      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      if (actionEl && /顧客|クライアント|顧問先|見込み客/.test(actionEl.textContent)) {
+        actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      }
     }
 
     // Must Fix (Phase 3 pre-review): re-build "貴社への影響" narrative from the
@@ -1937,7 +1945,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       if (id.includes("Proposal")) {
         el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
@@ -1977,7 +1985,9 @@
 
     if (profile.customerSegment) {
       const actionEl = document.getElementById("card2Action");
-      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      if (actionEl && /顧客|クライアント|顧問先|見込み客/.test(actionEl.textContent)) {
+        actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      }
     }
 
     const card2El = document.getElementById("card2");
@@ -2001,7 +2011,9 @@
 
     if (profile.customerSegment) {
       const actionEl = document.getElementById("card3Action");
-      if (actionEl) actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      if (actionEl && /顧客|クライアント|顧問先|見込み客/.test(actionEl.textContent)) {
+        actionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      }
     }
 
     const card3El = document.getElementById("card3");
@@ -2047,7 +2059,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       if (id.includes("Proposal")) {
         el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
@@ -2099,7 +2111,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       if (id.includes("Proposal")) {
         el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;

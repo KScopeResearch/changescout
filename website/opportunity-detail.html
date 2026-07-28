@@ -1087,7 +1087,7 @@
             { title: "競合建設会社のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27543072026000/" },
             { title: "建設業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27544072026000/" },
           ],
-          impactDetail: "貴社（株式会社フィールドDX）の既存顧客のうち、公共工事の入札に関わる企業は経審の評価変更の影響を受ける見込みです。施行（7月1日）まで時間が限られており、早期の情報提供が信頼構築につながります。",
+          impactDetail: "貴社（株式会社フィールドDX）自身が公共工事の入札に関わる場合、経審の評価変更の影響を直接受ける見込みです。施行（7月1日）まで時間が限られており、早期の自社点検が評価への影響を抑えることにつながります。",
           actionTitle: "競合建設会社の動向を調査し比較資料を作成する",
           actionTarget: "商談中の見込み客（比較検討フェーズ）",
           actionReason: "競合の建設会社がサービス内容を強化しており、提案時の差別化が必要なため",
@@ -1473,9 +1473,15 @@
       el.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
     };
 
+    // Only append when the action text is actually about reaching out to the
+    // company's own customers ("顧客"/"クライアント"/"顧問先"/"見込み客"). Internal
+    // work or outreach to a vendor/partner isn't about the customerSegment the
+    // user entered, so appending it there read as a non-sequitur (Phase 3
+    // pre-review finding).
     const appendAction = (id) => {
       const el = document.getElementById(id);
       if (!el || !profile.customerSegment) return;
+      if (!/顧客|クライアント|顧問先|見込み客/.test(el.textContent)) return;
       el.textContent += `（${profile.customerSegment}を中心に）`;
     };
 
@@ -1484,7 +1490,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       // Should Fix (Phase 3 pre-review): Proposal is a numbered outline, so a
       // trailing prose paragraph reads as a formatting mistake. Append as a
@@ -1599,7 +1605,9 @@
     // applies to summaryAction, since we just overwrote its text from JSON.
     if (profile.customerSegment) {
       const summaryActionEl = document.getElementById("summaryAction");
-      if (summaryActionEl) summaryActionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      if (summaryActionEl && /顧客|クライアント|顧問先|見込み客/.test(summaryActionEl.textContent)) {
+        summaryActionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      }
     }
 
     // Keep AI Transparency's "検知した市場変化" row in sync with the JSON-sourced
@@ -1664,7 +1672,7 @@
       if (!el) return;
       const lines = [];
       if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
-      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}のお客様には関心が高いテーマです。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
       if (!lines.length) return;
       if (id.includes("Proposal")) {
         el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
