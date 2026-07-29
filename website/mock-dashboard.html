@@ -795,7 +795,7 @@
     <span class="beta-badge">BETA</span>
   </header>
 
-  <p class="page-subtitle" style="margin-top:-24px;" id="reportCompanyNameSubtitle">株式会社フィールドDX 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
+  <p class="page-subtitle" style="margin-top:-24px;" id="reportCompanyNameSubtitle">サンプル株式会社 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
   <!-- ① ビジネス機会サマリー -->
   <section>
@@ -875,7 +875,7 @@
     <div class="panel-card">
       <div class="panel-card__head">
         <span class="panel-card__icon">DX</span>
-        <h3 class="panel-card__title" id="reportCompanyNameImpactTitle">株式会社フィールドDX 様への影響</h3>
+        <h3 class="panel-card__title" id="reportCompanyNameImpactTitle">サンプル株式会社 様への影響</h3>
       </div>
       <div class="stat-grid">
         <div class="stat-tile">
@@ -1908,7 +1908,7 @@
     // as elsewhere (leave untouched when not entered).
     if (profile.companyName) {
       const a1MailEl = document.getElementById("a1Mail");
-      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
   })();
 
@@ -2012,7 +2012,7 @@
     // sync block already applies to a1Mail, since we just overwrote it from JSON.
     if (profile.companyName) {
       const a1MailEl = document.getElementById("a1Mail");
-      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (a1MailEl) a1MailEl.textContent = a1MailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
 
     const actionPlan1El = document.getElementById("actionPlan1");
@@ -2128,7 +2128,7 @@
 
     if (profile.companyName) {
       const a2MailEl = document.getElementById("a2Mail");
-      if (a2MailEl) a2MailEl.textContent = a2MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (a2MailEl) a2MailEl.textContent = a2MailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
   })();
 
@@ -2180,7 +2180,7 @@
 
     if (profile.companyName) {
       const a3MailEl = document.getElementById("a3Mail");
-      if (a3MailEl) a3MailEl.textContent = a3MailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (a3MailEl) a3MailEl.textContent = a3MailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
   })();
 
@@ -2241,14 +2241,18 @@
     });
   })();
 
-  // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
+  // Week1 Must Fix: replace the fixed demo company name ("サンプル株式会社")
   // with the entered 企業名, if any. Independent of industry matching (this
   // text isn't industry-specific), so it runs regardless of which content
   // path (static/override/json) rendered Card1.
   // 企業名 is an optional field (company-profile.html), so a tester who
   // leaves it blank must never see the fake demo name either — degrade to
-  // the generic "貴社" instead of leaving "株式会社フィールドDX 様" on screen
+  // the generic "貴社" instead of leaving "サンプル株式会社 様" on screen
   // (a tester caught this leaking through on the 士業 profile).
+  // Renamed from "株式会社フィールドDX" to the deliberately generic "サンプル
+  // 株式会社" — a "◯◯DX" name reads like a real, specific company rather
+  // than an obvious placeholder, which risked being mistaken for a mistake
+  // rather than sample data.
   (function personalizeCompanyName() {
     const profile = getProfile();
     if (!profile) return;
@@ -2256,8 +2260,8 @@
       const el = document.getElementById(id);
       if (!el) return;
       el.textContent = profile.companyName
-        ? el.textContent.replace("株式会社フィールドDX", profile.companyName)
-        : el.textContent.replace(/株式会社フィールドDX\s*様\s*/, "貴社");
+        ? el.textContent.replace("サンプル株式会社", profile.companyName)
+        : el.textContent.replace(/サンプル株式会社\s*様\s*/, "貴社");
     });
   })();
 </script>

@@ -1518,7 +1518,7 @@
     // as elsewhere (leave untouched when not entered).
     if (profile.companyName) {
       const genMailEl = document.getElementById("genMail");
-      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
 
     // Show the AI transparency panel: which profile inputs and detected market change
@@ -1690,14 +1690,14 @@
     // sync block already applies to genMail, since we just overwrote it from JSON.
     if (profile.companyName) {
       const genMailEl = document.getElementById("genMail");
-      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("サンプル株式会社", profile.companyName);
     }
 
     const recommendedActionEl = document.getElementById("recommendedAction");
     if (recommendedActionEl) recommendedActionEl.dataset.source = "json";
   })();
 
-  // Week1 Must Fix: replace the fixed demo company name ("株式会社フィールドDX")
+  // Week1 Must Fix: replace the fixed demo company name ("サンプル株式会社")
   // with the entered 企業名, if any. impactDetailBody is only ever set by the
   // sync personalizeFromProfile() block above (no JSON overlay touches it),
   // so running this once after that block is safe. Leaves the current
@@ -1707,7 +1707,7 @@
     if (!profile || !profile.companyName) return;
     ["impactDetailBody", "genMail"].forEach((id) => {
       const el = document.getElementById(id);
-      if (el) el.textContent = el.textContent.replace("株式会社フィールドDX", profile.companyName);
+      if (el) el.textContent = el.textContent.replace("サンプル株式会社", profile.companyName);
     });
   })();
 </script>

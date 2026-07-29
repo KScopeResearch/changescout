@@ -1,19 +1,23 @@
 // @ts-check
 // Regression guard for the "Week 1.5 Must Fix" documented in
 // docs/strategy/FINAL_MVP_PLAN.md: the demo placeholder company name
-// ("株式会社フィールドDX") must never render to a real user without being
+// ("サンプル株式会社") must never render to a real user without being
 // swapped for their entered company name. The actual swap is done client-side
-// via `profile.companyName` + `.replace("株式会社フィールドDX", ...)`. This
+// via `profile.companyName` + `.replace("サンプル株式会社", ...)`. This
 // check doesn't render the page (no browser) — it only confirms that any file
 // still containing the placeholder text also still contains the replace
 // wiring, so a future edit can't silently delete the personalization logic
 // while leaving the placeholder text in place.
+//
+// Renamed from "株式会社フィールドDX" (2026-07-29): a "◯◯DX"-style name reads
+// like a real, specific company rather than an obvious placeholder, which
+// risked being mistaken for a mistake rather than sample data.
 const { listFiles, relPath, readText, finding } = require("./_lib");
 
 const id = "fixed-company-name";
-const name = "固定企業名残存検査（株式会社フィールドDX）";
+const name = "固定企業名残存検査（サンプル株式会社）";
 
-const PLACEHOLDER = "株式会社フィールドDX";
+const PLACEHOLDER = "サンプル株式会社";
 
 function run() {
   const findings = [];
