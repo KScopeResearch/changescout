@@ -795,7 +795,7 @@
     <span class="beta-badge">BETA</span>
   </header>
 
-  <p class="page-subtitle" style="margin-top:-24px;" id="reportCompanyNameSubtitle">サンプル株式会社 様 向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
+  <p class="page-subtitle" style="margin-top:-24px;" id="reportCompanyNameSubtitle">貴社向けレポート（サンプル）・ 2026.07.20 – 2026.07.26</p>
 
   <!-- ① ビジネス機会サマリー -->
   <section>
@@ -875,7 +875,7 @@
     <div class="panel-card">
       <div class="panel-card__head">
         <span class="panel-card__icon">DX</span>
-        <h3 class="panel-card__title" id="reportCompanyNameImpactTitle">サンプル株式会社 様への影響</h3>
+        <h3 class="panel-card__title" id="reportCompanyNameImpactTitle">貴社への影響</h3>
       </div>
       <div class="stat-grid">
         <div class="stat-tile">
@@ -2241,27 +2241,23 @@
     });
   })();
 
-  // Week1 Must Fix: replace the fixed demo company name ("サンプル株式会社")
-  // with the entered 企業名, if any. Independent of industry matching (this
-  // text isn't industry-specific), so it runs regardless of which content
-  // path (static/override/json) rendered Card1.
-  // 企業名 is an optional field (company-profile.html), so a tester who
-  // leaves it blank must never see the fake demo name either — degrade to
-  // the generic "貴社" instead of leaving "サンプル株式会社 様" on screen
-  // (a tester caught this leaking through on the 士業 profile).
-  // Renamed from "株式会社フィールドDX" to the deliberately generic "サンプル
-  // 株式会社" — a "◯◯DX" name reads like a real, specific company rather
-  // than an obvious placeholder, which risked being mistaken for a mistake
-  // rather than sample data.
+  // Week1 Must Fix: personalize the report header/title with the entered
+  // 企業名, if any. Independent of industry matching (this text isn't
+  // industry-specific), so it runs regardless of which content path
+  // (static/override/json) rendered Card1.
+  // reportCompanyNameSubtitle/reportCompanyNameImpactTitle default to the
+  // generic "貴社" (no fake placeholder company name) so a tester who
+  // leaves 企業名 blank — it's an optional field on company-profile.html —
+  // never sees anything resembling a real, specific company name that
+  // isn't theirs (a tester previously caught a placeholder name "株式会社
+  // フィールドDX" leaking through on the 士業 profile).
   (function personalizeCompanyName() {
     const profile = getProfile();
-    if (!profile) return;
-    ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle", "a1Mail"].forEach((id) => {
+    if (!profile || !profile.companyName) return;
+    ["reportCompanyNameSubtitle", "reportCompanyNameImpactTitle"].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.textContent = profile.companyName
-        ? el.textContent.replace("サンプル株式会社", profile.companyName)
-        : el.textContent.replace(/サンプル株式会社\s*様\s*/, "貴社");
+      el.textContent = el.textContent.replace("貴社", `${profile.companyName} 様`);
     });
   })();
 </script>
