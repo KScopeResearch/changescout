@@ -336,15 +336,15 @@
     <h2 class="info-card__title">作成されたレポート内容</h2>
     <div class="preview-kpis">
       <div class="preview-kpi">
-        <div class="preview-kpi__value">3件</div>
+        <div class="preview-kpi__value" id="previewOpportunityValue">3件</div>
         <div class="preview-kpi__label">検出されたビジネスチャンス</div>
       </div>
       <div class="preview-kpi">
-        <div class="preview-kpi__value">30社</div>
+        <div class="preview-kpi__value" id="previewCompanyValue">30社</div>
         <div class="preview-kpi__label">対象企業数</div>
       </div>
       <div class="preview-kpi">
-        <div class="preview-kpi__value">最大1,200万円</div>
+        <div class="preview-kpi__value" id="previewDealValue">最大1,200万円</div>
         <div class="preview-kpi__label">推定商談価値（年間）</div>
       </div>
     </div>
@@ -356,6 +356,7 @@
 
 </div>
 
+<script src="js/market-data.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/labels.js"></script>
 <script src="js/render.js"></script>
@@ -386,6 +387,29 @@
     const row = document.getElementById("infoCompanyNameRow");
     if (row) row.style.display = "flex";
   }
+
+  // Must Fix: 「作成されたレポート内容」(検出されたビジネスチャンス／対象企業数／
+  // 推定商談価値) was 100% static HTML (3件/30社/最大1,200万円) — the exact
+  // same fixed-value bug already fixed on mock-dashboard.html's KPI strip.
+  // Reuses the same target_company_count / estimated_deal_value_max fields
+  // from market-changes.json, summed across the industry's 3 matched
+  // topics, so this preview never disagrees with the dashboard it links to.
+  (async function loadPreviewKpiFromMarketChanges() {
+    if (!industryValue) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const matches = [0, 1, 2]
+      .map((index) => pickMarketChange(marketChanges, industryValue, index))
+      .filter(Boolean);
+    if (!matches.length) return;
+
+    const companyTotal = matches.reduce((sum, m) => sum + (m.target_company_count || 0), 0);
+    const dealValueTotal = matches.reduce((sum, m) => sum + (m.estimated_deal_value_max || 0), 0);
+
+    setText("previewOpportunityValue", `${matches.length}件`);
+    setText("previewCompanyValue", `${companyTotal}社`);
+    setText("previewDealValue", `最大${dealValueTotal.toLocaleString()}万円`);
+  })();
 </script>
 
 </body>
