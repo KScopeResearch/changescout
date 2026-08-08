@@ -272,10 +272,51 @@ company_slug・captured_at・consent）以外を保存しない設計を推奨�
 **引き続き未実装（今回のスコープ外、意図的な見送り）**:
 - honeypot項目（⑨）: 未実装だが、保存データを許可リスト方式で組み立てる構造に
   しているため、将来項目を追加しても保存データ側への影響なく検知ロジックを追加できる
+  （※その後の第2実装、⑬で実装した）
 - `leads.jsonl`の保持期間・自動削除・エクスポートAPI（④⑤⑨・⑪）: 個人情報の
   保持方針そのものに関わる未決事項のため、今回は決定せず現状維持（無制限追記、
   ローテーション無し）とした。`leads-audit.jsonl`（PIIを含まない）側のみ、
   `admin-audit.jsonl`と同じ`archiveIfOversize()`（Task43）を適用している
 - メール送信・営業フォロー・Adminでのリード一覧閲覧UI・重複登録時の扱い（⑨の
   duplicate handling）・実フロントエンド配線（`email-capture.js`は現状のまま、
-  ネットワーク送信は追加していない）: いずれも未実装
+  ネットワーク送信は追加していない）: いずれも未実装（実フロントエンド配線のみ、
+  その後の第2実装、⑬で実装した）
+
+## ⑬実装状況の更新（PJ2 第2実装: 公開フォーム接続＋E2E）
+
+⑫の保存基盤に対し、`website/aor/email-capture.js`から実際に`POST /api/leads`へ
+接続する第2実装を行った。差分・現状は以下のとおり。
+
+- **フロントエンド配線**: `email-capture.js`のフォーム送信ハンドラを非同期化し、
+  `email`/`company_slug`/`consent`のみを送信するよう変更した（`captured_at`は
+  従来どおりサーバー生成、送信しない）。送信先URLは`common.js`の`LEAD_API_BASE_URL`
+  定数（`OPERATOR_EMAIL`と同じ「配置ごとに書き換える」方式）
+- **UI**: 既存のUIデザインは変更していない。新規に表示領域を1つ追加したのみ
+  （`#api-error`、既存の`#email-error`/`#consent-error`と同じ`.field-error`クラスを
+  再利用）。429・5xx・通信エラーをそれぞれ異なる文言で表示し、400系エラーは
+  サーバー側の固定文言（ユーザー入力を含まない）をそのまま表示する
+- **二重送信防止**: submitボタンを送信中disabledにし、モジュール変数
+  `isSubmitting`でも二重ガードする。永続的なidempotency機構は実装していない
+  （⑨の想定どおり、今回は不要と判断）
+- **honeypot**（⑨で未決事項としていたもの）: 既存フォームに自然に追加できたため
+  実装した。`#hp-website`（オフスクリーン配置、`tabindex="-1"`、`aria-hidden`）に
+  値が入っていればサーバー側で検知し、保存せず本物の成功と同じ`201`を返す
+  （bot側に検知を悟らせないため）。`leads-audit.jsonl`に
+  `action:"lead_honeypot_triggered"`として記録する
+- **CORS**（⑨で「Originヘッダー検証を検討」としていたもの）: 許可リスト方式で実装した。
+  環境変数`LEAD_API_ALLOWED_ORIGINS`で本番の許可Originを設定する（本番URL未確定のため
+  決め打ちのデフォルトにはしていない。未設定時は`website/aor/README.md`のローカル
+  動作確認手順に合わせた既定値のみ許可）。認証機構としては扱わない設計（詳細は
+  `website/aor-lead-api/README.md`参照）
+- **保存schema**: ⑫から変更なし。`email`/`company_slug`/`captured_at`/`consent`の
+  4フィールドのみ。`ip`・`user_agent`・`referrer`等は追加していない
+- **E2E**: このリポジトリにnpm依存・Playwrightが存在しないため（本プロジェクト全体の
+  方針）、ブラウザを伴う自動E2Eテストは追加していない。代わりに実装時にClaude in Chromeで
+  実際にフォーム送信を行い、正常系（成功UI・`leads.jsonl`への保存）・異常系
+  （通信エラー、レート制限429、honeypot検知）・PII非漏洩（`leads-audit.jsonl`・
+  サーバーのstdout/stderrにメールアドレスが出現しないこと）を手動で確認した。
+  自動回帰は`scripts/generator/test/lead-api.test.js`（HTTPレベルの統合テスト、
+  CORS許可リスト・honeypotのテストを含む）が担う
+
+**引き続き未実装（今回のスコープ外）**: メール送信・営業フォロー、Adminでのリード
+一覧閲覧UI、外部SaaS連携、保存データの保持期間・削除ポリシー、重複登録時の扱い。

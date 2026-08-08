@@ -10,6 +10,12 @@ AORが生成したレポートを、レポート送付先（受信者）が閲�
 DBも使用しない。3画面は`?company=<slug>`というURLクエリのみで状態を共有する
 （`assets/js/common.js`の`getCompanyParam()`参照）。
 
+**唯一の例外（PJ2 第2実装）**: `email-capture.html`のフォーム送信のみ、別アプリケーションの
+`website/aor-lead-api/`（独立したHTTPサーバー）へ`fetch`する。送信先URLは
+`assets/js/common.js`の`LEAD_API_BASE_URL`定数で設定する（配置ごとに書き換える方式。
+詳細は[website/aor-lead-api/README.md](../aor-lead-api/README.md)参照）。それ以外の画面・
+機能に通信は一切発生しない。
+
 ## 本番運用チェックリストとの関係
 
 本ドキュメントは配信方法（どうやってサーバーに乗せるか）のみを扱う。生成から公開までの

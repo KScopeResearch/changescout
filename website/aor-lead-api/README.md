@@ -1,8 +1,8 @@
-# website/aor-lead-api/ — メール回収API（PJ2 第1実装）
+# website/aor-lead-api/ — メール回収API（PJ2 第1実装: 保存基盤／第2実装: 公開フォーム接続）
 
 ## これは何か
 
-`website/aor`（受信者向け静的LP）のメール登録フォームから将来送信される想定のリード情報
+`website/aor`（受信者向け静的LP）の`email-capture.html`登録フォームから送信されるリード情報
 （`email` / `company_slug` / `captured_at` / `consent`）を、最小限だけ保存する独立した
 HTTPサーバー。Node.js標準の`http`モジュールのみで実装している（npm依存なし）。
 
@@ -11,16 +11,18 @@ HTTPサーバー。Node.js標準の`http`モジュールのみで実装してい
 認証・セッション・CSRFの仕組みは一切共有しない。匿名の公開エンドポイントとして動作する。
 
 設計の背景・検討過程は[docs/email-capture-design.md](../../docs/email-capture-design.md)
-（Task27の設計レビュー、⑫が今回の実装状況）を参照。
+（Task27の設計レビュー、⑫⑬が実装状況）を参照。
 
-## 今回のスコープ
+## 今回のスコープ（PJ2 第2実装）
 
-**含む**: `POST /api/leads`によるリード情報の保存のみ。
+**含む**: `website/aor/assets/js/email-capture.js`から実際に`POST /api/leads`へ接続。
+送信するのは`email`/`company_slug`/`consent`のみ（`captured_at`はサーバー生成のため送らない）。
+成功・入力エラー・APIエラー（429/5xx）・通信エラーのUI表示、二重送信防止、ハニーポット、
+CORS許可リストを実装。
 
-**含まない**（意図的な見送り。理由は`docs/email-capture-design.md`⑫参照）:
+**含まない**（意図的な見送り。理由は`docs/email-capture-design.md`⑫⑬参照）:
 メール送信・営業フォロー、Adminでのリード一覧閲覧UI、外部SaaS連携、本番インフラ・
-GitHub Pages等へのデプロイ設定、honeypot等の高度なスパム対策、`website/aor`側の
-実フロントエンド配線（`email-capture.js`は変更していない。ネットワーク送信は追加していない）。
+GitHub Pages等へのデプロイ設定、保存データの保持期間・削除ポリシー。
 
 ## 使い方
 
@@ -66,16 +68,57 @@ node website/aor-lead-api/server.js
 （`rate-limit.js`）。IPアドレス単位で、10分間に5回リクエストするとそのIPを30分間ブロックする
 （成功・失敗を問わず全リクエストを数える。プロセス内メモリで管理するため、再起動でリセットされる）。
 
+## ハニーポット（PJ2 第2実装）
+
+`website/aor/email-capture.html`に、人間には見えないダミー入力欄（`#hp-website`、
+JSONフィールド名`hp_website`）を追加している（`position:absolute; left:-9999px`による
+オフスクリーン配置。`display:none`/`visibility:hidden`は一部のbotが検知して回避するため
+使わない。`tabindex="-1"`・`aria-hidden="true"`によりキーボード操作・スクリーンリーダー
+利用者には一切影響しない）。
+
+サーバー側（`HONEYPOT_FIELD = "hp_website"`）でこの欄に値が入っているリクエストを検知すると、
+**保存せず、本物の成功と区別できない`201 { "ok": true }`を返す**（botに検知されたことを
+悟らせないため）。`leads-audit.jsonl`には`action: "lead_honeypot_triggered"`として記録する
+（`company_slug`は記録しない）。
+
 ## CORS / Origin
 
-本APIは匿名・Cookie非使用のエンドポイントのため、Originヘッダーをそのまま反映して
-`Access-Control-Allow-Origin`を返す。ただし**これはあくまで補助的な措置であり、主たる
-防御はレート制限・入力検証・consent必須化**である（Originヘッダーはリクエスト元が
-任意に詐称できるため）。
+CORSは**許可リスト方式**。環境変数`LEAD_API_ALLOWED_ORIGINS`（カンマ区切り）で
+許可するOriginを設定する。
+
+```bash
+LEAD_API_ALLOWED_ORIGINS="https://aor.example.jp,https://www.aor.example.jp" node website/aor-lead-api/server.js
+```
+
+未設定時は、[website/aor/README.md](../aor/README.md)のローカル動作確認手順
+（`python -m http.server 8123 --directory website/aor`）に合わせた既定値
+（`http://localhost:8123`）のみを許可する。**本番のAOR公開URLは本実装時点で未確定のため、
+決め打ちのデフォルト値にはしていない**。本番配信時は必ず`LEAD_API_ALLOWED_ORIGINS`を
+実際の配信先URLに設定すること。
+
+許可リストに無いOriginからのリクエストには`Access-Control-Allow-Origin`ヘッダーを付与しない
+（ブラウザ側でレスポンス読み取りがブロックされる）。**ただしCORS/Originチェックは認証機構
+として扱わない**（Originヘッダーはブラウザ以外からは自由に詐称できるため、非ブラウザ経由の
+リクエスト自体は許可リストに関わらず処理を継続する）。主たる防御はレート制限・入力検証・
+consent必須化・ハニーポットである。
+
+## website/aor側の設定（LEAD_API_BASE_URL）
+
+`website/aor/assets/js/common.js`の`LEAD_API_BASE_URL`定数が、フロントエンドから見た
+本APIのベースURL。`OPERATOR_EMAIL`と同じ「配置ごとにこの定数を書き換える」方式
+（`website/aor`はビルドステップを持たない静的サイトのため）。既定値は
+`http://localhost:4700`（ローカル動作確認用）。本番配信時は配信環境に合わせて書き換えること。
 
 ## テスト
 
 `scripts/generator/test/lead-api.test.js`（`run-all-tests.js`から自動実行される）。
-バリデーション・レート制限の単体テストに加え、サーバーを一時ポートで起動してのHTTP統合テスト、
-および「登録したメールアドレスが`leads.jsonl`以外（`leads-audit.jsonl`・サーバーの
+バリデーション・レート制限・CORS許可リスト・ハニーポットの単体/統合テストに加え、
+「登録したメールアドレスが`leads.jsonl`以外（`leads-audit.jsonl`・サーバーの
 標準出力/標準エラー出力）に一切出現しない」ことを確認するテストを含む。
+
+**実ブラウザでのE2E確認について**: このリポジトリにはPlaywright等のnpm依存が無いため
+（本プロジェクト全体の「npm依存なし」方針、[README.md](../../README.md)参照）、実際の
+ブラウザ操作を伴うE2Eの自動テストは追加していない。代わりに、実装時にClaude in Chromeを
+使って`email-capture.html`から実際にフォーム送信を行い、成功・入力エラー・429・通信エラー・
+ハニーポット・PII非漏洩を手動で確認済み（結果は完了報告に記録）。CIで自動的に繰り返し
+確認されるのは、上記のHTTPレベルの統合テストの範囲になる。

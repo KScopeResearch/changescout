@@ -67,7 +67,18 @@
       </label>
       <p class="field-error" id="consent-error" hidden>同意のうえチェックを入れてください。</p>
 
-      <button type="submit" class="btn btn-primary btn-cta ec-submit">詳細レポートを受け取る</button>
+      <!-- ハニーポット（PJ2 第2実装）: 人間には見えないダミー欄。botが自動入力したら
+           API側で検知し、保存せず成功と同じ応答を返す（bot側に検知を悟らせないため）。
+           name/id を実在しそうな値にし、tabindex=-1・aria-hidden・オフスクリーン配置で
+           スクリーンリーダー・キーボード操作の利用者には一切影響しない。 -->
+      <div class="hp-field" aria-hidden="true">
+        <label for="hp-website">Website</label>
+        <input type="text" id="hp-website" name="hp_website" tabindex="-1" autocomplete="off">
+      </div>
+
+      <p class="field-error" id="api-error" hidden></p>
+
+      <button type="submit" class="btn btn-primary btn-cta ec-submit" id="submit-btn">詳細レポートを受け取る</button>
       <p class="cta-note">営業電話はいたしません。</p>
     </form>
 

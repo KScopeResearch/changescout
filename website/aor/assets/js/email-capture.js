@@ -2,13 +2,17 @@
  * AOR Phase5.1 - email-capture.html（登録画面）
  * 仕様: docs/mockups_v2/03_email_capture.md / docs/strategy_v2/07_free_report.md
  * 使用フィールド: company_profile, free_opportunity.extended_analysis
- * paid_preview_opportunity（旧スキーマ）は使用禁止。API連携なし、静的モック。
+ * paid_preview_opportunity（旧スキーマ）は使用禁止。
+ *
+ * 【PJ2 第2実装】フォーム送信はwebsite/aor-lead-apiのPOST /api/leadsへ接続する
+ * （LEAD_API_BASE_URLはcommon.js参照）。送信するのはemail/company_slug/consentのみ。
  */
 
 const STATE_IDS = ["state-loading", "state-error", "page"];
 
 let currentData = null;
 let currentSlug = null;
+let isSubmitting = false; // PJ2 第2実装: 二重送信防止（永続的なidempotency機構は今回不要）
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -82,18 +86,57 @@ function wireToggle() {
   });
 }
 
-/** フォーム送信（静的モック: 送信先なし、バリデーション後にその場で成功画面へ）を配線する。 */
+/**
+ * PJ2 第2実装: website/aor-lead-api の POST /api/leads を呼び出す。
+ * email/company_slug/consentのみを送信する（captured_atはサーバー側生成のため送らない）。
+ * @param {{email:string, company_slug:string, consent:boolean, hp_website:string}} payload
+ * @returns {Promise<{status:number, data:?Object}>}
+ */
+async function submitLead(payload) {
+  const res = await fetch(`${LEAD_API_BASE_URL}/api/leads`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (e) {
+    // レスポンスボディが無い/不正なJSONの場合はdata=nullのまま、status判定側で扱う
+  }
+  return { status: res.status, data };
+}
+
+/** @param {string} message */
+function showApiError(message) {
+  const el = document.getElementById("api-error");
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function hideApiError() {
+  const el = document.getElementById("api-error");
+  el.hidden = true;
+  el.textContent = "";
+}
+
+/** フォーム送信を配線する。website/aor-lead-api の POST /api/leads へ送信する（PJ2 第2実装）。 */
 function wireForm() {
   const form = document.getElementById("capture-form");
+  const submitBtn = document.getElementById("submit-btn");
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (isSubmitting) return; // 二重送信防止（ボタンdisabled化に加えた保険）
 
     const emailInput = document.getElementById("email");
     const emailError = document.getElementById("email-error");
     const consentInput = document.getElementById("consent");
     const consentLabel = document.getElementById("consent-label");
     const consentError = document.getElementById("consent-error");
+    const hpInput = document.getElementById("hp-website");
+
+    hideApiError();
 
     const emailValid = emailInput.checkValidity();
     emailError.hidden = emailValid;
@@ -107,7 +150,36 @@ function wireForm() {
     consentLabel.classList.toggle("consent--error", !consentValid);
     if (!consentValid) return;
 
-    showSuccess(emailInput.value);
+    isSubmitting = true;
+    submitBtn.disabled = true;
+
+    let succeeded = false;
+    try {
+      const { status, data } = await submitLead({
+        email: emailInput.value,
+        company_slug: currentSlug,
+        consent: true,
+        hp_website: hpInput ? hpInput.value : "",
+      });
+
+      if (status === 201) {
+        succeeded = true;
+        showSuccess(emailInput.value);
+      } else if (status === 429) {
+        showApiError("送信回数が多すぎます。しばらく時間をおいてから再度お試しください。");
+      } else if (status >= 500) {
+        showApiError("一時的な問題が発生しました。しばらくしてから再度お試しください。");
+      } else {
+        // 400系: サーバー側のバリデーションエラー文言をそのまま表示する
+        // （server.jsの各エラーメッセージはユーザー入力を含まない固定文言のみ）。
+        showApiError((data && data.error) || "入力内容をご確認ください。");
+      }
+    } catch (err) {
+      showApiError("通信エラーが発生しました。ネットワーク接続をご確認のうえ、再度お試しください。");
+    } finally {
+      isSubmitting = false;
+      if (!succeeded) submitBtn.disabled = false; // 成功時はフォーム自体が非表示になるため再有効化不要
+    }
   });
 }
 

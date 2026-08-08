@@ -14,6 +14,14 @@
 
 const OPERATOR_EMAIL = "support@aor.example.jp";
 
+// PJ2 第2実装: website/aor-lead-api/（メール回収API）のベースURL。
+// website/aorはビルドステップを持たない純粋な静的サイトのため、OPERATOR_EMAILと同じ
+// 「配置ごとにこの定数を書き換える」という既存方針を踏襲する。本番の配信先URLは
+// 未確定のため、ここでは決め打ちせず、ローカル動作確認の既定値（website/aor-lead-api
+// のLEAD_API_PORT既定値4700）のみを設定する。本番配信時は配信環境に合わせて
+// この値を書き換えること（詳細はwebsite/aor-lead-api/README.md参照）。
+const LEAD_API_BASE_URL = "http://localhost:4700";
+
 const SOURCE_TYPE_LABELS = {
   company: "企業",
   government: "政府",

@@ -1,5 +1,6 @@
 /**
- * lead-api.test.js — PJ2 第1実装: website/aor-lead-api/server.jsの自動テスト。
+ * lead-api.test.js — website/aor-lead-api/server.jsの自動テスト（PJ2 第1実装で新設、
+ * 第2実装でCORS許可リスト・ハニーポットのテストを追加）。
  *
  * security.test.js（website/aor-admin/server.jsの子プロセス起動テスト）と同じ方式で、
  * website/aor-lead-api/server.jsを一時ポートで起動してHTTPレベルの動作を確認する。
@@ -269,7 +270,7 @@ test("POST /api/leads: 不正なcompany_slug（パストラバーサル試行を
   assert.equal(res.status, 400);
 });
 
-test("GET /api/leads は405、未知のパスは404、OPTIONSは204でCORSヘッダーを返す", async (t) => {
+test("GET /api/leads は405、未知のパスは404、OPTIONSは204を返す", async (t) => {
   const port = 4705;
   await startTestServer(port, t);
 
@@ -279,14 +280,73 @@ test("GET /api/leads は405、未知のパスは404、OPTIONSは204でCORSヘッ
   const notFoundRes = await httpRequest({ path: "/api/unknown", method: "GET", port });
   assert.equal(notFoundRes.status, 404);
 
-  const optionsRes = await httpRequest({
+  const optionsRes = await httpRequest({ path: "/api/leads", method: "OPTIONS", port });
+  assert.equal(optionsRes.status, 204);
+});
+
+// ---------------------------------------------------------------------------
+// CORS許可リスト（PJ2 第2実装）
+// ---------------------------------------------------------------------------
+
+test("CORS: 既定の許可リストに含まれるOriginにはAccess-Control-Allow-Originが返り、含まれないOriginには付与されない", async (t) => {
+  const port = 4708;
+  await startTestServer(port, t); // LEAD_API_ALLOWED_ORIGINS未指定 → 既定値 http://localhost:8123 のみ許可
+
+  const allowed = await httpRequest({
     path: "/api/leads",
     method: "OPTIONS",
     port,
-    headers: { Origin: "https://example.com" },
+    headers: { Origin: "http://localhost:8123" },
   });
-  assert.equal(optionsRes.status, 204);
-  assert.equal(optionsRes.headers["access-control-allow-origin"], "https://example.com");
+  assert.equal(allowed.headers["access-control-allow-origin"], "http://localhost:8123");
+
+  const disallowed = await httpRequest({
+    path: "/api/leads",
+    method: "OPTIONS",
+    port,
+    headers: { Origin: "https://evil.example.com" },
+  });
+  assert.equal(disallowed.headers["access-control-allow-origin"], undefined, "許可リスト外のOriginにはヘッダーを付与しないはず");
+});
+
+test("CORS: LEAD_API_ALLOWED_ORIGINS環境変数（カンマ区切り）で許可Originを追加できる", async (t) => {
+  const port = 4709;
+  const child = spawn(process.execPath, [SERVER_PATH], {
+    env: { ...process.env, LEAD_API_PORT: String(port), LEAD_API_ALLOWED_ORIGINS: "https://aor.example.jp, https://www.aor.example.jp" },
+    stdio: "pipe",
+  });
+  t.after(() => child.kill());
+  let ready = false;
+  for (let i = 0; i < 25; i++) {
+    await sleep(200);
+    try {
+      const res = await httpRequest({ path: "/api/leads", method: "OPTIONS", port });
+      if (res.status === 204) {
+        ready = true;
+        break;
+      }
+    } catch (e) {
+      // まだ起動していない
+    }
+  }
+  assert.ok(ready);
+
+  const res = await httpRequest({ path: "/api/leads", method: "OPTIONS", port, headers: { Origin: "https://aor.example.jp" } });
+  assert.equal(res.headers["access-control-allow-origin"], "https://aor.example.jp");
+
+  // 環境変数で明示的に指定した場合、既定値（localhost:8123）は上書きされ許可されなくなる
+  const defaultOriginRes = await httpRequest({ path: "/api/leads", method: "OPTIONS", port, headers: { Origin: "http://localhost:8123" } });
+  assert.equal(defaultOriginRes.headers["access-control-allow-origin"], undefined);
+});
+
+test("CORS: 非ブラウザ相当のリクエスト（Originヘッダー無し）は許可リストに関わらず通常どおり処理される", async (t) => {
+  const snapshot = snapshotLeadFiles();
+  t.after(() => restoreLeadFiles(snapshot));
+  const port = 4710;
+  await startTestServer(port, t);
+
+  const res = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody() });
+  assert.equal(res.status, 201, "Originヘッダーが無いリクエストはCORSの対象外であり、通常どおり処理されるはず");
 });
 
 test("POST /api/leads: レート制限（5回目でブロック設定、6回目以降は429）", async (t) => {
@@ -307,6 +367,55 @@ test("POST /api/leads: レート制限（5回目でブロック設定、6回目�
 
   const blocked = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody() });
   assert.equal(blocked.status, 429, "6回目はレート制限で拒否されるはず");
+});
+
+// ---------------------------------------------------------------------------
+// ハニーポット（PJ2 第2実装）
+// ---------------------------------------------------------------------------
+
+test("ハニーポット: hp_websiteに値が入っていると、保存されずに本物の成功と同じ201が返る", async (t) => {
+  const snapshot = snapshotLeadFiles();
+  t.after(() => restoreLeadFiles(snapshot));
+  const port = 4711;
+  await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}honeypot`;
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: JSON.stringify({
+      email: "lead-api-test-honeypot@example.invalid",
+      company_slug: slug,
+      consent: true,
+      hp_website: "http://bot-filled-this-field.example",
+    }),
+  });
+  assert.equal(res.status, 201, "botに検知を悟らせないため、本物の成功と同じ201を返すはず");
+  assert.equal(JSON.parse(res.body).ok, true);
+
+  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === slug);
+  assert.equal(stored.length, 0, "ハニーポット検知時はleads.jsonlへ保存されないはず");
+
+  const auditRecords = readJsonLines(LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered");
+  assert.ok(auditRecords.length >= 1, "leads-audit.jsonlにlead_honeypot_triggeredが記録されるはず");
+});
+
+test("ハニーポット: hp_websiteが空文字・未指定の場合は通常どおり処理される（正規ユーザーへの影響なし）", async (t) => {
+  const snapshot = snapshotLeadFiles();
+  t.after(() => restoreLeadFiles(snapshot));
+  const port = 4712;
+  await startTestServer(port, t);
+
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: JSON.stringify({ email: "lead-api-test-nohp@example.invalid", company_slug: `${TEST_SLUG_PREFIX}nohp`, consent: true, hp_website: "" }),
+  });
+  assert.equal(res.status, 201);
+  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === `${TEST_SLUG_PREFIX}nohp`);
+  assert.equal(stored.length, 1);
 });
 
 test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外（leads-audit.jsonl・サーバーのstdout/stderr）に一切出現しない", async (t) => {
