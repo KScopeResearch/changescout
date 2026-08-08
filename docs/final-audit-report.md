@@ -1,4 +1,4 @@
-# 本番公開前 総合監査レポート（Task25、Task32/Task47で更新）
+# 本番公開前 総合監査レポート（Task25、Task32/Task47/Task51で更新、最終判定: GO）
 
 Task8〜Task24で構築したAORシステム全体（情報収集→AI分析→品質評価→人間レビュー→承認→
 公開→website/aorでの受信者向け閲覧、および運用基盤一式）を対象に、Task25で実施した
@@ -13,6 +13,14 @@ Task8〜Task24で構築したAORシステム全体（情報収集→AI分析→�
 job-history/一覧APIの性能評価と一覧APIキャッシュ実装）。本レポートはTask47時点の
 状態に合わせて棚卸し・更新している。個別の変更内容は各Taskの完了報告および
 [scripts/generator/CHANGELOG.md](../scripts/generator/CHANGELOG.md)を参照。
+
+**Task51で追記**: 唯一残っていたA分類の公開前必須条件「GitHub Actions実行確認」が完了した。
+`feature/aor-pipeline`ブランチをGitHubへpushし、実際の`quality-check.yml`ワークフロー
+（Ubuntu環境・Node.js 24）が成功（conclusion: success）することを確認した
+（`Run quality gate (scripts/generator/run-all-tests.js)`ステップの成功により、
+143件のテスト全PASS・Dashboard smoke test OKであることを、`run-all-tests.js`自身の
+終了コード仕様（全テストPASSかつDashboard確認OKの場合のみ0）を通じて確認済み）。
+これにより本レポートの最終判定を「条件付きGO」から**「GO」**へ更新する（詳細は「F. 最終判定」参照）。
 
 生成日: 2026-08-07（Task25実施時点、Task32・Task47で更新）
 
@@ -250,10 +258,14 @@ backup対象ファイル欠如）を実機で再現し、いずれも安全に�
    元々`published_at`を必須としていなかったため変更していない。詳細は
    [docs/real-provider-verification.md](real-provider-verification.md)「4. published_at欠落問題の評価」、
    [scripts/generator/CHANGELOG.md](../scripts/generator/CHANGELOG.md)「Task32」参照
-3. **GitHub Actions実行確認（未完了・引き続き必須）**: ローカルでの静的確認では、実際のUbuntu環境・
-   実際のGitHub Actionsランナーでの`node --version`の解決結果や、
-   ネットワーク到達性（`generator.test.js`の実HTTPテスト）が意図通りに動くかは
-   実行するまで分からない。**Task32時点でも本タスクの厳守事項（git push禁止）により未実施のまま**
+3. ~~**GitHub Actions実行確認**~~ → **Task51で完了**。`feature/aor-pipeline`ブランチを
+   GitHubへpushし、実際のUbuntu環境・Node.js 24のGitHub Actionsランナー上で
+   `quality-check.yml`が成功（conclusion: success）することを確認した。
+   `node --version`の解決・ネットワーク到達性（`generator.test.js`の実HTTPテスト）を含め、
+   `run scripts/generator/run-all-tests.js`のステップ自体が成功したことにより、
+   143件のテスト全PASS・Dashboard smoke test OKであることを確認済み（実行ログの詳細取得には
+   リポジトリ管理者権限が必要なため、ステップ単位のconclusionと`run-all-tests.js`自身の
+   終了コード仕様から確認した）
 
 ### 未実施でも公開可能だが将来的に改善すべき事項
 
@@ -306,7 +318,7 @@ backup対象ファイル欠如）を実機で再現し、いずれも安全に�
 
 ## F. 最終判定
 
-# 条件付きGO（Conditional GO）— Task32で条件を再評価・縮小
+# GO（Task51でGitHub Actions実行確認が完了し、条件付きGOから無条件GOへ更新）
 
 **Task25時点の理由**: パイプライン全体（情報収集→AI分析→品質評価→人間レビュー→承認→公開→
 受信者閲覧）の**仕組み自体**は、mock providerによる実機確認・112件の自動テスト・
@@ -346,15 +358,22 @@ Task32でも引き続き未実施であり、実端末でのモバイル確認�
 を変更せずに実現しており、既存の自動テスト（143件、mock専用のクリーンな環境で全PASS）にも
 回帰は無いことを確認済み（各Taskの完了報告参照）。
 
+**Task51時点の再評価（最終）**: 唯一残っていた条件「GitHub Actions実行確認」が完了した。
+`feature/aor-pipeline`ブランチをGitHubへpush（`main`へは一切触れていない）し、実際の
+GitHub Actions環境（Ubuntu、Node.js 24）で`quality-check.yml`が成功（conclusion: success）
+することを確認した。`Run quality gate (scripts/generator/run-all-tests.js)`ステップ自体が
+成功したことにより、143件のテスト全PASS・Dashboard smoke test OKであることを、
+`run-all-tests.js`自身の終了コード仕様（全テストPASSかつDashboard確認OKの場合のみ0）を
+通じて確認した。Task25時点から一貫して「必須事項」とされてきた3条件
+（実LLMでの動作確認・実検索での動作確認・GitHub Actions実行確認）が全て完了したことになる。
+
 **したがって**:
 - 内部関係者向けのデモ・引き続きの開発・ステージング環境での確認 → **GO**（変更なし）
-- 実際の見込み客への本番配信 → **条件付きGO**（Task32時点からの条件に変化なし。実LLM/実検索
-  providerの検証完了、および今回解消した残存課題群により、AIが生成する分析内容の質・運用面の
-  実害リスクはいずれも解消されたと判断する。**残る条件は引き続きGitHub Actions実行確認のみ**。
-  これはTask25時点から「必須事項」として明記されていた項目であり、実際にCI環境で
-  `run-all-tests.js`相当が問題なく完走することを確認したうえで、最終的なGOに切り替えることを
-  推奨する。実端末モバイル確認・複数レビュー担当者対応・`listSlugs()`のさらなる最適化等は、
-  Task25時点と同じく「未実施でも公開可能だが将来的に改善すべき事項」の扱いを維持する）
+- 実際の見込み客への本番配信 → **GO**（Task25時点の必須事項3条件が全て完了したため、
+  条件付きGOから無条件GOへ更新する。実端末モバイル確認・複数レビュー担当者対応・
+  `listSlugs()`のさらなる最適化・`openai`/`qwen`/`bing`の実provider検証等は、
+  引き続き「未実施でも公開可能だが将来的に改善すべき事項」として残る。これらを
+  本番公開の必須条件へ格上げする根拠は無い）
 
 ---
 
@@ -380,3 +399,7 @@ Task32でも引き続き未実施であり、実端末でのモバイル確認�
   5,000社時点で約1.05秒・10,000社で約2.05秒の速度低下を確認（Task45）。`GET /api/reports`・
   SSE初期送信をメモリキャッシュ（`reportsCache`）経由に変更し、`fs.watch`のデバウンス発火時
   （変更検知から300ms後）のみ再計算する設計へ変更した（Task46）
+- **（Task51追加）GitHub Actions実行確認**: `feature/aor-pipeline`ブランチをGitHubへpush、
+  実際のUbuntu環境・Node.js 24のGitHub Actionsで`quality-check.yml`が成功
+  （conclusion: success、所要時間約48秒）。`Run quality gate`ステップの成功により、
+  143件のテスト全PASS・Dashboard smoke test OKであることを確認した
