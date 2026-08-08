@@ -47,8 +47,14 @@ test("search: 未知のproviderIdはエラーを投げる", async () => {
 });
 
 test("search: APIキー未設定のprovider指定時はmockへ自動フォールバックする（エラーにしない）", async () => {
-  const result = await search("test", { providerId: "tavily", sourceType: "news", sourceRole: "evidence" });
-  assert.equal(result.provider, "mock", "TAVILY_API_KEY未設定のためmockにフォールバックするはず");
+  const original = process.env.TAVILY_API_KEY;
+  delete process.env.TAVILY_API_KEY;
+  try {
+    const result = await search("test", { providerId: "tavily", sourceType: "news", sourceRole: "evidence" });
+    assert.equal(result.provider, "mock", "TAVILY_API_KEY未設定のためmockにフォールバックするはず");
+  } finally {
+    if (original !== undefined) process.env.TAVILY_API_KEY = original;
+  }
 });
 
 test("search: timeout処理（providerがハングしてもtimeoutMsで確定する）", async () => {

@@ -55,10 +55,16 @@ test("generateAnalysis: mock providerでschema通りのfree_opportunity/locked_o
 });
 
 test("generateAnalysis: APIキー未設定のprovider指定時は明確なエラーで停止する（フォールバックしない）", async () => {
-  await assert.rejects(
-    () => generateAnalysis({ sources: [], input_url: "https://example.com" }, { providerId: "deepseek" }),
-    /APIキー.*設定されていません/
-  );
+  const original = process.env.DEEPSEEK_API_KEY;
+  delete process.env.DEEPSEEK_API_KEY;
+  try {
+    await assert.rejects(
+      () => generateAnalysis({ sources: [], input_url: "https://example.com" }, { providerId: "deepseek" }),
+      /APIキー.*設定されていません/
+    );
+  } finally {
+    if (original !== undefined) process.env.DEEPSEEK_API_KEY = original;
+  }
 });
 
 test("generateAnalysis: 未知のprovider idは例外を投げる", async () => {
