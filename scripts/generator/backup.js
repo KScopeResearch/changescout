@@ -46,7 +46,7 @@ const EXCLUDE_DIR_NAMES = new Set(["node_modules", ".git"]);
 
 const TARGETS = [
   { label: "output", src: path.join(REPO_ROOT, "scripts", "generator", "output"), required: true },
-  { label: "logs", src: path.join(REPO_ROOT, "scripts", "generator", "logs"), required: true },
+  { label: "logs", src: path.join(REPO_ROOT, "scripts", "generator", "logs"), required: true }, // PJ2: website/aor-lead-api/のleads.jsonl/leads-audit.jsonlもこの配下にあるため、新規TARGET追加は不要
   { label: "aor-admin", src: path.join(REPO_ROOT, "website", "aor-admin"), required: false },
   { label: "aor-data", src: path.join(REPO_ROOT, "website", "aor", "data"), required: false }, // Task25
   { label: "docs", src: path.join(REPO_ROOT, "docs"), required: false },

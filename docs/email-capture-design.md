@@ -241,3 +241,41 @@ company_slug・captured_at・consent）以外を保存しない設計を推奨�
 - プライバシーポリシーの文面作成（法務レビューが必要、本タスクの範囲外）
 - 価格表示の具体化方針（ビジネス判断）
 - リード情報の保存期間・削除ポリシーの具体的な数値（法務・運用判断）
+
+## ⑫実装状況の更新（PJ2 第1実装: 保存基盤）
+
+上記は本ドキュメント作成時点（Task27）では未実装だったが、その後の「PJ2：AOPメール
+回収API 第1実装」で、⑦の推奨方式（A: 自社サーバー保存）に基づき、**保存のみ**を
+スコープとした独立サーバー`website/aor-lead-api/`（詳細は同ディレクトリの
+`README.md`参照）を実装した。以下、本ドキュメントの記述との差分・現状を記録する。
+
+- `POST /api/leads`で`email`・`company_slug`・`captured_at`（サーバー生成、
+  クライアント指定値は無視）・`consent`（厳密なboolean trueのみ許可）の4項目のみを
+  `scripts/generator/logs/leads.jsonl`へ保存する（④の「必須（最小限）」どおり）
+- `company_slug`の検証は`shared/path-safety.js`の`validateSlug()`を再利用（⑧の
+  想定どおり、重複実装していない）
+- リード取得イベントは`admin-audit.jsonl`とは別の`leads-audit.jsonl`へ、
+  `timestamp`/`action`/`company_slug`/`success`のみを記録し、emailは一切含めない
+  （⑤「ログへのメール混入」で指摘した`redact.js`が個人情報非対応という懸念への
+  対応。redactに頼らず、そもそもemailをログ関数へ渡さない構造で保証している）
+- レート制限は`website/aor-admin/auth.js`のログイン試行レート制限（Task41）とは
+  独立した専用実装（`website/aor-lead-api/rate-limit.js`）とした（⑨の想定どおり）
+- CSRFは⑨の整理どおり適用不可のため未実装。Originヘッダーは付与するが、
+  あくまで補助的な措置と位置づけ、主たる防御はレート制限・入力検証・
+  consent必須化としている
+- `backup.js`のTARGETS変更は不要だった: `leads.jsonl`/`leads-audit.jsonl`は
+  既存の`LOGS_DIR`（`scripts/generator/logs/`）配下に置いたため、既存の
+  `label:"logs"`（`required:true`）がそのままバックアップ対象として適用される
+  （⑧で想定していた「TARGETSへの1行追加」は、既存logsディレクトリを再利用する
+  ことで不要になった）
+
+**引き続き未実装（今回のスコープ外、意図的な見送り）**:
+- honeypot項目（⑨）: 未実装だが、保存データを許可リスト方式で組み立てる構造に
+  しているため、将来項目を追加しても保存データ側への影響なく検知ロジックを追加できる
+- `leads.jsonl`の保持期間・自動削除・エクスポートAPI（④⑤⑨・⑪）: 個人情報の
+  保持方針そのものに関わる未決事項のため、今回は決定せず現状維持（無制限追記、
+  ローテーション無し）とした。`leads-audit.jsonl`（PIIを含まない）側のみ、
+  `admin-audit.jsonl`と同じ`archiveIfOversize()`（Task43）を適用している
+- メール送信・営業フォロー・Adminでのリード一覧閲覧UI・重複登録時の扱い（⑨の
+  duplicate handling）・実フロントエンド配線（`email-capture.js`は現状のまま、
+  ネットワーク送信は追加していない）: いずれも未実装

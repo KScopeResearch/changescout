@@ -230,7 +230,7 @@ node scripts/generator/backup.js
 | 対象 | 扱い | 理由 |
 |---|---|---|
 | `scripts/generator/output/` | 必須（無いとエラー停止） | AI生成レポート・review.json本体 |
-| `scripts/generator/logs/` | 必須（無いとエラー停止） | 監査ログ・ジョブ履歴・利用ログ（インシデント調査に必要） |
+| `scripts/generator/logs/` | 必須（無いとエラー停止） | 監査ログ・ジョブ履歴・利用ログ（インシデント調査に必要）。`leads.jsonl`/`leads-audit.jsonl`（PJ2: `website/aor-lead-api/`が書き込むリード保存データ）もこの配下にあるため、追加のTARGET設定なしにバックアップ対象になる |
 | `website/aor-admin/` | 推奨（無ければ警告のみでスキップ） | Review Dashboardのコード一式 |
 | `website/aor/data/` | 推奨（同上、**Task25で追加**） | 公開済みレポート（`publish-report.js`の書き込み先）・手動サンプルデータ。他にバックアップ手段が無いため |
 | `docs/` | 推奨（同上） | 設計ドキュメント・運用チェックリスト |
