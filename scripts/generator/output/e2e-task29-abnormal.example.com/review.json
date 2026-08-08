@@ -1,0 +1,27 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "generated-e2e-task29-abnormal.example.com",
+  "reviewer": "task29admin",
+  "reviewed_at": "2026-08-07T10:01:54.241Z",
+  "status": "rejected",
+  "comments": [],
+  "fixes": [],
+  "history": [
+    {
+      "at": "2026-08-07T10:01:54.196Z",
+      "actor": "task29admin",
+      "action": "rejected",
+      "from_status": "pending_review",
+      "to_status": "rejected",
+      "comment": "reject1"
+    },
+    {
+      "at": "2026-08-07T10:01:54.241Z",
+      "actor": "task29admin",
+      "action": "rejected",
+      "from_status": "rejected",
+      "to_status": "rejected",
+      "comment": "reject2"
+    }
+  ]
+}

@@ -1,0 +1,286 @@
+{
+  "id": "fixture-average",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-06T00:00:00+09:00",
+    "pipeline_version": "quality-evaluator-fixture-v1",
+    "industry_category": "test",
+    "note": "quality-evaluator.jsのテスト用に手作成したfixture。実在企業のデータではない。"
+  },
+  "company_profile": {
+    "name": "テスト株式会社",
+    "name_is_ai_estimated": false,
+    "domain": "fixture.example.com",
+    "industry_label": "テスト業",
+    "industry_is_ai_estimated": false,
+    "business_summary": "quality-evaluator.jsのテスト用ダミー企業。",
+    "business_summary_is_ai_estimated": false,
+    "location": "不明",
+    "founded_year": null,
+    "employee_range": "不明",
+    "business_type": "BtoB",
+    "listed_status": "非上場"
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "テスト用追加検討テーマ"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "fixtureのためプレースホルダー。",
+      "recommended_timing": "—",
+      "expected_impact": "—",
+      "investment_level": "—",
+      "reason": [
+        "fixtureのためプレースホルダー。"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "テスト用追加検討テーマ",
+        "summary": "fixtureのためプレースホルダー。",
+        "expected_effect": "—",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": []
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": []
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      },
+      "day_60": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      },
+      "day_90": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "テスト",
+        "description": "fixtureのためプレースホルダー。"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "テスト",
+        "description": "fixtureのためプレースホルダー。"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@fixture.example.com",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "テスト用fixture。",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "fixtureのため未記録。"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "会社概要ページ",
+      "url": "https://fixture.example.com/company",
+      "score": 80,
+      "published_at": "2025-06-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "官公庁の制度改正資料",
+      "url": "https://source.example.com/fixture-gov-2",
+      "score": 78,
+      "published_at": "2024-03-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-3",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "業界ニュース記事1",
+      "url": "https://source.example.com/fixture-news-2",
+      "score": 65,
+      "published_at": "2026-05-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-4",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "業界ニュース記事2",
+      "url": "https://source.example.com/fixture-news-3",
+      "score": 60,
+      "published_at": "2026-04-01T00:00:00+09:00"
+    }
+  ],
+  "free_opportunity": {
+    "title": "テスト用Opportunity（average fixture）",
+    "why_now": "fixtureのため定型文。",
+    "why_company": "fixtureのため定型文。",
+    "market_change": "fixtureのため定型文。",
+    "evidence": [
+      {
+        "source_id": "src-2",
+        "quote": "制度改正の内容。"
+      },
+      {
+        "source_id": "src-1",
+        "quote": "自社サイトの記載内容。"
+      }
+    ],
+    "first_action": "fixtureのため定型文。",
+    "extended_analysis": {
+      "market_size": "fixtureのため定型文。",
+      "competition": "fixtureのため定型文。",
+      "risks": "fixtureのため定型文。",
+      "priority": "fixtureのため定型文。",
+      "case_examples": "fixtureのため定型文。",
+      "confidence_note": "fixtureのため定型文。"
+    }
+  },
+  "human_review": {
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "fixtureのためプレースホルダー。",
+    "review_history": [
+      {
+        "at": "2026-08-06T00:00:00+09:00",
+        "actor": "ai-pipeline",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 68,
+    "grade": "D",
+    "status": "REVIEW",
+    "reasons": [
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）"
+    ],
+    "warnings": [
+      "業界情報: なし（0/6点、要改善）"
+    ],
+    "improvements": [
+      "業界団体・技術団体の情報源を追加してください",
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "情報源数: 4件"
+      },
+      "type_balance": {
+        "points": 7,
+        "max": 8,
+        "detail": "情報源の種類数: 3種類",
+        "distinctTypes": 3
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 0,
+        "max": 6,
+        "detail": "業界情報: なし",
+        "present": false
+      },
+      "news_overreliance": {
+        "points": 4,
+        "max": 8,
+        "detail": "ニュース比率: 50%",
+        "newsRatio": 0.5
+      },
+      "citation_quality": {
+        "points": 6,
+        "max": 8,
+        "detail": "有効な引用文: 2件",
+        "quotedCount": 2
+      },
+      "average_source_score": {
+        "points": 11,
+        "max": 15,
+        "detail": "情報源scoreの平均: 70.8点",
+        "average": 70.8
+      },
+      "type_skew": {
+        "points": 5,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り50%",
+        "maxShare": 0.5
+      },
+      "role_skew": {
+        "points": 5,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り50%",
+        "maxShare": 0.5
+      },
+      "evidence_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "evidence件数: 2件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      }
+    }
+  }
+}

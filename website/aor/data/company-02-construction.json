@@ -1,0 +1,442 @@
+{
+  "id": "company-02",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-02T09:40:00+09:00",
+    "pipeline_version": "phase1-dummy-v2.4",
+    "industry_category": "construction",
+    "note": "実在企業ではないフィクションのダミーデータ。schema_version 2.0で無料版Opportunityを「3件浅く」から「1件深掘り」方式へ変更し、source_pagesにsource_type/source_roleを追加。2.1でfree_opportunityに登録直後の追加分析を追加し、旧paid_preview_opportunity方式を廃止。source_pages/evidenceにevidence_strengthを追加。2.2で有料版専用データpaid_analysisを追加。2.3でpaid_analysis.decision_summaryを先頭に追加、registration_bonusをextended_analysisへ改名、priority_matrixをitems[]埋め込み方式へ変更。2.4（品質改善）でデータ重複を解消: source_pagesにidを付与しevidenceはsource_id+quoteのみ保持（source_pagesから結合して描画）、priority_matrixはopportunity_ids参照のみ保持しadditional_opportunitiesからMapで解決する方式に変更した。"
+  },
+  "company_profile": {
+    "name": "陽だまり建設株式会社",
+    "name_is_ai_estimated": false,
+    "domain": "hidamari-kensetsu.example.jp",
+    "industry_label": "総合建設業（公共工事・住宅リフォーム）",
+    "industry_is_ai_estimated": true,
+    "business_summary": "地域密着型の総合建設会社。公共工事と住宅リフォームの両方を手がける。",
+    "business_summary_is_ai_estimated": true,
+    "location": "静岡県",
+    "founded_year": 1976,
+    "employee_range": "40〜50名",
+    "business_type": "BtoB / BtoG",
+    "listed_status": "非上場"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "会社概要ページ",
+      "url": "https://hidamari-kensetsu.example.jp/about",
+      "score": 87,
+      "published_at": "2025-09-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-2",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "採用ページ（施工管理技士を募集中）",
+      "url": "https://hidamari-kensetsu.example.jp/recruit",
+      "score": 84,
+      "published_at": "2026-07-15T00:00:00+09:00"
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "厚生労働省 時間外労働の上限規制わかりやすい解説（建設業編）",
+      "url": "https://source.example.com/jikangai-roudou-kensetsu",
+      "score": 85,
+      "published_at": "2024-04-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-4",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "国土交通省 公共工事設計労務単価に関する発表資料（令和8年度）",
+      "url": "https://source.example.com/rousemu-tanka-kaitei-2026",
+      "score": 93,
+      "published_at": "2026-03-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-5",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "静岡県建設業協会 地域建設業景況レポート（2026年）",
+      "url": "https://source.example.com/shizuoka-kensetsu-keikyo-2026",
+      "score": 83,
+      "published_at": "2026-02-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "地元紙（地域面、2026年7月、空き家対策予算拡大の記事）",
+      "url": "https://source.example.com/akiya-taisaku-yosan-2026",
+      "score": 70,
+      "published_at": "2026-07-10T00:00:00+09:00"
+    }
+  ],
+  "ai_pipeline": {
+    "step1_company_analysis": {
+      "estimated_industry": "総合建設業",
+      "business_summary": "公共工事（道路・河川改修）と住宅リフォームの両輪で事業を展開。地域の指名競争入札に多数参加。",
+      "employee_range": "40〜50名",
+      "founded_year": 1976,
+      "locations": [
+        "静岡県（本社）"
+      ],
+      "recruiting_signals": [
+        "施工管理技士（1級・2級、複数名募集）"
+      ],
+      "news_signals": [
+        "地元紙にて、地域の空き家対策関連予算拡大についての記事に取引先として言及"
+      ]
+    },
+    "step2_industry_inference": {
+      "primary_candidate": "総合建設業",
+      "confidence": "高",
+      "other_candidates": [
+        {
+          "industry": "住宅リフォーム業（専業）",
+          "confidence": "低"
+        }
+      ]
+    },
+    "step3_market_changes_candidates": [
+      {
+        "title": "時間外労働上限規制の適用開始と公共工事設計労務単価の改定",
+        "relevance": "高",
+        "sources_combined": [
+          "government",
+          "company"
+        ],
+        "selected_as_free_opportunity": true
+      },
+      {
+        "title": "地域の空き家対策関連予算の拡大",
+        "relevance": "中",
+        "sources_combined": [
+          "news"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "住宅省エネ基準適合義務化への対応",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "建設業許可要件（専任技術者）の見直し",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "大規模再開発向けの都市計画法改正",
+        "relevance": "低",
+        "sources_combined": [
+          "news"
+        ],
+        "reason_excluded": "従業員規模・施工実績から見て大規模再開発案件への参入可能性が低く、関連度を「低」と判定してレポートから除外"
+      }
+    ],
+    "step4_relevance_summary": {
+      "高": 1,
+      "中": 3,
+      "低": 1
+    },
+    "internal_confidence_score": 76,
+    "internal_confidence_score_note": "社内のレビュー優先度判定にのみ使用。受信者向け画面には表示しない（05_ai_pipeline.md）。"
+  },
+  "free_opportunity": {
+    "title": "時間外労働上限規制への対応と公共工事単価改定を両立させる工程管理DXの好機",
+    "why_now": "建設業は2024年4月から時間外労働の上限規制の適用対象となっており、対応の実効性が問われる段階に入っています。同時に公共工事設計労務単価が改定され、これを適切に見積もり・入札へ反映できるかどうかが収益に直結する局面でもあります。",
+    "why_company": "貴社の採用ページでは施工管理技士を複数名募集しており、体制強化の途上にあると見受けられます。また地域の指名競争入札を中心とした事業構造から、労務単価改定の反映漏れは収益への影響が大きいと考えられます。",
+    "market_change": "時間外労働上限規制の適用開始（建設業2024年問題）、および公共工事設計労務単価の改定",
+    "evidence": [
+      {
+        "source_id": "src-3",
+        "quote": "建設業については、罰則付き時間外労働の上限規制が適用される"
+      },
+      {
+        "source_id": "src-4",
+        "quote": "令和8年度公共工事設計労務単価を、主要12職種の全国全職種単純平均で見直す"
+      },
+      {
+        "source_id": "src-2",
+        "quote": "施工管理技士（1級・2級）を複数名募集"
+      }
+    ],
+    "first_action": "工程管理システムの導入により週休2日を確保しながら工期遵守を両立する事例が増えています。IT導入補助金（建設業対応枠、次回締切目安は申請書類提出の約6週間前）の活用を検討し、あわせて新単価を踏まえた見積書のテンプレート更新から着手することをお勧めします。",
+    "extended_analysis": {
+      "market_size": "建設業向けIT導入補助金（建設業対応枠）の交付規模は、1件あたり数十万円〜百数十万円程度が中心です。静岡県内の同規模帯（従業員40〜50名）の建設会社でも、工程管理システムへの投資は年々増加傾向にあります。",
+      "competition": "地域の同業他社では、大手ゼネコン系の工程管理システムを導入する動きが一部で見られますが、地域密着型の中堅建設会社での本格導入はまだ多くありません。",
+      "risks": "工程管理システムの導入自体よりも、現場担当者への定着（利用の習慣化）が課題になりやすい取り組みです。また、公共工事の入札額見直しは、既に契約済みの案件には遡及適用されない点に留意が必要です。",
+      "priority": "「さらに検討可能なテーマ」（住宅省エネ基準・空き家対策予算）と比較すると、本Opportunityは法令上の適用が既に始まっている（時間外労働上限規制）点で、対応の緊急度が最も高いと考えられます。",
+      "case_examples": "同規模の地域建設業者による工程管理DX導入事例は、静岡県建設業協会のレポートで複数紹介されています。個社名までは本分析では特定していません。",
+      "confidence_note": "本分析は官公庁資料（厚生労働省・国土交通省）と貴社の採用ページを組み合わせて作成しています。公共工事設計労務単価は年度ごとに改定されるため、最新の単価表を都度ご確認ください。この内容は配信前に運営担当者が確認しています。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "住宅省エネ基準適合義務化への対応"
+    },
+    {
+      "id": "locked-2",
+      "title": "地域の空き家対策関連予算を活用した改修需要の取り込み"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "時間外労働上限規制への対応と工程管理DXを一体で進め、90日以内に週休2日運用の試行を開始することを推奨します。",
+      "recommended_timing": "今後30日以内（法令は既に適用されており対応の緊急度が高いため）",
+      "expected_impact": "法令遵守の実効性確保、採用競争力の向上、新単価反映による収益改善",
+      "investment_level": "中（工程管理システム導入費用とIT導入補助金申請の工数）",
+      "reason": [
+        "時間外労働上限規制は既に適用が始まっており対応の先送りができない",
+        "採用ページから体制強化の途上であることが分かる",
+        "優先順位マトリクスでも「高効果・高工数」の中で最も緊急度が高い"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "住宅省エネ基準適合義務化への対応",
+        "summary": "新築住宅の省エネ基準適合義務化の流れの中で、断熱改修を含むリフォーム需要の増加が見込まれます。",
+        "expected_effect": "リフォーム受注の拡大、補助金活用による顧客単価向上",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "地域の空き家対策関連予算を活用した改修需要の取り込み",
+        "summary": "自治体の空き家対策予算拡大により、改修・除却工事の需要増加が見込まれます。",
+        "expected_effect": "新規受注チャネルの獲得、自治体との関係構築",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "週休2日実現による採用力強化",
+        "summary": "時間外労働上限規制対応を進める過程で週休2日を実現できれば、施工管理技士の採用競争力向上にもつながります。",
+        "expected_effect": "採用応募数の増加、離職率の低下",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "新単価を踏まえた見積書テンプレートを更新する（無料版first_actionの実行）",
+          "自治体の空き家対策補助制度の詳細を確認する"
+        ],
+        "expected_outcome": "見積もり体制の刷新、補助制度活用の可否判断"
+      },
+      "day_60": {
+        "actions": [
+          "工程管理システムを試験導入する",
+          "断熱改修に対応できる協力業者を選定する"
+        ],
+        "expected_outcome": "週休2日運用の試行開始、省エネ改修の施工体制確立"
+      },
+      "day_90": {
+        "actions": [
+          "空き家改修案件への提案活動を開始する",
+          "省エネ改修の顧客向け案内資料を展開する"
+        ],
+        "expected_outcome": "新規受注チャネルからの引き合い発生"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "地域内の空き家対策予算・入札公告の継続的な調査"
+      },
+      {
+        "label": "営業資料作成",
+        "description": "省エネ改修・空き家対策向けの提案資料作成支援"
+      },
+      {
+        "label": "提案書レビュー",
+        "description": "自治体向け入札書類・提案書のレビュー"
+      },
+      {
+        "label": "市場調査",
+        "description": "近隣自治体の空き家対策予算の比較調査"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "住宅省エネ基準の適用スケジュール"
+      },
+      {
+        "theme": "補助金",
+        "description": "IT導入補助金（建設業対応枠）・子育てエコホーム支援事業の動向"
+      },
+      {
+        "theme": "競合動向",
+        "description": "地域同業他社の工程管理DX・省エネ改修対応状況"
+      },
+      {
+        "theme": "業界ニュース",
+        "description": "公共工事設計労務単価の次期改定動向"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@hidamari-kensetsu.example.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。送信時にオプトアウト導線と送信者情報を付与する。"
+  },
+  "human_review": {
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": true,
+      "citations_current_and_accurate": true,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": true,
+      "no_duplicate_send": true
+    },
+    "notes": "first_actionのIT導入補助金（建設業対応枠）の申請目安期間について、最新の公募スケジュールとの整合を確認中。",
+    "review_history": [
+      {
+        "at": "2026-08-02T09:52:00+09:00",
+        "actor": "ai-pipeline",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 91,
+    "grade": "A",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 6件（8/8点）",
+      "情報源の種類数: 4種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 17%（8/8点）",
+      "有効な引用文: 3件（8/8点）",
+      "source_type偏り: 最大偏り33%（8/8点）",
+      "source_role偏り: 最大偏り33%（8/8点）"
+    ],
+    "warnings": [],
+    "improvements": [
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 6件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 4種類",
+        "distinctTypes": 4
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 17%",
+        "newsRatio": 0.17
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 3件",
+        "quotedCount": 3
+      },
+      "average_source_score": {
+        "points": 13,
+        "max": 15,
+        "detail": "情報源scoreの平均: 83.7点",
+        "average": 83.7
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り33%",
+        "maxShare": 0.33
+      },
+      "role_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り33%",
+        "maxShare": 0.33
+      },
+      "evidence_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "evidence件数: 3件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      }
+    }
+  }
+}

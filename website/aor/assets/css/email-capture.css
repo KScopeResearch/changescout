@@ -1,0 +1,205 @@
+/* email-capture.html 専用スタイル（共通トークン・コンポーネントは base.css） */
+
+.ec-header {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.ec-header__title {
+  font-size: 1.35rem;
+  margin: 4px 0 6px;
+  color: var(--color-primary-dark);
+}
+
+.ec-header__tagline {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.ec-form {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  margin-top: 20px;
+}
+
+.field { margin-bottom: 14px; }
+
+.field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.field .required {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--color-error-text);
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 4px;
+}
+
+.field input[type="email"],
+.field input[type="text"],
+.field select {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.95rem;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--color-text);
+}
+
+.field input:focus,
+.field select:focus {
+  outline: 2px solid var(--color-primary-border);
+  outline-offset: 1px;
+}
+
+.field-error {
+  color: var(--color-error-text);
+  font-size: 0.8rem;
+  margin: 6px 0 0;
+}
+
+.field-hint {
+  font-size: 0.78rem;
+  color: var(--color-pending-text);
+  margin: 6px 0 0;
+}
+
+.field-hint:empty { display: none; }
+
+.privacy-note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 0 0 16px;
+}
+
+.toggle-optional {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 10px 2px;
+  margin: 0 0 16px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.toggle-optional::before { content: "▸ "; }
+.toggle-optional[aria-expanded="true"]::before { content: "▾ "; }
+
+.optional-fields {
+  margin-bottom: 16px;
+  padding: 14px 14px 2px;
+  background: var(--color-bg);
+  border-radius: 8px;
+}
+
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  cursor: pointer;
+}
+
+.consent input { margin-top: 3px; }
+.consent--error { color: var(--color-error-text); }
+
+.ec-submit { display: block; width: 100%; margin-top: 18px; }
+.ec-form .cta-note { text-align: center; }
+
+/* ---------- success screen ---------- */
+
+.ec-success {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 28px 22px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.ec-success__check {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  background: var(--color-verified-bg);
+  color: var(--color-verified-text);
+  border: 1px solid var(--color-verified-border);
+  font-size: 1.3rem;
+}
+
+.ec-success__title { margin: 0 0 8px; color: var(--color-primary-dark); }
+
+.ec-success__body {
+  font-size: 0.92rem;
+  color: var(--color-text);
+  margin: 0 0 12px;
+  text-align: left;
+}
+
+.ec-success__mail-note {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+  margin: 0 0 20px;
+}
+
+/* extended_analysis の表示 */
+
+.ext-analysis {
+  text-align: left;
+  border-top: 1px solid var(--color-border);
+  padding-top: 18px;
+  margin-bottom: 20px;
+}
+
+.ext-analysis__item { margin-bottom: 14px; }
+
+.ext-analysis__label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: 3px;
+}
+
+.ext-analysis__item p { margin: 0; font-size: 0.9rem; }
+
+.ext-analysis__confidence {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+}
+
+.ec-upgrade { border-top: 1px solid var(--color-border); padding-top: 18px; }

@@ -1,0 +1,459 @@
+{
+  "id": "company-01",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-01T09:12:00+09:00",
+    "pipeline_version": "phase1-dummy-v2.4",
+    "industry_category": "manufacturing",
+    "note": "実在企業ではないフィクションのダミーデータ。schema_version 2.0で無料版Opportunityを「3件浅く」から「1件深掘り」方式へ変更し、source_pagesにsource_type/source_roleを追加。2.1でfree_opportunityに登録直後の追加分析を追加し、旧paid_preview_opportunity方式を廃止。source_pages/evidenceにevidence_strengthを追加。2.2で有料版専用データpaid_analysisを追加。2.3でpaid_analysis.decision_summaryを先頭に追加、registration_bonusをextended_analysisへ改名、priority_matrixをitems[]埋め込み方式へ変更。2.4（品質改善）でデータ重複を解消: source_pagesにidを付与しevidenceはsource_id+quoteのみ保持（source_pagesから結合して描画）、priority_matrixはopportunity_ids参照のみ保持しadditional_opportunitiesからMapで解決する方式に変更した。"
+  },
+  "company_profile": {
+    "name": "桜庭精密工業株式会社",
+    "name_is_ai_estimated": false,
+    "domain": "sakuraba-seimitsu.example.jp",
+    "industry_label": "精密部品製造業（自動車・産業機械向け切削加工）",
+    "industry_is_ai_estimated": true,
+    "business_summary": "自動車部品・産業機械部品の精密切削加工を手がける。BtoB専業。",
+    "business_summary_is_ai_estimated": true,
+    "location": "長野県",
+    "founded_year": 1988,
+    "employee_range": "100〜150名",
+    "business_type": "BtoB",
+    "listed_status": "非上場"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "会社概要ページ",
+      "url": "https://sakuraba-seimitsu.example.jp/company",
+      "score": 88,
+      "published_at": "2025-10-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-2",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "採用ページ（生産技術職・DX推進担当を募集中）",
+      "url": "https://sakuraba-seimitsu.example.jp/recruit",
+      "score": 85,
+      "published_at": "2026-07-20T00:00:00+09:00"
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "中小企業庁 ものづくり・商業・サービス生産性向上促進補助金 公募要領（2026年度）",
+      "url": "https://source.example.com/monodukuri-hojokin-2026",
+      "score": 96,
+      "published_at": "2026-04-10T00:00:00+09:00"
+    },
+    {
+      "id": "src-4",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "日本精密機械工業会 会員企業DX投資動向レポート（2026年版）",
+      "url": "https://source.example.com/seimitsu-kogyokai-dx-report-2026",
+      "score": 84,
+      "published_at": "2026-03-15T00:00:00+09:00"
+    },
+    {
+      "id": "src-5",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "経済産業省 工業統計調査（2025年確報・精密機械器具製造業編）",
+      "url": "https://source.example.com/kogyo-tokei-2025",
+      "score": 89,
+      "published_at": "2026-01-25T00:00:00+09:00"
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "業界紙（機械部品業界ニュース、2026年7月号）",
+      "url": "https://source.example.com/supply-chain-shift-2026-07",
+      "score": 72,
+      "published_at": "2026-07-05T00:00:00+09:00"
+    },
+    {
+      "id": "src-7",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "スマートファクトリー技術ロードマップ2026（製造技術振興会）",
+      "url": "https://source.example.com/smart-factory-roadmap-2026",
+      "score": 80,
+      "published_at": "2026-02-10T00:00:00+09:00"
+    }
+  ],
+  "ai_pipeline": {
+    "step1_company_analysis": {
+      "estimated_industry": "精密部品製造業",
+      "business_summary": "自動車部品・産業機械部品の精密切削加工。BtoB専業、量産部品よりも多品種少量生産に強み。",
+      "employee_range": "100〜150名",
+      "founded_year": 1988,
+      "locations": [
+        "長野県（本社・工場）"
+      ],
+      "recruiting_signals": [
+        "生産技術職（増員）",
+        "DX推進担当（新設ポジション）"
+      ],
+      "news_signals": [
+        "2026年6月、主要取引先の生産拠点再編に関するプレスリリースへの言及あり"
+      ]
+    },
+    "step2_industry_inference": {
+      "primary_candidate": "精密部品製造業",
+      "confidence": "高",
+      "other_candidates": [
+        {
+          "industry": "金属加工業（一般）",
+          "confidence": "低"
+        }
+      ]
+    },
+    "step3_market_changes_candidates": [
+      {
+        "title": "ものづくり補助金（DX枠）を活用した生産管理システム刷新",
+        "relevance": "高",
+        "sources_combined": [
+          "government",
+          "company",
+          "industry_association"
+        ],
+        "selected_as_free_opportunity": true
+      },
+      {
+        "title": "省エネ法の特定事業者要件見直しによる対応義務",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "サプライチェーン再編に伴う新規取引機会",
+        "relevance": "中",
+        "sources_combined": [
+          "news"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "特定技能2号の対象分野拡大（外国人材受入れ）",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "大企業向けTCFD開示義務の強化",
+        "relevance": "低",
+        "sources_combined": [
+          "news"
+        ],
+        "reason_excluded": "従業員150名未満の非上場企業であり、開示義務の直接対象ではないため関連度を「低」と判定し、レポートから除外"
+      }
+    ],
+    "step4_relevance_summary": {
+      "高": 1,
+      "中": 3,
+      "低": 1
+    },
+    "internal_confidence_score": 84,
+    "internal_confidence_score_note": "社内のレビュー優先度判定にのみ使用。受信者向け画面には表示しない（05_ai_pipeline.md）。"
+  },
+  "free_opportunity": {
+    "title": "ものづくり補助金（DX枠）を活用した生産管理システム刷新による受注機会拡大",
+    "why_now": "2026年度のものづくり補助金DX枠は対象経費の範囲が拡大され、生産設備だけでなくクラウド型の生産管理システム導入費用も対象に含まれるようになりました。あわせて、主要取引先各社がサプライヤーに対して供給網強靭化のための事業継続計画（BCP）提示を求める動きも広がっており、生産体制の可視化・強化に対する投資は「今のうちに着手する価値がある」段階に入っています。",
+    "why_company": "貴社の採用ページでは「DX推進担当」という新設ポジションの募集が掲載されており、社内で既にDX投資への意思決定が始まっていると推測されます。また、多品種少量生産を強みとする貴社の事業特性は、生産管理システムの高度化によって得られる効果（工程の可視化・BCP対応力の強化）と親和性が高いと考えられます。",
+    "market_change": "ものづくり補助金（DX枠）の対象経費拡大、および主要取引先による供給網強靭化要請の広がり",
+    "evidence": [
+      {
+        "source_id": "src-3",
+        "quote": "DX枠については、生産設備のみならずクラウド型の生産管理システム導入費用も補助対象に含める"
+      },
+      {
+        "source_id": "src-2",
+        "quote": "DX推進担当（新設ポジション、生産管理システムの導入・運用を担当）を募集"
+      },
+      {
+        "source_id": "src-4",
+        "quote": "会員企業の生産管理システム投資は、供給網の強靭化要請を背景に前年比で増加傾向にある"
+      }
+    ],
+    "first_action": "次回公募（申請書類提出締切の目安は約2か月後）に向けて、対象経費区分（設備投資／システム導入）を確認し、必要書類（事業計画書、見積書2社以上、直近2期分の決算書）の準備を今月中に始めることをお勧めします。",
+    "extended_analysis": {
+      "market_size": "ものづくり補助金DX枠の年間採択件数は全国で数千件規模。長野県内の精密機械器具製造業（従業員100名前後の企業）では、同種の設備投資型補助金の平均採択額はおおよそ1,000万円前後で推移しています。",
+      "competition": "同業他社でも生産管理システムのクラウド化に着手する動きが広がっていますが、多品種少量生産に特化した中堅企業での本格導入事例はまだ限定的です。先行して着手することで差別化の余地があります。",
+      "risks": "補助金の採択には事業計画の説得力が重要であり、単なるシステム導入ではなく『供給網強靭化にどう寄与するか』を明確に書けるかが採否を左右します。また、システム導入後の運用体制（DX推進担当1名では負荷が集中する可能性）にも留意が必要です。",
+      "priority": "「さらに検討可能なテーマ」（サプライチェーン再編・外国人材受入れ）と比較すると、本Opportunityは①既に社内の意思決定（採用募集）が始まっている、②補助金という具体的な期限がある、という2点で優先度が最も高いと考えられます。",
+      "case_examples": "同業種・同規模帯の企業による類似のDX投資・補助金活用事例は、中小企業庁の採択事例集（業種別）で複数公開されています。個社名までは本分析では特定していません。",
+      "confidence_note": "本分析は官公庁資料（中小企業庁公募要領）・貴社の採用ページ・業界団体レポートの3種類の情報源を組み合わせて作成しています。補助金の公募要領は年度ごとに更新される可能性があるため、実際の申請前に最新の公募要領をご確認ください。この内容は配信前に運営担当者が確認しています。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "サプライチェーン再編に伴う新規取引機会"
+    },
+    {
+      "id": "locked-2",
+      "title": "外国人材受入制度（特定技能2号）の活用"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "ものづくり補助金DX枠を起点に、90日以内に生産管理システム刷新へ着手することを推奨します。",
+      "recommended_timing": "今後30日以内（次回公募締切に間に合わせるため）",
+      "expected_impact": "生産管理の可視化によるBCP評価向上と、新規補助金による設備投資負担の軽減",
+      "investment_level": "中（自己負担分の設備投資と申請書類作成の工数）",
+      "reason": [
+        "採用ページで既にDX投資への意思決定が始まっている",
+        "補助金という具体的な期限が存在し、先送りするほど機会損失が大きい",
+        "優先順位マトリクスでも「高効果・低工数」の最上位に位置する"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "サプライチェーン再編に伴う新規取引機会",
+        "summary": "取引先の海外拠点縮小に伴い、国内での代替調達先を探す動きが一部の大手メーカーで見られます。貴社の多品種少量生産の強みが評価されやすい局面です。",
+        "expected_effect": "新規取引先の開拓、売上の分散によるリスク低減",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "外国人材受入制度（特定技能2号）の活用",
+        "summary": "特定技能2号の対象分野拡大により、製造業でも在留期限の上限がない形での外国人材受け入れが可能になりつつあります。",
+        "expected_effect": "人材確保の選択肢拡大、生産技術職の増員募集の後押し",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "設備更新に伴う省エネ・BCP対応の一体的推進",
+        "summary": "生産管理システム刷新と合わせて老朽設備の更新を進めることで、省エネ法対応とBCP強化を同時に達成できる可能性があります。",
+        "expected_effect": "エネルギーコスト削減、取引先からのBCP評価向上",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "ものづくり補助金の申請書類準備を完了させる（無料版first_actionの実行）",
+          "既存取引先へサプライチェーン再編に関するヒアリングを実施する"
+        ],
+        "expected_outcome": "補助金申請の提出、新規引き合いの初期リストアップ"
+      },
+      "day_60": {
+        "actions": [
+          "生産管理システムのベンダー選定・見積取得を行う",
+          "特定技能2号の受入れ要件を人事部門で確認する"
+        ],
+        "expected_outcome": "システム導入計画の確定、採用計画への反映"
+      },
+      "day_90": {
+        "actions": [
+          "生産管理システムの導入を開始する",
+          "新規取引先候補への提案活動を開始する"
+        ],
+        "expected_outcome": "DX投資の着手、新規商談の発生"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "取引先の供給網再編に関する非公開情報の追加ヒアリング"
+      },
+      {
+        "label": "営業資料作成",
+        "description": "新規取引先向けの会社紹介資料・実績資料の作成支援"
+      },
+      {
+        "label": "提案書レビュー",
+        "description": "ものづくり補助金の事業計画書のレビュー"
+      },
+      {
+        "label": "市場調査",
+        "description": "精密部品業界における国内回帰の動向調査"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "省エネ法の特定事業者要件の運用細則"
+      },
+      {
+        "theme": "補助金",
+        "description": "ものづくり補助金の次年度公募スケジュール"
+      },
+      {
+        "theme": "競合動向",
+        "description": "同業他社のDX投資・生産管理システム導入状況"
+      },
+      {
+        "theme": "業界ニュース",
+        "description": "主要取引先の生産拠点再編・BCP要請の進捗"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@sakuraba-seimitsu.example.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。送信時にオプトアウト導線と送信者情報を付与する。"
+  },
+  "human_review": {
+    "status": "approved",
+    "reviewer": "ops-1",
+    "reviewed_at": "2026-08-01T10:30:00+09:00",
+    "review_duration_minutes": 8,
+    "checklist": {
+      "company_info_accurate": true,
+      "citations_current_and_accurate": true,
+      "no_logical_leap_in_opportunity": true,
+      "recipient_source_is_lawful": true,
+      "no_duplicate_send": true
+    },
+    "notes": "why_companyの推測（DX投資の意思決定が始まっている）は採用ページの記載という事実に基づく妥当な推測であることを確認。",
+    "review_history": [
+      {
+        "at": "2026-08-01T10:20:00+09:00",
+        "actor": "ai-pipeline",
+        "action": "submitted_for_review"
+      },
+      {
+        "at": "2026-08-01T10:30:00+09:00",
+        "actor": "ops-1",
+        "action": "approved",
+        "comment": "内容確認済み。送信可。"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 96,
+    "grade": "A",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 7件（8/8点）",
+      "情報源の種類数: 6種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 14%（8/8点）",
+      "有効な引用文: 3件（8/8点）",
+      "source_type偏り: 最大偏り29%（8/8点）",
+      "source_role偏り: 最大偏り43%（8/8点）",
+      "human_review.status: approved（11/11点）"
+    ],
+    "warnings": [],
+    "improvements": [],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 7件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 6種類",
+        "distinctTypes": 6
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 14%",
+        "newsRatio": 0.14
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 3件",
+        "quotedCount": 3
+      },
+      "average_source_score": {
+        "points": 13,
+        "max": 15,
+        "detail": "情報源scoreの平均: 84.9点",
+        "average": 84.9
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り29%",
+        "maxShare": 0.29
+      },
+      "role_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り43%",
+        "maxShare": 0.43
+      },
+      "evidence_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "evidence件数: 3件"
+      },
+      "human_review_status": {
+        "points": 11,
+        "max": 11,
+        "detail": "human_review.status: approved"
+      }
+    }
+  }
+}

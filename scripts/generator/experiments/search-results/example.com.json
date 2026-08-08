@@ -1,0 +1,181 @@
+{
+  "company_url": "https://example.com",
+  "search_provider": "mock",
+  "llm_provider": {
+    "id": "mock",
+    "displayName": "Mock（ルールベース・APIキー不要）",
+    "model": "mock-rule-based-v1"
+  },
+  "pipeline_stats": {
+    "fetched_total": 11,
+    "normalized_total": 11,
+    "duplicates_removed": 5,
+    "after_dedupe": 6,
+    "selected_for_ai": 6,
+    "max_sources_for_ai": 20
+  },
+  "source_type_breakdown": {
+    "company": 1,
+    "government": 1,
+    "statistics": 1,
+    "news": 1,
+    "industry_association": 1,
+    "technology": 1
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "Example Domain",
+      "url": "https://example.com",
+      "published_at": "2026-08-06T02:15:20.000Z",
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "Example Domain 補助金に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-補助金-1",
+      "published_at": "2026-05-06T03:29:56.124Z",
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "Example Domain 市場に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-市場-1",
+      "published_at": "2025-02-06T03:29:56.124Z",
+      "score": 95
+    },
+    {
+      "id": "src-4",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "Example Domain 最新ニュースに関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-最新ニュ-ス-1",
+      "published_at": "2026-07-06T03:29:56.124Z",
+      "score": 90
+    },
+    {
+      "id": "src-5",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "Example Domain 業界動向に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-業界動向-1",
+      "published_at": "2024-02-06T03:29:56.124Z",
+      "score": 80
+    },
+    {
+      "id": "src-6",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "Example Domain 技術に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-技術-1",
+      "published_at": "2024-02-06T03:29:56.124Z",
+      "score": 77
+    }
+  ],
+  "evaluation": {
+    "score": 91,
+    "grade": "A",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 6件（8/8点）",
+      "情報源の種類数: 6種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 17%（8/8点）",
+      "有効な引用文: 4件（8/8点）",
+      "source_type偏り: 最大偏り17%（8/8点）",
+      "evidence件数: 4件（8/8点）"
+    ],
+    "warnings": [],
+    "improvements": [
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 6件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 6種類",
+        "distinctTypes": 6
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 17%",
+        "newsRatio": 0.17
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 14,
+        "max": 15,
+        "detail": "情報源scoreの平均: 90.3点",
+        "average": 90.3
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り17%",
+        "maxShare": 0.17
+      },
+      "role_skew": {
+        "points": 5,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り50%",
+        "maxShare": 0.5
+      },
+      "evidence_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      }
+    }
+  },
+  "validation_note": "簡略化したreport.json相当のため、company_profile等の必須項目チェックはエラーになる場合がある（参考情報）",
+  "validation_error_count": 0,
+  "generated_at": "2026-08-06T03:29:56.132Z"
+}

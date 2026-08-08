@@ -1,0 +1,95 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "generated-e2e-test-company.example.com",
+  "reviewer": "e2e",
+  "reviewed_at": "2026-08-07T09:00:42.783Z",
+  "status": "approved",
+  "comments": [
+    {
+      "id": "c-1",
+      "at": "2026-08-07T08:29:05.628Z",
+      "actor": "e2e",
+      "text": "内容確認しました 👍"
+    },
+    {
+      "id": "c-2",
+      "at": "2026-08-07T08:30:14.963Z",
+      "actor": "e2e",
+      "text": "修正内容を再確認しました。承認します。"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "f-1",
+      "at": "2026-08-07T08:29:24.385Z",
+      "actor": "e2e",
+      "description": "company_facts空欄のまま生成された点を修正すること",
+      "resolved": false
+    },
+    {
+      "id": "f-2",
+      "at": "2026-08-07T08:29:40.738Z",
+      "actor": "e2e",
+      "description": "会社情報の再取得を確認する",
+      "resolved": false
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-08-07T08:29:05.628Z",
+      "actor": "e2e",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "内容確認しました 👍"
+    },
+    {
+      "at": "2026-08-07T08:29:24.385Z",
+      "actor": "e2e",
+      "action": "fix_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "company_facts空欄のまま生成された点を修正すること"
+    },
+    {
+      "at": "2026-08-07T08:29:40.738Z",
+      "actor": "e2e",
+      "action": "revision_requested",
+      "from_status": "pending_review",
+      "to_status": "needs_revision",
+      "comment": "company_factsが空のまま生成されているため差し戻します"
+    },
+    {
+      "at": "2026-08-07T08:30:14.963Z",
+      "actor": "e2e",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "修正内容を再確認しました。承認します。"
+    },
+    {
+      "at": "2026-08-07T08:30:33.192Z",
+      "actor": "e2e",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "E2Eリハーサル: 承認します"
+    },
+    {
+      "at": "2026-08-07T09:00:17.602Z",
+      "actor": "e2e",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "SSE確認: 差し戻し"
+    },
+    {
+      "at": "2026-08-07T09:00:42.783Z",
+      "actor": "e2e",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "SSE確認完了・復元"
+    }
+  ]
+}

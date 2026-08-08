@@ -1,0 +1,317 @@
+{
+  "id": "fixture-good",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-06T00:00:00+09:00",
+    "pipeline_version": "quality-evaluator-fixture-v1",
+    "industry_category": "test",
+    "note": "quality-evaluator.jsのテスト用に手作成したfixture。実在企業のデータではない。"
+  },
+  "company_profile": {
+    "name": "テスト株式会社",
+    "name_is_ai_estimated": false,
+    "domain": "fixture.example.com",
+    "industry_label": "テスト業",
+    "industry_is_ai_estimated": false,
+    "business_summary": "quality-evaluator.jsのテスト用ダミー企業。",
+    "business_summary_is_ai_estimated": false,
+    "location": "不明",
+    "founded_year": null,
+    "employee_range": "不明",
+    "business_type": "BtoB",
+    "listed_status": "非上場"
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "テスト用追加検討テーマ"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "fixtureのためプレースホルダー。",
+      "recommended_timing": "—",
+      "expected_impact": "—",
+      "investment_level": "—",
+      "reason": [
+        "fixtureのためプレースホルダー。"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "テスト用追加検討テーマ",
+        "summary": "fixtureのためプレースホルダー。",
+        "expected_effect": "—",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": []
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": []
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      },
+      "day_60": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      },
+      "day_90": {
+        "actions": [
+          "fixtureのためプレースホルダー。"
+        ],
+        "expected_outcome": "—"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "テスト",
+        "description": "fixtureのためプレースホルダー。"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "テスト",
+        "description": "fixtureのためプレースホルダー。"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@fixture.example.com",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "テスト用fixture。",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "fixtureのため未記録。"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "会社概要ページ",
+      "url": "https://fixture.example.com/company",
+      "score": 90,
+      "published_at": "2026-06-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "官公庁の制度改正資料",
+      "url": "https://source.example.com/fixture-gov-1",
+      "score": 96,
+      "published_at": "2026-05-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-3",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "統計局の統計データ",
+      "url": "https://source.example.com/fixture-stats-1",
+      "score": 90,
+      "published_at": "2026-04-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-4",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "業界団体レポート",
+      "url": "https://source.example.com/fixture-industry-1",
+      "score": 85,
+      "published_at": "2026-03-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-5",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "技術団体ロードマップ",
+      "url": "https://source.example.com/fixture-tech-1",
+      "score": 82,
+      "published_at": "2026-02-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "業界ニュース記事",
+      "url": "https://source.example.com/fixture-news-1",
+      "score": 75,
+      "published_at": "2026-06-15T00:00:00+09:00"
+    }
+  ],
+  "free_opportunity": {
+    "title": "テスト用Opportunity（good fixture）",
+    "why_now": "fixtureのため定型文。",
+    "why_company": "fixtureのため定型文。",
+    "market_change": "fixtureのため定型文。",
+    "evidence": [
+      {
+        "source_id": "src-2",
+        "quote": "制度改正により対象経費の範囲が拡大された。"
+      },
+      {
+        "source_id": "src-1",
+        "quote": "自社サイトにて新規事業への言及あり。"
+      },
+      {
+        "source_id": "src-4",
+        "quote": "業界団体の調査でも同様の傾向が報告されている。"
+      },
+      {
+        "source_id": "src-3",
+        "quote": "統計データでも市場拡大の傾向が確認できる。"
+      }
+    ],
+    "first_action": "fixtureのため定型文。",
+    "extended_analysis": {
+      "market_size": "fixtureのため定型文。",
+      "competition": "fixtureのため定型文。",
+      "risks": "fixtureのため定型文。",
+      "priority": "fixtureのため定型文。",
+      "case_examples": "fixtureのため定型文。",
+      "confidence_note": "fixtureのため定型文。"
+    }
+  },
+  "human_review": {
+    "status": "approved",
+    "reviewer": "ops-1",
+    "reviewed_at": "2026-08-06T01:00:00+09:00",
+    "review_duration_minutes": 5,
+    "checklist": {
+      "company_info_accurate": true,
+      "citations_current_and_accurate": true,
+      "no_logical_leap_in_opportunity": true,
+      "recipient_source_is_lawful": true,
+      "no_duplicate_send": true
+    },
+    "notes": "fixtureのためプレースホルダー。",
+    "review_history": [
+      {
+        "at": "2026-08-06T01:00:00+09:00",
+        "actor": "ops-1",
+        "action": "approved"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 95,
+    "grade": "A",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 6件（8/8点）",
+      "情報源の種類数: 6種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 17%（8/8点）",
+      "有効な引用文: 4件（8/8点）",
+      "source_type偏り: 最大偏り17%（8/8点）",
+      "evidence件数: 4件（8/8点）",
+      "human_review.status: approved（11/11点）"
+    ],
+    "warnings": [],
+    "improvements": [],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 6件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 6種類",
+        "distinctTypes": 6
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 17%",
+        "newsRatio": 0.17
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 13,
+        "max": 15,
+        "detail": "情報源scoreの平均: 86.3点",
+        "average": 86.3
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り17%",
+        "maxShare": 0.17
+      },
+      "role_skew": {
+        "points": 5,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り50%",
+        "maxShare": 0.5
+      },
+      "evidence_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 11,
+        "max": 11,
+        "detail": "human_review.status: approved"
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "generated-sakuraba-seimitsu.example.jp",
+  "reviewer": "ops-ui-test",
+  "reviewed_at": "2026-08-06T05:37:33.172Z",
+  "status": "approved",
+  "comments": [
+    {
+      "id": "c-1",
+      "at": "2026-08-06T05:37:12.149Z",
+      "actor": "ops-ui-test",
+      "text": "UIから追加したテストコメントです"
+    }
+  ],
+  "fixes": [],
+  "history": [
+    {
+      "at": "2026-08-06T05:21:41.565Z",
+      "actor": "ops-3",
+      "action": "rejected",
+      "from_status": "pending_review",
+      "to_status": "rejected",
+      "comment": "情報源が不十分なため却下"
+    },
+    {
+      "at": "2026-08-06T05:37:12.149Z",
+      "actor": "ops-ui-test",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "UIから追加したテストコメントです"
+    },
+    {
+      "at": "2026-08-06T05:37:33.172Z",
+      "actor": "ops-ui-test",
+      "action": "approved",
+      "from_status": "rejected",
+      "to_status": "approved",
+      "comment": null
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+/* report-preview.html 専用スタイル（共通トークン・コンポーネントは base.css） */
+
+.source-pages {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-size: 0.88rem;
+  color: var(--color-text-muted);
+}
+
+.source-pages__title {
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.source-pages__list {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.source-pages__list li { margin-bottom: 4px; }
+
+.source-pages__list a { color: var(--color-primary); }
+
+.locked-panel {
+  background: var(--color-locked-bg);
+  border: 1px dashed var(--color-locked-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.locked-panel__title {
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--color-text);
+}
+
+.locked-panel__lede {
+  font-size: 0.85rem;
+  color: var(--color-locked-text);
+  margin: 0 0 14px;
+}
+
+.locked-panel .cards { gap: 10px; }

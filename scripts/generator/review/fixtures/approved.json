@@ -1,0 +1,34 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "fixture-approved",
+  "reviewer": "ops-1",
+  "reviewed_at": "2026-08-06T09:05:00+09:00",
+  "status": "approved",
+  "comments": [
+    {
+      "id": "c-1",
+      "at": "2026-08-06T09:00:00+09:00",
+      "actor": "ops-1",
+      "text": "内容を確認しました。問題ありません。"
+    }
+  ],
+  "fixes": [],
+  "history": [
+    {
+      "at": "2026-08-06T09:00:00+09:00",
+      "actor": "ops-1",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "内容を確認しました。問題ありません。"
+    },
+    {
+      "at": "2026-08-06T09:05:00+09:00",
+      "actor": "ops-1",
+      "action": "approved",
+      "from_status": "pending_review",
+      "to_status": "approved",
+      "comment": "承認します。"
+    }
+  ]
+}
