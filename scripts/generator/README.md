@@ -538,6 +538,85 @@ node scripts/generator/unpublish-report.js <slug>
 **監査ログ**: 公開の実行者・日時・対象slugは`admin-audit.jsonl`へ`action: "unpublish"`として
 記録される（成功・失敗いずれも記録。`publish`アクションと同じ形式）。
 
+## Leadライフサイクル管理とS3バックエンド（scripts/generator/leads/、PJ2で追加）
+
+CSV取り込み（`import-leads.js`）→ 検証 → レポート生成連携（`process-validated.js`）→
+初期メール送信（`send-initial-report.js`）という一連のLead管理パイプライン。Lead本体は
+`lead-store.js`が提供する共通API（`createLead`/`readLead`/`updateLead`/`appendHistory`/
+`listLeads`/`findLeadByEmail`）経由でのみ読み書きし、保存先の実体（バックエンド）は
+環境変数で切り替えられる。
+
+### Lead保存先の切替（`LEAD_STORE_BACKEND`）
+
+| 環境変数 | 必須/任意 | 既定値 | 説明 |
+|---|---|---|---|
+| `LEAD_STORE_BACKEND` | 任意 | `filesystem` | `filesystem`（`scripts/generator/logs/leads/<lead_id>.json`）または`s3`を指定 |
+| `LEAD_STORE_S3_BUCKET` | `LEAD_STORE_BACKEND=s3`時は必須 | なし | Lead保存用S3バケット名 |
+| `LEAD_STORE_S3_PREFIX` | 任意 | `leads/` | バケット内のキーprefix |
+| `AWS_REGION` | `LEAD_STORE_BACKEND=s3`時は必須 | なし | S3・SES共通のリージョン（`ses-client.js`と同じ変数を再利用） |
+
+`filesystem`/`s3`いずれのバックエンドでも、`import-leads.js`・`process-validated.js`・
+`send-initial-report.js`等の呼び出し元コードは無変更で動作する
+（`leads/backends/filesystem-backend.js`・`leads/backends/s3-backend.js`が同一の
+インタフェース`{readLead, writeLead, listLeads}`を実装しているため）。
+
+```bash
+# S3バックエンドを使う場合の例（値は実行環境から供給。credentialは明示不要な場合が多い
+# — S3バックエンドはAWS SDKの既定クレデンシャルチェーンに委ねられるため）
+LEAD_STORE_BACKEND=s3 \
+LEAD_STORE_S3_BUCKET=changescout-pj2-leads-179127602551 \
+LEAD_STORE_S3_PREFIX=leads/ \
+AWS_REGION=ap-northeast-1 \
+node scripts/generator/leads/import-leads.js <csv-path>
+```
+
+### 現在のS3バケット運用設定（`changescout-pj2-leads-179127602551`・`ap-northeast-1`）
+
+PJ2 AOP Persona A構築時に作成したLead保存用バケットの設定（2026-08-09時点）。
+
+| 項目 | 設定 |
+|---|---|
+| Block Public Access | 4項目すべて有効 |
+| Object Ownership | `BucketOwnerEnforced`（ACL無効） |
+| Default Encryption | SSE-S3（AES256）。`writeLead()`も`PutObjectCommand`へ`ServerSideEncryption: "AES256"`を明示指定 |
+| Versioning | **有効**（誤更新・誤削除からの復旧手段として有効化。Lead JSONは`PutObjectCommand`で毎回全体上書きされる設計のため） |
+
+### 責務分担: S3（Lead本体） / filesystem（レポート一式）
+
+Lead保存先をS3に切り替えても、以下はいずれも**filesystem固定**のままであり、S3化されない。
+両者を繋ぐのは`lead.company_slug`という文字列のみで、直接のファイル依存関係は無い。
+
+| 保存先 | 対象 | 書き込み元 |
+|---|---|---|
+| S3（`LEAD_STORE_BACKEND=s3`時） | Lead JSON本体（`leads/<lead_id>.json`） | `lead-store.js`経由の各I/O関数 |
+| filesystem（常に） | `scripts/generator/output/<slug>/report.json`・`company_context.json`・`review.json` | `generate-company-report.js`・`review/review-engine.js` |
+| filesystem（常に） | `website/aor/data/<slug>.json` | `publish-report.js` |
+| filesystem（常に） | `scripts/generator/logs/*.jsonl`（各種運用ログ） | `shared/logger.js`等 |
+
+このため、Lead保存先をS3化しただけではパイプライン全体をLambda等のステートレス実行環境へ
+移行することはできない（report.json等もS3等へ永続化する設計変更が別途必要。現時点では
+未実施の設計課題）。
+
+### 認証情報の扱い
+
+- AWS Access Key / Secret Access Keyはこのリポジトリのいかなるファイルにも保存しない
+  （`.env.example`にも実値は書かない。プレースホルダーのみ）
+- 実行時は環境変数、CI Secrets、AWS CLI named profile、Lambda実行ロール等、実行環境側から
+  供給する
+- S3バックエンド（`s3-backend.js`、`@aws-sdk/client-s3`使用）はAWS SDKの既定クレデンシャル
+  チェーンに委ねられるため、`AWS_ACCESS_KEY_ID`等の明示設定は必須ではない。一方SES送信
+  （`ses-client.js`、自前SigV4実装）は`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/
+  `AWS_REGION`/`SES_FROM`を直接読むため、SES送信を行う場合はこれらの明示設定が必須
+
+### IAMポリシー（`PJ2AOPPersonaA`）とコード利用の対応
+
+Lead管理パイプラインの実行に必要な権限は、S3オブジェクト操作（`s3:GetObject`/
+`s3:PutObject`、`s3-backend.js`が使用）と`s3:ListBucket`（`listLeads()`の
+`ListObjectsV2Command`が使用）のみ。`s3:DeleteObject`は現在のアプリコードからは
+一切呼ばれていない（`s3-backend.js`にLead削除関数自体が存在しない）が、テスト用データの
+手動削除や将来のLead削除機能で使う可能性があるため、権限としては保持したままにしている
+（削除・縮小は行っていない）。
+
 ## 人間レビューworkflow（scripts/generator/review/、Task13で追加）
 
 AI生成レポート（`report.json`）は、そのままでは配信に使えない。生成 → 品質評価 → 人間レビュー →

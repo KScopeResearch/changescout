@@ -13,6 +13,7 @@ AORパイプライン（`scripts/generator/`）とReview Dashboard（`website/ao
 | Node.jsバージョン | メジャーバージョン24（CI・ローカル開発とも`v24.18.0`で動作確認済み）。理由は[scripts/generator/README.md「CIのNode.jsバージョンについて」](../scripts/generator/README.md)参照 |
 | 必須環境変数 | `ADMIN_USER`・`ADMIN_PASSWORD`（未設定だと`website/aor-admin/server.js`が起動しない） |
 | 任意環境変数 | `ADMIN_PORT`（既定4600）、`LLM_PROVIDER`/`SEARCH_PROVIDER`とAPIキー（mock運用なら不要）、`JOB_SCHEDULER_ENABLED`等。一覧は[website/aor-admin/README.md「環境変数一覧」](../website/aor-admin/README.md)参照 |
+| Lead保存先（PJ2） | 既定は`filesystem`（`scripts/generator/logs/leads/`）。`LEAD_STORE_BACKEND=s3`を指定するとS3へ切替可能（`LEAD_STORE_S3_BUCKET`必須、`LEAD_STORE_S3_PREFIX`・`AWS_REGION`）。値・S3バケットの運用設定・責務分担は[scripts/generator/README.md「Leadライフサイクル管理とS3バックエンド」](../scripts/generator/README.md#leadライフサイクル管理とs3バックエンドscriptsgeneratorleadspj2で追加)参照。実値のテンプレートは[.env.example](../.env.example)参照（実際のキー値はリポジトリに保存しない） |
 | 必要ディレクトリ | `scripts/generator/output/`・`scripts/generator/logs/`。いずれも初回書き込み時に`fs.mkdirSync(..., {recursive:true})`で自動作成されるため、事前に手動作成する必要は無い |
 | ファイル権限 | Node.jsプロセスの実行ユーザーに、上記2ディレクトリと`website/aor/data/`への読み書き権限が必要（OS依存のため個別手順はここでは扱わない） |
 | `website/aor`（受信者向けLP）の配信方法 | サーバーサイドコード無しの静的サイト。配信方法の詳細は[website/aor/README.md](../website/aor/README.md)（Task29で新設）参照 |
@@ -103,6 +104,12 @@ AORパイプライン（`scripts/generator/`）とReview Dashboard（`website/ao
       配下に`output`/`logs`が作成されていればOK。詳細は
       [scripts/generator/README.md](../scripts/generator/README.md)
       「バックアップ・リストア」参照）
+- [ ] Lead保存先にS3（`LEAD_STORE_BACKEND=s3`）を使う場合、`LEAD_STORE_S3_BUCKET`・
+      `AWS_REGION`が設定済みであることを確認した（AWS Access Key/Secretは`.env.example`にも
+      リポジトリ内のいかなるファイルにも書かず、実行環境側から供給する）。バケット側の
+      Block Public Access・Object Ownership・SSE-S3・Versioningの設定は
+      [scripts/generator/README.md](../scripts/generator/README.md)
+      「Leadライフサイクル管理とS3バックエンド」参照
 
 ## 運用中の確認
 
