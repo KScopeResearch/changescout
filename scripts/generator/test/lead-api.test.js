@@ -26,6 +26,7 @@ const path = require("path");
 
 const { GENERATOR_DIR } = require("../shared/paths");
 const { readJsonLines } = require("../shared/json-file");
+const { createLead, readLead, updateLead, LEADS_DIR } = require("../leads/lead-store");
 
 const SERVER_PATH = path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server.js");
 const leadApi = require(path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server"));
@@ -461,4 +462,312 @@ test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外�
   // サーバーの標準出力・標準エラー出力にも出現してはならない
   assert.ok(!output.stdout.includes(secretEmail), "サーバーのstdoutにメールアドレスが漏洩している");
   assert.ok(!output.stderr.includes(secretEmail), "サーバーのstderrにメールアドレスが漏洩している");
+});
+
+// ---------------------------------------------------------------------------
+// Phase4-A/B API（PJ2 Phase4-A/B、今回追加）:
+//   POST /api/leads/:lead_id/paid-report-request ・
+//   POST /api/leads/:lead_id/weekly-report-consent
+//
+// lead-store.test.js/process-validated.test.jsと同じ方式で、各テストが作成したLeadを
+// t.after()で個別に削除する（leads.jsonl/leads-audit.jsonlのようなスナップショット方式は、
+// Lead本体は1件1ファイルのため不要）。
+// ---------------------------------------------------------------------------
+
+const PHASE4_TEST_EMAIL_DOMAIN = "example.invalid"; // RFC 2606予約、実在しない
+
+/** @param {Object} [overrides] @returns {Object} 作成したLead */
+function createTestLead(overrides = {}) {
+  return createLead({
+    email: `phase4-api-test-${Date.now()}-${Math.random().toString(36).slice(2)}@${PHASE4_TEST_EMAIL_DOMAIN}`,
+    company_url: "https://phase4-api-test.example",
+    source: "テスト",
+    collection_method: "public_website",
+    ...overrides,
+  });
+}
+
+/** @param {string} leadId */
+function cleanupLead(leadId) {
+  fs.rmSync(path.join(LEADS_DIR, `${leadId}.json`), { force: true });
+}
+
+const PHASE4_ACTION_CASES = [
+  {
+    action: "paid-report-request",
+    field: "paid_report_requested",
+    atField: "paid_report_requested_at",
+    event: "paid_report_requested",
+    label: "Phase4-A",
+  },
+  {
+    action: "weekly-report-consent",
+    field: "weekly_report_consent",
+    atField: "weekly_report_consent_at",
+    event: "weekly_report_consent",
+    label: "Phase4-B",
+  },
+];
+
+PHASE4_ACTION_CASES.forEach(({ action, field, atField, event, label }, idx) => {
+  const port = 4720 + idx * 10; // A: 4720-4728 / B: 4730-4738（既存テストの4701-4712とも衝突しない）
+
+  test(`${label} (${action}): 正常なlead_id/report_tokenで201になり、Lead JSONが正しく更新される`, async (t) => {
+    await startTestServer(port, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const res = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port,
+      body: JSON.stringify({ report_token: lead.report_token }),
+    });
+    assert.equal(res.status, 201);
+    assert.deepEqual(JSON.parse(res.body), { ok: true });
+
+    const updated = readLead(lead.lead_id);
+    assert.equal(updated[field], true);
+    assert.equal(typeof updated[atField], "string");
+    assert.ok(updated[atField].length > 0);
+  });
+
+  test(`${label} (${action}): historyへ${event}イベントが1件追加される`, async (t) => {
+    await startTestServer(port + 1, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 1,
+      body: JSON.stringify({ report_token: lead.report_token }),
+    });
+
+    const updated = readLead(lead.lead_id);
+    const matchingEvents = updated.history.map((h) => h.event).filter((e) => e === event);
+    assert.deepEqual(matchingEvents, [event], "1件だけ追加されるはず");
+  });
+
+  test(`${label} (${action}): 存在しないlead_idは404になる`, async (t) => {
+    await startTestServer(port + 2, t);
+
+    const res = await httpRequest({
+      path: `/api/leads/${"0".repeat(64)}/${action}`,
+      method: "POST",
+      port: port + 2,
+      body: JSON.stringify({ report_token: "dummy" }),
+    });
+    assert.equal(res.status, 404);
+    assert.equal(JSON.parse(res.body).ok, false);
+  });
+
+  test(`${label} (${action}): report_tokenが一致しない場合は403になり、Leadは更新されない`, async (t) => {
+    await startTestServer(port + 3, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const res = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 3,
+      body: JSON.stringify({ report_token: "wrong-token" }),
+    });
+    assert.equal(res.status, 403);
+
+    const unchanged = readLead(lead.lead_id);
+    assert.equal(unchanged[field], false);
+    assert.equal(unchanged[atField], null);
+    assert.equal(unchanged.history.some((h) => h.event === event), false);
+  });
+
+  test(`${label} (${action}): report_tokenが未指定の場合は403になる`, async (t) => {
+    await startTestServer(port + 4, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const res = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 4,
+      body: JSON.stringify({}),
+    });
+    assert.equal(res.status, 403);
+  });
+
+  test(`${label} (${action}): report_tokenが空文字の場合は403になる`, async (t) => {
+    await startTestServer(port + 5, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const res = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 5,
+      body: JSON.stringify({ report_token: "" }),
+    });
+    assert.equal(res.status, 403);
+  });
+
+  test(`${label} (${action}): 不正なJSONボディは400になる`, async (t) => {
+    await startTestServer(port + 6, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const res = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 6,
+      body: "{not valid json",
+    });
+    assert.equal(res.status, 400);
+  });
+
+  test(`${label} (${action}): 既にtrueの状態で再実行しても壊れない（べき等、_at/historyは変化しない）`, async (t) => {
+    await startTestServer(port + 7, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const first = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 7,
+      body: JSON.stringify({ report_token: lead.report_token }),
+    });
+    assert.equal(first.status, 201);
+    const afterFirst = readLead(lead.lead_id);
+
+    await sleep(50); // _atが「変わっていない」ことの確認に意味を持たせるための待機
+
+    const second = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 7,
+      body: JSON.stringify({ report_token: lead.report_token }),
+    });
+    assert.equal(second.status, 201, "2回目も201を返す（false→true, true→trueを許容）");
+
+    const afterSecond = readLead(lead.lead_id);
+    assert.equal(afterSecond[field], true);
+    assert.equal(afterSecond[atField], afterFirst[atField], "_atは最初にtrueになった時刻のまま変わらないはず");
+    assert.deepEqual(
+      afterSecond.history.map((h) => h.event).filter((e) => e === event),
+      [event],
+      "historyには重複して追記されないはず"
+    );
+  });
+
+  test(`${label} (${action}): レスポンスにemail・report_tokenが一切含まれない（成功・403・404いずれも）`, async (t) => {
+    await startTestServer(port + 8, t);
+    const lead = createTestLead();
+    t.after(() => cleanupLead(lead.lead_id));
+
+    const successRes = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 8,
+      body: JSON.stringify({ report_token: lead.report_token }),
+    });
+    assert.ok(!successRes.body.includes(lead.email));
+    assert.ok(!successRes.body.includes(lead.report_token));
+
+    const forbiddenRes = await httpRequest({
+      path: `/api/leads/${lead.lead_id}/${action}`,
+      method: "POST",
+      port: port + 8,
+      body: JSON.stringify({ report_token: "wrong" }),
+    });
+    assert.ok(!forbiddenRes.body.includes(lead.email));
+    assert.ok(!forbiddenRes.body.includes(lead.report_token));
+
+    const notFoundRes = await httpRequest({
+      path: `/api/leads/${"f".repeat(64)}/${action}`,
+      method: "POST",
+      port: port + 8,
+      body: JSON.stringify({ report_token: "irrelevant" }),
+    });
+    assert.ok(!notFoundRes.body.includes(lead.email));
+  });
+});
+
+test("Phase4-A（paid-report-request）を実行しても、weekly_report_consentは変化しない", async (t) => {
+  const port = 4790;
+  await startTestServer(port, t);
+  const lead = createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const res = await httpRequest({
+    path: `/api/leads/${lead.lead_id}/paid-report-request`,
+    method: "POST",
+    port,
+    body: JSON.stringify({ report_token: lead.report_token }),
+  });
+  assert.equal(res.status, 201);
+
+  const updated = readLead(lead.lead_id);
+  assert.equal(updated.paid_report_requested, true);
+  assert.equal(updated.weekly_report_consent, false, "Aを実行してもBの属性は変化しないはず");
+  assert.equal(updated.weekly_report_consent_at, null);
+  assert.equal(updated.history.some((h) => h.event === "weekly_report_consent"), false);
+});
+
+test("Phase4-B（weekly-report-consent）を実行しても、paid_report_requestedは変化しない", async (t) => {
+  const port = 4791;
+  await startTestServer(port, t);
+  const lead = createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const res = await httpRequest({
+    path: `/api/leads/${lead.lead_id}/weekly-report-consent`,
+    method: "POST",
+    port,
+    body: JSON.stringify({ report_token: lead.report_token }),
+  });
+  assert.equal(res.status, 201);
+
+  const updated = readLead(lead.lead_id);
+  assert.equal(updated.weekly_report_consent, true);
+  assert.equal(updated.paid_report_requested, false, "Bを実行してもAの属性は変化しないはず");
+  assert.equal(updated.paid_report_requested_at, null);
+  assert.equal(updated.history.some((h) => h.event === "paid_report_requested"), false);
+});
+
+test("Phase4-A/B: status/delivery_statusは一切変更されない（statusがinitial_report_sent等であっても）", async (t) => {
+  const port = 4792;
+  await startTestServer(port, t);
+  const lead = createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  updateLead(lead.lead_id, { status: "initial_report_sent" });
+
+  const res = await httpRequest({
+    path: `/api/leads/${lead.lead_id}/paid-report-request`,
+    method: "POST",
+    port,
+    body: JSON.stringify({ report_token: lead.report_token }),
+  });
+  assert.equal(res.status, 201);
+
+  const updated = readLead(lead.lead_id);
+  assert.equal(updated.status, "initial_report_sent", "statusは変更されないはず");
+  assert.equal(updated.delivery_status, "active", "delivery_statusも変更されないはず");
+});
+
+test('Phase4-A/B: status:"rejected"のLeadに対しても、statusを勝手にvalidated等へ戻さない', async (t) => {
+  const port = 4793;
+  await startTestServer(port, t);
+  const lead = createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  updateLead(lead.lead_id, { status: "rejected" });
+
+  const res = await httpRequest({
+    path: `/api/leads/${lead.lead_id}/weekly-report-consent`,
+    method: "POST",
+    port,
+    body: JSON.stringify({ report_token: lead.report_token }),
+  });
+  assert.equal(res.status, 201);
+
+  const updated = readLead(lead.lead_id);
+  assert.equal(updated.status, "rejected", "statusはrejectedのまま変わらないはず");
+  assert.equal(updated.weekly_report_consent, true, "Phase4-B自体は成功するはず");
 });

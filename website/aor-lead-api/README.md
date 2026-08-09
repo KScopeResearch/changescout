@@ -51,6 +51,29 @@ node website/aor-lead-api/server.js
 
 成功時は`201 { "ok": true }`、検証エラーは`400`、レート制限時は`429`を返す。
 
+### Phase4-A/B API（PJ2 Phase4-A/B、今回追加）
+
+`report_generated`以降のLead（`scripts/generator/leads/lead-store.js`で管理）に対する、
+report-preview.html経由のメールリンクからの操作を受け付ける。
+
+`POST /api/leads/:lead_id/paid-report-request`（Phase4-A: 詳しい有料レポートが欲しい）
+`POST /api/leads/:lead_id/weekly-report-consent`（Phase4-B: 毎週無料レポートに同意する）
+
+```json
+{ "report_token": "..." }
+```
+
+- `lead_id`不明（存在しない・不正な形式） → `404`
+- `report_token`不一致（未指定・空文字を含む） → `403`
+- 成功 → `201 { "ok": true }`
+- 成功時、Phase4-Aは`paid_report_requested`/`paid_report_requested_at`を、Phase4-Bは
+  `weekly_report_consent`/`weekly_report_consent_at`を更新し、history（`lead-store.js`）へ
+  対応イベントを追加する。両属性はLeadの`status`/`delivery_status`とは独立しており、
+  このAPIはstatus/delivery_statusを一切変更しない
+- 対象属性が既に`true`の場合は、再送（ボタンの多重クリック等）とみなし、
+  書き込み・historyへの追記を行わずそのまま`201`を返す（べき等）
+- `report_token`はレスポンス・エラー応答・ログ・historyのいずれにも含めない
+
 ## 保存先とログ
 
 | ファイル | 内容 | 備考 |

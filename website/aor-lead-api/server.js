@@ -47,6 +47,19 @@
  *   - CORSは許可リスト方式（ALLOWED_ORIGINS、環境変数LEAD_API_ALLOWED_ORIGINSで設定）。
  *     認証機構としては扱わない（詳細はapplyCorsHeaders()のコメント参照）
  *
+ * 【PJ2 Phase4-A/B API（今回追加）】
+ *   - POST /api/leads/:lead_id/paid-report-request（Phase4-A: 詳しい有料レポートが欲しい）
+ *   - POST /api/leads/:lead_id/weekly-report-consent（Phase4-B: 毎週無料レポートに同意する）
+ *   いずれもbody {report_token} を要求し、scripts/generator/leads/lead-store.js（PJ2
+ *   Leadライフサイクル管理のコア、既存モジュール）のreadLead/updateLead/appendHistoryを
+ *   そのまま利用する（新しいLead永続化ロジックはここに実装しない）。ルーティングは
+ *   website/aor-admin/server.jsの既存のパスパラメータ方式
+ *   （`pathname.match(/^\/api\/(comment|fix|...)\/([^/]+)$/)`）と同じ正規表現マッチの
+ *   スタイルを踏襲する。詳細な確定仕様は「PJ2 Leadライフサイクル 実装仕様 最終確定」
+ *   （lead_id不明→404、report_token不一致→403、成功→201）を参照。
+ *   このAPIの責務はPhase4-A/Bの属性（paid_report_requested/weekly_report_consent）の
+ *   更新のみであり、Leadのstatus・delivery_statusは一切変更しない（別概念のため）。
+ *
  * 使い方:
  *   node website/aor-lead-api/server.js
  *   （LEAD_API_PORT環境変数でポート変更可、既定4700。
@@ -64,6 +77,7 @@ const { nowIso } = require("../../scripts/generator/shared/date-utils");
 const { createLogger } = require("../../scripts/generator/shared/logger");
 const { LOGS_DIR } = require("../../scripts/generator/shared/paths");
 const { archiveIfOversize } = require("../../scripts/generator/shared/log-rotation");
+const { readLead, updateLead, appendHistory } = require("../../scripts/generator/leads/lead-store");
 const rateLimit = require("./rate-limit");
 
 const logger = createLogger("aor-lead-api");
@@ -306,6 +320,101 @@ async function handleCreateLead(req, res) {
 }
 
 // ---------------------------------------------------------------------------
+// Phase4-A/B: POST /api/leads/:lead_id/paid-report-request ・
+//             POST /api/leads/:lead_id/weekly-report-consent（PJ2 Phase4-A/B API）
+// ---------------------------------------------------------------------------
+
+// action（URLパスの末尾セグメント）ごとに、更新するLeadの属性名・historyイベント名を
+// 対応付ける。A/Bで処理ロジック（handlePhase4Action）自体を完全に共有することで、
+// report_token検証やstatus/delivery_status非変更の扱いがA/B間でずれないようにする。
+const PHASE4_ACTIONS = {
+  "paid-report-request": {
+    field: "paid_report_requested",
+    atField: "paid_report_requested_at",
+    event: "paid_report_requested",
+  },
+  "weekly-report-consent": {
+    field: "weekly_report_consent",
+    atField: "weekly_report_consent_at",
+    event: "weekly_report_consent",
+  },
+};
+
+/**
+ * Phase4-A/B共通処理。「PJ2 Leadライフサイクル 実装仕様 最終確定」の確定仕様どおり、
+ * lead_id不明→404、report_token不一致→403、成功→201を返す。
+ *
+ * 【status/delivery_statusとの関係】paid_report_requested/weekly_report_consentは
+ * status/delivery_statusとは独立した属性であり、この関数はLeadのstatus・
+ * delivery_statusを一切変更しない（呼び出し元のLeadがどのstatus・delivery_statusで
+ * あっても、この2属性の更新だけを行う。例えばstatus:"rejected"のLeadに対しても、
+ * このAPIがstatusをvalidated等へ勝手に戻すことはない）。
+ *
+ * 【重複クリック・再送への対応】対象属性が既にtrueの場合は、書き込み（updateLead/
+ * appendHistory）を一切行わずそのまま201を返す（べき等）。理由: VALID_EVENTSの各
+ * historyイベントは「実際に発生した状態遷移」を記録するものであり
+ * （lead-store.jsの既存コメント、および process-validated.js が
+ * 「report_generated済みLeadは再処理対象にならない＝重複イベントを記録しない」を
+ * 徹底しているのと同じ設計思想）、既にtrueの属性に対する再送はボタンの多重クリック等に
+ * よる同一イベントの再送であり、新たな状態遷移ではないため、historyへの重複追記も
+ * paid_report_requested_at/weekly_report_consent_atの上書きも行わない
+ * （_atは「最初にtrueになった時刻」を保持し続ける。collected_atが作成時刻から
+ * 不変であるのと同じ扱い）。
+ *
+ * 【report_tokenの扱い】致し方なくボディで受け取るが、レスポンス・エラー応答・
+ * ログ・historyのいずれにも一切含めない（比較にのみ使う）。
+ *
+ * @param {import("http").IncomingMessage} req
+ * @param {import("http").ServerResponse} res
+ * @param {string} leadId - URLパスの:lead_id部分
+ * @param {"paid-report-request"|"weekly-report-consent"} action
+ */
+async function handlePhase4Action(req, res, leadId, action) {
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch (e) {
+    if (e.message === "too_large") {
+      sendJson(res, 413, { ok: false, error: "リクエストボディが大きすぎます" });
+    } else {
+      sendJson(res, 400, { ok: false, error: "リクエストボディが不正なJSONです" });
+    }
+    return;
+  }
+
+  let lead;
+  try {
+    lead = readLead(leadId);
+  } catch (e) {
+    // lead_idが不正な形式（lead-store.jsのvalidateSlug()検証に失敗）の場合もreadLead()は
+    // 例外を投げるが、実在しないlead_idと区別せず404として扱う（形式検証の内部詳細を
+    // レスポンスへ露出しない）。
+    lead = null;
+  }
+  if (!lead) {
+    sendJson(res, 404, { ok: false, error: "lead not found" });
+    return;
+  }
+
+  // report_token不一致（未指定・空文字・型不正を含む）は一律403とする。「PJ2
+  // Leadライフサイクル 実装仕様 最終確定」で確定しているステータスコードは
+  // 404/403/201の3種のみのため、report_token関連の不備をまとめて403として扱い、
+  // 仕様にない400等を新設しない。
+  if (typeof body.report_token !== "string" || body.report_token.length === 0 || body.report_token !== lead.report_token) {
+    sendJson(res, 403, { ok: false, error: "report_tokenが一致しません" });
+    return;
+  }
+
+  const config = PHASE4_ACTIONS[action];
+  if (lead[config.field] !== true) {
+    updateLead(leadId, { [config.field]: true, [config.atField]: nowIso() });
+    appendHistory(leadId, config.event);
+  }
+
+  sendJson(res, 201, { ok: true });
+}
+
+// ---------------------------------------------------------------------------
 // サーバー起動
 // ---------------------------------------------------------------------------
 
@@ -326,31 +435,59 @@ function startServer() {
       return;
     }
 
-    if (url.pathname !== "/api/leads") {
-      sendJson(res, 404, { ok: false, error: "not found" });
+    if (url.pathname === "/api/leads") {
+      if (req.method !== "POST") {
+        res.setHeader("Allow", "POST, OPTIONS");
+        sendJson(res, 405, { ok: false, error: "method not allowed" });
+        return;
+      }
+
+      const ip = clientIp(req);
+      if (rateLimit.isBlocked(ip)) {
+        logLeadEvent({ action: "lead_rate_limited", company_slug: null, success: false });
+        sendJson(res, 429, { ok: false, error: "リクエストが多すぎます。しばらく待ってから再試行してください。" });
+        return;
+      }
+      rateLimit.recordRequest(ip);
+
+      try {
+        await handleCreateLead(req, res);
+      } catch (e) {
+        logger.error(`予期しないエラー: ${e.message}`); // emailを含まない固定文言
+        if (!res.headersSent) sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
+      }
       return;
     }
 
-    if (req.method !== "POST") {
-      res.setHeader("Allow", "POST, OPTIONS");
-      sendJson(res, 405, { ok: false, error: "method not allowed" });
+    // PJ2 Phase4-A/B API。website/aor-admin/server.jsの既存のパスパラメータ方式
+    // （正規表現マッチ）を踏襲する。
+    const phase4Match = url.pathname.match(/^\/api\/leads\/([^/]+)\/(paid-report-request|weekly-report-consent)$/);
+    if (phase4Match) {
+      const [, leadId, action] = phase4Match;
+
+      if (req.method !== "POST") {
+        res.setHeader("Allow", "POST, OPTIONS");
+        sendJson(res, 405, { ok: false, error: "method not allowed" });
+        return;
+      }
+
+      const ip = clientIp(req);
+      if (rateLimit.isBlocked(ip)) {
+        sendJson(res, 429, { ok: false, error: "リクエストが多すぎます。しばらく待ってから再試行してください。" });
+        return;
+      }
+      rateLimit.recordRequest(ip);
+
+      try {
+        await handlePhase4Action(req, res, leadId, action);
+      } catch (e) {
+        logger.error(`予期しないエラー: ${e.message}`); // emailを含まない固定文言
+        if (!res.headersSent) sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
+      }
       return;
     }
 
-    const ip = clientIp(req);
-    if (rateLimit.isBlocked(ip)) {
-      logLeadEvent({ action: "lead_rate_limited", company_slug: null, success: false });
-      sendJson(res, 429, { ok: false, error: "リクエストが多すぎます。しばらく待ってから再試行してください。" });
-      return;
-    }
-    rateLimit.recordRequest(ip);
-
-    try {
-      await handleCreateLead(req, res);
-    } catch (e) {
-      logger.error(`予期しないエラー: ${e.message}`); // emailを含まない固定文言
-      if (!res.headersSent) sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
-    }
+    sendJson(res, 404, { ok: false, error: "not found" });
   });
 
   server.listen(PORT, () => {
