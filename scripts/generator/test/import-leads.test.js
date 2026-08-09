@@ -6,6 +6,10 @@
  * （lead-store.test.jsと同じクリーンアップ方式）。CSV自体はos.tmpdir()配下の
  * 一時ディレクトリに書き出し、テスト後に削除する（リポジトリにCSVフィクスチャを
  * 追加しない）。
+ *
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化に伴いimportLeadsFromCsv()および
+ * lead-store.jsの各関数が非同期になったため、本ファイルの全テストをasync/awaitへ
+ * 変更した（既定のfilesystemバックエンドのまま、AWSへは接続しない）。
  */
 
 const { test } = require("node:test");
@@ -43,13 +47,13 @@ const HEADER = "email,source,collection_method,collected_at,company_url,contact_
 // 1. 正常な新規Lead作成
 // ---------------------------------------------------------------------------
 
-test("正常な新規Lead作成: created・validatedがともに1件、statusはvalidated", (t) => {
+test("正常な新規Lead作成: created・validatedがともに1件、statusはvalidated", async (t) => {
   const email = "import-test-normal@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.total, 1);
@@ -59,7 +63,7 @@ test("正常な新規Lead作成: created・validatedがともに1件、statusは
   assert.equal(result.summary.errors, 0);
 
   const leadId = result.rows[0].lead_id;
-  const lead = readLead(leadId);
+  const lead = await readLead(leadId);
   assert.equal(lead.status, "validated");
   assert.equal(lead.email, email);
 });
@@ -68,13 +72,13 @@ test("正常な新規Lead作成: created・validatedがともに1件、statusは
 // 2. 必須項目不足
 // ---------------------------------------------------------------------------
 
-test("必須項目不足: company_urlが空の行はerrorsになり、Leadは作成されない", (t) => {
+test("必須項目不足: company_urlが空の行はerrorsになり、Leadは作成されない", async (t) => {
   const email = "import-test-missing@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.errors, 1);
@@ -86,47 +90,47 @@ test("必須項目不足: company_urlが空の行はerrorsになり、Leadは作
 // 3〜5. 不正email / company_url / collected_at
 // ---------------------------------------------------------------------------
 
-test("不正email: created+rejectedになる（Leadは作成されるがrejected）", (t) => {
+test("不正email: created+rejectedになる（Leadは作成されるがrejected）", async (t) => {
   const csv = `${HEADER}\nnot-an-email,公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.created, 1);
   assert.equal(result.summary.rejected, 1);
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.equal(lead.status, "rejected");
 });
 
-test("不正company_url: created+rejectedになる", (t) => {
+test("不正company_url: created+rejectedになる", async (t) => {
   const email = "import-test-badurl@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,not-a-url,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.created, 1);
   assert.equal(result.summary.rejected, 1);
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.equal(lead.status, "rejected");
 });
 
-test("不正collected_at: created+rejectedになる", (t) => {
+test("不正collected_at: created+rejectedになる", async (t) => {
   const email = "import-test-baddate@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,not-a-date,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.created, 1);
   assert.equal(result.summary.rejected, 1);
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.equal(lead.status, "rejected");
 });
 
@@ -134,14 +138,14 @@ test("不正collected_at: created+rejectedになる", (t) => {
 // 6. 同一emailの重複
 // ---------------------------------------------------------------------------
 
-test("同一emailの重複: 2回目はduplicateになり、新規lead_idを発番しない", (t) => {
+test("同一emailの重複: 2回目はduplicateになり、新規lead_idを発番しない", async (t) => {
   const email = "import-test-dup@example.invalid";
   const row = `${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const csv = `${HEADER}\n${row}\n${row}`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.equal(result.summary.created, 1);
@@ -154,27 +158,27 @@ test("同一emailの重複: 2回目はduplicateになり、新規lead_idを発�
 // 7. rejected Leadの再取り込み成功
 // ---------------------------------------------------------------------------
 
-test("rejected Leadの再取り込み: 修正後の再取り込みでvalidatedになり、同一lead_idを維持する", (t) => {
+test("rejected Leadの再取り込み: 修正後の再取り込みでvalidatedになり、同一lead_idを維持する", async (t) => {
   const email = "import-test-reimport@example.invalid";
   const badCsv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,not-a-url,,,,`;
   const { dir: dir1, file: file1 } = writeTempCsv(badCsv);
   t.after(() => cleanupTempDir(dir1));
 
-  const firstResult = importLeadsFromCsv(file1);
+  const firstResult = await importLeadsFromCsv(file1);
   t.after(() => cleanupLeadsFromResult(firstResult));
   assert.equal(firstResult.summary.rejected, 1);
   const originalLeadId = firstResult.rows[0].lead_id;
-  assert.equal(readLead(originalLeadId).status, "rejected");
+  assert.equal((await readLead(originalLeadId)).status, "rejected");
 
   const goodCsv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir: dir2, file: file2 } = writeTempCsv(goodCsv);
   t.after(() => cleanupTempDir(dir2));
 
-  const secondResult = importLeadsFromCsv(file2);
+  const secondResult = await importLeadsFromCsv(file2);
   assert.equal(secondResult.summary.validated, 1);
   assert.equal(secondResult.summary.created, 0, "新規lead_idは発番しないはず");
   assert.equal(secondResult.rows[0].lead_id, originalLeadId, "同一lead_idを維持するはず");
-  assert.equal(readLead(originalLeadId).status, "validated");
+  assert.equal((await readLead(originalLeadId)).status, "validated");
 });
 
 // ---------------------------------------------------------------------------
@@ -182,25 +186,25 @@ test("rejected Leadの再取り込み: 修正後の再取り込みでvalidated�
 // ---------------------------------------------------------------------------
 
 ["unsubscribed", "bounced", "suppressed"].forEach((deliveryStatus) => {
-  test(`${deliveryStatus} Leadのブロック: 新規行はblockedになり、既存Leadは変更されない`, (t) => {
+  test(`${deliveryStatus} Leadのブロック: 新規行はblockedになり、既存Leadは変更されない`, async (t) => {
     const email = `import-test-${deliveryStatus}@example.invalid`;
-    const existing = createLead({
+    const existing = await createLead({
       email,
       company_url: "https://example.com",
       source: "手動登録（テスト前提データ）",
       collection_method: "public_website",
     });
-    updateLead(existing.lead_id, { delivery_status: deliveryStatus });
+    await updateLead(existing.lead_id, { delivery_status: deliveryStatus });
     t.after(() => fs.rmSync(path.join(LEADS_DIR, `${existing.lead_id}.json`), { force: true }));
 
     const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
     const { dir, file } = writeTempCsv(csv);
     t.after(() => cleanupTempDir(dir));
 
-    const result = importLeadsFromCsv(file);
+    const result = await importLeadsFromCsv(file);
     assert.equal(result.summary.blocked, 1);
     assert.equal(result.summary.created, 0);
-    assert.equal(readLead(existing.lead_id).delivery_status, deliveryStatus, "既存Leadは変更されないはず");
+    assert.equal((await readLead(existing.lead_id)).delivery_status, deliveryStatus, "既存Leadは変更されないはず");
   });
 });
 
@@ -208,7 +212,7 @@ test("rejected Leadの再取り込み: 修正後の再取り込みでvalidated�
 // 11. 任意項目の保存
 // ---------------------------------------------------------------------------
 
-test("任意項目の保存: contact_name/department/notes/source_urlが値がある場合に保存される", (t) => {
+test("任意項目の保存: contact_name/department/notes/source_urlが値がある場合に保存される", async (t) => {
   const email = "import-test-optional@example.invalid";
   const csv =
     `${HEADER}\n` +
@@ -216,10 +220,10 @@ test("任意項目の保存: contact_name/department/notes/source_urlが値が�
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.equal(lead.contact_name, "山田太郎");
   assert.equal(lead.department, "営業部");
   assert.equal(lead.notes, "メモ");
@@ -230,7 +234,7 @@ test("任意項目の保存: contact_name/department/notes/source_urlが値が�
 // 12〜13. lead_id / report_token
 // ---------------------------------------------------------------------------
 
-test("lead_idが重複しない・report_tokenが生成される", (t) => {
+test("lead_idが重複しない・report_tokenが生成される", async (t) => {
   const csv =
     `${HEADER}\n` +
     `import-test-id1@example.invalid,公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,\n` +
@@ -238,12 +242,12 @@ test("lead_idが重複しない・report_tokenが生成される", (t) => {
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
   assert.notEqual(result.rows[0].lead_id, result.rows[1].lead_id);
-  const lead1 = readLead(result.rows[0].lead_id);
-  const lead2 = readLead(result.rows[1].lead_id);
+  const lead1 = await readLead(result.rows[0].lead_id);
+  const lead2 = await readLead(result.rows[1].lead_id);
   assert.ok(lead1.report_token);
   assert.ok(lead2.report_token);
   assert.notEqual(lead1.report_token, lead2.report_token);
@@ -253,16 +257,16 @@ test("lead_idが重複しない・report_tokenが生成される", (t) => {
 // 14. company_slugがnullのまま
 // ---------------------------------------------------------------------------
 
-test("company_slugがnullのまま作成される（Phase2で確定するため今回は設定しない）", (t) => {
+test("company_slugがnullのまま作成される（Phase2で確定するため今回は設定しない）", async (t) => {
   const email = "import-test-slugnull@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.equal(lead.company_slug, null);
 });
 
@@ -270,31 +274,31 @@ test("company_slugがnullのまま作成される（Phase2で確定するため�
 // 15. historyの記録
 // ---------------------------------------------------------------------------
 
-test("history: 新規validatedの場合はcollected→validatedの順で記録される", (t) => {
+test("history: 新規validatedの場合はcollected→validatedの順で記録される", async (t) => {
   const email = "import-test-history-ok@example.invalid";
   const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.deepEqual(
     lead.history.map((h) => h.event),
     ["collected", "validated"]
   );
 });
 
-test("history: 新規rejectedの場合はcollected→rejectedの順で記録される", (t) => {
+test("history: 新規rejectedの場合はcollected→rejectedの順で記録される", async (t) => {
   const csv = `${HEADER}\nnot-an-email,公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
   const { dir, file } = writeTempCsv(csv);
   t.after(() => cleanupTempDir(dir));
 
-  const result = importLeadsFromCsv(file);
+  const result = await importLeadsFromCsv(file);
   t.after(() => cleanupLeadsFromResult(result));
 
-  const lead = readLead(result.rows[0].lead_id);
+  const lead = await readLead(result.rows[0].lead_id);
   assert.deepEqual(
     lead.history.map((h) => h.event),
     ["collected", "rejected"]

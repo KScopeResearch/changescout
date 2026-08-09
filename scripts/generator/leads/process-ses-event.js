@@ -216,10 +216,12 @@ function buildEventMetadata(leadEvent, { messageId, detail }) {
 /**
  * 1件のSESイベントを処理し、Leadのdelivery_status・historyへ反映する。
  * ネットワーク接続は行わない（呼び出し元が既にJSONへ解決済みのイベントを渡す前提）。
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化（filesystem/S3）に伴い、
+ * readLead/updateLead/appendHistoryが非同期になったため、本関数もasyncにした。
  * @param {Object} rawEvent - SESイベントJSON（parseSesEvent()参照）
- * @returns {{ok:boolean, leadId?:string, event?:string, error?:string}}
+ * @returns {Promise<{ok:boolean, leadId?:string, event?:string, error?:string}>}
  */
-function processSesEvent(rawEvent) {
+async function processSesEvent(rawEvent) {
   const parsed = parseSesEvent(rawEvent);
   if (!parsed.ok) {
     return { ok: false, error: parsed.error };
@@ -229,7 +231,7 @@ function processSesEvent(rawEvent) {
 
   let lead;
   try {
-    lead = readLead(leadId);
+    lead = await readLead(leadId);
   } catch (e) {
     // lead_idが不正な形式（lead-store.jsのvalidateSlug()検証に失敗）の場合もreadLead()は
     // 例外を投げるが、実在しないlead_idと区別せず「見つからない」として扱う
@@ -245,11 +247,11 @@ function processSesEvent(rawEvent) {
   // そもそもDELIVERY_STATUS_FOR_EVENTに定義がないため対象外（常にnull）。
   const targetDeliveryStatus = deliveryStatusForEvent(leadEvent);
   if (targetDeliveryStatus && lead.delivery_status !== "unsubscribed") {
-    updateLead(leadId, { delivery_status: targetDeliveryStatus });
+    await updateLead(leadId, { delivery_status: targetDeliveryStatus });
   }
 
   const metadata = buildEventMetadata(leadEvent, { messageId, detail });
-  appendHistory(leadId, leadEvent, metadata);
+  await appendHistory(leadId, leadEvent, metadata);
 
   return { ok: true, leadId, event: leadEvent };
 }

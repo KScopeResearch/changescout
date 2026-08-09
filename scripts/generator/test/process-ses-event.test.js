@@ -4,6 +4,11 @@
  * AWS/SESへの実接続は行わない。SESイベントJSONのfixtureを直接processSesEvent()へ渡して
  * 検証する（lead-store.test.js/process-validated.test.jsと同じ、各テストが作成した
  * Leadをt.after()で個別に削除する方式）。
+ *
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化に伴い、processSesEvent()および
+ * lead-store.jsの各関数が非同期になったため、それらを呼ぶテストをasync/awaitへ
+ * 変更した（parseSesEvent/mapEventTypeToLeadEvent/extractLeadIdTag/
+ * deliveryStatusForEvent/buildEventMetadataはPure Functionのままなので変更していない）。
  */
 
 const { test } = require("node:test");
@@ -39,12 +44,12 @@ function sampleParams(overrides = {}) {
 /**
  * status:"initial_report_sent"（SESイベントが発生しうる、送信済みのLead）を作成する。
  * @param {Object} [overrides]
- * @returns {Object}
+ * @returns {Promise<Object>}
  */
-function createSentLead(overrides = {}) {
-  const created = createLead(sampleParams(overrides));
-  updateLead(created.lead_id, { status: "initial_report_sent" });
-  appendHistory(created.lead_id, "initial_report_sent", { message_id: "ses-initial-send-dummy" });
+async function createSentLead(overrides = {}) {
+  const created = await createLead(sampleParams(overrides));
+  await updateLead(created.lead_id, { status: "initial_report_sent" });
+  await appendHistory(created.lead_id, "initial_report_sent", { message_id: "ses-initial-send-dummy" });
   return readLead(created.lead_id);
 }
 
@@ -174,15 +179,15 @@ test("parseSesEvent: message tagにlead_idが無い場合はok:falseになる", 
 // processSesEvent(): 5種類のイベント正常系
 // ---------------------------------------------------------------------------
 
-test("email_delivered: historyに追加され、status/delivery_statusは変更されない", (t) => {
-  const lead = createSentLead();
+test("email_delivered: historyに追加され、status/delivery_statusは変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
-  const result = processSesEvent(sesEvent("Delivery", lead.lead_id));
+  const result = await processSesEvent(sesEvent("Delivery", lead.lead_id));
   assert.equal(result.ok, true);
   assert.equal(result.event, "email_delivered");
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent", "statusは変わらないはず");
   assert.equal(updated.delivery_status, "active", "delivery_statusは変わらないはず");
   const entry = updated.history.find((h) => h.event === "email_delivered");
@@ -190,16 +195,16 @@ test("email_delivered: historyに追加され、status/delivery_statusは変更�
   assert.equal(entry.metadata.message_id, "ses-message-id-delivery");
 });
 
-test("email_opened: historyに追加され、UA/IPがmetadataに保存される。status/delivery_statusは変更されない", (t) => {
-  const lead = createSentLead();
+test("email_opened: historyに追加され、UA/IPがmetadataに保存される。status/delivery_statusは変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
-  const result = processSesEvent(
+  const result = await processSesEvent(
     sesEvent("Open", lead.lead_id, { detail: { userAgent: "Mozilla/5.0 (Test)", ipAddress: "203.0.113.5" } })
   );
   assert.equal(result.ok, true);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent");
   assert.equal(updated.delivery_status, "active");
   const entry = updated.history.find((h) => h.event === "email_opened");
@@ -210,15 +215,15 @@ test("email_opened: historyに追加され、UA/IPがmetadataに保存される�
   });
 });
 
-test("email_clicked: historyに追加され、URLがmetadataに保存される。status/delivery_statusは変更されない", (t) => {
-  const lead = createSentLead();
+test("email_clicked: historyに追加され、URLがmetadataに保存される。status/delivery_statusは変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
   const clickedUrl = "https://aor.example.invalid/report-preview.html?company=s&lead=l&token=t";
-  const result = processSesEvent(sesEvent("Click", lead.lead_id, { detail: { link: clickedUrl } }));
+  const result = await processSesEvent(sesEvent("Click", lead.lead_id, { detail: { link: clickedUrl } }));
   assert.equal(result.ok, true);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent");
   assert.equal(updated.delivery_status, "active");
   const entry = updated.history.find((h) => h.event === "email_clicked");
@@ -226,16 +231,16 @@ test("email_clicked: historyに追加され、URLがmetadataに保存される�
   assert.equal(entry.metadata.message_id, "ses-message-id-click");
 });
 
-test("email_bounced: historyに追加され、delivery_statusがbouncedになる。statusは変更されない", (t) => {
-  const lead = createSentLead();
+test("email_bounced: historyに追加され、delivery_statusがbouncedになる。statusは変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
-  const result = processSesEvent(
+  const result = await processSesEvent(
     sesEvent("Bounce", lead.lead_id, { detail: { bounceType: "Permanent", bounceSubType: "General" } })
   );
   assert.equal(result.ok, true);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent", "statusは変わらないはず");
   assert.equal(updated.delivery_status, "bounced");
   const entry = updated.history.find((h) => h.event === "email_bounced");
@@ -246,14 +251,14 @@ test("email_bounced: historyに追加され、delivery_statusがbouncedになる
   });
 });
 
-test("email_complaint: historyに追加され、delivery_statusがsuppressedになる。statusは変更されない", (t) => {
-  const lead = createSentLead();
+test("email_complaint: historyに追加され、delivery_statusがsuppressedになる。statusは変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
-  const result = processSesEvent(sesEvent("Complaint", lead.lead_id, { detail: { complaintFeedbackType: "abuse" } }));
+  const result = await processSesEvent(sesEvent("Complaint", lead.lead_id, { detail: { complaintFeedbackType: "abuse" } }));
   assert.equal(result.ok, true);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent");
   assert.equal(updated.delivery_status, "suppressed");
   const entry = updated.history.find((h) => h.event === "email_complaint");
@@ -264,37 +269,37 @@ test("email_complaint: historyに追加され、delivery_statusがsuppressedに�
 // 不正・未知イベントへの対応
 // ---------------------------------------------------------------------------
 
-test("未知のevent_type: Leadを変更せず、ok:falseを返す", (t) => {
-  const lead = createSentLead();
+test("未知のevent_type: Leadを変更せず、ok:falseを返す", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  const before = readLead(lead.lead_id);
+  const before = await readLead(lead.lead_id);
 
-  const result = processSesEvent(sesEvent("Send", lead.lead_id));
+  const result = await processSesEvent(sesEvent("Send", lead.lead_id));
   assert.equal(result.ok, false);
 
-  assert.deepEqual(readLead(lead.lead_id), before, "Leadは一切変更されないはず");
+  assert.deepEqual(await readLead(lead.lead_id), before, "Leadは一切変更されないはず");
 });
 
-test("存在しないlead_id: Leadを作成せず、ok:falseを返す", () => {
+test("存在しないlead_id: Leadを作成せず、ok:falseを返す", async () => {
   const nonExistentId = "f".repeat(64);
-  const result = processSesEvent(sesEvent("Delivery", nonExistentId));
+  const result = await processSesEvent(sesEvent("Delivery", nonExistentId));
   assert.equal(result.ok, false);
-  assert.equal(readLead(nonExistentId), null, "存在しないLeadが作成されてはいけない");
+  assert.equal(await readLead(nonExistentId), null, "存在しないLeadが作成されてはいけない");
 });
 
-test("存在しないlead_id: 他の既存Leadには影響しない", (t) => {
-  const lead = createSentLead();
+test("存在しないlead_id: 他の既存Leadには影響しない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  const before = readLead(lead.lead_id);
+  const before = await readLead(lead.lead_id);
 
-  processSesEvent(sesEvent("Delivery", "f".repeat(64)));
+  await processSesEvent(sesEvent("Delivery", "f".repeat(64)));
 
-  assert.deepEqual(readLead(lead.lead_id), before, "無関係なLeadは変更されないはず");
+  assert.deepEqual(await readLead(lead.lead_id), before, "無関係なLeadは変更されないはず");
 });
 
-test("不正な形式のlead_id（validateSlug失敗）: クラッシュせずok:falseを返す", () => {
-  assert.doesNotThrow(() => {
-    const result = processSesEvent(sesEvent("Delivery", "../../etc/passwd"));
+test("不正な形式のlead_id（validateSlug失敗）: クラッシュせずok:falseを返す", async () => {
+  await assert.doesNotReject(async () => {
+    const result = await processSesEvent(sesEvent("Delivery", "../../etc/passwd"));
     assert.equal(result.ok, false);
   });
 });
@@ -307,9 +312,9 @@ test("不正な形式のlead_id（validateSlug失敗）: クラッシュせずok
   { name: "eventTypeが無い", value: { mail: { tags: { lead_id: ["x"] } } } },
   { name: "tagsが無い", value: { eventType: "Delivery", mail: {} } },
 ].forEach(({ name, value }) => {
-  test(`不正なイベント構造（${name}）: クラッシュせずok:falseを返す`, () => {
-    assert.doesNotThrow(() => {
-      const result = processSesEvent(value);
+  test(`不正なイベント構造（${name}）: クラッシュせずok:falseを返す`, async () => {
+    await assert.doesNotReject(async () => {
+      const result = await processSesEvent(value);
       assert.equal(result.ok, false);
     });
   });
@@ -319,76 +324,76 @@ test("不正な形式のlead_id（validateSlug失敗）: クラッシュせずok
 // terminal delivery_status（勝手にactiveへ戻さない・unsubscribedは変更しない）
 // ---------------------------------------------------------------------------
 
-test("delivery_status:unsubscribedのLeadは、email_bouncedイベントでもdelivery_statusが変更されない（historyは記録される）", (t) => {
-  const lead = createSentLead();
+test("delivery_status:unsubscribedのLeadは、email_bouncedイベントでもdelivery_statusが変更されない（historyは記録される）", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  updateLead(lead.lead_id, { delivery_status: "unsubscribed" });
+  await updateLead(lead.lead_id, { delivery_status: "unsubscribed" });
 
-  const result = processSesEvent(sesEvent("Bounce", lead.lead_id, { detail: { bounceType: "Permanent" } }));
+  const result = await processSesEvent(sesEvent("Bounce", lead.lead_id, { detail: { bounceType: "Permanent" } }));
   assert.equal(result.ok, true);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.delivery_status, "unsubscribed", "unsubscribedはメールイベントで変更されないはず");
   assert.ok(updated.history.some((h) => h.event === "email_bounced"), "history自体は記録されるはず");
 });
 
-test("delivery_status:unsubscribedのLeadは、email_complaintイベントでも変更されない", (t) => {
-  const lead = createSentLead();
+test("delivery_status:unsubscribedのLeadは、email_complaintイベントでも変更されない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  updateLead(lead.lead_id, { delivery_status: "unsubscribed" });
+  await updateLead(lead.lead_id, { delivery_status: "unsubscribed" });
 
-  processSesEvent(sesEvent("Complaint", lead.lead_id));
+  await processSesEvent(sesEvent("Complaint", lead.lead_id));
 
-  assert.equal(readLead(lead.lead_id).delivery_status, "unsubscribed");
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "unsubscribed");
 });
 
-test("delivery_status:bouncedのLeadに再度email_bouncedイベントが来ても、bouncedのまま（activeへ戻らない）", (t) => {
-  const lead = createSentLead();
+test("delivery_status:bouncedのLeadに再度email_bouncedイベントが来ても、bouncedのまま（activeへ戻らない）", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  updateLead(lead.lead_id, { delivery_status: "bounced" });
+  await updateLead(lead.lead_id, { delivery_status: "bounced" });
 
-  const result = processSesEvent(sesEvent("Bounce", lead.lead_id));
+  const result = await processSesEvent(sesEvent("Bounce", lead.lead_id));
   assert.equal(result.ok, true);
-  assert.equal(readLead(lead.lead_id).delivery_status, "bounced");
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "bounced");
 });
 
-test("delivery_status:suppressedのLeadにemail_openedイベントが来ても、suppressedのまま（activeへ戻らない）", (t) => {
-  const lead = createSentLead();
+test("delivery_status:suppressedのLeadにemail_openedイベントが来ても、suppressedのまま（activeへ戻らない）", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
-  updateLead(lead.lead_id, { delivery_status: "suppressed" });
+  await updateLead(lead.lead_id, { delivery_status: "suppressed" });
 
-  const result = processSesEvent(sesEvent("Open", lead.lead_id));
+  const result = await processSesEvent(sesEvent("Open", lead.lead_id));
   assert.equal(result.ok, true);
-  assert.equal(readLead(lead.lead_id).delivery_status, "suppressed", "email_openedはdelivery_statusを変更しないはず");
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "suppressed", "email_openedはdelivery_statusを変更しないはず");
 });
 
 // ---------------------------------------------------------------------------
 // 重複イベント（同一イベントを何度処理してもLead状態を壊さない）
 // ---------------------------------------------------------------------------
 
-test("同一のemail_bouncedイベントを2回処理しても、delivery_statusは壊れずbouncedのまま", (t) => {
-  const lead = createSentLead();
+test("同一のemail_bouncedイベントを2回処理しても、delivery_statusは壊れずbouncedのまま", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
   const event = sesEvent("Bounce", lead.lead_id, { detail: { bounceType: "Permanent" } });
-  const first = processSesEvent(event);
-  const second = processSesEvent(event);
+  const first = await processSesEvent(event);
+  const second = await processSesEvent(event);
 
   assert.equal(first.ok, true);
   assert.equal(second.ok, true, "2回目もエラーにはならない（べき等）");
-  assert.equal(readLead(lead.lead_id).delivery_status, "bounced", "2回処理してもbouncedのまま壊れないはず");
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "bounced", "2回処理してもbouncedのまま壊れないはず");
 });
 
-test("同一のemail_openedイベントを2回処理しても、statusは壊れず、SES再送によるクラッシュは起きない", (t) => {
-  const lead = createSentLead();
+test("同一のemail_openedイベントを2回処理しても、statusは壊れず、SES再送によるクラッシュは起きない", async (t) => {
+  const lead = await createSentLead();
   t.after(() => cleanupLead(lead.lead_id));
 
   const event = sesEvent("Open", lead.lead_id);
-  const first = processSesEvent(event);
-  const second = processSesEvent(event);
+  const first = await processSesEvent(event);
+  const second = await processSesEvent(event);
 
   assert.equal(first.ok, true);
   assert.equal(second.ok, true);
-  assert.equal(readLead(lead.lead_id).status, "initial_report_sent", "statusは変わらないはず");
-  assert.equal(readLead(lead.lead_id).delivery_status, "active", "delivery_statusも変わらないはず");
+  assert.equal((await readLead(lead.lead_id)).status, "initial_report_sent", "statusは変わらないはず");
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "active", "delivery_statusも変わらないはず");
 });

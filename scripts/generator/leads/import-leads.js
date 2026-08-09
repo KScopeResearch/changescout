@@ -183,10 +183,13 @@ function pickOptionalFields(record) {
 
 /**
  * CSVファイルを読み込み、各行についてLeadの作成・再検証・重複/ブロック判定を行う。
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化（filesystem/S3）に伴いI/Oが非同期に
+ * なったため、本関数もasyncにし、forEach()をfor...ofへ置き換えた（1行ずつ直列処理する
+ * という既存の処理順序・挙動自体は変更していない）。
  * @param {string} csvPath
- * @returns {{summary:Object, rows:Array<Object>}}
+ * @returns {Promise<{summary:Object, rows:Array<Object>}>}
  */
-function importLeadsFromCsv(csvPath) {
+async function importLeadsFromCsv(csvPath) {
   const text = fs.readFileSync(csvPath, "utf-8");
   const records = parseCsv(text);
 
@@ -195,7 +198,8 @@ function importLeadsFromCsv(csvPath) {
 
   const record0 = (idx) => idx + 2; // ヘッダーが1行目、最初のデータ行は2行目
 
-  records.forEach((record, idx) => {
+  for (let idx = 0; idx < records.length; idx += 1) {
+    const record = records[idx];
     const line = record0(idx);
     summary.total += 1;
 
@@ -206,11 +210,11 @@ function importLeadsFromCsv(csvPath) {
       if (!email) {
         summary.errors += 1;
         rows.push({ line, category: "error", reason: "emailが空です" });
-        return;
+        continue;
       }
 
       const presence = checkRequiredPresence(record);
-      const existing = findLeadByEmail(email);
+      const existing = await findLeadByEmail(email);
 
       if (existing) {
         if (isDeliveryBlocked(existing)) {
@@ -221,34 +225,36 @@ function importLeadsFromCsv(csvPath) {
             lead_id: existing.lead_id,
             reason: `既存Leadのdelivery_statusが"${existing.delivery_status}"のため送信対象外です`,
           });
-          return;
+          continue;
         }
 
         if (existing.status === "rejected") {
           if (!presence.ok) {
-            appendHistory(existing.lead_id, "rejected", { reasons: [`必須項目が不足しています: ${presence.missing.join(", ")}`] });
+            await appendHistory(existing.lead_id, "rejected", {
+              reasons: [`必須項目が不足しています: ${presence.missing.join(", ")}`],
+            });
             summary.rejected += 1;
             rows.push({ line, category: "rejected", lead_id: existing.lead_id, reason: `必須項目が不足しています: ${presence.missing.join(", ")}` });
-            return;
+            continue;
           }
           const formatCheck = validateFormats(record);
           if (formatCheck.ok) {
-            updateLead(existing.lead_id, { status: "validated" });
-            appendHistory(existing.lead_id, "validated");
+            await updateLead(existing.lead_id, { status: "validated" });
+            await appendHistory(existing.lead_id, "validated");
             summary.validated += 1;
             rows.push({ line, category: "validated", lead_id: existing.lead_id, reason: "rejectedから再検証に成功しました（同一lead_idを維持）" });
           } else {
-            appendHistory(existing.lead_id, "rejected", { reasons: formatCheck.reasons });
+            await appendHistory(existing.lead_id, "rejected", { reasons: formatCheck.reasons });
             summary.rejected += 1;
             rows.push({ line, category: "rejected", lead_id: existing.lead_id, reason: formatCheck.reasons.join("; ") });
           }
-          return;
+          continue;
         }
 
         // blockedでもrejectedでもない既存Lead（validated以降）は重複として新規作成しない。
         summary.duplicate += 1;
         rows.push({ line, category: "duplicate", lead_id: existing.lead_id, reason: `既に登録済みのLeadです（status: "${existing.status}"）` });
-        return;
+        continue;
       }
 
       // 既存Leadが無い場合。
@@ -257,10 +263,10 @@ function importLeadsFromCsv(csvPath) {
         // rejectedとしてすら記録できない。errorsとして扱う。
         summary.errors += 1;
         rows.push({ line, category: "error", reason: `必須項目が不足しているためLeadを作成できません: ${presence.missing.join(", ")}` });
-        return;
+        continue;
       }
 
-      const created = createLead({
+      const created = await createLead({
         email,
         company_url: record.company_url,
         source: record.source,
@@ -272,13 +278,13 @@ function importLeadsFromCsv(csvPath) {
 
       const formatCheck = validateFormats(record);
       if (formatCheck.ok) {
-        updateLead(created.lead_id, { status: "validated" });
-        appendHistory(created.lead_id, "validated");
+        await updateLead(created.lead_id, { status: "validated" });
+        await appendHistory(created.lead_id, "validated");
         summary.validated += 1;
         rows.push({ line, category: "created", lead_id: created.lead_id });
       } else {
-        updateLead(created.lead_id, { status: "rejected" });
-        appendHistory(created.lead_id, "rejected", { reasons: formatCheck.reasons });
+        await updateLead(created.lead_id, { status: "rejected" });
+        await appendHistory(created.lead_id, "rejected", { reasons: formatCheck.reasons });
         summary.rejected += 1;
         rows.push({ line, category: "rejected", lead_id: created.lead_id, reason: formatCheck.reasons.join("; ") });
       }
@@ -286,7 +292,7 @@ function importLeadsFromCsv(csvPath) {
       summary.errors += 1;
       rows.push({ line, category: "error", reason: err.message });
     }
-  });
+  }
 
   return { summary, rows };
 }
@@ -316,7 +322,7 @@ function printResult(result, csvPath) {
   }
 }
 
-function main() {
+async function main() {
   const csvPath = process.argv[2];
   if (!csvPath) {
     console.error("使い方: node scripts/generator/leads/import-leads.js <csv-path>");
@@ -329,7 +335,7 @@ function main() {
     return;
   }
 
-  const result = importLeadsFromCsv(csvPath);
+  const result = await importLeadsFromCsv(csvPath);
   printResult(result, csvPath);
 
   if (result.summary.errors > 0) {
@@ -338,7 +344,7 @@ function main() {
 }
 
 if (require.main === module) {
-  runCli(async () => main());
+  runCli(main);
 }
 
 module.exports = {

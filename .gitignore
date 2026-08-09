@@ -1,0 +1,3 @@
+# PJ2 Phase3次工程（Lead永続化のS3移行）でpackage.jsonを導入したことに伴い新設。
+# @aws-sdk/client-s3（S3バックエンド専用の依存）のインストール先。
+node_modules/

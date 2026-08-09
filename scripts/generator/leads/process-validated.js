@@ -49,7 +49,7 @@ const { readLead, updateLead, appendHistory, listLeads } = require("./lead-store
 async function processValidatedLead(leadId, options = {}) {
   const generateReport = options.generateReport || generateCompanyReport;
 
-  const lead = readLead(leadId);
+  const lead = await readLead(leadId);
   if (!lead) {
     return { ok: false, leadId, error: `存在しないlead_idです: ${leadId}` };
   }
@@ -80,8 +80,8 @@ async function processValidatedLead(leadId, options = {}) {
 
   // company_slugは既存パイプラインの正式なslug生成結果（generateCompanyReport()の
   // 戻り値のslug、内部ではslugFromUrl()由来）をそのまま使う。独自に推測・生成しない。
-  updateLead(leadId, { company_slug: result.slug, status: "report_generated" });
-  appendHistory(leadId, "report_generated", { slug: result.slug });
+  await updateLead(leadId, { company_slug: result.slug, status: "report_generated" });
+  await appendHistory(leadId, "report_generated", { slug: result.slug });
 
   return { ok: true, leadId, slug: result.slug };
 }
@@ -92,7 +92,7 @@ async function processValidatedLead(leadId, options = {}) {
  * @returns {Promise<{summary:{total:number, succeeded:number, failed:number}, results:Array<Object>}>}
  */
 async function processAllValidatedLeads(options = {}) {
-  const candidates = listLeads().filter((lead) => lead.status === "validated");
+  const candidates = (await listLeads()).filter((lead) => lead.status === "validated");
   const results = [];
 
   // 直列実行にする（同時にJob Runnerや他のプロセスがLeadファイルを触ることを

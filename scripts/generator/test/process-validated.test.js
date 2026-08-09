@@ -9,6 +9,9 @@
  *
  * lead-store.test.js / import-leads.test.jsと同じ方式で、各テストが作成したLeadを
  * t.after()で個別に削除する。
+ *
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化に伴い各関数が非同期になったため、
+ * 本ファイルの全テストをasync/awaitへ変更した（既定のfilesystemバックエンドのまま）。
  */
 
 const { test } = require("node:test");
@@ -31,9 +34,9 @@ function cleanupLead(leadId) {
  * 意図的な設計）。
  * @param {string} leadId
  */
-function markValidated(leadId) {
-  updateLead(leadId, { status: "validated" });
-  appendHistory(leadId, "validated");
+async function markValidated(leadId) {
+  await updateLead(leadId, { status: "validated" });
+  await appendHistory(leadId, "validated");
 }
 
 function sampleParams(overrides = {}) {
@@ -68,9 +71,9 @@ function fakeGenerator(opts = {}) {
 // ---------------------------------------------------------------------------
 
 test("validated Leadが正常に処理され、company_url・company_slug・status・historyが正しく更新される", async (t) => {
-  const created = createLead(sampleParams({ company_url: "https://process-validated-target.example" }));
+  const created = await createLead(sampleParams({ company_url: "https://process-validated-target.example" }));
   t.after(() => cleanupLead(created.lead_id));
-  markValidated(created.lead_id);
+  await markValidated(created.lead_id);
 
   const gen = fakeGenerator({ slug: "process-validated-target.example" });
   const result = await processValidatedLead(created.lead_id, { generateReport: gen.fn });
@@ -81,7 +84,7 @@ test("validated Leadが正常に処理され、company_url・company_slug・stat
   // 2. company_urlが既存レポート生成へ正しく渡る
   assert.deepEqual(gen.calls, ["https://process-validated-target.example"]);
 
-  const updated = readLead(created.lead_id);
+  const updated = await readLead(created.lead_id);
   // 3. company_slugが設定される
   assert.equal(updated.company_slug, "process-validated-target.example");
   // 4. statusがreport_generatedになる
@@ -99,9 +102,9 @@ test("validated Leadが正常に処理され、company_url・company_slug・stat
 // ---------------------------------------------------------------------------
 
 test("report生成失敗（validation.ok=false）時はstatus・company_slugを変更しない", async (t) => {
-  const created = createLead(sampleParams());
+  const created = await createLead(sampleParams());
   t.after(() => cleanupLead(created.lead_id));
-  markValidated(created.lead_id);
+  await markValidated(created.lead_id);
 
   const gen = fakeGenerator({ ok: false, errors: ["schema不正"] });
   const result = await processValidatedLead(created.lead_id, { generateReport: gen.fn });
@@ -109,7 +112,7 @@ test("report生成失敗（validation.ok=false）時はstatus・company_slugを�
   assert.equal(result.ok, false);
   assert.match(result.error, /schema不正/);
 
-  const unchanged = readLead(created.lead_id);
+  const unchanged = await readLead(created.lead_id);
   assert.equal(unchanged.status, "validated", "statusはvalidatedのまま変わらないはず");
   assert.equal(unchanged.company_slug, null, "company_slugは確定させないはず");
   assert.deepEqual(
@@ -120,9 +123,9 @@ test("report生成失敗（validation.ok=false）時はstatus・company_slugを�
 });
 
 test("generateReportが例外を投げた場合もstatusを変更せずエラーを返す", async (t) => {
-  const created = createLead(sampleParams());
+  const created = await createLead(sampleParams());
   t.after(() => cleanupLead(created.lead_id));
-  markValidated(created.lead_id);
+  await markValidated(created.lead_id);
 
   const throwing = async () => {
     throw new Error("ネットワークエラー（テスト用）");
@@ -131,7 +134,7 @@ test("generateReportが例外を投げた場合もstatusを変更せずエラー
 
   assert.equal(result.ok, false);
   assert.match(result.error, /ネットワークエラー/);
-  assert.equal(readLead(created.lead_id).status, "validated");
+  assert.equal((await readLead(created.lead_id)).status, "validated");
 });
 
 // ---------------------------------------------------------------------------
@@ -139,9 +142,9 @@ test("generateReportが例外を投げた場合もstatusを変更せずエラー
 // ---------------------------------------------------------------------------
 
 test("report_generated済みLeadは再処理対象にならない（generateReportは呼ばれない）", async (t) => {
-  const created = createLead(sampleParams());
+  const created = await createLead(sampleParams());
   t.after(() => cleanupLead(created.lead_id));
-  updateLead(created.lead_id, { status: "report_generated", company_slug: "already-generated.example" });
+  await updateLead(created.lead_id, { status: "report_generated", company_slug: "already-generated.example" });
 
   const gen = fakeGenerator();
   const result = await processValidatedLead(created.lead_id, { generateReport: gen.fn });
@@ -149,21 +152,21 @@ test("report_generated済みLeadは再処理対象にならない（generateRepo
   assert.equal(result.ok, false);
   assert.match(result.error, /validated/);
   assert.equal(gen.calls.length, 0, "generateReportは呼ばれないはず");
-  assert.equal(readLead(created.lead_id).company_slug, "already-generated.example", "既存のcompany_slugは変わらないはず");
+  assert.equal((await readLead(created.lead_id)).company_slug, "already-generated.example", "既存のcompany_slugは変わらないはず");
 });
 
 ["collected", "rejected", "initial_report_queued", "initial_report_sent", "initial_report_failed"].forEach((status) => {
   test(`status:"${status}"のLeadは処理対象外になる（generateReportは呼ばれない）`, async (t) => {
-    const created = createLead(sampleParams());
+    const created = await createLead(sampleParams());
     t.after(() => cleanupLead(created.lead_id));
-    updateLead(created.lead_id, { status });
+    await updateLead(created.lead_id, { status });
 
     const gen = fakeGenerator();
     const result = await processValidatedLead(created.lead_id, { generateReport: gen.fn });
 
     assert.equal(result.ok, false);
     assert.equal(gen.calls.length, 0);
-    assert.equal(readLead(created.lead_id).status, status, "statusは変わらないはず");
+    assert.equal((await readLead(created.lead_id)).status, status, "statusは変わらないはず");
   });
 });
 
@@ -184,7 +187,7 @@ test("generate-company-report.jsは今回変更していない（既存のgenera
 // ---------------------------------------------------------------------------
 
 test("成功時、company_slug/status/history以外の既存フィールドは変更されない", async (t) => {
-  const created = createLead(
+  const created = await createLead(
     sampleParams({
       email: "unchanged-fields-test@example.invalid",
       contact_name: "山田太郎",
@@ -192,13 +195,13 @@ test("成功時、company_slug/status/history以外の既存フィールドは�
     })
   );
   t.after(() => cleanupLead(created.lead_id));
-  markValidated(created.lead_id);
-  const before = readLead(created.lead_id);
+  await markValidated(created.lead_id);
+  const before = await readLead(created.lead_id);
 
   const gen = fakeGenerator({ slug: "unchanged-fields.example" });
   await processValidatedLead(created.lead_id, { generateReport: gen.fn });
 
-  const after = readLead(created.lead_id);
+  const after = await readLead(created.lead_id);
   assert.equal(after.lead_id, before.lead_id);
   assert.equal(after.report_token, before.report_token);
   assert.equal(after.email, before.email);
@@ -220,11 +223,11 @@ test("成功時、company_slug/status/history以外の既存フィールドは�
 // ---------------------------------------------------------------------------
 
 test("processAllValidatedLeads: validatedなLeadだけを対象にする", async (t) => {
-  const validatedLead = createLead(sampleParams({ email: "batch-validated@example.invalid" }));
+  const validatedLead = await createLead(sampleParams({ email: "batch-validated@example.invalid" }));
   t.after(() => cleanupLead(validatedLead.lead_id));
-  markValidated(validatedLead.lead_id);
+  await markValidated(validatedLead.lead_id);
 
-  const collectedLead = createLead(sampleParams({ email: "batch-collected@example.invalid" }));
+  const collectedLead = await createLead(sampleParams({ email: "batch-collected@example.invalid" }));
   t.after(() => cleanupLead(collectedLead.lead_id));
   // collectedLeadはstatus変更なし（初期値のまま"collected"）
 
@@ -234,6 +237,6 @@ test("processAllValidatedLeads: validatedなLeadだけを対象にする", async
   const processedIds = result.results.map((r) => r.leadId);
   assert.ok(processedIds.includes(validatedLead.lead_id));
   assert.ok(!processedIds.includes(collectedLead.lead_id), "collectedのLeadは対象に含まれないはず");
-  assert.equal(readLead(validatedLead.lead_id).status, "report_generated");
-  assert.equal(readLead(collectedLead.lead_id).status, "collected", "触れられていないはず");
+  assert.equal((await readLead(validatedLead.lead_id)).status, "report_generated");
+  assert.equal((await readLead(collectedLead.lead_id)).status, "collected", "触れられていないはず");
 });

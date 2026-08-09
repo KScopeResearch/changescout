@@ -137,7 +137,7 @@ function buildEmailContent({ companyName, reportUrl }) {
 async function sendInitialReportForLead(leadId, options = {}) {
   const sendEmailFn = options.sendEmail || sesClient.sendEmail;
 
-  const lead = readLead(leadId);
+  const lead = await readLead(leadId);
   if (!lead) {
     return { ok: false, leadId, error: `存在しないlead_idです: ${leadId}` };
   }
@@ -195,8 +195,8 @@ async function sendInitialReportForLead(leadId, options = {}) {
   }
 
   // ここからキュー投入。以降の失敗はinitial_report_failedとして必ずhistoryに残す。
-  updateLead(leadId, { status: "initial_report_queued" });
-  appendHistory(leadId, "initial_report_queued");
+  await updateLead(leadId, { status: "initial_report_queued" });
+  await appendHistory(leadId, "initial_report_queued");
 
   try {
     // SES message tag（lead_idのみ）を付与する。emailやreport_tokenはtagに含めない。
@@ -208,14 +208,14 @@ async function sendInitialReportForLead(leadId, options = {}) {
       tags: [{ Name: "lead_id", Value: lead.lead_id }],
     });
 
-    updateLead(leadId, { status: "initial_report_sent" });
-    appendHistory(leadId, "initial_report_sent", { message_id: result.messageId });
+    await updateLead(leadId, { status: "initial_report_sent" });
+    await appendHistory(leadId, "initial_report_sent", { message_id: result.messageId });
     return { ok: true, leadId, messageId: result.messageId };
   } catch (err) {
-    updateLead(leadId, { status: "initial_report_failed" });
+    await updateLead(leadId, { status: "initial_report_failed" });
     // AWS credential・report_token・emailはerrに含まれない構造（ses-client.jsのコメント参照）。
     // 念のためjob-runner.js（Task23）と同じくredactSecrets()を通してからhistoryへ保存する。
-    appendHistory(leadId, "initial_report_failed", {
+    await appendHistory(leadId, "initial_report_failed", {
       error: redactSecrets(err.message),
       code: err.code || null,
       retryable: !!err.retryable,
@@ -230,7 +230,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
  * @returns {Promise<{summary:{total:number, sent:number, skipped:number, failed:number}, results:Array<Object>}>}
  */
 async function sendInitialReportsForAllReportGenerated(options = {}) {
-  const candidates = listLeads().filter((lead) => lead.status === "report_generated");
+  const candidates = (await listLeads()).filter((lead) => lead.status === "report_generated");
   const results = [];
 
   for (const lead of candidates) {

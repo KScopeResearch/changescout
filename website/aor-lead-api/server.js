@@ -384,7 +384,7 @@ async function handlePhase4Action(req, res, leadId, action) {
 
   let lead;
   try {
-    lead = readLead(leadId);
+    lead = await readLead(leadId);
   } catch (e) {
     // lead_idが不正な形式（lead-store.jsのvalidateSlug()検証に失敗）の場合もreadLead()は
     // 例外を投げるが、実在しないlead_idと区別せず404として扱う（形式検証の内部詳細を
@@ -407,8 +407,8 @@ async function handlePhase4Action(req, res, leadId, action) {
 
   const config = PHASE4_ACTIONS[action];
   if (lead[config.field] !== true) {
-    updateLead(leadId, { [config.field]: true, [config.atField]: nowIso() });
-    appendHistory(leadId, config.event);
+    await updateLead(leadId, { [config.field]: true, [config.atField]: nowIso() });
+    await appendHistory(leadId, config.event);
   }
 
   sendJson(res, 201, { ok: true });

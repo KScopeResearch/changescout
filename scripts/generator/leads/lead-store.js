@@ -6,14 +6,28 @@
  *
  * 【設計方針】review-engine.jsと同じ方針を踏襲する。状態を組み立てる関数
  * （buildNewLead/applyPatch/withHistoryEvent）はPure Function（同じ入力に対して
- * 常に同じ出力を返し、副作用を持たない）とし、ファイルI/O（readLead/saveLead等）とは
- * 明確に分離する。`now`は各Pure Functionが引数として受け取れるようにし、テスト時に
- * 固定できるようにしている（省略時は呼び出し時点の時刻を使う）。
+ * 常に同じ出力を返し、副作用を持たない）とし、実際のI/Oとは明確に分離する。`now`は
+ * 各Pure Functionが引数として受け取れるようにし、テスト時に固定できるようにしている
+ * （省略時は呼び出し時点の時刻を使う）。
  *
- * 【保存方式】Lead 1件につき1ファイル（scripts/generator/logs/leads/<lead_id>.json）。
- * review.jsonが会社1件につき1ファイルであるのと同じ設計をLeadにもそのまま適用する。
- * emailはファイル名に使わない（lead_idのみを使う。path-safety.jsのvalidateSlug()で
- * lead_id自体のパス検証も行う）。
+ * 【保存方式】Lead 1件につき1オブジェクト（既定: scripts/generator/logs/leads/
+ * <lead_id>.json）。review.jsonが会社1件につき1ファイルであるのと同じ設計をLeadにも
+ * そのまま適用する。emailはファイル名/キーに使わない（lead_idのみを使う）。
+ *
+ * 【PJ2次工程で追加: バックエンド抽象化】I/Oの実体（読み書き先）を
+ * `./backends/filesystem-backend.js`（既定）と`./backends/s3-backend.js`
+ * （AWS Lambda等のステートレス実行環境向け）の2種類に切り替え可能にした
+ * （環境変数LEAD_STORE_BACKEND、既定"filesystem"）。この抽象化に伴い、
+ * createLead/readLead/updateLead/appendHistory/listLeads/findLeadByEmailは
+ * すべて非同期（Promiseを返す）になった——S3バックエンドが本質的にネットワークI/O
+ * であり同期化できないため、バックエンドに依らず呼び出し側が同じ書き方（await）で
+ * 使える統一インタフェースにする必要があった。関数名・引数・戻り値の形・Pure Function
+ * 部分（buildNewLead等）は一切変更していない。
+ *
+ * バックエンドが公開すべき最小インタフェース（backends/*.js参照）:
+ *   readLead(leadId) => Promise<Object|null>
+ *   writeLead(leadId, lead) => Promise<void>
+ *   listLeads() => Promise<Object[]>
  *
  * 【今回のスコープ】Lead管理モジュールの基盤のみ。以下は含まない（呼び出し元が
  * 別途実装する）:
@@ -26,14 +40,22 @@
  *     （appendHistory()は汎用的な記録手段のみを提供する）
  */
 
-const fs = require("fs");
-const path = require("path");
 const crypto = require("crypto");
 
-const { readJson, writeJson } = require("../shared/json-file");
 const { nowIso } = require("../shared/date-utils");
-const { validateSlug, isWithinDir } = require("../shared/path-safety");
-const { LEADS_DIR } = require("../shared/paths");
+
+/**
+ * 環境変数LEAD_STORE_BACKENDに応じたバックエンドモジュールを返す
+ * （既定"filesystem"）。過剰な抽象化を避けるため、llm-client.jsのような
+ * provider登録機構は設けず、2択の単純な切り替えのみとする。
+ * @returns {{readLead:Function, writeLead:Function, listLeads:Function}}
+ */
+function getBackend() {
+  const backendId = (process.env.LEAD_STORE_BACKEND || "filesystem").toLowerCase();
+  if (backendId === "filesystem") return require("./backends/filesystem-backend");
+  if (backendId === "s3") return require("./backends/s3-backend");
+  throw new Error(`未知のLEAD_STORE_BACKENDです: "${backendId}"（"filesystem" または "s3" を指定してください）`);
+}
 
 const VALID_STATUSES = [
   "collected",
@@ -209,114 +231,86 @@ function isDeliveryBlocked(lead) {
 }
 
 // ---------------------------------------------------------------------------
-// I/O（ファイルの読み書き）
+// I/O（バックエンド委譲。PJ2次工程でfilesystem/S3のいずれかへ切り替え可能にした）
 // ---------------------------------------------------------------------------
-
-/**
- * lead_idからLead本体のファイルパスを安全に組み立てる。
- * shared/path-safety.jsのvalidateSlug()・isWithinDir()をそのまま再利用する
- * （独自のパス検証ロジックは実装しない）。
- * @param {string} leadId
- * @returns {string}
- */
-function leadFilePath(leadId) {
-  const check = validateSlug(leadId);
-  if (!check.ok) throw new Error(`不正なlead_idです: ${check.error}`);
-  const filePath = path.join(LEADS_DIR, `${leadId}.json`);
-  if (!isWithinDir(filePath, LEADS_DIR)) throw new Error("不正なlead_idです（パス検証に失敗しました）");
-  return filePath;
-}
 
 /**
  * 新規Leadを作成し保存する（I/O）。
  * @param {{email:string, company_url:string, source:string, collection_method:string,
  *   contact_name?:string, department?:string, notes?:string, source_url?:string}} params
- * @returns {Object} 作成したlead
+ * @returns {Promise<Object>} 作成したlead
  */
-function createLead(params) {
+async function createLead(params) {
   const lead = buildNewLead(params);
-  writeJson(leadFilePath(lead.lead_id), lead);
+  await getBackend().writeLead(lead.lead_id, lead);
   return lead;
 }
 
 /**
  * lead_idからLeadを読み込む（I/O）。
  * @param {string} leadId
- * @returns {Object|null} 存在しない場合はnull
+ * @returns {Promise<Object|null>} 存在しない場合はnull
  */
-function readLead(leadId) {
-  const filePath = leadFilePath(leadId);
-  if (!fs.existsSync(filePath)) return null;
-  return readJson(filePath);
+async function readLead(leadId) {
+  return getBackend().readLead(leadId);
 }
 
 /**
- * Leadを更新する（I/O）。read → validation → update → 単一のwriteJson呼び出し、
- * という一連の処理を1関数内で行うことで、statusの変更とファイルへの反映が
- * 分離した2回の書き込みにならないようにする（整合性の確保）。
+ * Leadを更新する（I/O）。read → validation → update → 単一のwriteLead呼び出し、
+ * という一連の処理を1関数内で行うことで、statusの変更と保存先への反映が
+ * 分離した2回の書き込みにならないようにする（整合性の確保。この方針自体は
+ * バックエンドを問わず維持する）。
  * @param {string} leadId
  * @param {Object} patch
- * @returns {Object} 更新後のlead
+ * @returns {Promise<Object>} 更新後のlead
  */
-function updateLead(leadId, patch) {
-  const lead = readLead(leadId);
+async function updateLead(leadId, patch) {
+  const backend = getBackend();
+  const lead = await backend.readLead(leadId);
   if (!lead) throw new Error(`存在しないlead_idです: ${leadId}`);
   const updated = applyPatch(lead, patch);
-  writeJson(leadFilePath(leadId), updated);
+  await backend.writeLead(leadId, updated);
   return updated;
 }
 
 /**
  * Leadのhistoryへイベントを1件追加して保存する（I/O）。updateLead()と同様、
- * read→append→単一writeJsonの一連処理として行う。
+ * read→append→単一writeLeadの一連処理として行う。
  * @param {string} leadId
  * @param {string} event
  * @param {Object} [metadata]
- * @returns {Object} 更新後のlead
+ * @returns {Promise<Object>} 更新後のlead
  */
-function appendHistory(leadId, event, metadata) {
-  const lead = readLead(leadId);
+async function appendHistory(leadId, event, metadata) {
+  const backend = getBackend();
+  const lead = await backend.readLead(leadId);
   if (!lead) throw new Error(`存在しないlead_idです: ${leadId}`);
   const updated = withHistoryEvent(lead, event, metadata);
-  writeJson(leadFilePath(leadId), updated);
+  await backend.writeLead(leadId, updated);
   return updated;
 }
 
 /**
- * 登録済みの全Leadを読み込む（I/O）。scripts/generator/logs/leads/配下を列挙する。
- * @returns {Object[]}
+ * 登録済みの全Leadを読み込む（I/O）。
+ * @returns {Promise<Object[]>}
  */
-function listLeads() {
-  if (!fs.existsSync(LEADS_DIR)) return [];
-  return fs
-    .readdirSync(LEADS_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-    .map((entry) => {
-      try {
-        return readJson(path.join(LEADS_DIR, entry.name));
-      } catch (e) {
-        // 一覧取得後・読み込み前にファイルが削除された場合（他プロセスとの競合、
-        // 例えばnode --testが複数テストファイルを並行実行する際に別ファイルの
-        // テストが自分のLeadを削除するタイミングと重なる等）は、そのエントリだけ
-        // 安全側にスキップする（json-file.jsのreadJsonSafe()と同じ考え方）。
-        return null;
-      }
-    })
-    .filter(Boolean);
+async function listLeads() {
+  return getBackend().listLeads();
 }
 
 /**
  * emailからLeadを検索する（I/O、全件走査）。「同一email＝同一Lead」の原則に基づき、
  * 一致する最初の1件を返す。emailはファイル名やインデックスとして使わず、
  * 都度全件を走査して比較する（今回のMVP規模ではTask44〜46の実測実績のとおり
- * 十分な性能が見込める）。
+ * 十分な性能が見込める。S3バックエンドでも同じ方針を踏襲し、GSI相当の仕組みは
+ * トライアル規模では導入しない——PJ2次工程のAWS設計調査で確認済みの判断）。
  * @param {string} email
- * @returns {Object|null}
+ * @returns {Promise<Object|null>}
  */
-function findLeadByEmail(email) {
+async function findLeadByEmail(email) {
   const target = normalizeEmail(email);
   if (!target) return null;
-  const leads = listLeads();
+  const leads = await getBackend().listLeads();
   return leads.find((lead) => normalizeEmail(lead.email) === target) || null;
 }
 
@@ -324,7 +318,7 @@ module.exports = {
   VALID_STATUSES,
   VALID_DELIVERY_STATUSES,
   VALID_EVENTS,
-  LEADS_DIR,
+  LEADS_DIR: require("../shared/paths").LEADS_DIR, // 既存呼び出し元（テストのクリーンアップ等）との互換のため再エクスポート
   // Pure Functions（テスト・呼び出し元での組み立てに利用可能）
   buildNewLead,
   applyPatch,

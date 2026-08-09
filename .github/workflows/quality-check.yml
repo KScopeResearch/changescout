@@ -25,12 +25,12 @@ jobs:
           # 理由の詳細は scripts/generator/README.md の「CIのNode.jsバージョンについて」を参照。
           node-version: "24"
 
-      # このリポジトリには package.json が存在しない（意図的な設計。
-      # scripts/generator 配下はNode.js標準モジュールのみで実装されており、
-      # npm依存パッケージを一切使用していないため）。
-      # したがって `npm install` / `npm ci` のステップは不要であり、実行しない。
-      - name: (npm install不要) 依存パッケージなしのプロジェクトです
-        run: echo "package.json が存在せず、npmパッケージへの依存がないため npm install をスキップします。"
+      # PJ2次工程（Lead永続化のS3移行）でpackage.jsonを新設した。ただしnpm依存は
+      # @aws-sdk/client-s3（scripts/generator/leads/backends/s3-backend.js専用）のみに
+      # 限定しており、プロジェクトの大部分は引き続きNode.js標準モジュールのみで動作する
+      # （scripts/generator/README.md参照）。
+      - name: Install dependencies
+        run: npm ci
 
       - name: Run quality gate (scripts/generator/run-all-tests.js)
         id: run_all_tests

@@ -9,6 +9,9 @@
  * website/aor/data/<slug>.json（publish-report.jsの公開先）もテスト用の一時ファイルを
  * 作成・削除する。実データ（company-01-manufacturing等）には一切触れない
  * （TEST_SLUG_PREFIXで名前空間を分離する）。
+ *
+ * 【PJ2次工程】lead-store.jsのバックエンド抽象化に伴い各関数が非同期になったため、
+ * 本ファイルの全テストをasync/awaitへ変更した（既定のfilesystemバックエンドのまま）。
  */
 
 const { test } = require("node:test");
@@ -66,13 +69,13 @@ function sampleParams(overrides = {}) {
 /**
  * status:"report_generated"、company_slug確定済みのLeadを作成する。
  * @param {{slug?:string, overrides?:Object}} [opts]
- * @returns {Object} 作成したLead（更新後の内容）
+ * @returns {Promise<Object>} 作成したLead（更新後の内容）
  */
-function createReportGeneratedLead(opts = {}) {
-  const created = createLead(sampleParams(opts.overrides));
+async function createReportGeneratedLead(opts = {}) {
+  const created = await createLead(sampleParams(opts.overrides));
   const slug = opts.slug || `${TEST_SLUG_PREFIX}${created.lead_id.slice(0, 12)}`;
-  updateLead(created.lead_id, { company_slug: slug, status: "report_generated" });
-  appendHistory(created.lead_id, "report_generated", { slug });
+  await updateLead(created.lead_id, { company_slug: slug, status: "report_generated" });
+  await appendHistory(created.lead_id, "report_generated", { slug });
   return readLead(created.lead_id);
 }
 
@@ -146,7 +149,7 @@ test("buildEmailContent: text/htmlのいずれにもreportUrlが含まれ、comp
 
 test("1,2,3,4,5. report_generatedなLeadが送信対象になり、URLにcompany_slug/lead_idを含みemailを含まない", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -171,7 +174,7 @@ test("1,2,3,4,5. report_generatedなLeadが送信対象になり、URLにcompany
 
 test("6. SES message tagにlead_idが入り、7. report_tokenはmessage tagに入らない", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -189,7 +192,7 @@ test("6. SES message tagにlead_idが入り、7. report_tokenはmessage tagに�
 
 test("SES送信は宛先(to)にlead.emailを使う（配信そのものには必要な唯一の箇所）", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -204,7 +207,7 @@ test("SES送信は宛先(to)にlead.emailを使う（配信そのものには必
 
 test("8,9. SES成功時はinitial_report_sentになり、historyにmessage_idが残る", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -217,7 +220,7 @@ test("8,9. SES成功時はinitial_report_sentになり、historyにmessage_idが
   assert.equal(result.ok, true);
   assert.equal(result.messageId, "ses-message-id-verify-0001");
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_sent");
   assert.deepEqual(
     updated.history.map((h) => h.event),
@@ -229,7 +232,7 @@ test("8,9. SES成功時はinitial_report_sentになり、historyにmessage_idが
 
 test("キュー投入: 送信前にinitial_report_queuedへ遷移し、historyに記録される", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -237,10 +240,12 @@ test("キュー投入: 送信前にinitial_report_queuedへ遷移し、history�
   publishTestCompanyData(lead.company_slug);
 
   const queuedSeenByHandler = [];
-  const { fn } = { fn: async () => {
-    queuedSeenByHandler.push(readLead(lead.lead_id).status);
-    return { messageId: "mid" };
-  } };
+  const { fn } = {
+    fn: async () => {
+      queuedSeenByHandler.push((await readLead(lead.lead_id)).status);
+      return { messageId: "mid" };
+    },
+  };
   await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
 
   assert.deepEqual(queuedSeenByHandler, ["initial_report_queued"], "SES呼び出し時点で既にinitial_report_queuedになっているはず");
@@ -252,7 +257,7 @@ test("キュー投入: 送信前にinitial_report_queuedへ遷移し、history�
 
 test("10,11. SES失敗時はinitial_report_failedになり、secret/token/emailがhistoryへ漏れない", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -268,7 +273,7 @@ test("10,11. SES失敗時はinitial_report_failedになり、secret/token/email�
 
   assert.equal(result.ok, false);
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "initial_report_failed");
   const failedEntry = updated.history.find((h) => h.event === "initial_report_failed");
   assert.ok(failedEntry, "initial_report_failedイベントが記録されるはず");
@@ -284,7 +289,7 @@ test("10,11. SES失敗時はinitial_report_failedになり、secret/token/email�
 
 test("失敗時、company_slug/report_token/emailはLead本体からも変更されない", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -294,7 +299,7 @@ test("失敗時、company_slug/report_token/emailはLead本体からも変更さ
   const { fn } = fakeSendEmail({ ok: false });
   await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.company_slug, lead.company_slug, "14. company_slugを再生成しない");
   assert.equal(updated.report_token, lead.report_token, "15. report_tokenを再発番しない");
   assert.equal(updated.email, lead.email);
@@ -306,7 +311,7 @@ test("失敗時、company_slug/report_token/emailはLead本体からも変更さ
 
 test("Case1. delivery_status:active + status:report_generated → 送信対象になる", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -319,20 +324,20 @@ test("Case1. delivery_status:active + status:report_generated → 送信対象�
 
   assert.equal(result.ok, true);
   assert.equal(calls.length, 1, "SESが呼ばれるはず");
-  assert.equal(readLead(lead.lead_id).status, "initial_report_sent");
+  assert.equal((await readLead(lead.lead_id)).status, "initial_report_sent");
 });
 
 ["unsubscribed", "bounced", "suppressed"].forEach((deliveryStatus, idx) => {
   test(`Case${idx + 2}. delivery_status:${deliveryStatus} + status:report_generated → 送信対象外（skip、SES未呼び出し、status/history/delivery_status不変）`, async (t) => {
     withSiteConfig(t);
-    const lead = createReportGeneratedLead();
+    const lead = await createReportGeneratedLead();
     t.after(() => {
       cleanupLead(lead.lead_id);
       cleanupPublished(lead.company_slug);
     });
     publishTestCompanyData(lead.company_slug);
-    updateLead(lead.lead_id, { delivery_status: deliveryStatus });
-    const beforeHistoryLength = readLead(lead.lead_id).history.length;
+    await updateLead(lead.lead_id, { delivery_status: deliveryStatus });
+    const beforeHistoryLength = (await readLead(lead.lead_id)).history.length;
 
     const { fn, calls } = fakeSendEmail();
     const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
@@ -341,7 +346,7 @@ test("Case1. delivery_status:active + status:report_generated → 送信対象�
     assert.equal(result.skipped, true);
     assert.equal(calls.length, 0, "SESが呼ばれてはいけない");
 
-    const after = readLead(lead.lead_id);
+    const after = await readLead(lead.lead_id);
     assert.equal(after.status, "report_generated", "statusは変わらないはず");
     assert.equal(after.delivery_status, deliveryStatus, "delivery_status自体も変更されないはず");
     assert.equal(after.history.length, beforeHistoryLength, "historyは増えないはず");
@@ -355,7 +360,7 @@ test("Case1. delivery_status:active + status:report_generated → 送信対象�
 
 test('Case5. status:"rejected"から復帰しstatus:report_generated・delivery_status:activeになったLeadは、delivery_statusを理由にブロックされない', async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -363,16 +368,16 @@ test('Case5. status:"rejected"から復帰しstatus:report_generated・delivery_
   publishTestCompanyData(lead.company_slug);
   // 一度rejectedを経由してからreport_generated・activeに戻ったLeadを模す
   // （isDeliveryBlocked()はstatus:"rejected"単独では配信ブロック理由にしないという既存仕様の確認）。
-  updateLead(lead.lead_id, { status: "rejected" });
-  appendHistory(lead.lead_id, "rejected");
-  updateLead(lead.lead_id, { status: "report_generated", delivery_status: "active" });
+  await updateLead(lead.lead_id, { status: "rejected" });
+  await appendHistory(lead.lead_id, "rejected");
+  await updateLead(lead.lead_id, { status: "report_generated", delivery_status: "active" });
 
   const { fn, calls } = fakeSendEmail();
   const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
 
   assert.equal(result.ok, true, "delivery_status:activeであれば、rejectedを経由していてもブロックされないはず");
   assert.equal(calls.length, 1);
-  assert.equal(readLead(lead.lead_id).status, "initial_report_sent");
+  assert.equal((await readLead(lead.lead_id)).status, "initial_report_sent");
 });
 
 // ---------------------------------------------------------------------------
@@ -381,7 +386,7 @@ test('Case5. status:"rejected"から復帰しstatus:report_generated・delivery_
 
 test("12. initial_report_sentのLeadを再度selectしても送信対象にならない（二重送信防止）", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -391,7 +396,7 @@ test("12. initial_report_sentのLeadを再度selectしても送信対象にな�
   const first = fakeSendEmail();
   const firstResult = await sendInitialReportForLead(lead.lead_id, { sendEmail: first.fn });
   assert.equal(firstResult.ok, true);
-  assert.equal(readLead(lead.lead_id).status, "initial_report_sent");
+  assert.equal((await readLead(lead.lead_id)).status, "initial_report_sent");
 
   const second = fakeSendEmail();
   const secondResult = await sendInitialReportForLead(lead.lead_id, { sendEmail: second.fn });
@@ -400,7 +405,7 @@ test("12. initial_report_sentのLeadを再度selectしても送信対象にな�
   assert.match(secondResult.error, /report_generated/);
   assert.equal(second.calls.length, 0, "SESは呼ばれないはず");
   assert.equal(
-    readLead(lead.lead_id).history.filter((h) => h.event === "initial_report_sent").length,
+    (await readLead(lead.lead_id)).history.filter((h) => h.event === "initial_report_sent").length,
     1,
     "initial_report_sentイベントは1件のまま増えないはず"
   );
@@ -410,32 +415,32 @@ test("12. initial_report_sentのLeadを再度selectしても送信対象にな�
   (status) => {
     test(`13. status:"${status}"のLeadは誤って送信対象にならない`, async (t) => {
       withSiteConfig(t);
-      const created = createLead(sampleParams());
+      const created = await createLead(sampleParams());
       t.after(() => cleanupLead(created.lead_id));
-      updateLead(created.lead_id, { status, company_slug: status === "collected" ? null : `${TEST_SLUG_PREFIX}dummy` });
+      await updateLead(created.lead_id, { status, company_slug: status === "collected" ? null : `${TEST_SLUG_PREFIX}dummy` });
 
       const { fn, calls } = fakeSendEmail();
       const result = await sendInitialReportForLead(created.lead_id, { sendEmail: fn });
 
       assert.equal(result.ok, false);
       assert.equal(calls.length, 0, "SESは呼ばれないはず");
-      assert.equal(readLead(created.lead_id).status, status, "statusは変わらないはず");
+      assert.equal((await readLead(created.lead_id)).status, status, "statusは変わらないはず");
     });
   }
 );
 
 test("company_slugが未確定（null）のLeadは送信対象にならない", async (t) => {
   withSiteConfig(t);
-  const created = createLead(sampleParams());
+  const created = await createLead(sampleParams());
   t.after(() => cleanupLead(created.lead_id));
-  updateLead(created.lead_id, { status: "report_generated" }); // company_slugはnullのまま
+  await updateLead(created.lead_id, { status: "report_generated" }); // company_slugはnullのまま
 
   const { fn, calls } = fakeSendEmail();
   const result = await sendInitialReportForLead(created.lead_id, { sendEmail: fn });
 
   assert.equal(result.ok, false);
   assert.equal(calls.length, 0);
-  assert.equal(readLead(created.lead_id).status, "report_generated", "statusは変わらないはず");
+  assert.equal((await readLead(created.lead_id)).status, "report_generated", "statusは変わらないはず");
 });
 
 test("存在しないlead_idはエラーになる", async (t) => {
@@ -452,7 +457,7 @@ test("存在しないlead_idはエラーになる", async (t) => {
 
 test("company_slugがまだ公開されていない（website/aor/data/未生成）場合は送信をスキップし、statusを変更しない", async (t) => {
   withSiteConfig(t);
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => cleanupLead(lead.lead_id));
   // publishTestCompanyData()を呼ばない = 未公開のまま
 
@@ -463,7 +468,7 @@ test("company_slugがまだ公開されていない（website/aor/data/未生成
   assert.equal(result.skipped, true);
   assert.equal(calls.length, 0, "SESは呼ばれないはず");
 
-  const updated = readLead(lead.lead_id);
+  const updated = await readLead(lead.lead_id);
   assert.equal(updated.status, "report_generated", "未公開のためstatusは変わらないはず（失敗ではない）");
   assert.equal(
     updated.history.some((h) => h.event === "initial_report_queued" || h.event === "initial_report_failed"),
@@ -483,7 +488,7 @@ test("AOR_SITE_BASE_URL未設定時はエラーになり、statusを変更しな
     if (original !== undefined) process.env.AOR_SITE_BASE_URL = original;
   });
 
-  const lead = createReportGeneratedLead();
+  const lead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(lead.lead_id);
     cleanupPublished(lead.company_slug);
@@ -497,7 +502,7 @@ test("AOR_SITE_BASE_URL未設定時はエラーになり、statusを変更しな
 
   assert.equal(result.ok, false);
   assert.equal(calls.length, 0);
-  assert.equal(readLead(lead.lead_id).status, "report_generated");
+  assert.equal((await readLead(lead.lead_id)).status, "report_generated");
 });
 
 // ---------------------------------------------------------------------------
@@ -507,14 +512,14 @@ test("AOR_SITE_BASE_URL未設定時はエラーになり、statusを変更しな
 test("sendInitialReportsForAllReportGenerated: report_generatedなLeadだけを対象にする", async (t) => {
   withSiteConfig(t);
 
-  const targetLead = createReportGeneratedLead();
+  const targetLead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(targetLead.lead_id);
     cleanupPublished(targetLead.company_slug);
   });
   publishTestCompanyData(targetLead.company_slug);
 
-  const collectedLead = createLead(sampleParams({ email: "batch-collected@example.invalid" }));
+  const collectedLead = await createLead(sampleParams({ email: "batch-collected@example.invalid" }));
   t.after(() => cleanupLead(collectedLead.lead_id));
   // collectedLeadはstatus変更なし（"collected"のまま）
 
@@ -530,25 +535,25 @@ test("sendInitialReportsForAllReportGenerated: report_generatedなLeadだけを�
   // 自分が作成したtargetLeadに対して実際にSESが呼ばれたかどうかだけを確認する。
   const callsForTarget = calls.filter((c) => c.tags[0].Value === targetLead.lead_id);
   assert.equal(callsForTarget.length, 1, "targetLeadに対して1回だけSESが呼ばれるはず");
-  assert.equal(readLead(targetLead.lead_id).status, "initial_report_sent");
-  assert.equal(readLead(collectedLead.lead_id).status, "collected", "触れられていないはず");
+  assert.equal((await readLead(targetLead.lead_id)).status, "initial_report_sent");
+  assert.equal((await readLead(collectedLead.lead_id)).status, "collected", "触れられていないはず");
 });
 
 test("sendInitialReportsForAllReportGenerated: sent/skipped/failedがLeadごとに正しく判定される", async (t) => {
   withSiteConfig(t);
 
-  const sentLead = createReportGeneratedLead();
+  const sentLead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(sentLead.lead_id);
     cleanupPublished(sentLead.company_slug);
   });
   publishTestCompanyData(sentLead.company_slug);
 
-  const skippedLead = createReportGeneratedLead();
+  const skippedLead = await createReportGeneratedLead();
   t.after(() => cleanupLead(skippedLead.lead_id));
   // skippedLeadは公開しない → skip対象
 
-  const failedLead = createReportGeneratedLead();
+  const failedLead = await createReportGeneratedLead();
   t.after(() => {
     cleanupLead(failedLead.lead_id);
     cleanupPublished(failedLead.company_slug);
