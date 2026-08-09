@@ -169,6 +169,16 @@ test("redactSecrets: Authorization: Bearer ヘッダーを伏せ字にする", (
   assert.ok(!out.includes("1234567890"));
 });
 
+test("redactSecrets: AWS_SECRET_ACCESS_KEY/AWS_ACCESS_KEY_ID系の代入パターンを伏せ字にする（PJ2 Phase3で追加）", () => {
+  const out1 = redactSecrets("AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY が不正です");
+  assert.ok(!out1.includes("wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY"));
+  assert.ok(out1.includes("[REDACTED]"));
+
+  const out2 = redactSecrets("AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE が不正です");
+  assert.ok(!out2.includes("AKIAIOSFODNN7EXAMPLE"));
+  assert.ok(out2.includes("[REDACTED]"));
+});
+
 test("redactSecrets: 秘密情報を含まない通常のエラーメッセージは変更しない", () => {
   const msg = "quality-check job には params.slug が必須です";
   assert.equal(redactSecrets(msg), msg);

@@ -55,6 +55,10 @@ const VALID_EVENTS = [
   "report_generated",
   "initial_report_queued",
   "initial_report_sent",
+  "initial_report_failed", // PJ2 Phase3本体で発見: VALID_STATUSESには元々含まれていたが、
+  // 対応するhistoryイベント名がここに未登録だった（他の全statusには同名のイベントが
+  // 存在するのに、initial_report_failedのみ抜けていた）。SES送信失敗時にhistoryへ
+  // 記録できないと今回の確定仕様（失敗理由の記録）を満たせないため追加する。
   "email_delivered",
   "email_opened",
   "email_clicked",

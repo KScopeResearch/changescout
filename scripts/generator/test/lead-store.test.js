@@ -188,6 +188,14 @@ test("appendHistory: metadataを付与できる", (t) => {
   assert.deepEqual(updated.history[1].metadata, { message_id: "ses-123" });
 });
 
+test('appendHistory: "initial_report_failed"を記録できる（PJ2 Phase3で発見: VALID_STATUSESには元々含まれていたが、対応するイベント名がVALID_EVENTSに未登録だった。send-initial-report.jsが送信失敗時にhistoryへ記録できるよう追加した）', (t) => {
+  const created = createLead(sampleParams());
+  t.after(() => cleanupLead(created.lead_id));
+
+  const updated = appendHistory(created.lead_id, "initial_report_failed", { error: "dummy" });
+  assert.deepEqual(updated.history[1].metadata, { error: "dummy" });
+});
+
 test("appendHistory: 未知のイベント名は拒否される", (t) => {
   const created = createLead(sampleParams());
   t.after(() => cleanupLead(created.lead_id));
