@@ -20,7 +20,10 @@ const sesClient = require("../leads/ses-client");
 // isConfigured() / missingEnvVars()
 // ---------------------------------------------------------------------------
 
-const SES_ENV_VARS = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "SES_FROM"];
+// PJ2次工程: AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKENは
+// credential provider chain（resolveCredentials()）へ移行したため、isConfigured()/
+// missingEnvVars()の対象からは外れた（下記「resolveCredentials()」節のテスト参照）。
+const SES_ENV_VARS = ["AWS_REGION", "SES_FROM"];
 
 /** @returns {Object} 現在のSES関連環境変数のスナップショット */
 function snapshotSesEnv() {
@@ -37,11 +40,9 @@ function restoreSesEnv(snap) {
   });
 }
 
-test("isConfigured: 必須環境変数がすべて設定されていればtrue", (t) => {
+test("isConfigured: AWS_REGION・SES_FROMがすべて設定されていればtrue", (t) => {
   const snap = snapshotSesEnv();
   t.after(() => restoreSesEnv(snap));
-  process.env.AWS_ACCESS_KEY_ID = "AKIAEXAMPLE";
-  process.env.AWS_SECRET_ACCESS_KEY = "secret-example";
   process.env.AWS_REGION = "us-east-1";
   process.env.SES_FROM = "sender@example.invalid";
 
@@ -52,8 +53,6 @@ test("isConfigured: 必須環境変数がすべて設定されていればtrue",
 test("isConfigured: いずれか1つでも未設定ならfalseになり、missingEnvVars()に含まれる", (t) => {
   const snap = snapshotSesEnv();
   t.after(() => restoreSesEnv(snap));
-  process.env.AWS_ACCESS_KEY_ID = "AKIAEXAMPLE";
-  process.env.AWS_SECRET_ACCESS_KEY = "secret-example";
   delete process.env.AWS_REGION;
   process.env.SES_FROM = "sender@example.invalid";
 
@@ -61,13 +60,90 @@ test("isConfigured: いずれか1つでも未設定ならfalseになり、missin
   assert.deepEqual(sesClient.missingEnvVars(), ["AWS_REGION"]);
 });
 
-test("isConfigured: 全て未設定ならfalseになり、missingEnvVars()に4件すべて含まれる", (t) => {
+test("isConfigured: 全て未設定ならfalseになり、missingEnvVars()に2件すべて含まれる", (t) => {
   const snap = snapshotSesEnv();
   t.after(() => restoreSesEnv(snap));
   SES_ENV_VARS.forEach((name) => delete process.env[name]);
 
   assert.equal(sesClient.isConfigured(), false);
   assert.deepEqual(sesClient.missingEnvVars(), SES_ENV_VARS);
+});
+
+test("isConfigured: AWS_ACCESS_KEY_ID等が未設定でも、AWS_REGION・SES_FROMさえあればtrue（credential providerに認証情報解決を委ねるため）", (t) => {
+  const snap = snapshotSesEnv();
+  const awsKeySnap = {
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  };
+  t.after(() => {
+    restoreSesEnv(snap);
+    if (awsKeySnap.AWS_ACCESS_KEY_ID === undefined) delete process.env.AWS_ACCESS_KEY_ID;
+    else process.env.AWS_ACCESS_KEY_ID = awsKeySnap.AWS_ACCESS_KEY_ID;
+    if (awsKeySnap.AWS_SECRET_ACCESS_KEY === undefined) delete process.env.AWS_SECRET_ACCESS_KEY;
+    else process.env.AWS_SECRET_ACCESS_KEY = awsKeySnap.AWS_SECRET_ACCESS_KEY;
+  });
+  delete process.env.AWS_ACCESS_KEY_ID;
+  delete process.env.AWS_SECRET_ACCESS_KEY;
+  process.env.AWS_REGION = "ap-northeast-1";
+  process.env.SES_FROM = "sender@example.invalid";
+
+  assert.equal(sesClient.isConfigured(), true, "SSO等、env var以外の経路で認証情報を得る運用を誤ってfalse判定してはならない");
+});
+
+// ---------------------------------------------------------------------------
+// resolveCredentials()（PJ2次工程: credential provider chain対応）
+// ---------------------------------------------------------------------------
+
+test("resolveCredentials: DIしたcredentialProviderの戻り値をそのまま返す", async () => {
+  const fakeProvider = async () => ({ accessKeyId: "AKIAFAKE", secretAccessKey: "fake-secret" });
+  const creds = await sesClient.resolveCredentials({ credentialProvider: fakeProvider });
+  assert.deepEqual(creds, { accessKeyId: "AKIAFAKE", secretAccessKey: "fake-secret" });
+});
+
+test("resolveCredentials: sessionTokenを含むcredentialProviderの戻り値もそのまま返す（SSO/一時credential想定）", async () => {
+  const fakeProvider = async () => ({
+    accessKeyId: "ASIAFAKE",
+    secretAccessKey: "fake-secret",
+    sessionToken: "fake-session-token",
+  });
+  const creds = await sesClient.resolveCredentials({ credentialProvider: fakeProvider });
+  assert.equal(creds.accessKeyId, "ASIAFAKE");
+  assert.equal(creds.sessionToken, "fake-session-token");
+});
+
+test("resolveCredentials: credentialProviderが失敗した場合、そのままエラーが伝播する", async () => {
+  const failingProvider = async () => {
+    throw new Error("Could not load credentials from any providers");
+  };
+  await assert.rejects(
+    () => sesClient.resolveCredentials({ credentialProvider: failingProvider }),
+    /Could not load credentials from any providers/
+  );
+});
+
+test("resolveCredentials: 長期アクセスキー環境変数方式との互換性（env var由来のcredentialProviderでも問題なく動作する）", async () => {
+  const snap = {
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID,
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY,
+  };
+  process.env.AWS_ACCESS_KEY_ID = "AKIALEGACYEXAMPLE";
+  process.env.AWS_SECRET_ACCESS_KEY = "legacy-secret-example";
+  try {
+    // 実際のdefaultProvider()内部のfromEnv()サブプロバイダが行うのと同じ動作
+    // （process.envから直接組み立てる）を模したフェイクprovider。実SDK呼び出しは行わない。
+    const envBasedProvider = async () => ({
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    });
+    const creds = await sesClient.resolveCredentials({ credentialProvider: envBasedProvider });
+    assert.equal(creds.accessKeyId, "AKIALEGACYEXAMPLE");
+    assert.equal(creds.secretAccessKey, "legacy-secret-example");
+  } finally {
+    if (snap.AWS_ACCESS_KEY_ID === undefined) delete process.env.AWS_ACCESS_KEY_ID;
+    else process.env.AWS_ACCESS_KEY_ID = snap.AWS_ACCESS_KEY_ID;
+    if (snap.AWS_SECRET_ACCESS_KEY === undefined) delete process.env.AWS_SECRET_ACCESS_KEY;
+    else process.env.AWS_SECRET_ACCESS_KEY = snap.AWS_SECRET_ACCESS_KEY;
+  }
 });
 
 // ---------------------------------------------------------------------------

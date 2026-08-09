@@ -603,10 +603,12 @@ Lead保存先をS3に切り替えても、以下はいずれも**filesystem固�
   （`.env.example`にも実値は書かない。プレースホルダーのみ）
 - 実行時は環境変数、CI Secrets、AWS CLI named profile、Lambda実行ロール等、実行環境側から
   供給する
-- S3バックエンド（`s3-backend.js`、`@aws-sdk/client-s3`使用）はAWS SDKの既定クレデンシャル
-  チェーンに委ねられるため、`AWS_ACCESS_KEY_ID`等の明示設定は必須ではない。一方SES送信
-  （`ses-client.js`、自前SigV4実装）は`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/
-  `AWS_REGION`/`SES_FROM`を直接読むため、SES送信を行う場合はこれらの明示設定が必須
+- S3バックエンド（`s3-backend.js`、`@aws-sdk/client-s3`使用）・SES送信（`ses-client.js`、
+  署名処理は自前SigV4実装のまま、認証情報取得のみPJ2次工程で`@aws-sdk/credential-provider-node`
+  へ移行済み）のいずれも、AWS SDKの既定クレデンシャルチェーンに委ねられるため
+  `AWS_ACCESS_KEY_ID`等の明示設定は必須ではない（IAM Identity CenterのSSO profile・named
+  profile・Lambda実行ロール等から自動解決される）。`AWS_REGION`・SES送信時の`SES_FROM`は
+  引き続きアプリ側の必須設定として明示設定が必要
 
 ### IAMポリシー（`PJ2AOPPersonaA`）とコード利用の対応
 

@@ -1,23 +1,32 @@
 /**
  * ses-client.js — PJ2 Phase3本体: Amazon SES（SESv2 SendEmail API）への送信クライアント。
  *
- * 【調査結果に基づく設計判断】このプロジェクトにはpackage.jsonが存在せず、npm依存パッケージを
- * 一切使用しない方針（README.md）を貫いている。AWS SDK（aws-sdk / @aws-sdk/client-sesv2）も
- * 導入されていない。既存の外部API連携（llm/deepseek-provider.js・llm/openai-provider.js・
- * search/tavily-provider.js等）はいずれもNode標準の`fetch()`だけで直接HTTPS呼び出しを行っており、
- * 新規npm依存を追加していない。今回もこの既存方針をそのまま踏襲し、AWS SDKを追加せず、
- * `fetch()` + Node標準の`crypto`モジュールでSigV4（AWS Signature Version 4）署名を自前実装し、
- * SESv2の SendEmail REST API（`POST https://email.<region>.amazonaws.com/v2/email/outbound-emails`）
- * を直接呼び出す。SigV4署名ロジックの正しさは、AWS公式ドキュメントが公開している既知の
- * テストベクタ（署名鍵導出の例）に対する単体テスト（test/ses-client.test.js）で検証している。
+ * 【調査結果に基づく設計判断】本プロジェクトはnpm依存パッケージを極力使用しない方針
+ * （README.md）だが、`@aws-sdk/client-s3`（Lead永続化のS3バックエンド専用）だけは既存の
+ * 例外として導入済み。SESについても、SESv2 SendEmail REST APIへの`fetch()`呼び出しと
+ * SigV4署名は引き続き自前実装のまま維持し、AWS SDKのSESクライアント自体
+ * （`@aws-sdk/client-sesv2`等）は導入していない。SigV4署名ロジックの正しさは、AWS公式
+ * ドキュメントが公開している既知のテストベクタ（署名鍵導出の例）に対する単体テスト
+ * （test/ses-client.test.js）で検証している。PJ2次工程で、認証情報の取得元のみ
+ * `@aws-sdk/client-s3`の依存として既に存在する`@aws-sdk/credential-provider-node`を
+ * 明示依存化して利用するようにした（詳細は下記「認証情報の取得元」参照）。
  *
  * 【必要な環境変数】（既存のQWEN_API_KEY等と同じ「providerごとの環境変数」パターンを踏襲）
- *   - AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_REGION（必須。AWS標準の変数名をそのまま
- *     採用した。AWS CLI・全SDKで共通の慣例であり、本プロジェクト独自の名前を新設するより
- *     混乱が少ない）
- *   - AWS_SESSION_TOKEN（任意。一時credentialを使う場合のみ）
+ *   - AWS_REGION（必須）
  *   - SES_FROM（必須。SESで検証済みの送信元メールアドレス。ユーザー指定の慣例名をそのまま採用）
  *   - SES_REPLY_TO（任意。未設定時はReply-Toヘッダーを付与しない）
+ *
+ * 【PJ2次工程: 認証情報の取得元をAWS SDK credential provider chainへ移行】
+ * 署名処理（SigV4）自体は変更していない（引き続き自前実装、下記参照）。変更したのは
+ * 「署名に使うaccessKeyId/secretAccessKey/sessionTokenをどこから取得するか」のみ。
+ * 従来は`process.env.AWS_ACCESS_KEY_ID`等を直接読んでいたが、これだとIAM Identity Center
+ * のSSOセッション（`AWS_PROFILE`経由）や一時credentialに対応できない
+ * （`leads/backends/s3-backend.js`が`@aws-sdk/client-s3`のcredential provider chainに
+ * 委ねることでSSOにそのまま対応できているのと対照的）。`resolveCredentials()`が
+ * `@aws-sdk/credential-provider-node`の`defaultProvider()`（env→profile→SSO→IMDS等の
+ * 標準チェーン、S3側と同じ解決ロジック）から取得する。環境変数`AWS_ACCESS_KEY_ID`/
+ * `AWS_SECRET_ACCESS_KEY`/`AWS_SESSION_TOKEN`が設定されている場合はチェーンの中で
+ * 最優先されるため、旧来の長期アクセスキー運用は無変更で動作し続ける。
  *
  * 【secretの扱い（構造的な保証）】AWS_SECRET_ACCESS_KEY等の値そのものを、エラーメッセージ・
  * ログ・例外オブジェクトのどのプロパティにも一切含めない実装にしている（そもそも文字列結合の
@@ -29,6 +38,7 @@
  */
 
 const crypto = require("crypto");
+const { defaultProvider } = require("@aws-sdk/credential-provider-node");
 
 const SERVICE = "ses";
 const API_VERSION_PATH = "/v2/email/outbound-emails";
@@ -39,16 +49,35 @@ const API_VERSION_PATH = "/v2/email/outbound-emails";
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_MAX_RETRIES = 2;
 
-const REQUIRED_ENV_VARS = ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION", "SES_FROM"];
+// PJ2次工程: AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/AWS_SESSION_TOKENはここから除外した。
+// これらは「必須の環境変数」ではなく、credential provider chainが解決する複数の経路
+// （env / named profile・SSO / IMDS等）のうちの1つに過ぎないため、環境変数の有無だけでは
+// 「送信可能かどうか」を正しく判定できない（SSO利用時に誤ってfalse判定してしまう）。
+// AWS_REGION・SES_FROMはアプリ側の必須設定として引き続き同期チェックの対象とする。
+const REQUIRED_ENV_VARS = ["AWS_REGION", "SES_FROM"];
 
-/** @returns {boolean} SES送信に必要な環境変数がすべて設定されているか */
+/** @returns {boolean} SES送信に必要なアプリ設定（AWS_REGION・SES_FROM）が揃っているか */
 function isConfigured() {
   return REQUIRED_ENV_VARS.every((name) => !!process.env[name]);
 }
 
-/** @returns {string[]} 不足している環境変数名の一覧 */
+/** @returns {string[]} 不足しているアプリ設定（AWS_REGION・SES_FROM）の一覧 */
 function missingEnvVars() {
   return REQUIRED_ENV_VARS.filter((name) => !process.env[name]);
+}
+
+/**
+ * AWS credentialをcredential provider chain経由で解決する（I/O）。
+ * @param {{credentialProvider?: () => Promise<{accessKeyId:string, secretAccessKey:string, sessionToken?:string}>}} [options] -
+ *   `credentialProvider`はテスト時にchain全体を差し替えるためのフック（省略時は
+ *   `@aws-sdk/credential-provider-node`の`defaultProvider()`を使う。実際のcredential解決
+ *   （AWS_PROFILE・SSOトークンキャッシュ参照等）を伴うため、テストではフェイクの関数に
+ *   差し替える。send-initial-report.jsのoptions.sendEmailと同じ依存性注入パターン）。
+ * @returns {Promise<{accessKeyId:string, secretAccessKey:string, sessionToken?:string}>}
+ */
+async function resolveCredentials(options = {}) {
+  const provider = options.credentialProvider || defaultProvider();
+  return provider();
 }
 
 // ---------------------------------------------------------------------------
@@ -161,13 +190,12 @@ function buildSendEmailBody({ to, from, replyTo, subject, text, html, tags }) {
  * SESv2 SendEmail APIを1回呼び出す（内部関数。リトライ・タイムアウトはsendEmail()側で行う）。
  * @param {Object} bodyObj
  * @param {AbortSignal} [signal]
+ * @param {{credentialProvider?: Function}} [options] - resolveCredentials()と同じDIフック
  * @returns {Promise<{messageId:string}>}
  */
-async function callSendEmail(bodyObj, signal) {
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+async function callSendEmail(bodyObj, signal, options = {}) {
+  const { accessKeyId, secretAccessKey, sessionToken } = await resolveCredentials(options);
   const region = process.env.AWS_REGION;
-  const sessionToken = process.env.AWS_SESSION_TOKEN || undefined;
 
   const payload = JSON.stringify(bodyObj);
   const host = `email.${region}.amazonaws.com`;
@@ -218,9 +246,12 @@ const { withRetryAndTimeout } = require("../shared/retry");
  * @param {{to:string, subject:string, text:string, html:string, tags?:Array<{Name:string,Value:string}>}} params -
  *   `to`（宛先）以外はすべて呼び出し元が組み立てた完成形の値。fromEmailAddress/replyToは
  *   このモジュールが環境変数（SES_FROM/SES_REPLY_TO）から解決する。
+ * @param {{credentialProvider?: Function}} [options] - resolveCredentials()と同じDIフック
+ *   （省略時はcredential provider chainをそのまま使う。既存呼び出し元との後方互換性のため
+ *   第2引数は省略可能）。
  * @returns {Promise<{messageId:string}>}
  */
-async function sendEmail({ to, subject, text, html, tags }) {
+async function sendEmail({ to, subject, text, html, tags }, options = {}) {
   if (!isConfigured()) {
     throw new Error(`SES送信に必要な環境変数が設定されていません: ${missingEnvVars().join(", ")}`);
   }
@@ -235,7 +266,7 @@ async function sendEmail({ to, subject, text, html, tags }) {
     tags,
   });
 
-  return withRetryAndTimeout((signal) => callSendEmail(bodyObj, signal), {
+  return withRetryAndTimeout((signal) => callSendEmail(bodyObj, signal, options), {
     timeoutMs: DEFAULT_TIMEOUT_MS,
     maxRetries: DEFAULT_MAX_RETRIES,
     label: "SES SendEmail",
@@ -245,6 +276,7 @@ async function sendEmail({ to, subject, text, html, tags }) {
 module.exports = {
   isConfigured,
   missingEnvVars,
+  resolveCredentials,
   sendEmail,
   // テスト・内部検証用に公開（SigV4署名の正しさをネットワーク非依存で検証するため）
   buildSignedRequest,
