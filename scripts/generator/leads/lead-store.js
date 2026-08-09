@@ -287,7 +287,17 @@ function listLeads() {
   return fs
     .readdirSync(LEADS_DIR, { withFileTypes: true })
     .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
-    .map((entry) => readJson(path.join(LEADS_DIR, entry.name)))
+    .map((entry) => {
+      try {
+        return readJson(path.join(LEADS_DIR, entry.name));
+      } catch (e) {
+        // 一覧取得後・読み込み前にファイルが削除された場合（他プロセスとの競合、
+        // 例えばnode --testが複数テストファイルを並行実行する際に別ファイルの
+        // テストが自分のLeadを削除するタイミングと重なる等）は、そのエントリだけ
+        // 安全側にスキップする（json-file.jsのreadJsonSafe()と同じ考え方）。
+        return null;
+      }
+    })
     .filter(Boolean);
 }
 
