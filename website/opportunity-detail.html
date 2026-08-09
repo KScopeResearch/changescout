@@ -1,0 +1,1716 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>製造業への新規開拓チャンス ｜ ChangeScout Weekly</title>
+<meta name="description" content="検出された市場変化の詳細、判断理由・推奨アクション・根拠情報を確認できるページ（サンプル）です。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Opportunity Detail ｜ ChangeScout Weekly">
+<meta property="og:description" content="検出された市場変化の詳細、判断理由・推奨アクション・根拠情報を確認できるページ（サンプル）です。">
+<meta property="og:image" content="https://kscoperesearch.github.io/changescout/images/hero-analysis.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #0f172a;
+    --text-muted: #667085;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --orange: #f97316;
+    --orange-soft: #fff1e6;
+    --neutral-soft: #f1f2f4;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+    --shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
+    --shadow-sm: 0 8px 20px -16px rgba(15, 23, 42, 0.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .brand__name--scout {
+    color: var(--orange);
+  }
+
+  .brand__name--suffix {
+    color: var(--blue);
+  }
+
+  .brand__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid #ffd9bd;
+  }
+
+  .beta-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-decoration: none;
+    margin-bottom: 20px;
+  }
+
+  .back-link:hover {
+    color: var(--blue);
+  }
+
+  .eyebrow {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+
+  section {
+    margin-bottom: 40px;
+  }
+
+  h2.section-heading {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin: 0 0 18px;
+  }
+
+  .tag {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 5px 10px;
+    border-radius: 999px;
+  }
+
+  .tag--orange { background: var(--orange-soft); color: #c2530f; }
+  .tag--blue { background: var(--blue-soft); color: #1d4ed8; }
+  .tag--neutral { background: var(--neutral-soft); color: #475467; }
+
+  /* Hero */
+  .detail-hero {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 36px;
+    display: flex;
+    align-items: center;
+    gap: 36px;
+    flex-wrap: wrap;
+  }
+
+  .detail-hero__ring {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0;
+  }
+
+  .detail-hero__ring svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: var(--neutral-soft);
+    stroke-width: 12;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: url(#ringGradient);
+    stroke-width: 12;
+    stroke-linecap: round;
+    stroke-dasharray: 327;
+    stroke-dashoffset: 16;
+  }
+
+  .detail-hero__ring-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .detail-hero__ring-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .detail-hero__ring-max {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .detail-hero__copy {
+    flex: 1;
+    min-width: 240px;
+  }
+
+  .detail-hero__score-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--blue);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 10px;
+  }
+
+  .detail-hero__badges {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .detail-hero__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 10px 0 0;
+  }
+
+  .detail-hero__fact {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 6px 0 0;
+  }
+
+  .score-breakdown {
+    display: flex;
+    gap: 24px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+
+  .score-breakdown__row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .score-breakdown__row b {
+    color: var(--text);
+    font-size: 1rem;
+  }
+
+  .detail-hero__relevance {
+    margin: 14px 0 0;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--orange-soft);
+    color: #c2530f;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  /* Panel card (shared style) */
+  .panel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 28px 32px;
+  }
+
+  .panel-card__body {
+    margin: 0;
+    color: var(--text-muted);
+  }
+
+  .panel-card__body + .panel-card__body {
+    margin-top: 12px;
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  .stat-tile {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    text-align: center;
+  }
+
+  .stat-tile__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 6px;
+  }
+
+  .stat-tile__value {
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .stat-tile__value--accent {
+    color: var(--orange);
+  }
+
+  .ai-estimate-note {
+    margin: 12px 0 0;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  /* Action item (shared style) */
+  .action-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 18px 20px;
+  }
+
+  .action-item__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+
+  .action-item__head-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .action-item__title {
+    font-weight: 800;
+    font-size: 0.98rem;
+  }
+
+  .priority {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .priority--high {
+    background: var(--orange-soft);
+    color: #c2530f;
+  }
+
+  .action-item__row {
+    font-size: 0.87rem;
+    margin-top: 8px;
+    color: var(--text-muted);
+  }
+
+  .action-item__row-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-right: 6px;
+  }
+
+  .generate-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  .generate-btn {
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--blue-soft);
+    background: var(--blue-soft);
+    color: #1d4ed8;
+    cursor: pointer;
+  }
+
+  .generate-btn:hover {
+    background: var(--blue);
+    color: #fff;
+  }
+
+  .generate-output {
+    display: none;
+    margin-top: 10px;
+    padding: 14px 16px;
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    font-size: 0.85rem;
+    white-space: pre-line;
+    color: var(--text);
+  }
+
+  .generate-output.is-visible {
+    display: block;
+  }
+
+  /* Sources */
+  .section--muted .section-heading,
+  .section--muted .eyebrow {
+    color: var(--text-muted);
+  }
+
+  .section-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .section-illustration {
+    width: 130px;
+    flex-shrink: 0;
+    display: none;
+  }
+
+  @media (min-width: 720px) {
+    .section-illustration {
+      display: block;
+    }
+  }
+
+  .source-list {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--border);
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .source-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .source-item__title {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .source-item__title:hover {
+    text-decoration: underline;
+  }
+
+  .source-item__title::after {
+    content: "\2197";
+    display: inline-block;
+    margin-left: 4px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .source-item__meta {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .page {
+      padding: 24px 16px 64px;
+    }
+
+    .detail-hero {
+      padding: 24px;
+      gap: 20px;
+    }
+
+    .stat-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .source-item {
+      flex-wrap: wrap;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="42" cy="42" r="24" fill="none" stroke="#16213a" stroke-width="9"/>
+        <line x1="59" y1="59" x2="80" y2="80" stroke="#16213a" stroke-width="11" stroke-linecap="round"/>
+        <polyline points="27,50 36,40 44,46" fill="none" stroke="#2563eb" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="44,46 55,26" fill="none" stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand__text">
+        <span class="brand__name">Change<span class="brand__name--scout">Scout</span> <span class="brand__name--suffix">Weekly</span></span>
+        <span class="brand__sub">市場の変化を、ビジネスチャンスへ。</span>
+      </div>
+    </div>
+    <span class="beta-badge">BETA</span>
+  </header>
+
+  <a class="back-link" href="mock-dashboard.html">← ダッシュボードに戻る</a>
+
+  <!-- Hero -->
+  <section>
+    <div class="detail-hero">
+      <div class="detail-hero__ring">
+        <svg viewBox="0 0 120 120">
+          <defs>
+            <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2563eb" />
+              <stop offset="100%" stop-color="#f97316" />
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="60" cy="60" r="52" />
+          <circle class="ring-progress" cx="60" cy="60" r="52" transform="rotate(-90 60 60)" />
+        </svg>
+        <div class="detail-hero__ring-value">
+          <span class="detail-hero__ring-num">95</span>
+          <span class="detail-hero__ring-max">/ 100</span>
+        </div>
+      </div>
+      <div class="detail-hero__copy" id="detailHero" data-source="static">
+        <p class="detail-hero__score-label">あなたの会社への重要度</p>
+        <div class="detail-hero__badges">
+          <span class="tag tag--orange" id="detailTag">補助金</span>
+          <span class="tag tag--blue">確信度：高</span>
+        </div>
+        <h1 class="detail-hero__title" id="detailTitle">製造業への新規開拓チャンス</h1>
+        <p class="detail-hero__fact" id="detailFact">補助金対象拡大（経済産業省）</p>
+        <div class="score-breakdown">
+          <div class="score-breakdown__row"><span>営業機会度</span><b>95</b></div>
+          <div class="score-breakdown__row"><span>緊急度</span><b>90</b></div>
+        </div>
+        <p class="detail-hero__relevance">貴社の既存顧客18社に直接関係する変化です。対応が早いほど、採択率と商談化率が上がります。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- サマリー -->
+  <section>
+    <h2 class="section-heading">サマリー</h2>
+    <div class="panel-card">
+      <div class="action-item__row"><span class="action-item__row-label">影響</span><span id="summaryImpact">製造業の既存顧客・見込み客への提案機会が増加</span></div>
+      <div class="action-item__row"><span class="action-item__row-label">判断理由</span><span id="summaryReason">貴社の主要ターゲットである製造業への新規開拓機会が広がるため</span></div>
+      <div class="action-item__row"><span class="action-item__row-label">推奨アクション</span><span id="summaryAction">対象企業へ営業開始</span></div>
+    </div>
+  </section>
+
+  <!-- 詳細説明 -->
+  <section>
+    <h2 class="section-heading">概要</h2>
+    <div class="panel-card">
+      <p class="panel-card__body" id="overviewPara1">
+        経済産業省は2026年7月、ものづくり補助金の対象要件を拡大し、DX関連投資（業務システム導入・IoT設備・省力化ツール等）を新たに対象に含めることを発表しました。
+      </p>
+      <p class="panel-card__body" id="overviewPara2">
+        これにより、これまで対象外だった多くの製造業がIT・DX投資の補助を受けられるようになり、
+        導入支援を提供する事業者にとっては新規の商談機会が広がると見込まれます。
+      </p>
+    </div>
+  </section>
+
+  <!-- Why Now -->
+  <section>
+    <h2 class="section-heading">Why Now（なぜ今か）</h2>
+    <div class="panel-card">
+      <div id="whyNowDefault">
+        <p class="panel-card__body">
+          本補助金の申請受付には期限があり、対応の早さがそのまま採択率に直結します。着手が遅れるほど、見込み客への提案余地は狭まります。
+        </p>
+        <p class="panel-card__body">
+          同業の導入支援事業者もこの制度への言及を強め始めており、認知が広がりきる前の先行アプローチが商談化率を左右します。
+        </p>
+        <p class="panel-card__body">
+          対象拡大の発表直後である今は、対象企業の経営者の関心が最も高まっているタイミングでもあり、最も反応を得やすい時期です。
+        </p>
+      </div>
+      <p class="panel-card__body" id="whyNowPersonalized" hidden></p>
+    </div>
+  </section>
+
+  <!-- 貴社への影響（詳細） -->
+  <section>
+    <h2 class="section-heading">貴社への影響（詳細）</h2>
+    <div class="panel-card">
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定影響度</div>
+          <div class="stat-tile__value stat-tile__value--accent">高</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">関連する既存顧客</div>
+          <div class="stat-tile__value">18社</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定新規リード</div>
+          <div class="stat-tile__value">最大12社</div>
+        </div>
+        <div class="stat-tile">
+          <div class="stat-tile__label">想定売上機会</div>
+          <div class="stat-tile__value stat-tile__value--accent">最大400万円</div>
+        </div>
+      </div>
+      <p class="ai-estimate-note">AI推定値：公開情報・登録プロフィール情報をもとに算出</p>
+      <p class="panel-card__body" id="impactDetailBody">
+        貴社の既存顧客のうち18社が本補助金の対象条件に該当する見込みです。
+        また、これまで投資予算の制約で導入を見送っていた製造業の見込み客層にもアプローチの余地が生まれます。
+        競合の導入支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。
+      </p>
+    </div>
+  </section>
+
+  <!-- Recommended Action -->
+  <section>
+    <h2 class="section-heading">Recommended Action（AI推奨アクション）</h2>
+    <div class="panel-card">
+      <div class="action-item" id="recommendedAction" data-source="static">
+        <div class="action-item__head">
+          <div class="action-item__head-left">
+            <span class="rank-badge">1</span>
+            <span class="action-item__title" id="actionTitle">補助金対象企業へ営業メールを送信する</span>
+          </div>
+          <span class="priority priority--high">優先度：高</span>
+        </div>
+        <div class="action-item__row"><span class="action-item__row-label">影響候補企業</span><span id="actionTarget">既存顧客のうち補助金対象条件に該当する18社（製造業）</span></div>
+        <div class="action-item__row"><span class="action-item__row-label">推奨理由</span><span id="actionReason">補助金対象拡大により、対象となる製造業の見込み客の関心が高まっているため</span></div>
+        <div class="action-item__row"><span class="action-item__row-label">期待効果</span><span id="actionEffect">新規商談化率の向上、問い合わせ増加が見込まれる（想定売上機会 最大400万円）</span></div>
+        <div class="generate-actions">
+          <button type="button" class="generate-btn" data-generate="mail">✉️ メール生成</button>
+          <button type="button" class="generate-btn" data-generate="talk">🗣️ 営業トーク生成</button>
+          <button type="button" class="generate-btn" data-generate="proposal">📄 提案資料生成</button>
+        </div>
+        <div class="generate-output" data-output-for="mail" id="genMail">件名：【ご案内】ものづくり補助金の対象拡大について
+
+○○様
+
+いつもお世話になっております。このたび、ものづくり補助金の対象要件が拡大され、DX関連投資（業務システム導入・IoT設備等）も新たに対象となりました。
+貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。
+一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。</div>
+        <div class="generate-output" data-output-for="talk" id="genTalk">「本日は、貴社にとって朗報となる制度改正についてご案内できればと思いご連絡しました。
+実は今月、ものづくり補助金の対象がDX投資にも広がりまして、これまで対象外だった設備投資やシステム導入も補助対象になったんです。
+もし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。
+詳しい要件や申請のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」</div>
+        <div class="generate-output" data-output-for="proposal" id="genProposal">【提案資料アウトライン（自動生成）】
+1. 表紙：ものづくり補助金 対象拡大のご案内
+2. 制度概要：対象要件の拡大内容（DX関連投資が新規対象に）
+3. 貴社への想定インパクト：対象条件・活用余地
+4. 導入支援内容：弊社のDX導入支援サービス概要
+5. 導入ステップとスケジュール
+6. 費用感・補助金活用後の実質負担
+7. 次のアクション：ヒアリングのご案内</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Evidence -->
+  <section class="section--muted" style="margin-bottom: 0;">
+    <div class="section-header-row">
+      <div>
+        <p class="eyebrow">SOURCES</p>
+        <h2 class="section-heading">Evidence（根拠情報）</h2>
+      </div>
+      <svg class="section-illustration" viewBox="0 0 260 190" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="230" cy="40" r="3" fill="#f97316" opacity="0.5" />
+        <circle cx="235" cy="150" r="3" fill="#2563eb" opacity="0.5" />
+        <circle cx="30" cy="60" r="2.5" fill="#f97316" opacity="0.5" />
+        <path d="M140,118 L232,164 L140,210 L48,164 Z" fill="#e2e8f0" />
+        <path d="M48,164 L140,210 L140,219 L48,173 Z" fill="#dbe3ee" />
+        <path d="M140,210 L232,164 L232,173 L140,219 Z" fill="#cbd5e1" />
+        <path d="M98.6,122.32 L112.6,129.32 L98.6,136.32 L84.6,129.32 Z" fill="rgb(113,154,242)" />
+        <path d="M84.6,129.32 L98.6,136.32 L98.6,160.32 L84.6,153.32 Z" fill="#2563eb" />
+        <path d="M98.6,136.32 L112.6,129.32 L112.6,153.32 L98.6,160.32 Z" fill="rgb(27,71,169)" />
+        <path d="M135.4,102.32 L149.4,109.32 L135.4,116.32 L121.4,109.32 Z" fill="rgb(113,154,242)" />
+        <path d="M121.4,109.32 L135.4,116.32 L135.4,160.32 L121.4,153.32 Z" fill="#2563eb" />
+        <path d="M135.4,116.32 L149.4,109.32 L149.4,153.32 L135.4,160.32 Z" fill="rgb(27,71,169)" />
+        <path d="M172.2,114.32 L186.2,121.32 L172.2,128.32 L158.2,121.32 Z" fill="rgb(251,164,104)" />
+        <path d="M158.2,121.32 L172.2,128.32 L172.2,160.32 L158.2,153.32 Z" fill="#f97316" />
+        <path d="M172.2,128.32 L186.2,121.32 L186.2,153.32 L172.2,160.32 Z" fill="rgb(179,83,16)" />
+        <line x1="176.51" y1="76.56" x2="202.89" y2="95.03" stroke="#2563eb" stroke-width="7.28" stroke-linecap="round" />
+        <circle cx="160" cy="65" r="28" fill="#2563eb" fill-opacity="0.22" stroke="#2563eb" stroke-width="6.16" />
+        <circle cx="151.04" cy="56.04" r="6.16" fill="#ffffff" opacity="0.55" />
+      </svg>
+    </div>
+    <div class="source-list">
+      <div class="source-item">
+        <span class="source-dot" style="background:#f97316;"></span>
+        <a class="source-item__title" id="evidenceTitle1" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">中小企業庁、DX推進補助金の第2次公募を開始</a>
+        <span class="source-item__meta" id="evidenceMeta1">中小企業庁 ・ 2026.07.24</span>
+      </div>
+      <div class="source-item">
+        <span class="source-dot" style="background:#667085;"></span>
+        <a class="source-item__title" id="evidenceTitle2" href="https://www.chusho.meti.go.jp" target="_blank" rel="noopener">ものづくり補助金 公募要領（改定版）</a>
+        <span class="source-item__meta" id="evidenceMeta2">中小企業庁 ・ 2026.07.24</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why This Recommendation -->
+  <section id="whyGeneratedSection" hidden>
+    <p class="eyebrow">AI TRANSPARENCY</p>
+    <h2 class="section-heading">この提案が生成された理由</h2>
+    <div class="panel-card">
+      <div class="action-item__row" id="rowIndustry" hidden><span class="action-item__row-label">業種</span><span id="genIndustry"></span></div>
+      <div class="action-item__row" id="rowCustomerSegment" hidden><span class="action-item__row-label">顧客層</span><span id="genCustomerSegment"></span></div>
+      <div class="action-item__row" id="rowProduct" hidden><span class="action-item__row-label">商材</span><span id="genProduct"></span></div>
+      <div class="action-item__row" id="rowRegion" hidden><span class="action-item__row-label">営業地域</span><span id="genRegion"></span></div>
+      <div class="action-item__row" id="rowMarketChange" hidden><span class="action-item__row-label">検知した市場変化</span><span id="genMarketChange"></span></div>
+      <div class="action-item__row" id="rowReferences" hidden><span class="action-item__row-label">参照情報</span><span id="genReferences"></span></div>
+      <div class="action-item__row" id="rowAnalysisTiming" hidden><span class="action-item__row-label">分析タイミング</span><span id="genAnalysisTiming"></span></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="js/market-data.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/render.js"></script>
+<script>
+  // Which of Dashboard's 3 topic cards linked here (?topic=1|2|3). Card1 is the
+  // only topic backed by website/data/market-changes.json; Card2/Card3 route to
+  // their own hardcoded content below so "詳細を見る" no longer lands on Card1's
+  // page regardless of which card was clicked.
+  const topicParam = new URLSearchParams(location.search).get("topic");
+  const topicKey = topicParam === "2" || topicParam === "3" ? topicParam : "1";
+
+  document.querySelectorAll(".action-item").forEach((item) => {
+    item.querySelectorAll("[data-generate]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const type = btn.getAttribute("data-generate");
+        const output = item.querySelector(`[data-output-for="${type}"]`);
+        const wasVisible = output.classList.contains("is-visible");
+        item.querySelectorAll(".generate-output").forEach((el) => el.classList.remove("is-visible"));
+        if (!wasVisible) output.classList.add("is-visible");
+      });
+    });
+  });
+
+  // Personalize the title/fact/概要/影響/判断理由/推奨アクション based on the company profile
+  // saved from company-profile.html, so the whole page reads as one consistent story.
+  // Falls back to the default wording when no profile is saved (or industry is "other").
+  (function personalizeFromProfile() {
+    const overrides = {
+      manufacturing: {
+        tag: "補助金",
+        tagClass: "tag--orange",
+        title: "補助金対象拡大",
+        fact: "中小企業向け設備投資支援策が拡充（経済産業省）",
+        overview1: "経済産業省は2026年7月、中小企業向けの設備投資支援策を拡充し、生産設備の更新やIoT・省力化投資への補助を強化することを発表しました。",
+        overview2: "統合後の新制度を自社の設備投資・新事業展開に活用できないか、早期に検討する好機です。制度統合により申請要件やスケジュールが変わっている可能性があるため、社内で検討中の投資計画を早めに整理しておくことが、スムーズな申請につながります。",
+        impact: "貴社（製造業）の設備投資・新事業展開の検討状況への影響",
+        reason: "貴社が製造業として、統合後の新制度を活用した設備投資・新事業展開を検討する好機であるため",
+        action: "自社の設備投資・新事業展開計画を整理し、統合後の新制度の活用を検討する",
+        whyNow: "制度統合直後は申請要件の変更点を見落としやすいため、早期に自社の投資計画と照らし合わせておくことが有効です。",
+        evidence: [
+          { title: "中小企業庁、設備投資支援策の拡充を発表", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724.html" },
+          { title: "ものづくり補助金 公募要領（改定版）", meta: "中小企業庁 ・ 2026.07.24", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0724-2.html" },
+        ],
+        impactDetail: "統合後の新制度が、貴社自身の設備投資・新事業展開の検討状況に関わる見込みです。申請要件・スケジュールが変わっている可能性があるため、社内で検討中の投資計画を早期に整理しておくことが、スムーズな申請につながります。",
+        actionTitle: "統合後の新制度の活用に向けて自社の投資計画を整理する",
+        actionTarget: "自社の設備投資・新事業展開を検討している経営陣・担当部門",
+        actionReason: "制度統合により申請要件・スケジュールが変わっている可能性があるため、自社の投資計画を早期に整理し、申請に向けた準備を進める必要があるため",
+        actionEffect: "設備投資・新事業展開に対する資金負担の軽減、新制度を活用した投資計画の前倒し検討",
+        genMail: "件名：【社内共有】ものづくり補助金・新事業進出補助金の統合について\n\n担当各位\n\n「ものづくり補助金」と「新事業進出補助金」が統合され、「新事業進出・ものづくり商業サービス補助金」として新たな公募が始まりました。\n弊社で検討中の設備投資・新事業展開について、この制度を活用できないか整理したいと考えています。\n対象となりそうな取り組みについて、今週中に洗い出しをお願いします。",
+        genTalk: "「ものづくり補助金と新事業進出補助金が統合されて、新しい制度として公募が始まりました。\nうちで検討している設備投資や新事業展開が対象にならないか、一度整理してみましょう。」",
+        genProposal: "【社内検討アウトライン】\n1. 制度概要：統合後の新制度の枠組みと申請スケジュール\n2. 自社の設備投資・新事業展開計画の棚卸し\n3. 対象となりうる取り組みの整理\n4. 次のアクション：申請要件の確認・準備",
+      },
+      construction: {
+        tag: "法改正",
+        tagClass: "tag--blue",
+        title: "建設業法改正",
+        fact: "建設業許可・取引適正化に関する制度変更（国土交通省）",
+        overview1: "国土交通省は2026年、建設業許可制度および取引の適正化に関する建設業法の一部改正を決定しました。許可要件の見直しや下請取引の適正化ルールが強化されます。",
+        overview2: "これにより、建設業の既存顧客・取引先は許可要件や契約実務の見直しが必要になる見込みです。早期の情報提供や対応支援が、顧客との信頼関係強化につながります。",
+        impact: "貴社（建設業）の許可要件・実務対応への影響",
+        reason: "貴社が建設業として、法改正への早期対応が求められるため",
+        action: "建設業の顧客・現場担当者へ改正内容を共有",
+        whyNow: "制度変更への対応準備が必要となるため、既存顧客への早期情報提供が有効です。",
+        evidence: [
+          { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+          { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
+        ],
+        impactDetail: "貴社の既存顧客のうち18社が今回の建設業法改正の影響を受ける見込みです。また、これまで対応を後回しにしていた既存取引先にも、早期のフォローアップの余地が生まれます。競合他社もこの制度への言及を強める可能性が高く、早期のアプローチが信頼維持・商談化率に影響すると考えられます。",
+        actionTitle: "建設業顧客へ改正内容の説明を実施する",
+        actionTarget: "既存顧客のうち建設業法改正の影響を受ける18社（建設業）",
+        actionReason: "建設業法改正により、対応準備が必要な既存顧客への早期フォローが重要になっているため",
+        actionEffect: "既存顧客との信頼関係強化、追加相談・商談機会の創出が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】建設業法改正への対応について\n\n○○様\n\nいつもお世話になっております。このたび、建設業許可制度および取引適正化に関する建設業法の一部改正が決定しました。\n貴社の許可要件や契約実務に影響する可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、建設業法の改正についてご案内できればと思いご連絡しました。\n許可要件や下請取引に関するルールが見直される予定で、対応の準備が必要になる可能性があります。\n詳しい変更点や対応のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：建設業法改正への対応ご案内\n2. 制度概要：許可要件・取引適正化ルールの変更内容\n3. 貴社への想定インパクト：対応が必要な項目\n4. 貴社としての現状の対応状況\n5. 対応ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
+      },
+      professional: {
+        tag: "制度改正",
+        tagClass: "tag--neutral",
+        title: "制度変更による業務需要変化",
+        fact: "企業対応が必要となる制度改正が増加",
+        overview1: "近年、補助金制度や関連法規の改正が相次いでおり、企業側での対応判断や書類対応の負担が増しています。複数の制度変更が同時期に重なるケースも増加しています。",
+        overview2: "これにより、顧問先企業からの相談ニーズが高まっており、士業事務所にとっては、適時のアドバイスや情報提供を通じた関係強化の好機となっています。",
+        impact: "顧問先企業への補助金・法改正の助言ニーズへの影響",
+        reason: "貴社が士業として、顧問先へのタイムリーな情報提供価値が高まるため",
+        action: "顧問先企業へ制度変更の案内を送付",
+        whyNow: "制度改正対応への相談需要が高まる前に、顧客への情報提供を開始することが重要です。",
+        evidence: [
+          { title: "複数省庁、制度改正の同時実施を発表", meta: "関係省庁 ・ 2026.07.20", url: "https://www.e-gov.go.jp/elaws/search/87752" },
+          { title: "士業向け制度改正対応ガイド", meta: "業界団体 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO87753072026000/" },
+        ],
+        impactDetail: "貴社の顧問先企業のうち18社が、免税事業者との取引に伴うインボイス経過措置の見直しの影響を受ける見込みです。また、これまで積極的な情報提供を行っていなかった顧問先にも、相談機会を生み出す余地があります。他の士業事務所もこの動きへの言及を強める可能性が高く、早期のアプローチが信頼維持・関係強化に影響すると考えられます。",
+        actionTitle: "顧問先企業へ制度改正の案内を送付する",
+        actionTarget: "顧問先企業のうち制度改正の影響を受ける18社",
+        actionReason: "制度改正により、顧問先からの相談ニーズが高まる前に情報提供を行う好機であるため",
+        actionEffect: "顧問契約の継続率向上、追加相談機会の創出が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】制度改正に関する情報提供について\n\n○○様\n\nいつもお世話になっております。このたび、複数の制度改正が同時期に実施されることが決定しました。\n顧問先企業様への説明・相談対応の準備として、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、直近で相次いでいる制度改正についてご案内できればと思いご連絡しました。\n複数の制度変更が重なっており、顧問先企業様からの相談が増えることが見込まれます。\n詳しい変更点や情報提供の進め方など、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：制度改正に関する情報提供ご案内\n2. 制度概要：今回の改正内容と対象範囲\n3. 顧問先への想定インパクト：相談が増える論点\n4. 情報提供支援内容：弊社の案内資料・説明サポート\n5. 実施ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
+      },
+      other: {
+        tag: "市場変化",
+        tagClass: "tag--neutral",
+        title: "登録情報に基づく市場変化を検知",
+        fact: "貴社の登録情報に関連する可能性のある市場変化が検出されました",
+        overview1: "貴社が登録された業種・事業内容をもとに、関連性が高いと考えられる市場変化を検知しました。特定の業界に限定されない、幅広い変化情報を対象としています。",
+        overview2: "登録情報をもとにした分析のため、詳細については実際の事業内容と照らし合わせてご確認いただくことを推奨します。",
+        impact: "貴社（登録情報ベース）の事業への影響",
+        reason: "貴社の登録情報をもとに、関連性が高いと判断されたため",
+        action: "詳細を確認し、関連度の高い顧客へ情報提供を検討",
+        whyNow: "検知された変化への関心が高まる前に、早期の情報提供が有効と考えられます。",
+        evidence: [
+          { title: "登録情報に関連する市場変化を検知", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12345" },
+          { title: "関連分野の動向まとめ", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/12346" },
+        ],
+        impactDetail: "貴社の顧客・見込み客のうち、パート・アルバイトを雇用している層は、最低賃金改定の影響を受ける見込みです。特定の業界に限定した分析ではないため、詳細は実際の雇用状況と照らし合わせてご確認ください。同様の影響は業種を問わず広がると見込まれ、早期の情報提供が信頼構築に影響すると考えられます。",
+        actionTitle: "登録情報に関連する見込み客へ情報提供を行う",
+        actionTarget: "登録情報をもとに抽出した関連候補18社",
+        actionReason: "検知された市場変化が貴社の登録情報と関連性が高いと判断されるため",
+        actionEffect: "新規商談化率の向上、問い合わせ増加が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】貴社に関連する可能性のある市場変化について\n\n○○様\n\nいつもお世話になっております。貴社の登録情報をもとに、関連性が高いと考えられる市場変化を検知いたしました。\n詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、貴社の登録情報をもとに検知した市場変化についてご案内できればと思いご連絡しました。\n貴社の事業内容と関連性が高いと考えられる動きがありましたので、詳しい内容を5分ほどでご説明できますが、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：市場変化のご案内\n2. 概要：検知された変化の内容\n3. 貴社への想定インパクト：登録情報をもとにした関連度\n4. ご提案内容：弊社の支援サービス概要\n5. 次のアクション：ヒアリングのご案内",
+      },
+      "it-dx": {
+        tag: "税制改正",
+        tagClass: "tag--blue",
+        title: "中小企業のDX推進を後押しする税制優遇拡充",
+        fact: "中小企業のDX推進・業務改善ニーズが高まる見通し（経済産業省）",
+        overview1: "経済産業省は2026年7月、中小企業のDX投資を対象とした税額控除・特別償却の適用要件を緩和し、業務システム導入やクラウド活用への投資を後押しすることを発表しました。",
+        overview2: "これにより、コスト面でDX投資を先送りしていた中小企業でも導入に踏み切りやすい環境が整いつつあり、業務改善・DX導入を支援する事業者にとっては新たな提案機会が生まれています。",
+        impact: "貴社（IT・DX支援）のDX導入提案需要への影響",
+        reason: "貴社がIT・DX支援事業者として、税制優遇を切り口にした提案を行う好機であるため",
+        action: "既存のDX導入支援対象顧客への情報提供を開始",
+        whyNow: "顧客企業の改善課題が顕在化する前に、税制優遇を切り口とした提案機会を作ることができます。",
+        evidence: [
+          { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12", url: "https://www.meti.go.jp/press/2026/07/20260712000.html" },
+          { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0712-2.html" },
+        ],
+        impactDetail: "貴社の既存顧客のうち、IT導入補助金の名称変更に気づいていない層に情報提供の余地があります。また、これまで「制度が終了した」と誤解して導入を見送っていた見込み客層にもアプローチの余地が生まれます。競合のIT・DX支援事業者もこの制度への言及を強める可能性が高く、早期のアプローチが商談化率に影響すると考えられます。",
+        actionTitle: "DX投資減税を切り口に既存顧客へ提案を行う",
+        actionTarget: "既存顧客のうちDX投資検討層に該当する顧客",
+        actionReason: "税制優遇の適用要件緩和により、DX投資を検討する顧客の関心が高まっているため",
+        actionEffect: "新規商談化率の向上、既存顧客からの追加相談が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】DX投資に関する税制優遇の拡充について\n\n○○様\n\nいつもお世話になっております。このたび、中小企業のDX投資を対象とした税額控除・特別償却の適用要件が緩和されました。\n貴社にもご活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、貴社のDX投資に関する朗報についてご案内できればと思いご連絡しました。\n実は、中小企業のDX投資に対する税額控除の要件が緩和されまして、これまで導入を迷われていたシステムやクラウドサービスも対象になる可能性があります。\nもし今後、業務システムの刷新などご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や活用のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：DX投資減税のご案内\n2. 制度概要：税額控除・特別償却の適用要件緩和\n3. 貴社への想定インパクト：対象条件・活用余地\n4. 導入支援内容：弊社のDX導入支援サービス概要\n5. 導入ステップとスケジュール\n6. 費用感・減税適用後の実質負担\n7. 次のアクション：ヒアリングのご案内",
+      },
+      ec: {
+        tag: "法改正",
+        tagClass: "tag--blue",
+        title: "特定商取引法・景品表示法の改正",
+        fact: "通信販売の返品・解約手続きの表示義務が強化（消費者庁）",
+        overview1: "消費者庁は2026年7月、通信販売における「定期購入」契約の解約手続きのわかりやすさや、送料・返品条件の表示義務についてガイドラインを改定し、運用を強化することを発表しました。",
+        overview2: "これにより、ECサイトの表示・解約導線を見直す必要があるEC事業者が増加する見込みで、対応の遅れは行政指導や消費者からの信頼低下につながるリスクがあります。早期に自社サイトを点検し、必要な改修を進めることが重要です。",
+        impact: "貴社（EC事業者）のサイト表示・解約導線の対応状況への影響",
+        reason: "貴社がEC事業者として、表示義務の運用強化に早期に対応する必要があるため",
+        action: "自社サイトの表示・解約導線を見直し、改修を依頼する",
+        whyNow: "表示義務の運用強化により対応の緊急度が高まっているタイミングでの、早期の情報提供が有効です。",
+        evidence: [
+          { title: "消費者庁、定期購入契約の解約手続きに関するガイドラインを改定", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23699/" },
+          { title: "特定商取引法に基づく通信販売の表示義務、運用強化について", meta: "消費者庁 ・ 2026.07.18", url: "https://www.caa.go.jp/notice/entry/23700/" },
+        ],
+        impactDetail: "貴社が運営するECサイトの解約導線・広告表示が、次期特定商取引法改正の検討対象となる見込みです。他社に先駆けて分かりやすい導線・表示に整え、サイト上でアピールすることで、消費者からの信頼獲得・購入率向上につながる可能性があります。",
+        actionTitle: "自社サイトの表示・解約導線を見直し、改修を依頼する",
+        actionTarget: "自社ECサイトの制作・運用を委託しているパートナー企業（Web制作会社・システムベンダー）",
+        actionReason: "表示義務の運用強化により、自社サイトの表示内容・解約導線を早期に見直す必要があるため",
+        actionEffect: "早期対応による行政指導リスクの回避、消費者からの信頼維持",
+        genMail: "件名：【依頼】特定商取引法・景品表示法改正に伴うサイト改修について\n\n○○様\n\nいつもお世話になっております。このたび、通信販売の解約手続き・送料表示に関するガイドラインが改定され、運用が強化されることが決定しました。\n弊社サイトの表示内容や解約導線についても改修が必要と考えております。\n対応内容とスケジュールについて、一度お打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、サイトの改修についてご相談できればと思いご連絡しました。\n通信販売の表示ルールが改定され、解約手続きや送料表示の見直しが必要になりそうです。\n対応内容や工数感について、5分ほどですり合わせさせていただけますか？」",
+        genProposal: "【サイト改修依頼アウトライン】\n1. 制度概要：解約手続き・送料表示ルールの変更内容\n2. 自社サイトへの想定インパクト：改修が必要な箇所\n3. 改修内容案：解約導線・送料表示の見直しポイント\n4. 対応スケジュール\n5. 次のアクション：見積もり・着手日のご相談",
+      },
+      "freelance-dev": {
+        tag: "制度改正",
+        tagClass: "tag--neutral",
+        title: "フリーランス新法の運用強化",
+        fact: "発注企業への取引条件明示義務の運用が強化（公正取引委員会）",
+        overview1: "公正取引委員会と厚生労働省は2026年7月、フリーランス新法（特定受託事業者に係る取引の適正化等に関する法律）の運用を強化し、発注企業に対する取引条件の書面明示やハラスメント防止措置の実施状況を重点的に確認する方針を発表しました。",
+        overview2: "これにより、フリーランス開発者は発注企業との契約条件を見直す好機を迎えており、契約書テンプレートや取引条件の整備を支援するサービスへの関心が高まっています。",
+        impact: "貴社（フリーランス開発者）の契約条件・取引実務への影響",
+        reason: "貴社がフリーランス開発者として、取引条件を明確にした契約への切り替えを提案する好機であるため",
+        action: "主要取引先企業へ契約条件見直しの提案を行う",
+        whyNow: "運用強化のタイミングで契約条件を見直す開発者が増えており、早期の情報提供が信頼構築につながります。",
+        evidence: [
+          { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15", url: "https://www.jftc.go.jp/houdou/pressrelease/2026/07/20260715.html" },
+          { title: "特定受託事業者取引適正化法 実務ガイドライン（改定版）", meta: "厚生労働省 ・ 2026.07.15", url: "https://www.mhlw.go.jp/stf/newpage_24661.html" },
+        ],
+        impactDetail: "貴社の既存クライアントのうち、AI活用を前提とした提案を歓迎する層に情報が刺さる見込みです。単価差が明確になり始めている今のタイミングで提案することで、単価交渉・新規案件獲得の両面で有利に働くと考えられます。",
+        actionTitle: "主要取引先企業へ契約条件見直しの提案を行う",
+        actionTarget: "現在契約中・提案中の取引先企業のうち、契約条件の明確化が必要な6社",
+        actionReason: "フリーランス新法の運用強化により、取引先企業側も契約条件の明確化への対応意識が高まっているため",
+        actionEffect: "契約条件の明確化による取引継続率の向上、単価・条件交渉の後押しが期待できる（想定売上機会 最大120万円）",
+        genMail: "件名：【ご相談】契約条件の明確化について\n\n○○様\n\nいつもお世話になっております。フリーランスエンジニアの◯◯です。\nこのたび、フリーランス新法の運用が強化され、発注企業様には取引条件の書面明示等がこれまで以上に求められる流れになりました。\n貴社との契約条件についても、この機会に改めて確認・整理させていただけますと幸いです。\n一度オンラインで30分ほどお時間をいただけますでしょうか。",
+        genTalk: "「本日は、契約条件についてご相談できればと思いご連絡しました。\nフリーランス新法の運用が強化されて、取引条件の明示がこれまで以上に重視される流れになっています。\nこの機会に、業務範囲や納期、報酬条件などを改めて書面で整理させていただけたらと思うのですが、5分ほどお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：契約条件明確化のご提案\n2. 制度概要：フリーランス新法運用強化のポイント\n3. 現状の契約条件の確認事項\n4. 明確化する項目：業務範囲・納期・報酬・修正回数等\n5. 次のアクション：条件確認のお打ち合わせ",
+      },
+      consultant: {
+        tag: "補助金",
+        tagClass: "tag--orange",
+        title: "中小企業向け補助金制度の再編・拡充",
+        fact: "事業再構築・省力化投資関連の補助金が再編・拡充（中小企業庁）",
+        overview1: "中小企業庁は2026年7月、事業再構築補助金の後継施策および中小企業省力化投資補助金の対象要件を拡充し、経営改善・体制強化に取り組む中小企業への支援を強化することを発表しました。",
+        overview2: "これにより、経営計画の見直しや補助金活用を検討する中小企業が増加する見込みで、経営コンサルタントにとっては、既存の顧問先へ新しい提案を行う好機となっています。",
+        impact: "顧問先企業への補助金活用・経営計画見直しの助言ニーズへの影響",
+        reason: "貴社が経営コンサルタントとして、顧問先への新しい提案機会が生まれるため",
+        action: "顧問先企業へ補助金制度の再編内容を案内",
+        whyNow: "補助金の再編直後は制度理解が追いつかない企業が多く、早期の情報提供が信頼構築につながります。",
+        evidence: [
+          { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721.html" },
+          { title: "事業再構築補助金（後継施策）公募要領", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721-2.html" },
+        ],
+        impactDetail: "貴社の顧問先企業のうち18社が今回の補助金制度再編の対象条件に該当する見込みです。また、これまで補助金活用に消極的だった顧問先にも、経営計画見直しの提案機会が生まれます。他の経営コンサルタントもこの制度への言及を強める可能性が高く、早期のアプローチが信頼維持・提案機会に影響すると考えられます。",
+        actionTitle: "顧問先企業へ補助金制度再編の案内を送付する",
+        actionTarget: "顧問先企業のうち補助金活用の余地がある18社",
+        actionReason: "補助金制度の再編により、顧問先企業の関心・相談ニーズが高まっているため",
+        actionEffect: "顧問契約の継続率向上、経営計画策定支援の追加受注が見込まれる（想定売上機会 最大400万円）",
+        genMail: "件名：【ご案内】補助金制度の再編について\n\n○○様\n\nいつもお世話になっております。このたび、事業再構築補助金の後継施策および省力化投資補助金の対象要件が拡充されることが決定しました。\n貴社の経営計画にも活用いただける可能性があるため、詳細をご案内させていただきたくご連絡いたしました。\n一度オンラインで30分ほどお打ち合わせのお時間をいただけますと幸いです。",
+        genTalk: "「本日は、貴社にとって朗報となる補助金制度の再編についてご案内できればと思いご連絡しました。\n事業再構築補助金の後継施策が始まりまして、これまで対象外だった設備投資や体制強化の取り組みも対象になる可能性があります。\nもし経営計画の見直しなどご検討されているようでしたら、このタイミングを逃す手はないかなと。\n詳しい要件や活用のポイントなど、5分ほどでご説明できますので、少しお時間いただけますか？」",
+        genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：補助金制度再編のご案内\n2. 制度概要：対象要件の拡充内容\n3. 貴社への想定インパクト：活用余地のある取り組み\n4. 経営計画策定支援内容：弊社の伴走支援サービス概要\n5. 支援ステップとスケジュール\n6. 次のアクション：ヒアリングのご案内",
+      },
+    };
+
+    // Card2/Card3 detail content: lighter than Card1's overrides (no JSON
+    // backing), but gives each card its own tag/title/fact/overview/evidence/
+    // recommended-action instead of silently reusing Card1's page.
+    const topicOverrides = {
+      manufacturing: {
+        2: {
+          tag: "法改正",
+          tagClass: "tag--blue",
+          title: "下請法が「取適法」へ改正、2026年1月1日施行",
+          fact: "下請代金支払遅延等防止法が「中小受託取引適正化法」に改称・拡充（公正取引委員会）",
+          overview1: "公正取引委員会は、下請代金支払遅延等防止法（下請法）を改正し、「中小受託取引適正化法」（取適法）として2026年1月1日から施行しました。資本金基準に加えて従業員数基準が新設され対象取引の範囲が拡大したほか、受託事業者に振込手数料を一方的に負担させる行為などが新たに禁止されています。",
+          overview2: "貴社が部品加工・製造委託などを外部の受託事業者（下請企業）に発注している場合、取適法への対応状況が委託先からの信頼に直結します。早期に社内の取引実務を見直し、対応済みであることを委託先へ伝えることが、優良な発注主としての関係強化につながります。",
+          impact: "貴社（製造業）の部品加工・製造委託先との取引実務、および発注主としての信頼関係への影響",
+          reason: "貴社が発注者として早期に取適法へ対応し、その状況を委託先へ伝えることで、信頼される発注主として関係を強化できる可能性があるため",
+          action: "取適法への対応状況を委託先の受託事業者へ案内し、良好な取引関係を維持する",
+          whyNow: "施行（2026年1月1日）から間もない今のタイミングで対応状況を委託先へ伝えることが、信頼構築に特に効果的です。",
+          evidence: [
+            { title: "中小受託取引適正化法（取適法）関係", meta: "公正取引委員会 ・ 随時更新", url: "https://www.jftc.go.jp/partnership_package/toritekihou.html" },
+            { title: "2026年1月施行！～下請法は取適法へ～", meta: "中小企業庁 ・ 2025.10.14", url: "https://www.chusho.meti.go.jp/keiei/torihiki/2025/251014_01.pdf" },
+          ],
+          impactDetail: "貴社が製造委託・加工委託を行っている委託先企業のうち、複数社が今回の下請法改正（取適法）の対象となる見込みです。早期に対応状況を伝えることで、信頼される発注主として関係を強化でき、供給の安定確保や繁忙期の優先対応にもつながる可能性があります。",
+          actionTitle: "取適法への対応状況を委託先へ案内する",
+          actionTarget: "製造委託・加工委託を行っている委託先企業（受託事業者）のうち主要な10社",
+          actionReason: "取適法の施行により代金決定プロセス・支払方法等の適正化が求められており、対応状況を伝えることが委託先との信頼構築につながるため",
+          actionEffect: "信頼される発注主としての関係強化、供給の安定確保・繁忙期の優先対応の確保",
+          genMail: "件名：【情報共有】下請法改正（取適法）への対応について\n\n○○様\n\nいつもお世話になっております。\n2026年1月1日より、下請法が「中小受託取引適正化法」として改正・施行されました。\n弊社では代金決定プロセス・支払方法について社内の対応を進めております。\n貴社との取引実務についても、変更点があればあらためてご案内させていただきます。\nご不明な点がございましたら、お気軽にお申し付けください。",
+          genTalk: "「今回の下請法改正（取適法）について、弊社の対応状況をお伝えできればと思いご連絡しました。\n代金決定プロセスや支払方法の見直しを進めており、貴社とのお取引にも影響が出ないよう配慮しております。\n何かご不明な点があれば、いつでもご相談ください。」",
+          genProposal: "【委託先向け情報共有アウトライン】\n1. 制度概要：下請法改正（取適法）のポイントと施行日（2026年1月1日）\n2. 弊社の対応状況：代金決定プロセス・支払方法の見直し\n3. 委託先への影響・変更点の有無\n4. 次のアクション：ご質問・ご相談の受付",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合A社が製造業向け新サービスを発表",
+          overview1: "競合A社が、製造業向けの新しい業務支援サービスを発表しました。商談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合A社、製造業向け新サービスを発表", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO26582072026000/" },
+            { title: "製造業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO26583072026000/" },
+          ],
+          impactDetail: "貴社自身が事業承継やM&Aを検討している場合、専門家費用の一部が補助される見込みです。特にGビズIDの取得には時間がかかるため、早期に専門家へ相談し準備を始めることが、申請間に合わせに直結します。",
+          actionTitle: "競合A社の新サービスを調査し比較資料を作成する",
+          actionTarget: "商談中の既存見込み客（比較検討フェーズ）",
+          actionReason: "競合の新サービス発表により、提案時の差別化ポイントが弱まるリスクがあるため",
+          actionEffect: "提案時の失注防止、差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合A社の新サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合A社の新サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは製造業向け導入実績・サポート体制の点で優位性がございます。",
+          genTalk: "「競合A社の新サービスも比較検討されているとのことですが、弊社との大きな違いは製造業向けの導入実績とサポート体制の部分です。\n特に貴社のような規模の製造業様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合A社の新サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 製造業導入企業の声・実績",
+        },
+      },
+      construction: {
+        2: {
+          tag: "法改正",
+          tagClass: "tag--blue",
+          title: "自社の許可要件・契約実務の見直し",
+          fact: "建設業法の一部改正により、自社の許可要件・契約実務にも対応が必要に（国土交通省）",
+          overview1: "国土交通省が決定した建設業法の一部改正は、貴社自身の建設業許可要件や下請契約の実務にも直接関わる内容です。許可要件の確認や契約書式の見直しが必要になる見込みです。",
+          overview2: "早期に社内の対応を進めることで、許可更新や取引先との契約手続きが改正後もスムーズに進みます。対応の遅れは許可要件の不備リスクにつながります。",
+          impact: "貴社（建設業）自身の許可要件・下請取引の実務に直接影響",
+          reason: "貴社が建設業として、法改正への対応準備が必要であるため",
+          action: "社内の許可要件・契約書式を早期に見直す",
+          whyNow: "許可更新・契約更新のタイミングと改正時期が重なる場合、対応の遅れがそのままリスクになるため、早めの着手が重要です。",
+          evidence: [
+            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
+          ],
+          impactDetail: "貴社自身の建設業許可要件・下請契約書式が、今回の建設業法改正の対象となる見込みです。社内対応を早期に終え、その完了を元請けや発注者へ案内することで、信頼強化や新規案件の相談機会につながる可能性があります。",
+          actionTitle: "社内の許可要件・契約書式を早期に見直す",
+          actionTarget: "建設業許可の更新対応・下請契約書式の管理を担当する社内担当者",
+          actionReason: "建設業法改正への対応が遅れると、許可更新や契約実務に支障が出る可能性があるため",
+          actionEffect: "許可更新・契約更新の手続きの円滑化、法令違反リスクの低減",
+          genMail: "件名：【社内共有】建設業法改正への対応について\n\n担当各位\n\n今回の建設業法改正を踏まえ、許可要件・下請契約書式の見直しを進める必要があります。\n対象となる項目の洗い出しを今週中に行いたいので、関連資料の確認をお願いします。",
+          genTalk: "「今回の建設業法改正について、許可要件と契約書式の両方で見直しが必要になりそうです。\nまずは対象となる項目を洗い出して、対応スケジュールを組みましょう。」",
+          genProposal: "【社内対応アウトライン】\n1. 建設業法改正のポイント整理\n2. 自社の許可要件への影響確認\n3. 下請契約書式の見直し項目\n4. 対応スケジュールの策定",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合の建設会社がサービス内容を強化",
+          overview1: "競合の建設会社が、サービス内容を強化する動きを見せています。商談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の案件で、競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合建設会社のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27543072026000/" },
+            { title: "建設業DX市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO27544072026000/" },
+          ],
+          impactDetail: "貴社自身が公共工事の入札に関わる場合、経審の評価変更の影響を直接受ける見込みです。新しい評価項目に早期かつ十分に対応できれば、評価の維持にとどまらず向上の余地もあり、入札可能な工事の規模・件数が広がる可能性があります。",
+          actionTitle: "競合建設会社の動向を調査し比較資料を作成する",
+          actionTarget: "商談中の見込み客（比較検討フェーズ）",
+          actionReason: "競合の建設会社がサービス内容を強化しており、提案時の差別化が必要なため",
+          actionEffect: "提案時の失注防止、差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合他社との違いについて\n\n○○様\n\n先日ご質問いただいた競合他社との違いについて、比較資料をまとめましたのでご確認ください。\n弊社は許可要件対応・取引実務のサポート体制の点で優位性がございます。",
+          genTalk: "「競合他社も比較検討されているとのことですが、弊社との大きな違いは許可・取引実務のサポート体制の部分です。\n特に貴社のような規模の会社様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合他社の動向概要\n2. 自社の対応体制との比較\n3. 自社の優位性ポイント\n4. 取引先企業様からのお声・実績",
+        },
+      },
+      professional: {
+        2: {
+          tag: "制度改正",
+          tagClass: "tag--neutral",
+          title: "顧問先の建設業クライアントへの対応",
+          fact: "建設業法の改正が、顧問先の建設業クライアントにも影響（国土交通省）",
+          overview1: "国土交通省が決定した建設業法の一部改正は、顧問先のうち建設業を営むクライアントの許可要件・契約実務にも影響します。制度改正が重なる中、専門家からの案内価値が高まっています。",
+          overview2: "建設業クライアントへ早期に改正内容を案内することで、他の制度改正とあわせた相談機会の創出につながります。",
+          impact: "顧問先の建設業クライアントへの助言ニーズへの影響",
+          reason: "貴社が士業として、建設業クライアントへの改正内容の説明機会が生まれるため",
+          action: "建設業クライアントへ改正内容の案内を送付",
+          whyNow: "建設業クライアントの許可更新・契約更新のタイミングと重なる前に、案内を行うことが重要です。",
+          evidence: [
+            { title: "国土交通省、建設業法の一部改正を閣議決定", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo14_hh_84869.html" },
+            { title: "建設業許可・取引適正化ガイドライン（改定版）", meta: "国土交通省 ・ 2026.07.22", url: "https://www.mlit.go.jp/report/press/totikensangyo15_hh_84870.html" },
+          ],
+          impactDetail: "顧問先企業のうち建設業を営む複数社が、今回の建設業法改正の対象となる見込みです。早期の案内により、他の制度改正とあわせた相談機会の創出が期待できます。",
+          actionTitle: "建設業クライアントへ改正内容の案内を送付する",
+          actionTarget: "顧問先企業のうち建設業を営むクライアント",
+          actionReason: "建設業法改正により、建設業クライアントの相談ニーズが高まる見込みであるため",
+          actionEffect: "顧問契約の継続率向上、建設業クライアントからの追加相談機会の創出",
+          genMail: "件名：【ご案内】建設業法改正について（建設業クライアント様向け）\n\n○○様\n\nいつもお世話になっております。貴社の業種に関連する建設業法の一部改正が決定しましたので、ご案内申し上げます。\n許可要件・契約実務への影響について、一度ご説明のお時間をいただけますと幸いです。",
+          genTalk: "「本日は、建設業法改正について、建設業を営む顧問先様への影響をご案内できればと思いご連絡しました。\n許可要件や契約実務の見直しが必要になる可能性がありますので、詳しい内容を5分ほどでご説明できますが、お時間いただけますか？」",
+          genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：建設業法改正のご案内（建設業クライアント様向け）\n2. 制度概要：許可要件・契約実務の変更点\n3. 貴社への想定インパクト\n4. 対応支援内容：弊社の相談サポート\n5. 次のアクション：ヒアリングのご案内",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合の士業事務所がサービス内容を強化",
+          overview1: "競合の士業事務所が、対応範囲やサービス内容を強化する動きを見せています。商談・相談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談・相談中の見込み客が競合事務所やツールと比較検討する可能性が高まる",
+          reason: "商談・相談中の案件で、競合事務所との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合士業事務所のサービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO28504072026000/" },
+            { title: "士業支援サービス市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO28505072026000/" },
+          ],
+          impactDetail: "貴社の顧問先企業・個人のうち、相続不動産の登記が未了の可能性がある先に影響が見込まれます。経過措置期限（令和9年3月末）が近づく前の早期の注意喚起が、相談機会の創出につながります。",
+          actionTitle: "競合士業事務所の動向を調査し比較資料を作成する",
+          actionTarget: "商談・相談を検討している見込み客",
+          actionReason: "競合の士業事務所がサービスを強化しており、差別化ポイントの明確化が必要なため",
+          actionEffect: "失注防止、差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合事務所との違いについて\n\n○○様\n\n先日ご質問いただいた競合事務所との違いについて、比較資料をまとめましたのでご確認ください。\n弊社は情報提供の速さ・ご相談内容に合わせたカスタマイズ性の点で優位性がございます。",
+          genTalk: "「競合の事務所様も比較検討されているとのことですが、弊社との大きな違いは情報提供の速さと、ご相談内容に合わせたカスタマイズ性の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合事務所の対応範囲・サービス概要\n2. 自社の対応範囲・スピード比較\n3. 自社の優位性ポイント\n4. 顧問先企業様からのお声・実績",
+        },
+      },
+      other: {
+        2: {
+          tag: "市場変化",
+          tagClass: "tag--neutral",
+          title: "関連する取引先動向の確認",
+          fact: "貴社の登録情報に関連する取引先動向の変化を検知",
+          overview1: "貴社の登録情報をもとに、関連する業界・取引先において動向の変化が検知されました。特定の業界に限定されない、幅広い変化情報を対象としています。",
+          overview2: "取引先の状況を早期に確認することで、影響の有無を把握し、必要な対応を判断しやすくなります。",
+          impact: "関連する業界・取引先の動向への影響が考えられます",
+          reason: "貴社の登録情報と関連性が見込まれるため",
+          action: "関連する取引先へ状況を確認する",
+          whyNow: "取引先の状況変化への対応が遅れると、関係維持や商談機会の損失につながる可能性があります。",
+          evidence: [
+            { title: "関連業界の動向まとめ", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/22738" },
+            { title: "取引先動向に関する参考情報", meta: "公開情報 ・ 2026.07.24", url: "https://www.e-gov.go.jp/elaws/search/22739" },
+          ],
+          impactDetail: "貴社の登録情報に関連する取引先の一部で、状況の変化が見込まれます。特定の業界に限定した分析ではないため、詳細は実際の取引状況と照らし合わせてご確認ください。",
+          actionTitle: "関連する取引先へ状況を確認する",
+          actionTarget: "登録情報をもとに抽出した関連取引先",
+          actionReason: "検知された動向変化が、貴社の取引先に関連する可能性があるため",
+          actionEffect: "取引先との関係維持、影響把握による早期対応",
+          genMail: "件名：【確認】貴社の状況について\n\n○○様\n\nいつもお世話になっております。関連する業界動向について、貴社の状況を確認させていただきたくご連絡いたしました。\nお差し支えなければ、一度お話をお伺いできますでしょうか。",
+          genTalk: "「本日は、最近の業界動向を踏まえて、貴社の状況を確認できればと思いご連絡しました。\n何か影響がございましたら、5分ほどお伺いできますか？」",
+          genProposal: "【確認事項アウトライン】\n1. 検知された動向の概要\n2. 貴社への影響有無の確認\n3. 次のアクション：状況共有のお打ち合わせ",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合の新サービスが発表",
+          overview1: "競合他社が新しいサービスを発表する動きが見られます。商談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合他社の新サービス発表の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO30426072026000/" },
+            { title: "関連市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO30427072026000/" },
+          ],
+          impactDetail: "貴社の顧客・見込み客のうち、資金調達や事業承継を検討している層に、経営者保証に依らない融資制度の情報が刺さる見込みです。特定の業界に限定した分析ではないため、詳細は実際の状況と照らし合わせてご確認ください。制度開始直後は認知度が低く、早期の情報提供が信頼構築に有利に働くと考えられます。",
+          actionTitle: "競合の新サービスを調査し比較資料を作成する",
+          actionTarget: "商談中の既存見込み客（比較検討フェーズ）",
+          actionReason: "競合の動向により、提案時の差別化ポイントが弱まるリスクがあるため",
+          actionEffect: "提案時の失注防止、差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合の新サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の新サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは導入実績・サポート体制の点で優位性がございます。",
+          genTalk: "「競合の新サービスも比較検討されているとのことですが、弊社との大きな違いは導入実績とサポート体制の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合の新サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 導入企業の声・実績",
+        },
+      },
+      "it-dx": {
+        2: {
+          tag: "税制改正",
+          tagClass: "tag--blue",
+          title: "既存顧客のシステム投資判断への対応",
+          fact: "DX投資促進税制の適用要件緩和が、既存顧客の投資判断に影響（経済産業省）",
+          overview1: "経済産業省によるDX投資促進税制の適用要件緩和は、既に商談・提案が進んでいる既存顧客の投資判断にも影響します。投資を前倒しするか様子見するか、判断が分かれるタイミングです。",
+          overview2: "早期に制度変更の詳細を案内することで、既存顧客の投資判断を後押しし、商談の停滞を防ぐことができます。",
+          impact: "既存顧客のシステム投資判断に影響",
+          reason: "貴社の既存顧客（DX導入検討層）が、税制優遇を機に投資判断を前倒しする可能性があるため",
+          action: "既存顧客へ制度変更の案内を送付する",
+          whyNow: "税制優遇の適用期限や要件を正しく理解しないまま投資判断が先送りされるケースがあるため、早期の情報提供が有効です。",
+          evidence: [
+            { title: "DX投資促進税制の適用要件緩和", meta: "経済産業省 ・ 2026.07.12", url: "https://www.meti.go.jp/press/2026/07/20260712000.html" },
+            { title: "中小企業庁、DX投資促進税制の解説資料を公開", meta: "中小企業庁 ・ 2026.07.12", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0712-2.html" },
+          ],
+          impactDetail: "IT人材不足を背景に、自社での採用が難しく外部委託を検討し始める中小企業が増える見込みです。既存顧客だけでなく、内製化に課題を抱える新規の見込み客への働きかけを強化することで、新規相談・受注機会の拡大が期待できます。",
+          actionTitle: "既存顧客へ制度変更の案内を送付する",
+          actionTarget: "既存顧客のうちシステム投資を検討中の顧客",
+          actionReason: "税制優遇の要件緩和により、既存顧客の投資判断が前倒しされる可能性があるため",
+          actionEffect: "既存商談の停滞防止、投資判断の後押しによる受注確度の向上",
+          genMail: "件名：【ご案内】DX投資促進税制の適用要件緩和について\n\n○○様\n\nいつもお世話になっております。ご検討中のシステム投資について、税額控除・特別償却の適用要件が緩和されましたのでご案内いたします。\n投資判断の参考になりましたら幸いです。詳細を一度ご説明させていただけますでしょうか。",
+          genTalk: "「ご検討中のシステム投資について、朗報がございます。\n税額控除の要件が緩和されまして、これまでより有利な条件で投資いただける可能性があります。\n詳しい内容を5分ほどでご説明できますが、お時間いただけますか？」",
+          genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：DX投資促進税制の適用要件緩和のご案内\n2. 制度概要：緩和された適用要件\n3. 貴社の投資計画への影響\n4. 次のアクション：投資判断に向けたご相談",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合のDX支援サービスが強化",
+          overview1: "競合のDX支援事業者が、サービス内容を強化する動きを見せています。商談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談中の見込み客が競合と比較検討する可能性が高まる",
+          reason: "商談中の見込み客に競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合のDX支援サービス強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO29465072026000/" },
+            { title: "DX支援市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO29466072026000/" },
+          ],
+          impactDetail: "貴社の既存顧客のうち、セキュリティ対策に着手できていない層に補助金活用の情報が刺さる見込みです。サイバー攻撃への関心が高まっている今、早期の情報提供が商談化率に影響すると考えられます。",
+          actionTitle: "競合のDX支援サービスを調査し比較資料を作成する",
+          actionTarget: "商談中のDX導入見込み客（比較検討フェーズ）",
+          actionReason: "競合がDX支援サービスを強化しており、提案時の差別化が必要なため",
+          actionEffect: "提案時の失注防止、差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合のDX支援サービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合のDX支援サービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは導入実績・サポート体制の点で優位性がございます。",
+          genTalk: "「競合のDX支援サービスも比較検討されているとのことですが、弊社との大きな違いは導入実績とサポート体制の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合のDX支援サービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 導入企業の声・実績",
+        },
+      },
+      ec: {
+        2: {
+          tag: "業界動向",
+          tagClass: "tag--neutral",
+          title: "物流パートナーの配送料改定への対応",
+          fact: "主要物流事業者が配送料の改定を発表",
+          overview1: "主要な物流事業者が、燃料費・人件費の上昇を受けて配送料の改定を発表しました。EC事業者にとっては、送料表示や利益率に直接影響する動きです。",
+          overview2: "表示義務の改定と時期が重なることで、送料表示の見直しを一度で済ませられる好機でもあります。早期の情報提供が、貴社の対応をスムーズにします。",
+          impact: "物流パートナーの配送料改定が、貴社の送料表示・利益率に影響",
+          reason: "貴社がEC事業者として、送料改定を踏まえた表示内容の見直しが必要になるため",
+          action: "物流パートナーへ配送料改定の詳細を確認する",
+          whyNow: "配送料改定と表示義務対応の時期が重なっており、まとめて対応することで手戻りを防げます。",
+          evidence: [
+            { title: "主要物流事業者、配送料改定を発表", meta: "業界紙 ・ 2026.07.19", url: "https://www.nikkei.com/article/DGXZQO31387071926000/" },
+            { title: "EC物流コストの動向に関する調査", meta: "業界団体 ・ 2026.07.19", url: "https://www.nikkei.com/article/DGXZQO31388071926000/" },
+          ],
+          impactDetail: "貴社が利用する物流パートナーの配送料改定により、送料表示や利益率への影響が見込まれます。複数の物流事業者を比較検討することで、コストを抑えつつサービス水準を維持できる可能性があり、送料無料ラインなど客単価向上策の検討にもつながります。",
+          actionTitle: "物流パートナーへ配送料改定の詳細を確認する",
+          actionTarget: "貴社が利用する主要物流パートナー",
+          actionReason: "配送料改定の内容を把握しないまま送料表示を更新すると、後日の再修正リスクがあるため",
+          actionEffect: "送料表示更新の手戻り防止、利益率への影響の早期把握",
+          genMail: "件名：【確認】配送料改定の詳細について\n\n○○様\n\nいつもお世話になっております。貴社サービスを利用しております◯◯です。\nこのたびの配送料改定について、詳細と適用時期を確認させていただきたくご連絡いたしました。\nサイトの送料表示更新にあわせて対応したく、お手数ですがご回答いただけますと幸いです。",
+          genTalk: "「配送料改定について確認させてください。\n表示義務対応の更新作業とあわせて進めたいので、適用時期と詳細な料金体系を教えていただけますか？」",
+          genProposal: "【確認事項アウトライン】\n1. 配送料改定の概要\n2. 自社サイトの送料表示への影響\n3. 表示義務対応との統合スケジュール\n4. 次のアクション：改定内容の確定",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合ECサイトが新しい決済・ポイント還元施策を導入",
+          overview1: "競合のECサイトが、新しい決済手段やポイント還元施策を導入する動きを見せています。購入を比較検討中のお客様が、他サイトとの違いを気にする可能性があります。",
+          overview2: "早期に自社サイトとの違いを整理しておくことで、購入直前での離脱を防ぎやすくなります。",
+          impact: "競合ECサイトが新しい決済・ポイント還元施策を導入し、比較検討される可能性が高まる",
+          reason: "購入を比較検討中のお客様に他サイトとの違いを意識される可能性が高く、対応次第で離脱リスクがあるため",
+          action: "自社サイトとの差別化ポイントを整理する",
+          whyNow: "購入直前で他サイトと比較された際、その場で違いを伝えられることが購入完了率に直結します。",
+          evidence: [
+            { title: "競合ECサイトの決済・ポイント施策導入の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO52529072026000/" },
+            { title: "EC決済・ポイント市場の動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO52530072026000/" },
+          ],
+          impactDetail: "貴社が運営するECサイトの送料表示方針が、業界全体の「送料無料」表示見直しの動きの対象となる見込みです。この機会に一定金額以上で送料無料になる仕組みを導入すれば、表示の適正化と客単価向上を同時に進められる可能性があります。",
+          actionTitle: "競合ECサイトの決済・ポイント施策を調査し差別化ポイントを整理する",
+          actionTarget: "購入を比較検討中のお客様（カート未完了層）",
+          actionReason: "競合ECサイトが新しい決済・ポイント施策を導入しており、購入直前での離脱を防ぐ差別化が必要なため",
+          actionEffect: "カート放棄率の低減、購入完了率の向上",
+          genMail: "件名：【共有】競合ECサイトの決済・ポイント施策への対応方針（社内メモ）\n\n競合が新しい決済・ポイント施策を導入したため、当サイトの決済導線・ポイント施策も見直しを検討します。\n差別化ポイントとして、送料表示のわかりやすさと解約導線の使いやすさを訴求します。",
+          genTalk: "「（購入ページのFAQ・チャット対応での想定回答）他サイトと比較検討されている場合でも、当サイトは送料・解約条件をわかりやすく明示している点でご安心いただけます。ご不明点があればお気軽にお問い合わせください。」",
+          genProposal: "【差別化ポイント整理アウトライン】\n1. 競合ECサイトの新施策の概要\n2. 自社サイトとの比較ポイント\n3. 打ち出すべき差別化メッセージ\n4. サイト・広告への反映案",
+        },
+      },
+      "freelance-dev": {
+        2: {
+          tag: "制度改正",
+          tagClass: "tag--neutral",
+          title: "主要取引先の契約内容再確認",
+          fact: "発注企業の担当者交代に伴う契約内容の齟齬リスクが顕在化",
+          overview1: "フリーランス新法の運用強化にあわせて、発注企業側でも契約管理の見直しが進んでいます。担当者交代のタイミングで、これまでの契約条件が正しく引き継がれていないケースが増えています。",
+          overview2: "主要取引先の契約内容を早期に再確認することで、認識のズレによるトラブルを防ぎ、円滑な取引継続につなげられます。",
+          impact: "主要取引先の発注担当者が変わるタイミングで、契約内容の再確認が必要になる可能性",
+          reason: "貴社がフリーランス開発者として、担当者交代時に契約条件の齟齬が生じるリスクがあるため",
+          action: "主要取引先へ現行契約内容の再確認を依頼する",
+          whyNow: "担当者交代の時期は契約条件の齟齬が起こりやすいため、早めの再確認が有効です。",
+          evidence: [
+            { title: "フリーランス新法運用強化を受けた発注企業の契約管理動向", meta: "業界団体 ・ 2026.07.16", url: "https://www.nikkei.com/article/DGXZQO53490071626000/" },
+            { title: "公正取引委員会、フリーランス新法の運用強化を発表", meta: "公正取引委員会 ・ 2026.07.15", url: "https://www.jftc.go.jp/houdou/pressrelease/2026/07/20260715.html" },
+          ],
+          impactDetail: "貴社が登録しているエージェントや過去に接点のあった発注企業候補のうち、IT人材不足を背景に新規の業務委託ニーズが生まれている可能性があります。早期に稼働状況を案内しておくことで、新規案件の獲得機会を広げられます。",
+          actionTitle: "主要取引先へ現行契約内容の再確認を依頼する",
+          actionTarget: "発注担当者の交代が見込まれる主要取引先",
+          actionReason: "担当者交代のタイミングで契約条件の認識にズレが生じるリスクがあるため",
+          actionEffect: "契約トラブルの未然防止、取引継続の安定化",
+          genMail: "件名：【確認】現行契約内容について\n\n○○様\n\nいつもお世話になっております。フリーランスエンジニアの◯◯です。\nご担当者様の交代の可能性があると伺いましたので、念のため現行の契約内容（業務範囲・納期・報酬等）を確認させていただけますと幸いです。\nお手数をおかけしますが、よろしくお願いいたします。",
+          genTalk: "「ご担当者様の交代があるかもしれないと伺い、念のため現行の契約内容を確認させていただきたくご連絡しました。\n業務範囲や報酬条件など、認識のズレがないか一度すり合わせさせていただけますか？」",
+          genProposal: "【契約再確認アウトライン】\n1. 現行契約の内容整理\n2. 確認すべき項目：業務範囲・納期・報酬・修正回数等\n3. 次のアクション：担当者様との確認ミーティング",
+        },
+        3: {
+          tag: "業界動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合となるフリーランス・エージェント経由人材が増加",
+          overview1: "案件によっては、他のフリーランス開発者やエージェント経由の人材と比較検討されるケースが増えています。",
+          overview2: "早期に自身の実績・強みを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談中の案件で、他のフリーランス開発者やエージェント経由の人材と比較検討される可能性が高まる",
+          reason: "商談中の案件で他の候補と比較される可能性が高く、対応次第で失注リスクがあるため",
+          action: "自身の実績・強みをまとめた提案資料を作成",
+          whyNow: "商談中に他候補との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "フリーランス人材市場の競合動向まとめ", meta: "業界団体 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO54451072026000/" },
+            { title: "エージェント経由人材の活用動向", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO54452072026000/" },
+          ],
+          impactDetail: "貴社自身、業務中のケガや病気への備えとして、労災保険特別加入制度を活用できる可能性があります。制度の存在自体を知らないフリーランスも多く、早期に情報を把握しておくことが安心につながります。",
+          actionTitle: "競合となるフリーランス・エージェント経由人材の動向を調査する",
+          actionTarget: "商談中の案件（比較検討フェーズ）",
+          actionReason: "競合となる人材が増えており、提案時の差別化ポイントの明確化が必要なため",
+          actionEffect: "提案時の失注防止、差別化ポイントの明確化",
+          genMail: "件名：【共有】提案内容の差別化ポイントについて（自分用メモ）\n\n先方が他の候補者・エージェントとも比較検討しているとのことなので、契約条件の明確さと実績を軸にした提案内容に整理します。",
+          genTalk: "「他の候補者様ともご比較されているかと思いますが、弊方は契約条件を明確にした上で進めさせていただく点と、これまでの実績の両方でご安心いただけるかと思います。」",
+          genProposal: "【差別化ポイント整理アウトライン】\n1. 比較検討されやすいポイントの整理\n2. 自身の強み・実績\n3. 契約条件の明確さという差別化軸\n4. 提案時に伝えるメッセージ",
+        },
+      },
+      consultant: {
+        2: {
+          tag: "業界動向",
+          tagClass: "tag--neutral",
+          title: "顧問先サプライチェーンの状況確認",
+          fact: "顧問先企業の取引先の経営状況にも補助金制度再編の影響が波及する可能性",
+          overview1: "補助金制度の再編は、顧問先企業だけでなく、その取引先（サプライヤー等）の設備投資・資金繰りにも影響する可能性があります。サプライチェーン全体を俯瞰した助言価値が高まっています。",
+          overview2: "顧問先の取引先企業の状況を確認することで、より踏み込んだ経営助言が可能になり、顧問契約の価値を高められます。",
+          impact: "顧問先の取引先企業（サプライヤー等）の経営状況にも影響が及ぶ可能性",
+          reason: "貴社が経営コンサルタントとして、顧問先のサプライチェーン全体を俯瞰した助言価値が高まるため",
+          action: "顧問先へ取引先企業の状況確認を提案する",
+          whyNow: "取引先の資金繰り・投資判断の変化は、顧問先企業の事業継続にも影響するため、早期の状況把握が重要です。",
+          evidence: [
+            { title: "中小企業庁、中小企業省力化投資補助金の対象拡大を発表", meta: "中小企業庁 ・ 2026.07.21", url: "https://www.chusho.meti.go.jp/koukai/press/2026/0721.html" },
+            { title: "サプライチェーン企業の補助金活用動向調査", meta: "業界団体 ・ 2026.07.21", url: "https://www.nikkei.com/article/DGXZQO55413072126000/" },
+          ],
+          impactDetail: "顧問先企業の取引先のうち、補助金制度再編の影響を受ける企業が一定数存在すると見込まれます。サプライチェーン全体を俯瞰した助言により、顧問契約の価値向上が期待できます。",
+          actionTitle: "顧問先へ取引先企業の状況確認を提案する",
+          actionTarget: "顧問先企業のうちサプライチェーンの影響を確認すべき企業",
+          actionReason: "取引先企業の状況変化が、顧問先企業の事業継続に影響する可能性があるため",
+          actionEffect: "顧問契約の付加価値向上、サプライチェーンリスクの早期把握",
+          genMail: "件名：【ご提案】取引先企業の状況確認について\n\n○○様\n\nいつもお世話になっております。補助金制度の再編は、貴社の取引先企業の投資判断にも影響する可能性がございます。\nサプライチェーン全体を俯瞰した確認を行うことをご提案させていただきたく、ご連絡いたしました。",
+          genTalk: "「補助金制度の再編は、貴社だけでなく取引先企業様にも影響する可能性があります。\nサプライチェーン全体を俯瞰して、状況を確認してみませんか？5分ほどでご説明できます。」",
+          genProposal: "【提案資料アウトライン（自動生成）】\n1. 表紙：取引先企業の状況確認のご提案\n2. 制度概要：補助金制度再編がサプライチェーンに与える影響\n3. 確認すべき取引先の洗い出し\n4. 次のアクション：状況確認の実施計画",
+        },
+        3: {
+          tag: "新サービス動向",
+          tagClass: "tag--neutral",
+          title: "差別化提案のチャンス",
+          fact: "競合コンサルタント・支援サービスが補助金活用支援を強化",
+          overview1: "競合の経営コンサルタントや支援サービスが、補助金活用支援のメニューを強化する動きを見せています。商談・相談中の見込み客が比較検討材料として言及する可能性があります。",
+          overview2: "早期に自社サービスとの違いを整理しておくことで、商談での説明がスムーズになり、失注リスクを抑えられます。",
+          impact: "商談・相談中の見込み客が競合コンサルタントやツールと比較検討する可能性が高まる",
+          reason: "経営コンサルタント向けの商談で、競合との比較を聞かれる可能性が高く、対応次第で失注リスクがあるため",
+          action: "自社サービスの比較資料を作成",
+          whyNow: "商談中に競合との比較を問われた際、その場で明確に説明できることが受注確度に直結します。",
+          evidence: [
+            { title: "競合コンサルタントの補助金活用支援強化の動き", meta: "業界ニュース ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO56373072026000/" },
+            { title: "経営コンサルティング市場の競合動向まとめ", meta: "業界紙 ・ 2026.07.20", url: "https://www.nikkei.com/article/DGXZQO56374072026000/" },
+          ],
+          impactDetail: "貴社の顧問先企業のうち、設備投資・資金調達を検討している18社に「経営力向上計画」の認定支援が刺さる見込みです。認定件数が20万件に迫る中、まだ活用していない顧問先への提案余地があります。",
+          actionTitle: "競合コンサルタント・支援サービスを調査し比較資料を作成する",
+          actionTarget: "商談を検討している経営者見込み客",
+          actionReason: "競合が補助金活用支援を強化しており、差別化ポイントの明確化が必要なため",
+          actionEffect: "失注防止、顧問先候補への差別化ポイントの明確化",
+          genMail: "件名：【比較資料】競合の経営コンサルティングサービスとの違いについて\n\n○○様\n\n先日ご質問いただいた競合の経営コンサルティングサービスとの違いについて、比較資料をまとめましたのでご確認ください。\n弊社サービスは補助金活用実績・伴走支援の継続性の点で優位性がございます。",
+          genTalk: "「競合のコンサルティングサービスも比較検討されているとのことですが、弊社との大きな違いは補助金活用の実績と、申請後も伴走し続けるサポート体制の部分です。\n特に貴社のような規模の企業様には、この点を特に評価いただいております。」",
+          genProposal: "【競合比較資料アウトライン】\n1. 競合の経営コンサルティングサービスの概要\n2. 自社サービスとの機能比較表\n3. 自社の優位性ポイント\n4. 導入企業の声・実績",
+        },
+      },
+    };
+
+    const profile = getProfile();
+
+    const content = topicKey === "1"
+      ? profile && overrides[profile.industry]
+      : profile && topicOverrides[profile.industry] && topicOverrides[profile.industry][topicKey];
+    if (!content) return;
+
+    setText("detailTag", content.tag);
+    const tagEl = document.getElementById("detailTag");
+    if (tagEl) tagEl.className = `tag ${content.tagClass}`;
+
+    setText("detailTitle", content.title);
+    setText("detailFact", content.fact);
+    const detailHeroEl = document.getElementById("detailHero");
+    if (detailHeroEl) detailHeroEl.dataset.source = "override";
+    setText("overviewPara1", content.overview1);
+    setText("overviewPara2", content.overview2);
+    setText("summaryImpact", content.impact);
+    setText("summaryReason", content.reason);
+    setText("summaryAction", content.action);
+
+    const whyNowDefault = document.getElementById("whyNowDefault");
+    const whyNowPersonalized = document.getElementById("whyNowPersonalized");
+    if (whyNowDefault && whyNowPersonalized && content.whyNow) {
+      whyNowDefault.hidden = true;
+      whyNowPersonalized.textContent = content.whyNow;
+      whyNowPersonalized.hidden = false;
+    }
+
+    const setLink = (id, href) => {
+      const el = document.getElementById(id);
+      if (el && href) el.href = href;
+    };
+
+    if (content.evidence) {
+      setText("evidenceTitle1", content.evidence[0].title);
+      setText("evidenceMeta1", content.evidence[0].meta);
+      setLink("evidenceTitle1", content.evidence[0].url);
+      setText("evidenceTitle2", content.evidence[1].title);
+      setText("evidenceMeta2", content.evidence[1].meta);
+      setLink("evidenceTitle2", content.evidence[1].url);
+    }
+
+    setText("impactDetailBody", content.impactDetail);
+    setText("actionTitle", content.actionTitle);
+    setText("actionTarget", content.actionTarget);
+    setText("actionReason", content.actionReason);
+    setText("actionEffect", content.actionEffect);
+    setText("genMail", content.genMail);
+    setText("genTalk", content.genTalk);
+    setText("genProposal", content.genProposal);
+    const recommendedActionEl = document.getElementById("recommendedAction");
+    if (recommendedActionEl) recommendedActionEl.dataset.source = "override";
+
+    // Layer the company's own free-text profile (顧客層・商材・営業地域) on top of the
+    // industry theme, so the recommendation/action/generated copy reads as written for
+    // this specific company. Never invents a product/customer segment the user didn't enter.
+    const regionLabel = regionLabels[profile.region];
+
+    const appendTarget = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) el.textContent += `（${extras.join("・")}が中心）`;
+    };
+
+    const appendReason = (id) => {
+      const el = document.getElementById(id);
+      if (!el || !profile.product) return;
+      el.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    };
+
+    // Only append when the action text is actually about reaching out to the
+    // company's own customers ("顧客"/"クライアント"/"顧問先"/"見込み客"). Internal
+    // work or outreach to a vendor/partner isn't about the customerSegment the
+    // user entered, so appending it there read as a non-sequitur (Phase 3
+    // pre-review finding).
+    const appendAction = (id) => {
+      const el = document.getElementById(id);
+      if (!el || !profile.customerSegment) return;
+      if (!/顧客|クライアント|顧問先|見込み客/.test(el.textContent)) return;
+      el.textContent += `（${profile.customerSegment}を中心に）`;
+    };
+
+    const appendGenerated = (id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
+      if (!lines.length) return;
+      // Should Fix (Phase 3 pre-review): Proposal is a numbered outline, so a
+      // trailing prose paragraph reads as a formatting mistake. Append as a
+      // labeled, bulleted supplement instead. Mail/Talk keep the original
+      // prose paragraph unchanged.
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
+    };
+
+    appendTarget("actionTarget");
+    appendReason("actionReason");
+    appendAction("summaryAction");
+    ["genMail", "genTalk", "genProposal"].forEach(appendGenerated);
+
+    // Must Fix (Phase 3 pre-review): the generated mail template signs off with
+    // the fixed demo company name. Replace it with 企業名 if entered, same rule
+    // as elsewhere (leave untouched when not entered).
+    if (profile.companyName) {
+      const genMailEl = document.getElementById("genMail");
+      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("サンプル株式会社", profile.companyName);
+    }
+
+    // Show the AI transparency panel: which profile inputs and detected market change
+    // shaped this page's content. Only shown when a profile exists; each row is shown
+    // only when that specific value is actually available (nothing is guessed).
+    // "other" is an internal classification only — the AI Transparency panel
+    // must never surface the literal word "その他", so it shows the same
+    // neutral phrasing used for the market-change wording instead. Shared
+    // industryLabels (js/labels.js) has no "other" key by design, so that
+    // case is handled here as a page-specific fallback.
+    const industryLabel = industryLabels[profile.industry] || (profile.industry === "other" ? "登録情報ベース" : undefined);
+
+    const whyGeneratedSection = document.getElementById("whyGeneratedSection");
+    if (whyGeneratedSection) {
+      whyGeneratedSection.hidden = false;
+
+      const showRow = (rowId, valueId, value) => {
+        const row = document.getElementById(rowId);
+        const valueEl = document.getElementById(valueId);
+        if (!row || !valueEl || !value) return;
+        valueEl.textContent = value;
+        row.hidden = false;
+      };
+
+      showRow("rowIndustry", "genIndustry", industryLabel);
+      showRow("rowCustomerSegment", "genCustomerSegment", profile.customerSegment);
+      showRow("rowProduct", "genProduct", profile.product);
+      showRow("rowRegion", "genRegion", regionLabel);
+      showRow("rowMarketChange", "genMarketChange", content.fact);
+      // Static disclosure rows: what kind of information this mock draws on,
+      // and when — not live-fetched data, so kept to wording that doesn't
+      // imply real-time retrieval.
+      showRow("rowReferences", "genReferences", "プロフィール情報／公開されている市場情報／業界制度・法改正情報");
+      showRow("rowAnalysisTiming", "genAnalysisTiming", "2026年7月時点");
+    }
+  })();
+
+  // Phase 2-3: minimal data-driven narrative fields. Overlays website/data/
+  // market-changes.json content — the same file and the same matching rule
+  // used by mock-dashboard.html's Card1 — on top of whatever the sync block
+  // above already rendered, so Dashboard and Detail never show two different
+  // generated texts for the same MarketChange. Recommended Action (mail/talk/
+  // proposal generation) is out of scope for this phase and stays untouched.
+  (async function loadDetailFromMarketChanges() {
+    const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
+
+    const profile = getProfile();
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
+    if (!match || !match.impact || !match.reason || !match.action || !match.overview1 || !match.overview2) return;
+
+    setText("detailTag", match.category);
+    const tagEl = document.getElementById("detailTag");
+    if (tagEl && match.tag_class) tagEl.className = `tag ${match.tag_class}`;
+
+    setText("detailTitle", match.title);
+    setText("detailFact", match.summary);
+    setText("overviewPara1", match.overview1);
+    setText("overviewPara2", match.overview2);
+
+    const whyNowDefault = document.getElementById("whyNowDefault");
+    const whyNowPersonalized = document.getElementById("whyNowPersonalized");
+    if (whyNowDefault && whyNowPersonalized && match.why_now) {
+      whyNowDefault.hidden = true;
+      whyNowPersonalized.textContent = match.why_now;
+      whyNowPersonalized.hidden = false;
+    }
+
+    if (Array.isArray(match.evidence) && match.evidence.length >= 2) {
+      const setLink = (id, href) => {
+        const el = document.getElementById(id);
+        if (el && href) el.href = href;
+      };
+      setText("evidenceTitle1", match.evidence[0].title);
+      setText("evidenceMeta1", `${match.evidence[0].source} ・ ${match.evidence[0].date}`);
+      setLink("evidenceTitle1", match.evidence[0].url);
+      setText("evidenceTitle2", match.evidence[1].title);
+      setText("evidenceMeta2", `${match.evidence[1].source} ・ ${match.evidence[1].date}`);
+      setLink("evidenceTitle2", match.evidence[1].url);
+    }
+
+    setText("summaryImpact", match.impact);
+    setText("summaryReason", match.reason);
+    setText("summaryAction", match.action);
+
+    // Re-apply the same customerSegment layering the sync block already
+    // applies to summaryAction, since we just overwrote its text from JSON.
+    if (profile.customerSegment) {
+      const summaryActionEl = document.getElementById("summaryAction");
+      if (summaryActionEl && /顧客|クライアント|顧問先|見込み客/.test(summaryActionEl.textContent)) {
+        summaryActionEl.textContent += `（${profile.customerSegment}を中心に）`;
+      }
+    }
+
+    // Keep AI Transparency's "検知した市場変化" row in sync with the JSON-sourced
+    // fact, if that row is currently shown.
+    const genMarketChangeEl = document.getElementById("genMarketChange");
+    if (genMarketChangeEl && !genMarketChangeEl.closest(".action-item__row").hidden) {
+      genMarketChangeEl.textContent = match.summary;
+    }
+
+    const detailHeroEl = document.getElementById("detailHero");
+    if (detailHeroEl) detailHeroEl.dataset.source = "json";
+  })();
+
+  // Phase 2-4: minimal data-driven Recommended Action. Reuses the same
+  // fetch + matching helpers and the same MarketChange.action_plan entry
+  // as mock-dashboard.html's AI Action Plan #1 (Phase 2-4), so Dashboard
+  // and Detail never show two different generated texts for the same
+  // recommendation. Mail/talk/proposal are template lookups only — no
+  // generation happens here (that's Phase 3+). Any failure (no profile,
+  // fetch error, no match, incomplete action_plan) leaves the sync
+  // block's Recommended Action result in place.
+  (async function loadRecommendedActionFromMarketChanges() {
+    const topicIndex = { 1: 0, 2: 1, 3: 2 }[topicKey];
+
+    const profile = getProfile();
+    if (!profile || !profile.industry) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const match = pickMarketChange(marketChanges, profile.industry, topicIndex);
+    const plan = match && match.action_plan;
+    if (!plan || !plan.title || !plan.target || !plan.reason || !plan.expected_effect || !plan.templates) return;
+
+    setText("actionTitle", plan.title);
+    setText("actionTarget", plan.target);
+    setText("actionReason", plan.reason);
+    setText("actionEffect", plan.expected_effect);
+    setText("genMail", plan.templates.mail);
+    setText("genTalk", plan.templates.talk);
+    setText("genProposal", plan.templates.proposal);
+
+    // Re-apply the same profile free-text layering the sync block already
+    // applies to actionTarget/actionReason/genMail/genTalk/genProposal,
+    // since we just overwrote their text from JSON. Never invents an
+    // unentered field.
+    const regionLabel = regionLabels[profile.region];
+
+    const targetEl = document.getElementById("actionTarget");
+    if (targetEl) {
+      const extras = [];
+      if (profile.customerSegment) extras.push(profile.customerSegment);
+      if (regionLabel) extras.push(`${regionLabel}エリア`);
+      if (extras.length) targetEl.textContent += `（${extras.join("・")}が中心）`;
+    }
+
+    const reasonEl = document.getElementById("actionReason");
+    if (reasonEl && profile.product) {
+      reasonEl.textContent += `（貴社の商材「${profile.product}」との親和性も期待できます）`;
+    }
+
+    ["genMail", "genTalk", "genProposal"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const lines = [];
+      if (profile.product) lines.push(`貴社が提供されている「${profile.product}」との関連もご案内いただくと、より響きやすいかと存じます。`);
+      if (profile.customerSegment) lines.push(`特に${profile.customerSegment}には関心が高いテーマです。`);
+      if (!lines.length) return;
+      if (id.includes("Proposal")) {
+        el.textContent += `\n\n【補足】\n${lines.map((line) => `・${line}`).join("\n")}`;
+      } else {
+        el.textContent += `\n\n${lines.join("\n")}`;
+      }
+    });
+
+    // Must Fix (Phase 3 pre-review): re-apply the same 企業名 substitution the
+    // sync block already applies to genMail, since we just overwrote it from JSON.
+    if (profile.companyName) {
+      const genMailEl = document.getElementById("genMail");
+      if (genMailEl) genMailEl.textContent = genMailEl.textContent.replace("サンプル株式会社", profile.companyName);
+    }
+
+    const recommendedActionEl = document.getElementById("recommendedAction");
+    if (recommendedActionEl) recommendedActionEl.dataset.source = "json";
+  })();
+
+  // Week1 Must Fix: replace the fixed demo company name ("サンプル株式会社")
+  // with the entered 企業名, if any. impactDetailBody is only ever set by the
+  // sync personalizeFromProfile() block above (no JSON overlay touches it),
+  // so running this once after that block is safe. Leaves the current
+  // display untouched when 企業名 isn't entered.
+  (function personalizeCompanyName() {
+    const profile = getProfile();
+    if (!profile || !profile.companyName) return;
+    ["impactDetailBody", "genMail"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = el.textContent.replace("サンプル株式会社", profile.companyName);
+    });
+  })();
+</script>
+
+</body>
+</html>

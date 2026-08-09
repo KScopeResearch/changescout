@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>貴社専用の分析が完了しました ｜ ChangeScout Weekly</title>
+<meta name="description" content="会社プロフィールの入力が完了し、貴社向けの分析結果（サンプル）をご用意しました。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="貴社専用の分析が完了しました ｜ ChangeScout Weekly">
+<meta property="og:description" content="会社プロフィールの入力が完了し、貴社向けの分析結果（サンプル）をご用意しました。">
+<meta property="og:image" content="https://kscoperesearch.github.io/changescout/images/hero-analysis.png">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e6e8ec;
+    --text: #0f172a;
+    --text-muted: #667085;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --orange: #f97316;
+    --orange-soft: #fff1e6;
+    --neutral-soft: #f1f2f4;
+    --radius-lg: 20px;
+    --radius-sm: 8px;
+    --shadow: 0 20px 40px -28px rgba(15, 23, 42, 0.25);
+    --shadow-sm: 0 8px 20px -16px rgba(15, 23, 42, 0.3);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
+      "Hiragino Sans", "Noto Sans JP", Meiryo, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__mark {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+
+  .brand__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .brand__name {
+    font-weight: 800;
+    font-size: 1.05rem;
+  }
+
+  .brand__name--scout {
+    color: var(--orange);
+  }
+
+  .brand__name--suffix {
+    color: var(--blue);
+  }
+
+  .brand__sub {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .beta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: var(--orange-soft);
+    color: var(--orange);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid #ffd9bd;
+  }
+
+  .beta-badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--orange);
+  }
+
+  .complete-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 48px 36px;
+    text-align: center;
+  }
+
+  .complete-card__illustration {
+    width: 200px;
+    margin: -12px auto 4px;
+    display: block;
+  }
+
+  .complete-card__title {
+    font-size: clamp(1.3rem, 1.1rem + 0.8vw, 1.6rem);
+    font-weight: 800;
+    margin: 0 0 12px;
+  }
+
+  .complete-card__body {
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 24px 28px;
+    margin-top: 20px;
+  }
+
+  .info-card__title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin: 0 0 16px;
+  }
+
+  .info-list {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 0.88rem;
+  }
+
+  .info-row dt {
+    color: var(--text-muted);
+    font-weight: 700;
+  }
+
+  .info-row dd {
+    margin: 0;
+    font-weight: 700;
+    text-align: right;
+  }
+
+  .category-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag {
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 5px 12px;
+    border-radius: 999px;
+  }
+
+  .tag--orange { background: var(--orange-soft); color: #c2530f; }
+  .tag--blue { background: var(--blue-soft); color: #1d4ed8; }
+  .tag--neutral { background: var(--neutral-soft); color: #475467; }
+
+  .preview-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .preview-kpi {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+
+  .preview-kpi__value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--orange);
+  }
+
+  .preview-kpi__label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-top: 4px;
+  }
+
+  .cta-row {
+    text-align: center;
+    margin-top: 28px;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 32px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    background: var(--orange);
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+    border: none;
+    cursor: pointer;
+  }
+
+  .btn-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  @media (max-width: 560px) {
+    .page {
+      padding: 24px 16px 64px;
+    }
+
+    .complete-card {
+      padding: 36px 24px;
+    }
+
+    .info-card {
+      padding: 20px;
+    }
+
+    .preview-kpis {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand__mark" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="42" cy="42" r="24" fill="none" stroke="#16213a" stroke-width="9"/>
+        <line x1="59" y1="59" x2="80" y2="80" stroke="#16213a" stroke-width="11" stroke-linecap="round"/>
+        <polyline points="27,50 36,40 44,46" fill="none" stroke="#2563eb" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+        <polyline points="44,46 55,26" fill="none" stroke="#f97316" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="brand__text">
+        <span class="brand__name">Change<span class="brand__name--scout">Scout</span> <span class="brand__name--suffix">Weekly</span></span>
+        <span class="brand__sub">市場の変化を、ビジネスチャンスへ。</span>
+      </div>
+    </div>
+    <span class="beta-badge">BETA</span>
+  </header>
+
+  <div class="complete-card">
+    <svg class="complete-card__illustration" viewBox="0 0 300 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="55" cy="70" r="4" fill="#f97316" opacity="0.55" />
+      <circle cx="255" cy="80" r="3.5" fill="#2563eb" opacity="0.55" />
+      <circle cx="40" cy="190" r="3" fill="#2563eb" opacity="0.55" />
+      <circle cx="260" cy="210" r="4" fill="#f97316" opacity="0.55" />
+      <path d="M140,150 L225,192 L140,234 L55,192 Z" fill="#e2e8f0" />
+      <path d="M55,192 L140,234 L140,244 L55,202 Z" fill="#dbe3ee" />
+      <path d="M140,234 L225,192 L225,202 L140,244 Z" fill="#cbd5e1" />
+      <path d="M186.75,168.5 L206.75,179.5 L186.75,190.5 L166.75,179.5 Z" fill="rgb(251,164,104)" />
+      <path d="M166.75,179.5 L186.75,190.5 L186.75,202.5 L166.75,191.5 Z" fill="#f97316" />
+      <path d="M186.75,190.5 L206.75,179.5 L206.75,191.5 L186.75,202.5 Z" fill="rgb(179,83,16)" />
+      <path d="M135.75,119.7 L185.75,144.7 L135.75,169.7 L85.75,144.7 Z" fill="rgb(113,154,242)" />
+      <path d="M85.75,144.7 L135.75,169.7 L135.75,185.7 L85.75,160.7 Z" fill="#2563eb" />
+      <path d="M135.75,169.7 L185.75,144.7 L185.75,160.7 L135.75,185.7 Z" fill="rgb(27,71,169)" />
+      <path d="M119.75,144.7 L131.75,155.7 L153.75,131.7" stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    </svg>
+    <h1 class="complete-card__title">貴社専用の分析が完了しました</h1>
+    <p class="complete-card__body">
+      入力いただいた会社プロフィールをもとに、貴社向けの分析結果をご用意しました。
+    </p>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">あなたの会社情報</h2>
+    <dl class="info-list">
+      <div class="info-row" id="infoCompanyNameRow" style="display:none;"><dt>企業名</dt><dd id="infoCompanyName">—</dd></div>
+      <div class="info-row"><dt>業種</dt><dd id="infoIndustry">—</dd></div>
+      <div class="info-row"><dt>顧客層</dt><dd id="infoCustomerSegment">—</dd></div>
+      <div class="info-row"><dt>商材</dt><dd id="infoProduct">—</dd></div>
+      <div class="info-row"><dt>営業地域</dt><dd id="infoRegion">—</dd></div>
+    </dl>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">分析対象カテゴリ</h2>
+    <div class="category-tags">
+      <span class="tag tag--orange">補助金</span>
+      <span class="tag tag--blue">法改正</span>
+      <span class="tag tag--neutral">業界ニュース</span>
+      <span class="tag tag--neutral">新サービス動向</span>
+    </div>
+  </div>
+
+  <div class="info-card">
+    <h2 class="info-card__title">作成されたレポート内容</h2>
+    <div class="preview-kpis">
+      <div class="preview-kpi">
+        <div class="preview-kpi__value" id="previewOpportunityValue">3件</div>
+        <div class="preview-kpi__label">検出されたビジネスチャンス</div>
+      </div>
+      <div class="preview-kpi">
+        <div class="preview-kpi__value" id="previewCompanyValue">30社</div>
+        <div class="preview-kpi__label">対象企業数</div>
+      </div>
+      <div class="preview-kpi">
+        <div class="preview-kpi__value" id="previewDealValue">最大1,200万円</div>
+        <div class="preview-kpi__label">推定商談価値（年間）</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cta-row">
+    <a class="btn-primary" href="mock-dashboard.html">ダッシュボードを見る →</a>
+  </div>
+
+</div>
+
+<script src="js/market-data.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/render.js"></script>
+<script>
+  // Prefer the profile saved to localStorage by company-profile.html; fall back to the
+  // URL query string (e.g. when this page is opened directly without going through the form).
+  const params = new URLSearchParams(location.search);
+  const stored = getProfile();
+  const getValue = (key) => (stored && stored[key]) || params.get(key) || "";
+
+  // Shared industryLabels (js/labels.js) has no "other" key by design (see
+  // its comment); this page displays "other" as a plain value, so it's
+  // handled here as a page-specific fallback.
+  const industryValue = getValue("industry");
+  const industryLabel = industryLabels[industryValue] || (industryValue === "other" ? "その他" : "");
+
+  setTextOrDash("infoIndustry", industryLabel);
+  setTextOrDash("infoCustomerSegment", getValue("customerSegment"));
+  setTextOrDash("infoProduct", getValue("product"));
+  setTextOrDash("infoRegion", regionLabels[getValue("region")]);
+
+  // Should Fix (Phase 3 pre-review): show 企業名 only when entered — unlike
+  // the other rows, which always show with a "—" placeholder, a blank
+  // company name row would look broken rather than "not provided".
+  const companyName = getValue("companyName");
+  if (companyName) {
+    setText("infoCompanyName", companyName);
+    const row = document.getElementById("infoCompanyNameRow");
+    if (row) row.style.display = "flex";
+  }
+
+  // Must Fix: 「作成されたレポート内容」(検出されたビジネスチャンス／対象企業数／
+  // 推定商談価値) was 100% static HTML (3件/30社/最大1,200万円) — the exact
+  // same fixed-value bug already fixed on mock-dashboard.html's KPI strip.
+  // Reuses the same target_company_count / estimated_deal_value_max fields
+  // from market-changes.json, summed across the industry's 3 matched
+  // topics, so this preview never disagrees with the dashboard it links to.
+  (async function loadPreviewKpiFromMarketChanges() {
+    if (!industryValue) return;
+
+    const marketChanges = await fetchMarketChanges();
+    const matches = [0, 1, 2]
+      .map((index) => pickMarketChange(marketChanges, industryValue, index))
+      .filter(Boolean);
+    if (!matches.length) return;
+
+    const companyTotal = matches.reduce((sum, m) => sum + (m.target_company_count || 0), 0);
+    const dealValueTotal = matches.reduce((sum, m) => sum + (m.estimated_deal_value_max || 0), 0);
+
+    setText("previewOpportunityValue", `${matches.length}件`);
+    setText("previewCompanyValue", `${companyTotal}社`);
+    setText("previewDealValue", `最大${dealValueTotal.toLocaleString()}万円`);
+  })();
+</script>
+
+</body>
+</html>

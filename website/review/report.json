@@ -1,0 +1,129 @@
+{
+  "commit": "8736adf6a410005f45725591465f112819f13738",
+  "commitShort": "8736adf",
+  "generatedAt": "2026-07-27T07:22:51.598Z",
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "uxSummary": {
+    "avgLoadTimeMs": 366,
+    "keyValueAboveFold": "8/8",
+    "ctaVisible": "8/8"
+  },
+  "results": [
+    {
+      "label": "desktop company profile",
+      "project": "desktop",
+      "page": "company-profile.html",
+      "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
+      "screenshot": "../screenshots/desktop-company-profile.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 239,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "desktop dashboard",
+      "project": "desktop",
+      "page": "mock-dashboard.html",
+      "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
+      "screenshot": "../screenshots/desktop-mock-dashboard.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 557,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "desktop opportunity detail",
+      "project": "desktop",
+      "page": "opportunity-detail.html",
+      "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
+      "screenshot": "../screenshots/desktop-opportunity-detail.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 479,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "desktop profile complete",
+      "project": "desktop",
+      "page": "profile-complete.html",
+      "url": "https://kscoperesearch.github.io/changescout/profile-complete.html",
+      "screenshot": "../screenshots/desktop-profile-complete.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 338,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "mobile company profile",
+      "project": "mobile",
+      "page": "company-profile.html",
+      "url": "https://kscoperesearch.github.io/changescout/company-profile.html",
+      "screenshot": "../screenshots/mobile-company-profile.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 369,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "mobile dashboard",
+      "project": "mobile",
+      "page": "mock-dashboard.html",
+      "url": "https://kscoperesearch.github.io/changescout/mock-dashboard.html",
+      "screenshot": "../screenshots/mobile-mock-dashboard.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 401,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "mobile opportunity detail",
+      "project": "mobile",
+      "page": "opportunity-detail.html",
+      "url": "https://kscoperesearch.github.io/changescout/opportunity-detail.html",
+      "screenshot": "../screenshots/mobile-opportunity-detail.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 351,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    },
+    {
+      "label": "mobile profile complete",
+      "project": "mobile",
+      "page": "profile-complete.html",
+      "url": "https://kscoperesearch.github.io/changescout/profile-complete.html",
+      "screenshot": "../screenshots/mobile-profile-complete.png",
+      "passed": true,
+      "consoleErrors": 0,
+      "ux": {
+        "loadTimeMs": 196,
+        "keyValueAboveFold": true,
+        "ctaVisible": true
+      }
+    }
+  ]
+}

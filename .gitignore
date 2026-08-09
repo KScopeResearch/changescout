@@ -1,3 +1,16 @@
 # PJ2 Phase3次工程（Lead永続化のS3移行）でpackage.jsonを導入したことに伴い新設。
 # @aws-sdk/client-s3（S3バックエンド専用の依存）のインストール先。
 node_modules/
+test-results/
+playwright-report/
+screenshots/
+
+# Confidential business docs (kept locally, not published to the public repo)
+docs/strategy/
+docs/marketing/
+docs/meeting/
+docs/BRAND.md
+
+# Published verification screenshots (served via GitHub Pages)
+!website/screenshots/
+!website/screenshots/**
