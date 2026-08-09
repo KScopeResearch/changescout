@@ -213,3 +213,23 @@
 }
 
 .ec-upgrade { border-top: 1px solid var(--color-border); padding-top: 18px; }
+
+/* ---------- Phase4-A/B（PJ2 Phase3前段: lead=/token=経由のアクセス時のみ表示） ---------- */
+
+.ec-phase4 {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  margin-top: 20px;
+  text-align: center;
+}
+
+.ec-phase4__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.ec-phase4__actions .btn { width: 100%; }

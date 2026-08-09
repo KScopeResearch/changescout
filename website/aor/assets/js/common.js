@@ -57,6 +57,34 @@ function getCompanyParam() {
 }
 
 /**
+ * URLクエリ文字列から ?lead=<lead_id> を取り出す（PJ2 Phase3前段: メールURL・
+ * report_token連携）。company=単体の既存URL（デモ閲覧等）との後方互換のため必須とはせず、
+ * 指定が無い場合は null を返す。lead_idはPhase4-A/B（詳細レポート希望/週次配信同意）への
+ * 引き渡し用の低リスクな追跡識別子であり、この値単体でレポート内容の取得には使わない
+ * （report_generated済みLeadのcompany_slugはメール本文側で別途company=として渡す想定。
+ * 詳細はdocs/email-capture-design.md参照）。
+ * @returns {string|null}
+ */
+function getLeadParam() {
+  const params = new URLSearchParams(window.location.search);
+  const lead = params.get("lead");
+  return lead && lead.trim() ? lead.trim() : null;
+}
+
+/**
+ * URLクエリ文字列から ?token=<report_token> を取り出す（PJ2 Phase3前段）。
+ * report_tokenはPhase4-A/B（状態変更API、POST /api/leads/:lead_id/paid-report-request等）
+ * にのみ必要な値。report-preview.html・paid-preview.html自身はこの値を検証・消費せず、
+ * email-capture.htmlへの遷移リンクを組み立てる際に素通りさせるだけにとどめる。
+ * @returns {string|null}
+ */
+function getReportTokenParam() {
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("token");
+  return token && token.trim() ? token.trim() : null;
+}
+
+/**
  * data/<slug>.json を取得してパースする。
  * @param {string} slug - 会社スラッグ（例: "company-01-manufacturing"）
  * @returns {Promise<Object>} 会社データ（docs/mock_data スキーマ準拠）

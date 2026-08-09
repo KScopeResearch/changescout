@@ -234,11 +234,23 @@ function renderFooter() {
 /* ---------- CTA ---------- */
 
 /**
- * CTAリンクのhrefを email-capture.html?company=<slug> に設定する。
+ * CTAリンクのhrefを email-capture.html?company=<slug>[&lead=<lead_id>&token=<report_token>]
+ * に設定する。lead/tokenはPJ2 Phase3前段: このページ自身のURLに ?lead=/?token= が
+ * 付与されている場合（Phase3のメールリンク経由でのアクセス）のみ、そのままemail-capture.html
+ * へ引き継ぐ（値の検証・利用はこのページでは行わない、単純な素通し）。
+ * どちらも付与されていない場合は company=<slug> のみの既存URL形式のままとなり、
+ * 既存のデモ閲覧・直接アクセス経路は変更しない。
  * @param {string} slug - 会社スラッグ
  */
 function wireCtas(slug) {
-  const target = `email-capture.html?company=${encodeURIComponent(slug)}`;
+  const params = new URLSearchParams();
+  params.set("company", slug);
+  const leadId = getLeadParam();
+  const reportToken = getReportTokenParam();
+  if (leadId) params.set("lead", leadId);
+  if (reportToken) params.set("token", reportToken);
+
+  const target = `email-capture.html?${params.toString()}`;
   document.querySelectorAll("[data-cta]").forEach((el) => {
     el.setAttribute("href", target);
   });

@@ -82,6 +82,22 @@
       <p class="cta-note">営業電話はいたしません。</p>
     </form>
 
+    <!-- PJ2 Phase3前段: report-preview.htmlから ?lead=/?token= を伴って遷移してきた場合のみ
+         JS側でこちらを表示し、上のcapture-form（旧: 自己登録フロー）は隠す。
+         email/company_slugは不要（Lead側で既に把握済みのため再入力させない）。 -->
+    <section class="ec-phase4" id="phase4-section" hidden>
+      <h2 class="ec-header__title">続けてお選びください</h2>
+      <p class="ec-header__tagline">このレポートについて、以下からお選びいただけます。</p>
+
+      <div class="ec-phase4__actions">
+        <button type="button" class="btn btn-primary btn-cta" id="phase4-paid-btn">詳しい有料レポートが欲しい</button>
+        <button type="button" class="btn btn-secondary btn-cta" id="phase4-weekly-btn">毎週無料レポートを受け取ることに同意する</button>
+      </div>
+
+      <p class="field-error" id="phase4-error" hidden></p>
+      <p class="ec-success__mail-note" id="phase4-success" hidden></p>
+    </section>
+
     <section class="ec-success" id="success" hidden>
       <p class="ec-success__check" aria-hidden="true">✓</p>
       <h2 class="ec-success__title">追加分析を公開しました</h2>

@@ -6,18 +6,35 @@
  *
  * 【PJ2 第2実装】フォーム送信はwebsite/aor-lead-apiのPOST /api/leadsへ接続する
  * （LEAD_API_BASE_URLはcommon.js参照）。送信するのはemail/company_slug/consentのみ。
+ *
+ * 【PJ2 Phase3前段】report-preview.htmlから ?lead=<lead_id>&token=<report_token> を
+ * 伴って遷移してきた場合（=report_generated済みLeadへのメールリンク経由）は、
+ * 上記の自己登録フォーム（email再入力）ではなく、Phase4-A/B（詳しい有料レポートが欲しい／
+ * 毎週無料レポートに同意する）の選択UIを表示する。emailは再入力させない
+ * （Lead側で既に把握済みのため）。呼び出し先のPOST /api/leads/:lead_id/<action>自体は
+ * 今回まだ実装していない（今回のスコープはlead_id・report_tokenの受け渡し経路のみ）。
  */
 
 const STATE_IDS = ["state-loading", "state-error", "page"];
 
+const PHASE4_ACTIONS = {
+  paid: "paid-report-request",
+  weekly: "weekly-report-consent",
+};
+
 let currentData = null;
 let currentSlug = null;
+let currentLeadId = null;
+let currentReportToken = null;
 let isSubmitting = false; // PJ2 第2実装: 二重送信防止（永続的なidempotency機構は今回不要）
+let isPhase4Submitting = false; // PJ2 Phase3前段: Phase4-A/Bボタンの二重送信防止
 
 document.addEventListener("DOMContentLoaded", init);
 
 /**
  * エントリポイント。?company= を読み取り、データ取得→事前入力、またはエラー表示を行う。
+ * ?lead=/?token= が両方指定されている場合はPhase4-A/B選択UIを、それ以外は既存の
+ * 自己登録フォームを表示する。
  * @returns {Promise<void>}
  */
 async function init() {
@@ -32,6 +49,9 @@ async function init() {
     showState("state-error", STATE_IDS);
     return;
   }
+
+  currentLeadId = getLeadParam();
+  currentReportToken = getReportTokenParam();
 
   try {
     currentData = await fetchCompanyData(currentSlug);
@@ -48,8 +68,14 @@ async function init() {
     return;
   }
 
-  wireToggle();
-  wireForm();
+  if (currentLeadId && currentReportToken) {
+    document.getElementById("capture-form").hidden = true;
+    document.getElementById("phase4-section").hidden = false;
+    wirePhase4Actions();
+  } else {
+    wireToggle();
+    wireForm();
+  }
 }
 
 /**
@@ -181,6 +207,78 @@ function wireForm() {
       if (!succeeded) submitBtn.disabled = false; // 成功時はフォーム自体が非表示になるため再有効化不要
     }
   });
+}
+
+/**
+ * PJ2 Phase3前段: Phase4-A（詳しい有料レポートが欲しい）・Phase4-B（毎週無料レポートに
+ * 同意する）の各ボタンを配線する。lead_id・report_tokenのみを送信し、emailは送らない
+ * （emailは既にLead側で把握済み、URLにも含めない）。
+ */
+function wirePhase4Actions() {
+  const paidBtn = document.getElementById("phase4-paid-btn");
+  const weeklyBtn = document.getElementById("phase4-weekly-btn");
+
+  paidBtn.addEventListener("click", () => submitPhase4Action(PHASE4_ACTIONS.paid, paidBtn, weeklyBtn));
+  weeklyBtn.addEventListener("click", () => submitPhase4Action(PHASE4_ACTIONS.weekly, weeklyBtn, paidBtn));
+}
+
+/**
+ * Phase4-A/Bの選択を website/aor-lead-api の
+ * `POST /api/leads/:lead_id/<action>`（body: {report_token}）へ送信する。
+ * 【PJ2 Phase3前段のスコープ】呼び出し先のAPIエンドポイント自体は今回まだ実装していない
+ * ため、現時点では404が返る想定である（今回実装するのはlead_id・report_tokenの
+ * 受け渡し経路のみ。エンドポイント本体の実装は別タスクで行う）。
+ * @param {string} action - "paid-report-request" または "weekly-report-consent"
+ * @param {HTMLButtonElement} clickedBtn
+ * @param {HTMLButtonElement} otherBtn
+ */
+async function submitPhase4Action(action, clickedBtn, otherBtn) {
+  if (isPhase4Submitting) return;
+  isPhase4Submitting = true;
+  clickedBtn.disabled = true;
+  otherBtn.disabled = true;
+  hidePhase4Error();
+
+  try {
+    const res = await fetch(`${LEAD_API_BASE_URL}/api/leads/${encodeURIComponent(currentLeadId)}/${action}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ report_token: currentReportToken }),
+    });
+
+    if (res.ok) {
+      showPhase4Success();
+    } else if (res.status === 429) {
+      showPhase4Error("送信回数が多すぎます。しばらく時間をおいてから再度お試しください。");
+    } else {
+      showPhase4Error("現在この操作を受け付けられませんでした。しばらくしてから再度お試しください。");
+    }
+  } catch (err) {
+    showPhase4Error("通信エラーが発生しました。ネットワーク接続をご確認のうえ、再度お試しください。");
+  } finally {
+    isPhase4Submitting = false;
+    clickedBtn.disabled = false;
+    otherBtn.disabled = false;
+  }
+}
+
+/** @param {string} message */
+function showPhase4Error(message) {
+  const el = document.getElementById("phase4-error");
+  el.textContent = message;
+  el.hidden = false;
+}
+
+function hidePhase4Error() {
+  const el = document.getElementById("phase4-error");
+  el.hidden = true;
+  el.textContent = "";
+}
+
+function showPhase4Success() {
+  const el = document.getElementById("phase4-success");
+  el.textContent = "ありがとうございます。承りました。";
+  el.hidden = false;
 }
 
 /**
