@@ -1,0 +1,639 @@
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:42:04.438Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T14:42:04.441Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:42:04.483Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:42:04.483Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":7,"created_at":"2026-08-06T14:42:04.489Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":8,"created_at":"2026-08-06T14:42:04.490Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":8,"created_at":"2026-08-06T14:42:04.490Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:42:04.507Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:42:04.508Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:42:04.508Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:42:04.509Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:42:04.509Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:44:14.860Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T14:44:14.862Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:44:14.902Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:44:14.904Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:44:14.904Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:44:14.905Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-06T14:44:14.906Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:44:14.930Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:44:14.932Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":5,"created_at":"2026-08-06T14:44:14.934Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":9,"created_at":"2026-08-06T14:44:14.938Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":11,"created_at":"2026-08-06T14:44:14.940Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.863Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.866Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.906Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.906Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:52:18.907Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:52:18.908Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:52:18.908Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.935Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:52:18.935Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:52:18.936Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:52:18.936Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:52:18.937Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:53:11.766Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:53:11.766Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:53:11.767Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:53:11.768Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:53:11.768Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:56:28.963Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:56:28.963Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:56:28.964Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:56:28.965Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-06T14:56:28.967Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:59:18.571Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T14:59:18.573Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:59:18.614Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:59:18.614Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:59:18.615Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:59:18.616Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T14:59:18.616Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T14:59:18.652Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T14:59:18.652Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-06T14:59:18.654Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-06T14:59:18.656Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-06T14:59:18.656Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:05:36.276Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:05:36.280Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:05:36.341Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:05:36.342Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:05:36.342Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:05:36.343Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:05:36.344Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:05:36.352Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:05:36.353Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":8,"created_at":"2026-08-06T15:05:36.359Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":11,"created_at":"2026-08-06T15:05:36.362Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":12,"created_at":"2026-08-06T15:05:36.363Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:31:45.945Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:31:45.946Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:31:45.946Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:31:45.947Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-06T15:31:45.948Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:48:24.970Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T15:48:24.972Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-06T15:48:25.017Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:48:25.018Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:48:25.019Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:48:25.019Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:48:25.020Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:48:25.039Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:48:25.040Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:48:25.040Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:48:25.041Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:48:25.041Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:53:50.030Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:53:50.032Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:53:50.074Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:53:50.075Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-06T15:53:50.077Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-06T15:53:50.080Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-06T15:53:50.081Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T15:53:50.098Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T15:53:50.099Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-06T15:53:50.100Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-06T15:53:50.101Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-06T15:53:50.102Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:06:25.037Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T16:06:25.039Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:06:25.077Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:06:25.078Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:06:25.079Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:06:25.079Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T16:06:25.080Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-06T16:06:25.099Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:06:25.100Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:06:25.101Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:06:25.101Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T16:06:25.102Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":3,"created_at":"2026-08-06T16:19:30.047Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T16:19:30.050Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:19:30.093Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:19:30.094Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:19:30.095Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-06T16:19:30.098Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":6,"created_at":"2026-08-06T16:19:30.099Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T16:19:30.128Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:19:30.129Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T16:19:30.129Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T16:19:30.130Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T16:19:30.130Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:28:53.953Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:28:53.955Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:28:54.002Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:28:54.002Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:28:54.003Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:28:54.004Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:28:54.004Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:28:54.017Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:28:54.018Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:28:54.019Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:28:54.019Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:28:54.020Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:39:57.350Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:39:57.353Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:39:57.358Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:39:57.360Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-06T23:39:57.361Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-06T23:39:57.362Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-06T23:39:57.364Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:39:57.424Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:39:57.424Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:39:57.425Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:39:57.426Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:39:57.426Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:44:47.353Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:44:47.355Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:44:47.398Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:44:47.398Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:44:47.399Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:44:47.400Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:44:47.400Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:44:47.418Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:44:47.419Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:44:47.420Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:44:47.420Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:44:47.420Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:48:51.817Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:48:51.820Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:48:51.866Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:48:51.867Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:48:51.868Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:48:51.868Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:48:51.869Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:48:51.893Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:48:51.893Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:48:51.894Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:48:51.894Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:48:51.895Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:51:03.385Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:51:03.388Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-06T23:51:03.432Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:51:03.433Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:51:03.434Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:51:03.435Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:51:03.435Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:51:03.458Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-06T23:51:03.458Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:51:03.459Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-06T23:51:03.459Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-06T23:51:03.460Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T00:35:18.639Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T00:35:18.643Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T00:35:18.690Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T00:35:18.691Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T00:35:18.692Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T00:35:18.693Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T00:35:18.693Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T00:35:18.715Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T00:35:18.715Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T00:35:18.716Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T00:35:18.716Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T00:35:18.717Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:08:12.173Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:08:12.174Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T01:08:12.175Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T01:08:12.176Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T01:08:12.177Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T01:14:52.670Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:14:52.673Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T01:14:52.780Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:14:52.781Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T01:14:52.782Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T01:14:52.782Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T01:14:52.783Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:14:52.799Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T01:14:52.800Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T01:14:52.802Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T01:14:52.803Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T01:14:52.803Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:01:43.954Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T02:01:43.957Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T02:01:43.998Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:01:43.999Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T02:01:44.000Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T02:01:44.000Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T02:01:44.001Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T02:01:44.020Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T02:01:44.020Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:01:44.021Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:01:44.021Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T02:01:44.022Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:48:22.152Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T02:48:22.154Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T02:48:22.194Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:48:22.195Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T02:48:22.197Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-07T02:48:22.198Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-07T02:48:22.200Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T02:48:22.221Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T02:48:22.222Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T02:48:22.223Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T02:48:22.224Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T02:48:22.226Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.013Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T05:51:07.015Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.045Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T05:51:07.046Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.046Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T05:51:07.047Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T05:51:07.048Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T05:51:07.135Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.136Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":1,"created_at":"2026-08-07T05:51:07.136Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.137Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:51:07.137Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T05:55:44.675Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:55:44.676Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T05:55:44.679Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T05:55:44.681Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":7,"created_at":"2026-08-07T05:55:44.682Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":10,"created_at":"2026-08-07T05:55:44.685Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T05:55:44.687Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T05:55:44.701Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":8,"created_at":"2026-08-07T05:55:44.708Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":11,"created_at":"2026-08-07T05:55:44.711Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":12,"created_at":"2026-08-07T05:55:44.712Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":15,"created_at":"2026-08-07T05:55:44.715Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:09:57.414Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T06:09:57.416Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:09:57.528Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:09:57.528Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:09:57.529Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:09:57.530Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:09:57.530Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:09:57.530Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:09:57.531Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:09:57.532Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:09:57.532Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T06:09:57.533Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:34:40.132Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T06:34:40.134Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:34:40.179Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:34:40.180Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:34:40.180Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:34:40.181Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:34:40.181Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:34:40.195Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:34:40.196Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T06:34:40.199Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T06:34:40.201Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-07T06:34:40.202Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:38:09.257Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:38:09.260Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:38:09.288Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:38:09.288Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:38:09.289Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:38:09.290Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T06:38:09.291Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:38:09.325Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:38:09.326Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:38:09.327Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T06:38:09.327Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:38:09.328Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-test-company.example.com 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T06:50:37.102Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-test-company.example.com 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T06:50:37.102Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-test-company.example.com 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T06:50:37.104Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-test-company.example.com 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-07T06:50:37.106Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-test-company.example.com 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-07T06:50:37.108Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T09:08:57.091Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T09:08:57.093Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:08:57.123Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:08:57.124Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":11,"created_at":"2026-08-07T09:08:57.133Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":13,"created_at":"2026-08-07T09:08:57.135Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":17,"created_at":"2026-08-07T09:08:57.140Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T09:08:57.145Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:08:57.146Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T09:08:57.147Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T09:08:57.150Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":8,"created_at":"2026-08-07T09:08:57.152Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:39:54.442Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T09:39:54.445Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:39:54.474Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:39:54.475Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T09:39:54.477Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T09:39:54.479Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-07T09:39:54.480Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T09:39:54.498Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:39:54.499Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":14,"created_at":"2026-08-07T09:39:54.512Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":16,"created_at":"2026-08-07T09:39:54.514Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":17,"created_at":"2026-08-07T09:39:54.515Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-task29-test.example.com 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T09:55:36.143Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-task29-test.example.com 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T09:55:36.145Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-task29-test.example.com 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T09:55:36.146Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-task29-test.example.com 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T09:55:36.146Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"e2e-task29-test.example.com 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T09:55:36.147Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T10:10:31.532Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T10:10:31.535Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T10:10:31.567Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T10:10:31.567Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T10:10:31.569Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T10:10:31.570Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":6,"created_at":"2026-08-07T10:10:31.572Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T10:10:31.601Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T10:10:31.601Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T10:10:31.602Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T10:10:31.603Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T10:10:31.604Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T11:27:21.394Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:27:21.395Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:27:21.396Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:27:21.396Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:27:21.396Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:28:29.528Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T11:28:29.530Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:28:29.574Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:28:29.575Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T11:28:29.576Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T11:28:29.577Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T11:28:29.578Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:28:29.595Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:28:29.595Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:28:29.596Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:28:29.596Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T11:28:29.597Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T11:34:34.031Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:34:34.032Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:34:34.033Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:34:34.033Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T11:34:34.034Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:42:24.862Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:42:24.863Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":1,"created_at":"2026-08-07T11:42:24.863Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:42:24.864Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":2,"created_at":"2026-08-07T11:42:24.864Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"ChangeScout 最新ニュース","source_type":"news","result_count":5,"duration_ms":1797,"created_at":"2026-08-07T11:55:59.640Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":5,"duration_ms":1249,"created_at":"2026-08-07T11:56:18.117Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":5,"duration_ms":1568,"created_at":"2026-08-07T11:56:18.435Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":5,"duration_ms":2037,"created_at":"2026-08-07T11:56:18.904Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":5,"duration_ms":2207,"created_at":"2026-08-07T11:56:19.074Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":5,"duration_ms":2462,"created_at":"2026-08-07T11:56:19.329Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:03:06.887Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:03:06.927Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:03:06.927Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:03:06.928Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:03:06.930Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:03:06.938Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T12:03:06.931Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":19,"created_at":"2026-08-07T12:03:06.956Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":20,"created_at":"2026-08-07T12:03:06.957Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":21,"created_at":"2026-08-07T12:03:06.958Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":21,"created_at":"2026-08-07T12:03:06.958Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":649,"created_at":"2026-08-07T12:03:07.538Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:05:20.226Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:05:20.229Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:05:20.238Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:05:20.239Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:05:20.241Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T12:05:20.243Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":8,"created_at":"2026-08-07T12:05:20.245Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:05:20.284Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:05:20.285Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:05:20.286Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:05:20.286Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:05:20.287Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:06:06.992Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:06:06.994Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T12:06:07.006Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:06:07.007Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:06:07.008Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:06:07.008Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:06:07.009Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:06:07.042Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:06:07.042Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:06:07.043Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:06:07.044Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:06:07.044Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:07:10.016Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T12:07:10.018Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:07:10.036Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:07:10.037Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:07:10.038Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:07:10.038Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:07:10.039Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:07:10.062Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:07:10.063Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":6,"created_at":"2026-08-07T12:07:10.068Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":8,"created_at":"2026-08-07T12:07:10.069Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":9,"created_at":"2026-08-07T12:07:10.070Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:13:06.634Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:13:06.665Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:13:06.666Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:13:06.667Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:13:06.667Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:13:06.668Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:13:06.687Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:13:06.688Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:13:06.689Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:13:06.689Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:13:06.690Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":650,"created_at":"2026-08-07T12:13:07.286Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.953Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.975Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.976Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.976Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:03.977Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:23:03.978Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:23:03.998Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.999Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:03.999Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:04.000Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:04.000Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":653,"created_at":"2026-08-07T12:23:04.608Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.425Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T12:23:52.427Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:23:52.438Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.439Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.439Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:52.440Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:52.440Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.465Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.466Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:23:52.466Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:23:52.467Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T12:23:52.469Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:29:03.059Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:29:03.094Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:29:03.095Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:29:03.095Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:29:03.096Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:29:03.097Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:29:03.134Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:29:03.135Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":8,"created_at":"2026-08-07T12:29:03.141Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":10,"created_at":"2026-08-07T12:29:03.143Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":12,"created_at":"2026-08-07T12:29:03.145Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":654,"created_at":"2026-08-07T12:29:03.715Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:52:11.090Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:52:11.113Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:52:11.113Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:52:11.116Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T12:52:11.118Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":8,"created_at":"2026-08-07T12:52:11.120Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:52:11.145Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:52:11.146Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:52:11.147Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T12:52:11.148Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T12:52:11.149Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":655,"created_at":"2026-08-07T12:52:11.747Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:53:10.351Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T12:53:10.354Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T12:53:10.367Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:53:10.368Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:53:10.369Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:53:10.370Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:53:10.370Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:53:10.397Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T12:53:10.397Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T12:53:10.398Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:53:10.399Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T12:53:10.399Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:04:29.463Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:04:29.492Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:04:29.492Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:04:29.493Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:04:29.494Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:04:29.495Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:04:29.525Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:04:29.525Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":14,"created_at":"2026-08-07T13:04:29.538Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":15,"created_at":"2026-08-07T13:04:29.539Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":15,"created_at":"2026-08-07T13:04:29.539Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":663,"created_at":"2026-08-07T13:04:30.128Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:05:28.064Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:05:28.067Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T13:05:28.071Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:05:28.071Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:05:28.072Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:05:28.072Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:05:28.073Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:05:28.104Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:05:28.104Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:05:28.105Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:05:28.105Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:05:28.106Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:20:09.694Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:20:09.704Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:20:09.705Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:20:09.707Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":5,"created_at":"2026-08-07T13:20:09.708Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":6,"created_at":"2026-08-07T13:20:09.709Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:20:09.747Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:20:09.748Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:20:09.748Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:20:09.750Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:20:09.750Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":663,"created_at":"2026-08-07T13:20:10.358Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:21:00.935Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:21:00.936Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:21:00.937Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T13:21:00.938Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:21:00.938Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":6,"created_at":"2026-08-07T13:21:00.941Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":7,"created_at":"2026-08-07T13:21:00.942Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:21:00.983Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:21:00.983Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:21:00.984Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:21:00.985Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:21:00.986Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:59:12.504Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:59:12.523Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:59:12.524Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:59:12.524Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:59:12.525Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T13:59:12.526Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T13:59:12.556Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:59:12.557Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T13:59:12.557Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:59:12.558Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T13:59:12.559Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":658,"created_at":"2026-08-07T13:59:13.164Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:00:09.544Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:00:09.547Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:00:09.555Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:00:09.556Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:00:09.557Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:00:09.557Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:00:09.558Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T14:00:09.591Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:00:09.591Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:00:09.592Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:00:09.593Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:00:09.593Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:07.186Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:07.194Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:07.195Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:52:07.196Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T14:52:07.197Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T14:52:07.199Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:07.226Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:07.227Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:52:07.228Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T14:52:07.229Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T14:52:07.230Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":653,"created_at":"2026-08-07T14:52:07.841Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:57.551Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T14:52:57.554Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:57.564Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:57.565Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:57.566Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:57.567Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:52:57.567Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:52:57.606Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:52:57.607Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:52:57.608Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T14:52:57.609Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:52:57.609Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:59:15.627Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:59:15.646Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T14:59:15.647Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:59:15.648Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":4,"created_at":"2026-08-07T14:59:15.649Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":5,"created_at":"2026-08-07T14:59:15.650Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T14:59:15.671Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:59:15.673Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:59:15.673Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T14:59:15.674Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T14:59:15.675Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":667,"created_at":"2026-08-07T14:59:16.295Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T15:00:01.635Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":1,"created_at":"2026-08-07T15:00:01.638Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T15:00:01.650Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T15:00:01.651Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T15:00:01.652Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T15:00:01.652Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T15:00:01.653Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T15:00:01.682Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T15:00:01.683Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":4,"created_at":"2026-08-07T15:00:01.685Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":18,"created_at":"2026-08-07T15:00:01.699Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":19,"created_at":"2026-08-07T15:00:01.700Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T23:55:20.446Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T23:55:20.459Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":4,"created_at":"2026-08-07T23:55:20.462Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":7,"created_at":"2026-08-07T23:55:20.465Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":10,"created_at":"2026-08-07T23:55:20.468Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":11,"created_at":"2026-08-07T23:55:20.469Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T23:55:20.489Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":6,"created_at":"2026-08-07T23:55:20.494Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":8,"created_at":"2026-08-07T23:55:20.496Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":9,"created_at":"2026-08-07T23:55:20.497Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":12,"created_at":"2026-08-07T23:55:20.501Z"}
+{"requested_provider":"tavily","used_provider":"tavily","fallback":false,"query":"test","source_type":"news","result_count":5,"duration_ms":653,"created_at":"2026-08-07T23:55:21.101Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"テスト企業 補助金","source_type":"government","result_count":2,"duration_ms":2,"created_at":"2026-08-07T23:56:07.791Z"}
+{"requested_provider":"tavily","used_provider":"mock","fallback":true,"query":"test","source_type":"news","result_count":2,"duration_ms":0,"created_at":"2026-08-07T23:56:07.793Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":0,"created_at":"2026-08-07T23:56:07.803Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":1,"created_at":"2026-08-07T23:56:07.803Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":2,"created_at":"2026-08-07T23:56:07.804Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T23:56:07.805Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":3,"created_at":"2026-08-07T23:56:07.805Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 補助金","source_type":"government","result_count":2,"duration_ms":1,"created_at":"2026-08-07T23:56:07.844Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 業界動向","source_type":"industry_association","result_count":2,"duration_ms":2,"created_at":"2026-08-07T23:56:07.845Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 技術","source_type":"technology","result_count":2,"duration_ms":3,"created_at":"2026-08-07T23:56:07.846Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 最新ニュース","source_type":"news","result_count":2,"duration_ms":3,"created_at":"2026-08-07T23:56:07.846Z"}
+{"requested_provider":"mock","used_provider":"mock","fallback":false,"query":"Example Domain 市場","source_type":"statistics","result_count":2,"duration_ms":4,"created_at":"2026-08-07T23:56:07.848Z"}

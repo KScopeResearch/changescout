@@ -1,0 +1,101 @@
+{
+  "input_url": "https://example.com",
+  "generated_at": "2026-08-07T23:56:07.807Z",
+  "industry_hint": "中小企業",
+  "company_fetch_ok": true,
+  "company_fetch_error": null,
+  "pipeline_stats": {
+    "fetched_total": 11,
+    "normalized_total": 11,
+    "duplicates_removed": 5,
+    "after_dedupe": 6,
+    "selected_for_ai": 6,
+    "max_sources_for_ai": 20
+  },
+  "sources": [
+    {
+      "id": "src-1",
+      "title": "Example Domain",
+      "url": "https://example.com",
+      "organization": "Example Domain",
+      "published_at": "2026-08-06T02:15:20.000Z",
+      "summary": "Example Domain Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more",
+      "quote": "Example Domain Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "score": 100,
+      "_category": "企業公式"
+    },
+    {
+      "id": "src-2",
+      "title": "Example Domain 補助金に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-補助金-1",
+      "organization": "government系情報源（mock）",
+      "published_at": "2026-05-07T23:56:07.802Z",
+      "summary": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "score": 100,
+      "_category": "政府"
+    },
+    {
+      "id": "src-3",
+      "title": "Example Domain 市場に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-市場-1",
+      "organization": "statistics系情報源（mock）",
+      "published_at": "2025-02-07T23:56:07.802Z",
+      "summary": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "score": 95,
+      "_category": "統計"
+    },
+    {
+      "id": "src-4",
+      "title": "Example Domain 最新ニュースに関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-最新ニュ-ス-1",
+      "organization": "news系情報源（mock）",
+      "published_at": "2026-07-07T23:56:07.802Z",
+      "summary": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "score": 90,
+      "_category": "大手ニュース"
+    },
+    {
+      "id": "src-5",
+      "title": "Example Domain 業界動向に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-業界動向-1",
+      "organization": "industry_association系情報源（mock）",
+      "published_at": "2024-02-07T23:56:07.802Z",
+      "summary": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "score": 80,
+      "_category": "業界団体"
+    },
+    {
+      "id": "src-6",
+      "title": "Example Domain 技術に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/example-domain-技術-1",
+      "organization": "technology系情報源（mock）",
+      "published_at": "2024-02-07T23:56:07.802Z",
+      "summary": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "score": 77,
+      "_category": "技術団体"
+    }
+  ]
+}

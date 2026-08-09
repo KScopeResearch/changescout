@@ -1,0 +1,172 @@
+{
+  "provider": "deepseek",
+  "skipped": false,
+  "duration_ms": 19708,
+  "model": "deepseek-chat",
+  "usage": {
+    "input_tokens": 5018,
+    "output_tokens": 2281,
+    "estimated_cost": 0.001341
+  },
+  "free_opportunity_title": "Example Domainのドキュメント用途を活かした補助金申請支援サービスの提供",
+  "locked_opportunities_count": 2,
+  "result": {
+    "free_opportunity": {
+      "title": "Example Domainのドキュメント用途を活かした補助金申請支援サービスの提供",
+      "why_now": "Example Domainはドキュメント例示用に提供されているドメインであり、企業情報としての具体的な事業内容は公開されていません（src-1）。一方、政府系情報源（src-2）や統計情報（src-3）は、補助金や市場に関する情報が存在することを示していますが、具体的な内容は合成データのため不明です。したがって、現時点では具体的な市場変化を特定できず、機会の緊急性を裏付ける事実が不足しています。",
+      "why_company": "Example Domainはドキュメント例示用のドメインであり、実際の事業活動に関する情報が公開されていません（src-1）。そのため、企業固有の強みや事業領域を特定できず、この企業に特化した機会を構成することが困難です。",
+      "market_change": "市場変化に関する具体的な事実は、統計情報（src-3）や業界団体情報（src-5）に含まれる可能性がありますが、提供されたデータは合成データであり、実際の市場変化の内容は不明です。",
+      "evidence": [
+        {
+          "source_id": "src-1",
+          "quote": "Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations."
+        },
+        {
+          "source_id": "src-2",
+          "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+        },
+        {
+          "source_id": "src-3",
+          "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+        },
+        {
+          "source_id": "src-5",
+          "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+        }
+      ],
+      "first_action": "実際の検索プロバイダ（TavilyまたはBing）を設定し、Example Domainの事業内容・補助金・市場・業界動向に関する実データを再取得する。",
+      "extended_analysis": {
+        "market_size": "市場規模に関する具体的な数値は提供された情報源からは得られない。統計情報（src-3）は合成データであり、実際の市場規模は不明。",
+        "competition": "競合状況に関する情報は提供された情報源には含まれていない。業界団体情報（src-5）も合成データのため、競合分析は不可能。",
+        "risks": "情報が合成データであるため、実際の市場や企業状況に基づくリスク評価はできない。誤った情報に基づく提案は信頼性を損なうリスクがある。",
+        "priority": "具体的な機会を特定できないため、優先順位を判断するための根拠が不足している。",
+        "case_examples": "公開事例は提供された情報源からは特定できない。",
+        "confidence_note": "本分析はmock providerによる合成データに基づいており、実際の情報源（src-2, src-3, src-4, src-5, src-6）はすべて合成データである。実際の検索結果に置き換えることで分析の信頼性が向上する。"
+      }
+    },
+    "locked_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "Example Domainのドキュメント用途を活かした技術情報発信の強化"
+      },
+      {
+        "id": "locked-2",
+        "title": "補助金情報を活用した中小企業向けコンサルティングサービスの展開"
+      }
+    ],
+    "paid_analysis": {
+      "decision_summary": {
+        "recommendation": "実際の情報を取得するまで、具体的な打ち手の推奨は保留する。まずは検索プロバイダを設定し、実データに基づく再分析を行うべき。",
+        "recommended_timing": "即時（検索プロバイダの設定後、再分析を実施）",
+        "expected_impact": "実データに基づく正確な機会特定が可能となり、提案の信頼性が向上する。",
+        "investment_level": "低（検索プロバイダのAPIキー設定のみ）",
+        "reason": [
+          "提供された情報源はすべて合成データであり、実際の企業情報・市場情報が含まれていないため、現時点で具体的な推奨を行う根拠がない。",
+          "企業情報（src-1）はドキュメント例示用であり、事業内容が不明。",
+          "政府・統計・業界情報（src-2, src-3, src-5）は合成データで、実際の補助金や市場動向が不明。"
+        ]
+      },
+      "additional_opportunities": [
+        {
+          "id": "locked-1",
+          "title": "Example Domainのドキュメント用途を活かした技術情報発信の強化",
+          "summary": "Example Domainはドキュメント例示用ドメインであり、技術情報発信の基盤として活用できる可能性がある。ただし、具体的な技術情報は提供されておらず、実際の技術動向（src-6）も合成データのため、詳細な検討には実データが必要。",
+          "expected_effect": "技術情報の発信により、企業の認知度向上や信頼性構築が期待される。",
+          "relevance": "中"
+        },
+        {
+          "id": "locked-2",
+          "title": "補助金情報を活用した中小企業向けコンサルティングサービスの展開",
+          "summary": "政府系情報源（src-2）に補助金に関する情報が存在する可能性があるが、合成データのため具体的な内容は不明。実際の補助金情報を取得できれば、中小企業向けのコンサルティングサービスを展開する機会が考えられる。",
+          "expected_effect": "補助金申請支援による新規収益源の創出が期待される。",
+          "relevance": "中"
+        },
+        {
+          "id": "add-3",
+          "title": "Example Domainを活用した教育・研修コンテンツの提供",
+          "summary": "Example Domainはドキュメント例示用に広く利用されており、教育・研修用途での需要が見込まれる。ただし、市場規模や競合状況は提供された情報からは不明であり、実データに基づく検証が必要。",
+          "expected_effect": "教育市場への参入による新規顧客層の開拓が期待される。",
+          "relevance": "低"
+        }
+      ],
+      "priority_matrix": {
+        "quadrants": {
+          "high_impact_low_effort": {
+            "label": "高効果・低工数（最優先）",
+            "opportunity_ids": []
+          },
+          "high_impact_high_effort": {
+            "label": "高効果・高工数（計画的に着手）",
+            "opportunity_ids": []
+          },
+          "low_impact_low_effort": {
+            "label": "低効果・低工数（余力があれば）",
+            "opportunity_ids": [
+              "locked-1",
+              "add-3"
+            ]
+          },
+          "low_impact_high_effort": {
+            "label": "低効果・高工数（非推奨）",
+            "opportunity_ids": [
+              "locked-2"
+            ]
+          }
+        }
+      },
+      "roadmap": {
+        "day_30": {
+          "actions": [
+            "検索プロバイダ（TavilyまたはBing）のAPIキーを設定し、実データを取得する",
+            "Example Domainの事業内容・補助金・市場・業界動向に関する実データを再収集する"
+          ],
+          "expected_outcome": "実データに基づく情報基盤が整い、具体的な機会の特定が可能になる。"
+        },
+        "day_60": {
+          "actions": [
+            "再収集したデータに基づき、機会の優先順位を再評価する",
+            "有望な機会について詳細な市場調査・競合分析を実施する"
+          ],
+          "expected_outcome": "優先すべき機会が明確になり、実行計画の策定が進む。"
+        },
+        "day_90": {
+          "actions": [
+            "選定した機会について具体的な実行計画を策定し、パイロットプロジェクトを開始する",
+            "効果測定の指標を設定し、モニタリングを開始する"
+          ],
+          "expected_outcome": "最初の実行アクションが開始され、成果の測定が可能になる。"
+        }
+      },
+      "execution_support": [
+        {
+          "label": "追加調査",
+          "description": "実際の検索プロバイダを設定し、Example Domainの事業内容・補助金・市場・業界動向に関する実データを収集する。"
+        },
+        {
+          "label": "競合分析",
+          "description": "実データ取得後、同様のサービスを提供する競合他社の調査を実施する。"
+        }
+      ],
+      "monitoring": [
+        {
+          "theme": "法改正",
+          "description": "補助金制度の変更や新設に関する情報を定期的にモニタリングする。"
+        },
+        {
+          "theme": "市場動向",
+          "description": "関連市場の成長率やトレンドを定期的に確認する。"
+        }
+      ]
+    },
+    "usage": {
+      "input_tokens": 5018,
+      "output_tokens": 2281,
+      "estimated_cost": 0.001341
+    },
+    "provider": {
+      "id": "deepseek",
+      "displayName": "DeepSeek",
+      "model": "deepseek-chat"
+    }
+  }
+}

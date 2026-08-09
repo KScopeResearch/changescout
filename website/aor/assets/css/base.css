@@ -1,0 +1,456 @@
+/* AOR Phase5 - 共通デザイン基盤
+   画面ごとにテーマカラーを切り替える: 無料版=青 / 登録後=緑 / 有料版=紫
+   body class: theme-blue / theme-green / theme-purple */
+
+:root,
+body.theme-blue {
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-border: #e1e6ee;
+  --color-text: #1f2430;
+  --color-text-muted: #5b6472;
+  --color-primary: #2f5fa8;
+  --color-primary-dark: #1f4278;
+  --color-primary-bg: #eaf1fc;
+  --color-primary-border: #c6d8f2;
+}
+
+body.theme-green {
+  --color-bg: #f4faf6;
+  --color-surface: #ffffff;
+  --color-border: #dcece2;
+  --color-text: #1a2e22;
+  --color-text-muted: #4d6b58;
+  --color-primary: #1f7a4d;
+  --color-primary-dark: #145936;
+  --color-primary-bg: #e6f6ec;
+  --color-primary-border: #bfe4cd;
+}
+
+body.theme-purple {
+  --color-bg: #f7f5fb;
+  --color-surface: #ffffff;
+  --color-border: #e5deee;
+  --color-text: #241f2e;
+  --color-text-muted: #5f5670;
+  --color-primary: #6a3fa0;
+  --color-primary-dark: #4c2c76;
+  --color-primary-bg: #f0e9f9;
+  --color-primary-border: #d9c8ec;
+}
+
+:root {
+  --color-verified-bg: #ecfdf5;
+  --color-verified-text: #065f46;
+  --color-verified-border: #a7f3d0;
+  --color-pending-bg: #fffbeb;
+  --color-pending-text: #92400e;
+  --color-pending-border: #fde68a;
+  --color-locked-bg: #f3f4f6;
+  --color-locked-border: #d8dbe0;
+  --color-locked-text: #6b7280;
+  --color-relevance-high-bg: #eef2ff;
+  --color-relevance-high-text: #3730a3;
+  --color-relevance-high-border: #c7d2fe;
+  --color-relevance-medium-bg: #f3f4f6;
+  --color-relevance-medium-text: #6b7280;
+  --color-relevance-medium-border: #d8dbe0;
+  --color-strength-primary-bg: #1f2937;
+  --color-strength-primary-text: #ffffff;
+  --color-strength-secondary-bg: #e5e7eb;
+  --color-strength-secondary-text: #374151;
+  --color-strength-reference-bg: #f3f4f6;
+  --color-strength-reference-text: #9ca3af;
+  --color-error-bg: #fef2f2;
+  --color-error-text: #991b1b;
+  --color-error-border: #fecaca;
+  --radius: 10px;
+  --max-width: 760px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+  line-height: 1.7;
+  font-size: 16px;
+}
+
+.page {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 16px 48px;
+}
+
+.section { margin-top: 28px; }
+
+.section-title {
+  font-size: 1.05rem;
+  margin: 0 0 12px;
+  color: var(--color-text);
+}
+
+/* ---------- 状態表示（loading / error） ---------- */
+
+.state-message {
+  max-width: var(--max-width);
+  margin: 64px auto;
+  padding: 0 16px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.state-message--error { text-align: left; }
+
+.state-message__code {
+  background: #1f2430;
+  color: #e8ecf3;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.fatal-error {
+  background: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
+  color: var(--color-error-text);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.fatal-error__title {
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.fatal-error__detail {
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* ---------- ヘッダー帯（共通） ---------- */
+
+.report-header {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  margin-top: 24px;
+}
+
+.report-header__eyebrow {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 4px;
+}
+
+.report-header__company {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  color: var(--color-primary-dark);
+}
+
+.report-header__generated {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 0 0 16px;
+}
+
+.report-header__summary {
+  font-size: 0.95rem;
+  margin: 0 0 4px;
+}
+
+.report-header__correction {
+  margin-top: 12px;
+  font-size: 0.82rem;
+}
+
+.report-header__correction a { color: var(--color-text-muted); }
+
+/* 人間確認済み表示 */
+
+.review-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border: 1px solid transparent;
+}
+
+.review-status--approved {
+  background: var(--color-verified-bg);
+  color: var(--color-verified-text);
+  border-color: var(--color-verified-border);
+}
+
+.review-status--pending {
+  background: var(--color-pending-bg);
+  color: var(--color-pending-text);
+  border-color: var(--color-pending-border);
+}
+
+/* ---------- バッジ ---------- */
+
+.badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-weight: 600;
+  white-space: nowrap;
+  margin: 0 4px 4px 0;
+}
+
+.badge-estimated {
+  background: var(--color-pending-bg);
+  color: var(--color-pending-text);
+  border-color: var(--color-pending-border);
+  font-weight: 500;
+}
+
+.badge-relevance-high {
+  background: var(--color-relevance-high-bg);
+  color: var(--color-relevance-high-text);
+  border-color: var(--color-relevance-high-border);
+}
+
+.badge-relevance-medium {
+  background: var(--color-relevance-medium-bg);
+  color: var(--color-relevance-medium-text);
+  border-color: var(--color-relevance-medium-border);
+}
+
+.badge-source-type {
+  background: var(--color-primary-bg);
+  color: var(--color-primary-dark);
+  border-color: var(--color-primary-border);
+}
+
+.badge-source-role {
+  background: #fff;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.badge-strength {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-strength--primary {
+  background: var(--color-strength-primary-bg);
+  color: var(--color-strength-primary-text);
+}
+
+.badge-strength--secondary {
+  background: var(--color-strength-secondary-bg);
+  color: var(--color-strength-secondary-text);
+}
+
+.badge-strength--reference {
+  background: var(--color-strength-reference-bg);
+  color: var(--color-strength-reference-text);
+}
+
+/* ---------- Opportunityカード（共通コンポーネント） ---------- */
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.opp-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+}
+
+.opp-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.opp-card__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-verified-text);
+}
+
+.opp-card__title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.opp-card__summary,
+.opp-card__effect {
+  font-size: 0.9rem;
+  margin: 0 0 6px;
+}
+
+.opp-card__block {
+  margin: 14px 0;
+}
+
+.opp-card__block h4 {
+  font-size: 0.78rem;
+  text-transform: none;
+  color: var(--color-primary-dark);
+  margin: 0 0 4px;
+  font-weight: 700;
+}
+
+.opp-card__block p {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.opp-card__action {
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 14px;
+}
+
+.opp-card__action-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  margin-bottom: 4px;
+}
+
+.opp-card__action p { margin: 0; font-size: 0.9rem; }
+
+/* ロックカード（検討可能テーマ） */
+
+.opp-card--locked {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--color-locked-bg);
+  border: 1px dashed var(--color-locked-border);
+}
+
+.opp-card--locked .opp-card__title {
+  color: var(--color-locked-text);
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+/* ---------- 根拠一覧 ---------- */
+
+.evidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.evidence-item {
+  border-left: 3px solid var(--color-border);
+  padding: 8px 0 8px 12px;
+}
+
+.evidence-item--primary { border-left-color: var(--color-primary); }
+.evidence-item--secondary { border-left-color: #9ca3af; }
+.evidence-item--reference { border-left-color: #d1d5db; }
+
+.evidence-item__badges { margin-bottom: 6px; }
+
+.evidence-item__quote {
+  margin: 0 0 4px;
+  padding: 0;
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.evidence-item__source {
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.evidence-item__source a { color: var(--color-primary); }
+
+/* ---------- ボタン ---------- */
+
+.btn {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  border-radius: 999px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover { background: var(--color-primary-dark); }
+
+.btn-secondary {
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.btn-secondary:hover { background: var(--color-primary-bg); }
+
+.btn-cta {
+  padding: 14px 32px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.cta-block { text-align: center; }
+
+.cta-note {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 10px 0 0;
+}
+
+/* ---------- フッター ---------- */
+
+.report-footer {
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.report-footer a { color: var(--color-text-muted); text-decoration: underline; }
+
+.report-footer__row { margin: 4px 0; }
+
+@media (max-width: 480px) {
+  .page { padding: 0 12px 40px; }
+  .report-header, .opp-card { padding: 16px; }
+  .report-header__company { font-size: 1.25rem; }
+}

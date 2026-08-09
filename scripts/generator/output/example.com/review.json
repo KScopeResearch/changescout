@@ -1,0 +1,218 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "generated-example.com",
+  "reviewer": "e2e-verify",
+  "reviewed_at": "2026-08-07T11:57:54.456Z",
+  "status": "approved",
+  "comments": [
+    {
+      "id": "c-1",
+      "at": "2026-08-06T05:21:25.945Z",
+      "actor": "ops-1",
+      "text": "内容を確認中です"
+    },
+    {
+      "id": "c-2",
+      "at": "2026-08-06T05:50:19.267Z",
+      "actor": "admin",
+      "text": "CSRF����e�X�g"
+    },
+    {
+      "id": "c-3",
+      "at": "2026-08-07T01:01:52.315Z",
+      "actor": "rehearsal",
+      "text": "本番リハーサル確認用コメント：日本語文字化けテスト🎉"
+    }
+  ],
+  "fixes": [
+    {
+      "id": "f-1",
+      "at": "2026-08-06T05:21:26.013Z",
+      "actor": "ops-1",
+      "description": "出典の日付を確認する",
+      "resolved": false
+    },
+    {
+      "id": "f-2",
+      "at": "2026-08-06T05:21:26.085Z",
+      "actor": "ops-1",
+      "description": "market_changeの根拠を強化する",
+      "resolved": false
+    },
+    {
+      "id": "f-3",
+      "at": "2026-08-06T05:39:10.471Z",
+      "actor": "ops-ui-revise",
+      "description": "UIテスト用の修正指示A",
+      "resolved": false
+    },
+    {
+      "id": "f-4",
+      "at": "2026-08-06T05:39:10.471Z",
+      "actor": "ops-ui-revise",
+      "description": "UIテスト用の修正指示B",
+      "resolved": false
+    },
+    {
+      "id": "f-5",
+      "at": "2026-08-07T01:03:02.803Z",
+      "actor": "rehearsal",
+      "description": "リハーサル確認用の修正指示",
+      "resolved": false
+    }
+  ],
+  "history": [
+    {
+      "at": "2026-08-06T05:21:25.945Z",
+      "actor": "ops-1",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "内容を確認中です"
+    },
+    {
+      "at": "2026-08-06T05:21:26.013Z",
+      "actor": "ops-1",
+      "action": "fix_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "出典の日付を確認する"
+    },
+    {
+      "at": "2026-08-06T05:21:26.085Z",
+      "actor": "ops-1",
+      "action": "revision_requested",
+      "from_status": "pending_review",
+      "to_status": "needs_revision",
+      "comment": "要修正あり"
+    },
+    {
+      "at": "2026-08-06T05:21:33.599Z",
+      "actor": "ops-2",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "修正確認済み。承認します"
+    },
+    {
+      "at": "2026-08-06T05:37:57.343Z",
+      "actor": "ops-sse-test",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "SSEテスト用の差し戻し"
+    },
+    {
+      "at": "2026-08-06T05:38:19.354Z",
+      "actor": "ops-sse-confirm",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "SSEブラウザ確認用の再承認"
+    },
+    {
+      "at": "2026-08-06T05:39:10.471Z",
+      "actor": "ops-ui-revise",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "UIから差し戻しテスト"
+    },
+    {
+      "at": "2026-08-06T05:50:19.267Z",
+      "actor": "admin",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "CSRF����e�X�g"
+    },
+    {
+      "at": "2026-08-06T05:53:07.122Z",
+      "actor": "admin",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": null
+    },
+    {
+      "at": "2026-08-07T01:01:52.315Z",
+      "actor": "rehearsal",
+      "action": "comment_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "本番リハーサル確認用コメント：日本語文字化けテスト🎉"
+    },
+    {
+      "at": "2026-08-07T01:03:02.803Z",
+      "actor": "rehearsal",
+      "action": "fix_added",
+      "from_status": null,
+      "to_status": null,
+      "comment": "リハーサル確認用の修正指示"
+    },
+    {
+      "at": "2026-08-07T01:03:21.061Z",
+      "actor": "rehearsal",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "リハーサル確認: 差し戻しテスト"
+    },
+    {
+      "at": "2026-08-07T01:06:25.056Z",
+      "actor": "rehearsal",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "リハーサル確認: 再承認"
+    },
+    {
+      "at": "2026-08-07T01:06:48.813Z",
+      "actor": "rehearsal",
+      "action": "rejected",
+      "from_status": "approved",
+      "to_status": "rejected",
+      "comment": "リハーサル確認: 却下テスト"
+    },
+    {
+      "at": "2026-08-07T01:07:08.783Z",
+      "actor": "rehearsal",
+      "action": "approved",
+      "from_status": "rejected",
+      "to_status": "approved",
+      "comment": "リハーサル確認完了・復元"
+    },
+    {
+      "at": "2026-08-07T06:25:48.301Z",
+      "actor": "final",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "Task25最終監査: 差し戻しテスト"
+    },
+    {
+      "at": "2026-08-07T06:26:14.585Z",
+      "actor": "final",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "Task25最終監査完了・復元"
+    },
+    {
+      "at": "2026-08-07T11:57:44.396Z",
+      "actor": "e2e-verify",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "Task31/Task30 E2E検証: DeepSeek+Tavily実接続での再生成内容を再レビューするため差し戻し"
+    },
+    {
+      "at": "2026-08-07T11:57:54.456Z",
+      "actor": "e2e-verify",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "Task31/Task30 E2E検証: DeepSeek(deepseek-chat)+Tavily実接続での生成内容を確認し承認。published_at欠落はTavily実APIの既知の制約として別途報告"
+    }
+  ]
+}

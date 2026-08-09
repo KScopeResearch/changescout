@@ -1,0 +1,274 @@
+/* paid-preview.html 専用スタイル（共通トークン・コンポーネントは base.css） */
+
+/* ---------- 意思決定サマリー（最も目立つ位置） ---------- */
+
+.decision-summary {
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 26px 24px;
+}
+
+.decision-summary__eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0.85;
+  margin: 0 0 8px;
+}
+
+.decision-summary__recommendation {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.decision-summary__meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.decision-summary__meta-item {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.decision-summary__meta-label {
+  display: block;
+  font-size: 0.68rem;
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+
+.decision-summary__meta-value {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.decision-summary__reasons {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.decision-summary__reasons li { margin-bottom: 4px; }
+
+@media (max-width: 560px) {
+  .decision-summary__meta { grid-template-columns: 1fr; }
+}
+
+/* ---------- 優先順位マトリクス（2×2象限） ---------- */
+
+.matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 560px) {
+  .matrix { grid-template-columns: 1fr; }
+}
+
+.matrix__quadrant {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.matrix__quadrant--high-low { border-top: 4px solid var(--color-primary); }
+.matrix__quadrant--high-high { border-top: 4px solid #b98a3a; }
+.matrix__quadrant--low-low { border-top: 4px solid #9ca3af; }
+.matrix__quadrant--low-high { border-top: 4px solid #d1d5db; }
+
+.matrix__label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: var(--color-text);
+}
+
+.matrix__items { list-style: none; margin: 0; padding: 0; }
+
+.matrix__item {
+  padding: 8px 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.85rem;
+}
+
+.matrix__item:first-child { border-top: none; }
+
+.matrix__item-title { font-weight: 600; display: block; }
+
+.matrix__item-effect {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  margin-top: 2px;
+}
+
+.matrix__empty {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- 90日ロードマップ（横タイムライン） ---------- */
+
+.timeline {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.timeline__block {
+  flex: 1 1 0;
+  min-width: 200px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  position: relative;
+}
+
+.timeline__block:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-border);
+  font-size: 1.2rem;
+  display: none;
+}
+
+@media (min-width: 561px) {
+  .timeline__block:not(:last-child)::after { display: block; }
+}
+
+.timeline__day {
+  display: inline-block;
+  background: var(--color-primary-bg);
+  color: var(--color-primary-dark);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 10px;
+}
+
+.timeline__actions {
+  margin: 0 0 10px;
+  padding-left: 18px;
+  font-size: 0.85rem;
+}
+
+.timeline__actions li { margin-bottom: 4px; }
+
+.timeline__outcome {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .timeline { flex-direction: column; }
+  .timeline__block { min-width: 0; }
+}
+
+/* ---------- 実行支援メニュー ---------- */
+
+.support-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+
+.support-card__title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin: 0 0 4px;
+}
+
+.support-card__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+/* ---------- 継続監視テーマ ---------- */
+
+.monitor-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.monitor-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.monitor-item:first-child { border-top: none; }
+
+.monitor-item__theme {
+  flex: none;
+  width: 90px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--color-primary-dark);
+}
+
+.monitor-item__desc {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* ---------- 価格・CTAパネル ---------- */
+
+.price-panel {
+  background: var(--color-primary-dark);
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 28px 20px;
+}
+
+.price-panel .section-title { color: #fff; }
+
+.price-panel__price {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.price-panel__note {
+  font-size: 0.75rem;
+  color: #d9cdee;
+  margin: 14px 0 0;
+}
+
+.price-panel .btn-primary {
+  background: #fff;
+  color: var(--color-primary-dark);
+  margin: 0 8px 8px;
+}
+
+.price-panel .btn-secondary {
+  background: transparent;
+  color: #fff;
+  border-color: #fff;
+  margin: 0 8px 8px;
+}

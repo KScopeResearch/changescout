@@ -1,0 +1,47 @@
+name: Quality Check
+
+# Task19: AORジェネレータ（scripts/generator/）の自動品質チェック。
+# push / pull_request の両方で実行し、scripts/generator/run-all-tests.js の
+# 終了コードでジョブの成否を判定する。
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch: {}
+
+jobs:
+  quality-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Task19: ローカル開発環境（v24.18.0）と合わせ、メジャーバージョン24に固定する。
+          # 理由の詳細は scripts/generator/README.md の「CIのNode.jsバージョンについて」を参照。
+          node-version: "24"
+
+      # PJ2次工程（Lead永続化のS3移行）でpackage.jsonを新設した。ただしnpm依存は
+      # @aws-sdk/client-s3（scripts/generator/leads/backends/s3-backend.js専用）のみに
+      # 限定しており、プロジェクトの大部分は引き続きNode.js標準モジュールのみで動作する
+      # （scripts/generator/README.md参照）。
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality gate (scripts/generator/run-all-tests.js)
+        id: run_all_tests
+        run: node scripts/generator/run-all-tests.js
+
+      # Task19: run-all-tests.js が失敗（非0終了）した場合でも quality-report.md を
+      # 取得できるよう、成功/失敗に関わらず（if: always()）アーティファクトとして保存する。
+      - name: Upload quality-report.md as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report
+          path: scripts/generator/quality-report.md
+          if-no-files-found: warn

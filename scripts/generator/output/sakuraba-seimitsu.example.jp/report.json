@@ -1,0 +1,340 @@
+{
+  "id": "generated-sakuraba-seimitsu.example.jp",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-06T06:29:59.609Z",
+    "pipeline_version": "phase1-generator-v0.3-llm",
+    "industry_category": "中小企業",
+    "note": "scripts/generator/generate-company-report.js により自動生成。Task11でAI分析をllm-client.js経由の実LLM接続に対応（今回はLLM_PROVIDER=mockで生成）。fetch-government/fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位20件に絞り込み済み。"
+  },
+  "company_profile": {
+    "name": "（会社名未取得: sakuraba-seimitsu.example.jp）",
+    "name_is_ai_estimated": true,
+    "domain": "sakuraba-seimitsu.example.jp",
+    "industry_label": "中小企業",
+    "industry_is_ai_estimated": true,
+    "business_summary": "（会社ページの取得に失敗したため未取得）",
+    "business_summary_is_ai_estimated": true,
+    "location": "不明（Task9時点では未取得）",
+    "founded_year": null,
+    "employee_range": "不明（Task9時点では未取得）",
+    "business_type": "不明",
+    "listed_status": "不明"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "sakuraba-seimitsu.example.jp 補助金に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/sakuraba-seimitsu-example-jp-補助金-1",
+      "published_at": "2026-05-06T06:29:59.604Z",
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "sakuraba-seimitsu.example.jp 市場に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/sakuraba-seimitsu-example-jp-市場-1",
+      "published_at": "2025-02-06T06:29:59.604Z",
+      "score": 95
+    },
+    {
+      "id": "src-3",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "sakuraba-seimitsu.example.jp 最新ニュースに関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/sakuraba-seimitsu-example-jp-最新ニュ-ス-1",
+      "published_at": "2026-07-06T06:29:59.604Z",
+      "score": 90
+    },
+    {
+      "id": "src-4",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "sakuraba-seimitsu.example.jp 業界動向に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/sakuraba-seimitsu-example-jp-業界動向-1",
+      "published_at": "2024-02-06T06:29:59.604Z",
+      "score": 80
+    },
+    {
+      "id": "src-5",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "sakuraba-seimitsu.example.jp 技術に関する検索結果（mock providerによる合成データ・1件目）",
+      "url": "https://source.example.com/mock-search/sakuraba-seimitsu-example-jp-技術-1",
+      "published_at": "2024-02-06T06:29:59.604Z",
+      "score": 77
+    }
+  ],
+  "ai_pipeline": {
+    "note": "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
+    "company_context_generated_at": "2026-08-06T06:29:59.609Z",
+    "pipeline_stats": {
+      "fetched_total": 11,
+      "normalized_total": 10,
+      "duplicates_removed": 5,
+      "after_dedupe": 5,
+      "selected_for_ai": 5,
+      "max_sources_for_ai": 20
+    },
+    "llm": {
+      "provider": "mock",
+      "display_name": "Mock（ルールベース・APIキー不要）",
+      "model": "mock-rule-based-v1",
+      "usage": {
+        "input_tokens": 1947,
+        "output_tokens": 708,
+        "estimated_cost": 0
+      }
+    }
+  },
+  "free_opportunity": {
+    "title": "中小企業における市場変化への対応機会（シミュレーション分析）",
+    "why_now": "貴社URL（https://sakuraba-seimitsu.example.jp）の取得に失敗したため（fetch failed）、企業固有の情報を反映できていません。company_facts が空のままLLM分析へ進むべきではなく、本来はここでパイプラインを停止し人間に確認を求めるべき状態です。",
+    "why_company": "企業固有の情報が取得できていないため、本来この項目は生成すべきではありません（シミュレーション上の暫定文言）。",
+    "market_change": "中小企業分野における制度・業界動向の変化（シミュレーションデータに基づく仮の記述）",
+    "evidence": [
+      {
+        "source_id": "src-1",
+        "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+      },
+      {
+        "source_id": "src-4",
+        "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+      },
+      {
+        "source_id": "src-3",
+        "quote": "この結果はmock-search-provider.jsが生成した合成データです。SEARCH_PROVIDER=tavily または bing を設定し対応するAPIキーを与えると、実際の検索結果に置き換わります。"
+      }
+    ],
+    "first_action": "まずは company_context の各情報源を人間が確認し、実データに基づく分析に置き換えてください。",
+    "extended_analysis": {
+      "market_size": "Task8/Task9時点はシミュレーションのため、市場規模の記述はプレースホルダーです。",
+      "competition": "Task8/Task9時点はシミュレーションのため、競合状況の記述はプレースホルダーです。",
+      "risks": "AI分析が未接続（Task11）の状態でこのレポートを配信することは想定していません。",
+      "priority": "本Opportunityの優先順位づけはTask11実装後に意味を持ちます。",
+      "case_examples": "個社名までは特定していません（実在しない事例を創作しないため）。",
+      "confidence_note": "本分析は3件の情報源（src-1, src-4, src-3、スコア上位5件中から選定）を組み合わせて作成していますが、Task9時点ではAI分析がシミュレーションであり、実際の内容は含まれていません。Task11で実LLMに置き換えた後も、配信前に必ず人間が確認します。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "中小企業における追加検討テーマ1（シミュレーション）"
+    },
+    {
+      "id": "locked-2",
+      "title": "中小企業における追加検討テーマ2（シミュレーション）"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "本レポートはシミュレーションデータです。実LLM接続（Task11）後に再生成してください。",
+      "recommended_timing": "—",
+      "expected_impact": "—",
+      "investment_level": "—",
+      "reason": [
+        "Task8/Task9時点ではAI分析が未接続のため、意思決定の根拠として使用しないでください。"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "中小企業における追加検討テーマ1（シミュレーション）",
+        "summary": "Task8/Task9時点のシミュレーションのため詳細分析は未生成です。",
+        "expected_effect": "（Task11実装後に生成）",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "中小企業における追加検討テーマ2（シミュレーション）",
+        "summary": "Task8/Task9時点のシミュレーションのため詳細分析は未生成です。",
+        "expected_effect": "（Task11実装後に生成）",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": []
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "company_contextの各情報源を人間がレビューする"
+        ],
+        "expected_outcome": "実データへの置き換え可否判断"
+      },
+      "day_60": {
+        "actions": [
+          "Task11（実LLM接続）を有効化して再生成する"
+        ],
+        "expected_outcome": "実分析に基づくreport.jsonの生成"
+      },
+      "day_90": {
+        "actions": [
+          "Human Reviewを経て配信可否を判断する"
+        ],
+        "expected_outcome": "配信可能な状態の確立"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "Task8/Task9のシミュレーションデータを実データに置き換えるための調査"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "パイプライン状況",
+        "description": "Task10〜Task12の実装状況"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@sakuraba-seimitsu.example.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。"
+  },
+  "human_review": {
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "AI生成直後の状態。人間によるレビュー・承認が完了するまで配信不可。",
+    "review_history": [
+      {
+        "at": "2026-08-06T06:29:59.609Z",
+        "actor": "generate-company-report.js",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 82,
+    "grade": "B",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 5件（8/8点）",
+      "情報源の種類数: 5種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 20%（8/8点）",
+      "有効な引用文: 3件（8/8点）",
+      "source_type偏り: 最大偏り20%（8/8点）"
+    ],
+    "warnings": [
+      "企業情報: なし（0/6点、要改善）"
+    ],
+    "improvements": [
+      "企業自身の情報源（公式サイト・IR等）を追加してください",
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 5件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 5種類",
+        "distinctTypes": 5
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 0,
+        "max": 6,
+        "detail": "企業情報: なし",
+        "present": false
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 20%",
+        "newsRatio": 0.2
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 3件",
+        "quotedCount": 3
+      },
+      "average_source_score": {
+        "points": 13,
+        "max": 15,
+        "detail": "情報源scoreの平均: 88.4点",
+        "average": 88.4
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り20%",
+        "maxShare": 0.2
+      },
+      "role_skew": {
+        "points": 5,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り60%",
+        "maxShare": 0.6
+      },
+      "evidence_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "evidence件数: 3件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      }
+    }
+  }
+}

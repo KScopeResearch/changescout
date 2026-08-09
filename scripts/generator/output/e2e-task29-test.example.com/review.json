@@ -1,0 +1,51 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "generated-e2e-task29-test.example.com",
+  "reviewer": "task29-auditor",
+  "reviewed_at": "2026-08-07T10:01:54.023Z",
+  "status": "approved",
+  "comments": [],
+  "fixes": [],
+  "history": [
+    {
+      "at": "2026-08-07T09:55:52.394Z",
+      "actor": "task29-auditor",
+      "action": "approved",
+      "from_status": "pending_review",
+      "to_status": "approved",
+      "comment": "Case A: 監査用テスト承認"
+    },
+    {
+      "at": "2026-08-07T09:57:29.252Z",
+      "actor": "task29-auditor",
+      "action": "revision_requested",
+      "from_status": "approved",
+      "to_status": "needs_revision",
+      "comment": "Case C: 差し戻しテスト"
+    },
+    {
+      "at": "2026-08-07T09:57:39.340Z",
+      "actor": "task29-auditor",
+      "action": "approved",
+      "from_status": "needs_revision",
+      "to_status": "approved",
+      "comment": "Case C: 再承認"
+    },
+    {
+      "at": "2026-08-07T10:01:53.910Z",
+      "actor": "task29-auditor",
+      "action": "approved",
+      "from_status": "approved",
+      "to_status": "approved",
+      "comment": "二重承認テスト1"
+    },
+    {
+      "at": "2026-08-07T10:01:54.023Z",
+      "actor": "task29-auditor",
+      "action": "approved",
+      "from_status": "approved",
+      "to_status": "approved",
+      "comment": "二重承認テスト2"
+    }
+  ]
+}

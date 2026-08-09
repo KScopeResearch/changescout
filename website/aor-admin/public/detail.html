@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レポート詳細 | AOR Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1><a href="/index.html" style="color:inherit;text-decoration:none;">Review Dashboard</a> ／ 詳細</h1>
+    <div class="sub">
+      <span id="user-label">-</span> ・ <a href="/jobs.html">Jobs</a> ・ <a href="/logout">ログアウト</a> ・ <a href="/index.html">← 一覧に戻る</a>
+    </div>
+  </header>
+  <main id="detail-container">
+    <div class="empty-state">読み込み中…</div>
+  </main>
+  <div id="toast" class="toast"></div>
+
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/detail.js"></script>
+</body>
+</html>

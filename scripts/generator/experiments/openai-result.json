@@ -1,0 +1,6 @@
+{
+  "provider": "openai",
+  "skipped": true,
+  "reason": "APIキー未設定のため未実行（本プロジェクトでは有料APIキーを設定していない）",
+  "would_use_model": "gpt-4o-mini"
+}

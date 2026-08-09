@@ -1,0 +1,451 @@
+{
+  "id": "company-03",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-03T14:05:00+09:00",
+    "pipeline_version": "phase1-dummy-v2.4",
+    "industry_category": "service",
+    "note": "実在企業ではないフィクションのダミーデータ。schema_version 2.0で無料版Opportunityを「3件浅く」から「1件深掘り」方式へ変更し、source_pagesにsource_type/source_roleを追加。2.1でfree_opportunityに登録直後の追加分析を追加し、旧paid_preview_opportunity方式を廃止。source_pages/evidenceにevidence_strengthを追加。2.2で有料版専用データpaid_analysisを追加。2.3でpaid_analysis.decision_summaryを先頭に追加、registration_bonusをextended_analysisへ改名、priority_matrixをitems[]埋め込み方式へ変更。2.4（品質改善）でデータ重複を解消: source_pagesにidを付与しevidenceはsource_id+quoteのみ保持（source_pagesから結合して描画）、priority_matrixはopportunity_ids参照のみ保持しadditional_opportunitiesからMapで解決する方式に変更した。"
+  },
+  "company_profile": {
+    "name": "清流バックオフィスサービス株式会社",
+    "name_is_ai_estimated": false,
+    "domain": "seiryu-boservice.example.jp",
+    "industry_label": "バックオフィス支援サービス業（記帳代行・労務アウトソーシング）",
+    "industry_is_ai_estimated": true,
+    "business_summary": "中小企業向けの経理・労務アウトソーシングサービスを提供。",
+    "business_summary_is_ai_estimated": true,
+    "location": "大阪府",
+    "founded_year": 2011,
+    "employee_range": "25〜35名",
+    "business_type": "BtoB",
+    "listed_status": "非上場"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "会社概要ページ",
+      "url": "https://seiryu-boservice.example.jp/company",
+      "score": 86,
+      "published_at": "2025-11-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-2",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "採用ページ（電子帳簿保存法対応コンサルタントを募集中）",
+      "url": "https://seiryu-boservice.example.jp/recruit",
+      "score": 83,
+      "published_at": "2026-06-15T00:00:00+09:00"
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "国税庁 電子帳簿保存法一問一答（電子取引関係）",
+      "url": "https://source.example.com/denshi-choubo-hozon-hou",
+      "score": 95,
+      "published_at": "2026-01-10T00:00:00+09:00"
+    },
+    {
+      "id": "src-4",
+      "source_type": "government",
+      "source_role": "industry_trend",
+      "evidence_strength": "primary",
+      "label": "厚生労働省 社会保険適用拡大特設サイト",
+      "url": "https://source.example.com/shakai-hoken-tekiyo-kakudai",
+      "score": 90,
+      "published_at": "2026-05-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-5",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "日本記帳代行サービス協会 中小企業バックオフィス支援需要調査（2026年）",
+      "url": "https://source.example.com/kicho-daiko-jittai-chosa-2026",
+      "score": 75,
+      "published_at": "2023-11-01T00:00:00+09:00"
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "業界調査レポート（中小企業向けバックオフィス支援市場、2026年）",
+      "url": "https://source.example.com/invoice-seido-teichaku-2026",
+      "score": 68,
+      "published_at": "2026-04-01T00:00:00+09:00"
+    }
+  ],
+  "ai_pipeline": {
+    "step1_company_analysis": {
+      "estimated_industry": "バックオフィス支援サービス業",
+      "business_summary": "中小企業向けに経理記帳・給与計算・社会保険手続きのアウトソーシングを提供。税理士事務所との提携実績あり。",
+      "employee_range": "25〜35名",
+      "founded_year": 2011,
+      "locations": [
+        "大阪府（本社）"
+      ],
+      "recruiting_signals": [
+        "電子帳簿保存法対応コンサルタント（新設ポジション）"
+      ],
+      "news_signals": [
+        "自社ブログにてインボイス制度対応の相談件数増加について言及"
+      ]
+    },
+    "step2_industry_inference": {
+      "primary_candidate": "バックオフィス支援サービス業",
+      "confidence": "高",
+      "other_candidates": [
+        {
+          "industry": "税理士・会計事務所（併設型）",
+          "confidence": "中"
+        }
+      ]
+    },
+    "step3_market_changes_candidates": [
+      {
+        "title": "電子帳簿保存法の宥恕措置終了への対応",
+        "relevance": "高",
+        "sources_combined": [
+          "government",
+          "company",
+          "industry_association"
+        ],
+        "selected_as_free_opportunity": true
+      },
+      {
+        "title": "インボイス制度定着による記帳代行需要の増加",
+        "relevance": "中",
+        "sources_combined": [
+          "news"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "社会保険適用拡大に伴う相談メニューの新設",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "IT導入補助金を活用したクラウド会計導入支援パッケージ",
+        "relevance": "中",
+        "sources_combined": [
+          "government"
+        ],
+        "selected_as_free_opportunity": false
+      },
+      {
+        "title": "大企業向け電子インボイス標準化（Peppol）の義務化議論",
+        "relevance": "低",
+        "sources_combined": [
+          "news"
+        ],
+        "reason_excluded": "現時点では中小企業向けの義務化は検討段階に留まり、対象企業の顧客層（中小企業）への直接的な影響が薄いため関連度を「低」と判定してレポートから除外"
+      }
+    ],
+    "step4_relevance_summary": {
+      "高": 1,
+      "中": 3,
+      "低": 1
+    },
+    "internal_confidence_score": 71,
+    "internal_confidence_score_note": "社内のレビュー優先度判定にのみ使用。受信者向け画面には表示しない（05_ai_pipeline.md）。"
+  },
+  "free_opportunity": {
+    "title": "電子帳簿保存法の宥恕措置終了を起点にした顧客向けコンサルティングメニューの確立",
+    "why_now": "電子帳簿保存法の経過措置（宥恕措置）は恒久的なものではなく、対応未着手のまま期限を迎える中小企業からの相談が今後さらに増える局面にあります。加えてインボイス制度の定着により、記帳・経理実務の外部委託ニーズも高止まりしています。",
+    "why_company": "貴社の採用ページには電子帳簿保存法対応コンサルタントという新設ポジションの募集が掲載されており、既にこの領域への注力が始まっていると見受けられます。税理士事務所との提携実績もあることから、対応未着手の顧客への橋渡し役として適した立場にあると考えられます。",
+    "market_change": "電子帳簿保存法の宥恕措置終了、およびインボイス制度定着に伴う記帳代行需要の高止まり",
+    "evidence": [
+      {
+        "source_id": "src-3",
+        "quote": "電子取引データの保存については、恒久的な猶予措置ではなく一定の要件のもとでの経過措置である"
+      },
+      {
+        "source_id": "src-2",
+        "quote": "電子帳簿保存法対応コンサルタント（新設ポジション）を募集"
+      },
+      {
+        "source_id": "src-5",
+        "quote": "電子帳簿保存法・インボイス制度への対応を理由に、記帳代行サービスへの相談件数が会員各社で増加傾向にある"
+      }
+    ],
+    "first_action": "既存顧客向けに「電子帳簿保存法 対応チェックリスト」と説明会資料を用意し、対応未着手の顧客に個別案内することをお勧めします。新規リード獲得のホワイトペーパーとしても転用できます。",
+    "extended_analysis": {
+      "market_size": "国内の記帳代行・バックオフィス支援サービス市場は、インボイス制度・電子帳簿保存法対応をきっかけに拡大が続いています。大阪府内の中小企業（従業員25〜35名規模の同業者）でも、対応支援メニューの新設が相次いでいます。",
+      "competition": "税理士事務所併設型のサービスが先行するケースが多い一方、貴社のようにバックオフィス支援に特化した独立系事業者はまだ限定的で、提携チャネルを活かした立ち位置に優位性があります。",
+      "risks": "電子帳簿保存法対応は制度理解の専門性が求められるため、コンサルタント人材の育成・確保が事業拡大のボトルネックになりやすい点に留意が必要です。",
+      "priority": "「さらに検討可能なテーマ」（社会保険適用拡大・IT導入補助金）と比較すると、本Opportunityは既に採用募集という形で着手が始まっており、かつ対応期限が明確である点で優先度が最も高いと考えられます。",
+      "case_examples": "電子帳簿保存法対応をきっかけに顧客向けコンサルティングメニューを新設した記帳代行事業者の事例は、業界団体の調査レポートで複数紹介されています。個社名までは本分析では特定していません。",
+      "confidence_note": "本分析は官公庁資料（国税庁）・貴社の採用ページ・業界団体調査を組み合わせて作成しています。業界団体調査の発行年について社内レビューで確認中の点があり、最新版の確認後に確定する情報を含みます。この内容は配信前に運営担当者が確認しています。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "社会保険適用拡大に伴う相談メニューの新設"
+    },
+    {
+      "id": "locked-2",
+      "title": "IT導入補助金を活用したクラウド会計導入支援パッケージ"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "電子帳簿保存法対応をきっかけに、90日以内に顧客向けコンサルティングメニューを正式に立ち上げることを推奨します。",
+      "recommended_timing": "今後30日以内（対応チェックリストの整備から着手可能なため）",
+      "expected_impact": "新規収益メニューの確立、既存顧客との接点強化、紹介リードの増加",
+      "investment_level": "低〜中（既存人員での対応開始が可能。コンサルタント人材の育成は中期的課題）",
+      "reason": [
+        "採用ページで既にこの領域への注力が始まっている",
+        "税理士事務所との提携実績があり、橋渡し役として適した立場にある",
+        "優先順位マトリクスでも「高効果・低工数」の最上位に位置する"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "社会保険適用拡大に伴う相談メニューの新設",
+        "summary": "短時間労働者への社会保険適用拡大により、対象要件の判定や手続きに関する相談需要が増加すると見込まれます。",
+        "expected_effect": "相談メニューの新規収益化、既存顧客との接点増加",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "IT導入補助金を活用したクラウド会計導入支援パッケージ",
+        "summary": "顧客のクラウド会計・労務ツール導入費用がIT導入補助金の対象になり得るため、導入支援と補助金申請をセットにした提案が可能です。",
+        "expected_effect": "ツール導入支援の受注増、補助金申請支援による付加価値提供",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "税理士事務所との提携拡大によるリード獲得チャネル強化",
+        "summary": "電子帳簿保存法対応ニーズをきっかけに、既存の税理士事務所提携をさらに拡大できる可能性があります。",
+        "expected_effect": "紹介経由リードの増加、提携先との関係深化",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "電子帳簿保存法対応チェックリストを完成させる（無料版first_actionの実行）",
+          "社会保険適用拡大の対象要件を整理した資料を作成する"
+        ],
+        "expected_outcome": "既存顧客への案内開始、相談メニューの骨子完成"
+      },
+      "day_60": {
+        "actions": [
+          "IT導入補助金の対象経費・申請フローを整理する",
+          "提携税理士事務所へ提案を行う"
+        ],
+        "expected_outcome": "補助金申請支援パッケージの提供開始、提携拡大の商談化"
+      },
+      "day_90": {
+        "actions": [
+          "社会保険適用拡大の相談メニューを正式にサービス化する",
+          "新規提携先経由の紹介フローを構築する"
+        ],
+        "expected_outcome": "新規収益メニューの立ち上げ、紹介リードの安定化"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "社会保険適用拡大の対象業種・企業規模の詳細確認"
+      },
+      {
+        "label": "営業資料作成",
+        "description": "IT導入補助金活用パッケージの提案資料作成支援"
+      },
+      {
+        "label": "提案書レビュー",
+        "description": "税理士事務所向け提携提案書のレビュー"
+      },
+      {
+        "label": "市場調査",
+        "description": "大阪府内のバックオフィス支援サービス市場の競合調査"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "電子帳簿保存法・社会保険適用拡大の運用細則"
+      },
+      {
+        "theme": "補助金",
+        "description": "IT導入補助金（通常枠）の次回公募スケジュール"
+      },
+      {
+        "theme": "競合動向",
+        "description": "税理士事務所併設型サービスの対応状況"
+      },
+      {
+        "theme": "業界ニュース",
+        "description": "インボイス制度定着に伴う記帳代行需要の推移"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@seiryu-boservice.example.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。送信時にオプトアウト導線と送信者情報を付与する。"
+  },
+  "human_review": {
+    "status": "needs_revision",
+    "reviewer": "ops-1",
+    "reviewed_at": "2026-08-03T15:10:00+09:00",
+    "review_duration_minutes": 10,
+    "checklist": {
+      "company_info_accurate": true,
+      "citations_current_and_accurate": false,
+      "no_logical_leap_in_opportunity": true,
+      "recipient_source_is_lawful": true,
+      "no_duplicate_send": true
+    },
+    "notes": "evidenceの業界団体調査（2026年）の発行日が古い可能性があるため、最新版の有無を確認してから再提出すること。",
+    "review_history": [
+      {
+        "at": "2026-08-03T14:20:00+09:00",
+        "actor": "ai-pipeline",
+        "action": "submitted_for_review"
+      },
+      {
+        "at": "2026-08-03T15:10:00+09:00",
+        "actor": "ops-1",
+        "action": "needs_revision",
+        "comment": "evidenceの出典日付を要確認。差し戻し。"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 84,
+    "grade": "B",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 6件（8/8点）",
+      "情報源の種類数: 4種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 17%（8/8点）",
+      "有効な引用文: 3件（8/8点）",
+      "source_type偏り: 最大偏り33%（8/8点）",
+      "source_role偏り: 最大偏り33%（8/8点）"
+    ],
+    "warnings": [
+      "human_review.status: needs_revision（0/11点、要改善）"
+    ],
+    "improvements": [
+      "human_reviewが要修正（needs_revision）のままです。指摘内容を反映してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 6件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 4種類",
+        "distinctTypes": 4
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 17%",
+        "newsRatio": 0.17
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 3件",
+        "quotedCount": 3
+      },
+      "average_source_score": {
+        "points": 12,
+        "max": 15,
+        "detail": "情報源scoreの平均: 82.8点",
+        "average": 82.8
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り33%",
+        "maxShare": 0.33
+      },
+      "role_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り33%",
+        "maxShare": 0.33
+      },
+      "evidence_count": {
+        "points": 6,
+        "max": 8,
+        "detail": "evidence件数: 3件"
+      },
+      "human_review_status": {
+        "points": 0,
+        "max": 11,
+        "detail": "human_review.status: needs_revision"
+      }
+    }
+  }
+}

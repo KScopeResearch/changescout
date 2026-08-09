@@ -1,0 +1,10 @@
+{
+  "schema_version": "review-1.0",
+  "report_id": "fixture-pending",
+  "reviewer": null,
+  "reviewed_at": null,
+  "status": "pending_review",
+  "comments": [],
+  "fixes": [],
+  "history": []
+}

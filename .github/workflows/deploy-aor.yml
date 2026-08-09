@@ -1,0 +1,64 @@
+name: Deploy AOR Web
+
+# PJ2 AOP Step3次工程: website/aor/ への変更をpushしたら、公開用S3
+# （changescout-pj2-aor-web-179127602551）+ CloudFront（E1TGUCT9CYALRK）へ自動反映する。
+#
+# 【PJ2 AOP Step③-C時点の状態】
+# GitHub Actions専用のOIDC Provider（token.actions.githubusercontent.com）と
+# 専用IAM Role（PJ2AorWebDeployRole、mainブランチからのOIDCのみ信頼、
+# 公開用バケットへのs3:PutObjectとこのCloudFrontへのcloudfront:CreateInvalidation
+# のみを許可する最小権限）をStep③-Bで作成済みのため、"Configure AWS credentials"
+# ステップ自体はmainブランチからの実行で成功するようになった。
+# ただし、deploy-aor-web.jsはconfig.execute===trueを明示しない限りdry-run
+# （AWSへ一切書き込まない）がデフォルトであり、このworkflowはまだ
+# `AOR_DEPLOY_EXECUTE=yes` を設定していないため、実際のS3アップロード・
+# CloudFront invalidationは発生しない（意図的。実書き込みの有効化は別工程）。
+#
+# 既存Lead保存用S3（changescout-pj2-leads-179127602551）とは完全に別のバケット・
+# 別の権限スコープを想定しており、このworkflowに付与するIAM Roleの権限は
+# 公開用バケットとこのCloudFrontディストリビューションのみに限定されている。
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "website/aor/**"
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write # GitHub Actions OIDC用（PJ2AorWebDeployRoleのAssumeRoleWithWebIdentityに必要）
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 公開前に既存の品質ゲートを必ず通す（既存quality-check.ymlと同じ基準）。
+      - name: Run quality gate
+        run: node scripts/generator/run-all-tests.js
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "arn:aws:iam::179127602551:role/PJ2AorWebDeployRole"
+          aws-region: ap-northeast-1
+
+      # 安全性チェック（deploy-aor-web.js内でcheckPublicDataSafety()として実行）に
+      # 失敗した場合、この一連の処理は1件もアップロードせずに失敗する。
+      - name: Deploy website/aor/ to S3 + invalidate CloudFront
+        env:
+          AOR_WEB_S3_BUCKET: changescout-pj2-aor-web-179127602551
+          AWS_REGION: ap-northeast-1
+          AOR_WEB_CLOUDFRONT_DISTRIBUTION_ID: E1TGUCT9CYALRK
+        run: node scripts/generator/deploy-aor-web.js
