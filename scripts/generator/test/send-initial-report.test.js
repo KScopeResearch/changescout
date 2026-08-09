@@ -301,6 +301,81 @@ test("失敗時、company_slug/report_token/emailはLead本体からも変更さ
 });
 
 // ---------------------------------------------------------------------------
+// delivery_status送信ゲート（監査で発見された不具合の修正確認）
+// ---------------------------------------------------------------------------
+
+test("Case1. delivery_status:active + status:report_generated → 送信対象になる", async (t) => {
+  withSiteConfig(t);
+  const lead = createReportGeneratedLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  publishTestCompanyData(lead.company_slug);
+  assert.equal(lead.delivery_status, "active", "createLead()の既定値がactiveであることの前提確認");
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1, "SESが呼ばれるはず");
+  assert.equal(readLead(lead.lead_id).status, "initial_report_sent");
+});
+
+["unsubscribed", "bounced", "suppressed"].forEach((deliveryStatus, idx) => {
+  test(`Case${idx + 2}. delivery_status:${deliveryStatus} + status:report_generated → 送信対象外（skip、SES未呼び出し、status/history/delivery_status不変）`, async (t) => {
+    withSiteConfig(t);
+    const lead = createReportGeneratedLead();
+    t.after(() => {
+      cleanupLead(lead.lead_id);
+      cleanupPublished(lead.company_slug);
+    });
+    publishTestCompanyData(lead.company_slug);
+    updateLead(lead.lead_id, { delivery_status: deliveryStatus });
+    const beforeHistoryLength = readLead(lead.lead_id).history.length;
+
+    const { fn, calls } = fakeSendEmail();
+    const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.skipped, true);
+    assert.equal(calls.length, 0, "SESが呼ばれてはいけない");
+
+    const after = readLead(lead.lead_id);
+    assert.equal(after.status, "report_generated", "statusは変わらないはず");
+    assert.equal(after.delivery_status, deliveryStatus, "delivery_status自体も変更されないはず");
+    assert.equal(after.history.length, beforeHistoryLength, "historyは増えないはず");
+    assert.equal(
+      after.history.some((h) => h.event === "initial_report_queued" || h.event === "initial_report_failed"),
+      false,
+      "queued/failedいずれのhistoryも記録しないはず"
+    );
+  });
+});
+
+test('Case5. status:"rejected"から復帰しstatus:report_generated・delivery_status:activeになったLeadは、delivery_statusを理由にブロックされない', async (t) => {
+  withSiteConfig(t);
+  const lead = createReportGeneratedLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  publishTestCompanyData(lead.company_slug);
+  // 一度rejectedを経由してからreport_generated・activeに戻ったLeadを模す
+  // （isDeliveryBlocked()はstatus:"rejected"単独では配信ブロック理由にしないという既存仕様の確認）。
+  updateLead(lead.lead_id, { status: "rejected" });
+  appendHistory(lead.lead_id, "rejected");
+  updateLead(lead.lead_id, { status: "report_generated", delivery_status: "active" });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, true, "delivery_status:activeであれば、rejectedを経由していてもブロックされないはず");
+  assert.equal(calls.length, 1);
+  assert.equal(readLead(lead.lead_id).status, "initial_report_sent");
+});
+
+// ---------------------------------------------------------------------------
 // 二重送信・誤送信の防止
 // ---------------------------------------------------------------------------
 

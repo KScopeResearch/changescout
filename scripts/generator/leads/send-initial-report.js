@@ -34,6 +34,14 @@
  * initial_report_sentのLeadを再度selectすることはなく、initial_report_failedを
  * このCLIが勝手にinitial_report_queuedへ戻すこともしない（再送は別タスク）。
  *
+ * 【delivery_status送信ゲート（監査で発見・修正）】status:"report_generated"であっても、
+ * delivery_status（配信可否を表す別概念。lead-store.jsのisDeliveryBlocked()参照）が
+ * "unsubscribed"/"bounced"/"suppressed"のLeadは送信しない。判定はlead-store.jsの
+ * isDeliveryBlocked()をそのまま再利用し、独自の判定ロジックはここに新設しない。
+ * status:"rejected"は単独では配信ブロック理由にならない（isDeliveryBlocked()の既存仕様）
+ * ため、rejectedかどうかとdelivery_statusは完全に独立して扱う。ブロック時は公開ゲートと
+ * 同様「skip」として扱い、status/historyを一切変更しない。
+ *
  * 使い方:
  *   AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=... SES_FROM=... \
  *   AOR_SITE_BASE_URL=https://aor.example.jp \
@@ -41,7 +49,7 @@
  *   （status:"report_generated"の全Leadを対象に一括処理する）
  */
 
-const { readLead, updateLead, appendHistory, listLeads } = require("./lead-store");
+const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked } = require("./lead-store");
 const { isPublished, publishedPathFor } = require("../publish-report");
 const { readJsonSafe } = require("../shared/json-file");
 const { redactSecrets } = require("../shared/redact");
@@ -142,6 +150,19 @@ async function sendInitialReportForLead(leadId, options = {}) {
   }
   if (!lead.company_slug) {
     return { ok: false, leadId, error: "company_slugが未確定のため送信対象外です" };
+  }
+  // 送信前ゲート（監査で発見された不具合の修正）: 配信可否はdelivery_statusのみで判断する。
+  // status:"rejected"は単独では配信ブロック理由にならない（isDeliveryBlocked()の既存仕様、
+  // lead-store.js参照）ため、独自の判定ロジックはここに新設せず、既存のisDeliveryBlocked()を
+  // そのまま再利用する。ブロック時は公開ゲートと同様「skip」として扱い、status/historyは
+  // 一切変更しない（SES送信を試みてすらいないため、initial_report_failedにはしない）。
+  if (isDeliveryBlocked(lead)) {
+    return {
+      ok: false,
+      leadId,
+      skipped: true,
+      error: `delivery_statusが"${lead.delivery_status}"のため送信対象外です`,
+    };
   }
   if (!isPublished(lead.company_slug)) {
     return {
