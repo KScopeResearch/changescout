@@ -3,26 +3,30 @@ name: Deploy AOR Web
 # PJ2 AOP Step3次工程: website/aor/ への変更をpushしたら、公開用S3
 # （changescout-pj2-aor-web-179127602551）+ CloudFront（E1TGUCT9CYALRK）へ自動反映する。
 #
-# 【重要: 現時点ではこのworkflowはまだ動作しません】
-# AWSへの認証手段（GitHub Actions OIDC用のIAM OIDC Provider / IAM Role）が
-# まだ作成されていないため、"Configure AWS credentials" ステップで必ず失敗します。
-# 新規IAM Role/OIDC Providerの作成は今回のセッションでは意図的に行っておらず、
-# 別途の承認・実施が必要です（詳細は scripts/generator/deploy-aor-web.js の
-# 導入経緯・報告内容を参照）。role-to-assume の値はプレースホルダーのままです。
+# 【PJ2 AOP Step③-C時点の状態】
+# GitHub Actions専用のOIDC Provider（token.actions.githubusercontent.com）と
+# 専用IAM Role（PJ2AorWebDeployRole、mainブランチからのOIDCのみ信頼、
+# 公開用バケットへのs3:PutObjectとこのCloudFrontへのcloudfront:CreateInvalidation
+# のみを許可する最小権限）をStep③-Bで作成済みのため、"Configure AWS credentials"
+# ステップ自体はmainブランチからの実行で成功するようになった。
+# ただし、deploy-aor-web.jsはconfig.execute===trueを明示しない限りdry-run
+# （AWSへ一切書き込まない）がデフォルトであり、このworkflowはまだ
+# `AOR_DEPLOY_EXECUTE=yes` を設定していないため、実際のS3アップロード・
+# CloudFront invalidationは発生しない（意図的。実書き込みの有効化は別工程）。
 #
 # 既存Lead保存用S3（changescout-pj2-leads-179127602551）とは完全に別のバケット・
 # 別の権限スコープを想定しており、このworkflowに付与するIAM Roleの権限は
-# 公開用バケットとこのCloudFrontディストリビューションのみに限定すべきです。
+# 公開用バケットとこのCloudFrontディストリビューションのみに限定されている。
 
 on:
   push:
-    branches: ["**"]
+    branches: ["main"]
     paths:
       - "website/aor/**"
   workflow_dispatch: {}
 
 permissions:
-  id-token: write # GitHub Actions OIDC用（IAM Role作成後に有効化される）
+  id-token: write # GitHub Actions OIDC用（PJ2AorWebDeployRoleのAssumeRoleWithWebIdentityに必要）
   contents: read
 
 jobs:
@@ -44,12 +48,10 @@ jobs:
       - name: Run quality gate
         run: node scripts/generator/run-all-tests.js
 
-      # TODO: role-to-assume は、IAM OIDC Provider・IAM Role作成後に実際のARNへ置き換えること。
-      # 現時点ではプレースホルダーのため、このステップは必ず失敗する。
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: "arn:aws:iam::179127602551:role/REPLACE_WITH_ACTUAL_ROLE_ARN"
+          role-to-assume: "arn:aws:iam::179127602551:role/PJ2AorWebDeployRole"
           aws-region: ap-northeast-1
 
       # 安全性チェック（deploy-aor-web.js内でcheckPublicDataSafety()として実行）に
