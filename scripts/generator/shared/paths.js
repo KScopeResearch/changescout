@@ -17,6 +17,7 @@ const GENERATOR_DIR = path.join(__dirname, ".."); // scripts/generator/
 const REPO_ROOT = path.join(GENERATOR_DIR, "..", ".."); // Task22: backup.js等、scripts/generator外も扱うスクリプト向け
 const OUTPUT_DIR = path.join(GENERATOR_DIR, "output");
 const LOGS_DIR = path.join(GENERATOR_DIR, "logs");
+const LEADS_DIR = path.join(LOGS_DIR, "leads"); // PJ2: Lead本体（1件1ファイル）の保存先。LOGS_DIR配下のためbackup.jsの既存"logs"ターゲットでバックアップされる
 const PROMPTS_DIR = path.join(GENERATOR_DIR, "prompts");
 const REVIEW_FIXTURES_DIR = path.join(GENERATOR_DIR, "review", "fixtures");
 const REPORT_FIXTURES_DIR = path.join(GENERATOR_DIR, "fixtures");
@@ -26,6 +27,7 @@ module.exports = {
   REPO_ROOT,
   OUTPUT_DIR,
   LOGS_DIR,
+  LEADS_DIR,
   PROMPTS_DIR,
   REVIEW_FIXTURES_DIR,
   REPORT_FIXTURES_DIR,
