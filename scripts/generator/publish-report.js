@@ -53,6 +53,18 @@
  *     すべてawaitするよう更新済み。unpublish-report.js・send-initial-report.js・
  *     website/aor-admin/server.js参照）。
  *
+ * 【Phase 11: local/published store間の不整合検出】published storeへの書き込み
+ * （PUBLISHED_STORE_BACKEND=s3時のみ）が失敗した場合、既にローカル公開
+ * （deploy-aor-web.jsの同期元）は成功済みであるため、publishReport()全体を
+ * 失敗扱い（ok:false）にはしない——ローカル公開自体は実際に成立しているため、これを
+ * 失敗として報告すると運用担当者を混乱させる（「公開に失敗した」と表示されるのに
+ * 実際にはwebsite/aor/data/へは書き込まれている、という状態になる）。一方、
+ * Lambda側のcanonical state（S3）がローカルと食い違ったまま放置されると、
+ * send-initial-report.jsの公開判定がいつまでも「未公開」のままになりうるため、
+ * 呼び出し元が検出できるよう戻り値に`published_store_sync_error`を含める
+ * （エラーが無い場合はフィールド自体を含めない。既存の`reasons`/`unpublishedPath`等、
+ * 他のオプショナルフィールドと同じ慣習）。あわせてlogger.errorへも記録する。
+ *
  * 使い方:
  *   node scripts/generator/publish-report.js <slug>
  */
@@ -131,7 +143,7 @@ function usesNonFilesystemPublishedBackend() {
  *   モックS3クライアントをpublished-store.jsへ注入するためのフック（省略可。他store
  *   （report-store.js等）と同じDIパターン）。website/aor/data/へのローカル書き込みには
  *   S3クライアントを使わないため影響しない。
- * @returns {Promise<{ok:boolean, publishedPath?:string, reasons?:string[], error?:string}>}
+ * @returns {Promise<{ok:boolean, publishedPath?:string, reasons?:string[], error?:string, published_store_sync_error?:string}>}
  */
 async function publishReport(slug, options = {}) {
   // Task25: HTTPルーティング（server.jsの正規表現）やCLI引数など、呼び出し経路に
@@ -199,12 +211,28 @@ async function publishReport(slug, options = {}) {
   // PJ2 AOR Phase 3-D-1: Lambda側の公開判定に使うcanonical stateはpublished store。
   // PUBLISHED_STORE_BACKEND=filesystem（既定）の場合は上と同じファイルへの冪等な
   // 再書き込みになるだけなので、二重I/Oを避けるためs3等の非filesystem設定時のみ実行する。
+  let publishedStoreSyncError;
   if (usesNonFilesystemPublishedBackend()) {
-    await publishedStore.savePublished(slug, report, options);
-    logger.info(`公開しました（published store / ${process.env.PUBLISHED_STORE_BACKEND}）: ${slug}`);
+    try {
+      await publishedStore.savePublished(slug, report, options);
+      logger.info(`公開しました（published store / ${process.env.PUBLISHED_STORE_BACKEND}）: ${slug}`);
+    } catch (err) {
+      // Phase 11: ローカル公開は既に成功しているため、ここでは例外を投げてpublishReport()
+      // 全体を失敗扱いにしない（詳細はファイル冒頭コメント参照）。不整合はログと戻り値の
+      // 両方で検出可能にする。
+      logger.error(
+        `published store（${process.env.PUBLISHED_STORE_BACKEND}）への同期に失敗しました` +
+          `（ローカル公開は成功済み。Lambda側の公開判定と食い違う可能性があります）: ${slug}: ${err.message}`
+      );
+      publishedStoreSyncError = err.message;
+    }
   }
 
-  return { ok: true, publishedPath };
+  return {
+    ok: true,
+    publishedPath,
+    ...(publishedStoreSyncError ? { published_store_sync_error: publishedStoreSyncError } : {}),
+  };
 }
 
 async function main() {

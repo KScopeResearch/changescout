@@ -424,3 +424,66 @@ test("publishReport: PUBLISHED_STORE_BACKEND未設定（既定filesystem）時�
     cleanupCompany(slug);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Phase 11: local/published store（S3）間の不整合検出
+// published storeへの同期が失敗しても、既にローカル公開（deploy-aor-web.jsの同期元）が
+// 成立している以上、publishReport()全体をok:falseにはしない。ログ・戻り値で
+// 不整合を検出可能にする（詳細はpublish-report.jsのヘッダコメント参照）。
+// ---------------------------------------------------------------------------
+
+/** PutObjectCommandが常に失敗する疑似S3クライアント（S3側の書き込み失敗を再現する）。 */
+function createFailingS3Client() {
+  const calls = [];
+  const send = async (command) => {
+    calls.push(command);
+    if (command.constructor.name === "PutObjectCommand") {
+      const err = new Error("Simulated S3 outage: PutObject failed");
+      err.name = "InternalError";
+      throw err;
+    }
+    return {};
+  };
+  return { send, calls };
+}
+
+test("publishReport: PUBLISHED_STORE_BACKEND=s3時、S3側への同期が失敗してもok:trueのまま返し、ローカル公開（website/aor/data/）は成立させる", async (t) => {
+  const slug = "test-publish-s3-sync-failure";
+  cleanupCompany(slug);
+  t.after(() => cleanupCompany(slug));
+  withS3PublishedStore(t);
+
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  const client = createFailingS3Client();
+  const result = await publishReport(slug, { client });
+
+  assert.equal(result.ok, true, "ローカル公開は成立しているため、S3同期失敗だけでok:falseにはしないはず");
+  assert.ok(result.published_store_sync_error, "不整合を検出できるよう、published_store_sync_errorが含まれるはず");
+  assert.match(result.published_store_sync_error, /Simulated S3 outage/);
+
+  // ローカル公開経路（deploy-aor-web.jsの同期元）は実際に成立しているはず。
+  assert.equal(fs.existsSync(publishedPathFor(slug)), true);
+  assert.deepEqual(readJson(publishedPathFor(slug)), report);
+});
+
+test("publishReport: PUBLISHED_STORE_BACKEND未設定（filesystem）時は、S3同期を試みないためpublished_store_sync_errorは含まれない", async () => {
+  const slug = "test-publish-filesystem-no-sync-error-field";
+  cleanupCompany(slug);
+  delete process.env.PUBLISHED_STORE_BACKEND;
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, true);
+    assert.equal("published_store_sync_error" in result, false);
+  } finally {
+    cleanupCompany(slug);
+  }
+});

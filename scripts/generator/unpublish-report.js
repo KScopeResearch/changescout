@@ -36,6 +36,12 @@
  *   - **戻り値がbooleanからPromise<boolean>に変わった**（呼び出し元はすべてawaitするよう
  *     更新済み。website/aor-admin/server.js参照）。
  *
+ * 【Phase 11: local/published store間の不整合検出】publish-report.jsのpublishReport()と
+ * 対称に、published storeからの削除（PUBLISHED_STORE_BACKEND=s3時のみ）が失敗しても
+ * unpublishReport()全体を失敗扱いにはしない（ローカル削除は既に成立しているため）。
+ * ログと戻り値の`published_store_sync_error`で不整合を検出可能にする（詳細は
+ * publish-report.jsの同名フィールドのコメント参照）。
+ *
  * 使い方:
  *   node scripts/generator/unpublish-report.js <slug>
  */
@@ -64,7 +70,7 @@ function usesNonFilesystemPublishedBackend() {
  * @param {string} slug
  * @param {{client?:Object}} [options] - PUBLISHED_STORE_BACKEND=s3使用時、テスト用の
  *   モックS3クライアントをpublished-store.jsへ注入するためのフック（省略可。publish-report.jsと同じDIパターン）。
- * @returns {Promise<{ok:boolean, unpublishedPath?:string, alreadyUnpublished?:boolean, error?:string}>}
+ * @returns {Promise<{ok:boolean, unpublishedPath?:string, alreadyUnpublished?:boolean, error?:string, published_store_sync_error?:string}>}
  */
 async function unpublishReport(slug, options = {}) {
   // Task25と同じ多層防御パターン: 呼び出し経路（CLI引数・HTTPルーティング）に関わらず
@@ -88,17 +94,30 @@ async function unpublishReport(slug, options = {}) {
 
   // PJ2 AOR Phase 3-D-1: filesystem設定時（既定）は上と同じ削除の冪等な繰り返しになるだけ
   // なので、二重I/Oを避けるためs3等の非filesystem設定時のみ実行する。
+  let publishedStoreSyncError;
   if (usesNonFilesystemPublishedBackend()) {
-    await publishedStore.deletePublished(slug, options);
+    try {
+      await publishedStore.deletePublished(slug, options);
+    } catch (err) {
+      // Phase 11: ローカル削除は既に成立しているため、ここでは例外を投げてunpublishReport()
+      // 全体を失敗扱いにしない（詳細はファイル冒頭コメント参照）。
+      logger.error(
+        `published store（${process.env.PUBLISHED_STORE_BACKEND}）からの削除に失敗しました` +
+          `（ローカル削除は成功済み。Lambda側の公開判定と食い違う可能性があります）: ${slug}: ${err.message}`
+      );
+      publishedStoreSyncError = err.message;
+    }
   }
+
+  const syncErrorField = publishedStoreSyncError ? { published_store_sync_error: publishedStoreSyncError } : {};
 
   if (alreadyUnpublished) {
     logger.info(`既に非公開です（対象が存在しません）: ${slug}`);
-    return { ok: true, alreadyUnpublished: true };
+    return { ok: true, alreadyUnpublished: true, ...syncErrorField };
   }
 
   logger.info(`公開を取り消しました: ${slug} → ${publishedPath}`);
-  return { ok: true, unpublishedPath: publishedPath, alreadyUnpublished: false };
+  return { ok: true, unpublishedPath: publishedPath, alreadyUnpublished: false, ...syncErrorField };
 }
 
 async function main() {

@@ -234,3 +234,45 @@ test("unpublishReport: PUBLISHED_STORE_BACKEND未設定（既定filesystem）時
     cleanupCompany(slug);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Phase 11: local/published store（S3）間の不整合検出
+// ---------------------------------------------------------------------------
+
+/** HeadObjectCommandは成功する（対象が存在する）が、DeleteObjectCommandは常に失敗する疑似S3クライアント。 */
+function createFailingDeleteS3Client() {
+  const calls = [];
+  const send = async (command) => {
+    calls.push(command);
+    if (command.constructor.name === "HeadObjectCommand") return {};
+    if (command.constructor.name === "DeleteObjectCommand") {
+      const err = new Error("Simulated S3 outage: DeleteObject failed");
+      err.name = "InternalError";
+      throw err;
+    }
+    return {};
+  };
+  return { send, calls };
+}
+
+test("unpublishReport: PUBLISHED_STORE_BACKEND=s3時、S3側の削除が失敗してもok:trueのまま返し、ローカル削除は成立させる", async (t) => {
+  const slug = "test-unpublish-s3-sync-failure";
+  cleanupCompany(slug);
+  t.after(() => cleanupCompany(slug));
+  withS3PublishedStore(t);
+  setupApprovedCompany(slug);
+
+  // 【重要】実AWSへは一切接続しない。publishReport()の下準備呼び出しにも必ず疑似
+  // クライアントを渡す（withS3PublishedStore()がPUBLISHED_STORE_BACKEND=s3を設定する
+  // ため、clientを渡し忘れると既定のS3Client経由で実AWSへ接続を試みてしまう）。
+  const setupClient = createFakeS3Client();
+  await publishReport(slug, { client: setupClient });
+
+  const client = createFailingDeleteS3Client();
+  const result = await unpublishReport(slug, { client });
+
+  assert.equal(result.ok, true, "ローカル削除は成立しているため、S3同期失敗だけでok:falseにはしないはず");
+  assert.ok(result.published_store_sync_error, "不整合を検出できるよう、published_store_sync_errorが含まれるはず");
+  assert.match(result.published_store_sync_error, /Simulated S3 outage/);
+  assert.equal(fs.existsSync(publishedPathFor(slug)), false, "ローカル公開経路は削除されているはず");
+});
