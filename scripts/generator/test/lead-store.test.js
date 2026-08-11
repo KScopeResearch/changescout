@@ -31,6 +31,7 @@ const {
   appendHistory,
   listLeads,
   findLeadByEmail,
+  findLeadByEmailAndCompanyUrl,
   isDeliveryBlocked,
 } = require("../leads/lead-store");
 
@@ -264,6 +265,126 @@ test("findLeadByEmail: 複数Leadが存在してもクラッシュせず1件返�
   const found = await findLeadByEmail(email);
   assert.ok(found);
   assert.ok([lead1.lead_id, lead2.lead_id].includes(found.lead_id));
+});
+
+// ---------------------------------------------------------------------------
+// email×company_slug重複判定（PJ2 AOR確定仕様 P0-1: 「Leadは重複を許容する」）
+//
+// 一意性キーはemail×company_slug（company_urlから導出、companySlugForComparison()
+// 経由。company_slugフィールド自体はPhase2まで従来どおりnullのまま変更しない）。
+// 同一キーの再投入はエラーにも新規Lead作成にもせず、既存Leadへ"resubmitted"
+// イベントを追記するだけにとどめる。
+// ---------------------------------------------------------------------------
+
+test("createLead: 同一email×同一company_urlの再投入は新規Leadを作らず、既存Leadにresubmittedイベントが追記される", async (t) => {
+  const params = sampleParams({ email: "p0-1-same-same@example.invalid" });
+
+  const first = await createLead(params);
+  t.after(() => cleanupLead(first.lead_id));
+
+  const second = await createLead(params);
+
+  assert.equal(second.lead_id, first.lead_id, "同じlead_idが返るはず（新規lead_idは発番されない）");
+  assert.equal(second.history.length, 2, "historyは2件（collected + resubmitted）になるはず");
+  assert.equal(second.history[1].event, "resubmitted");
+  assert.ok(second.history[1].at);
+
+  const all = await listLeads();
+  const matching = all.filter((l) => l.email === params.email);
+  assert.equal(matching.length, 1, "Lead数は1件のまま増えないはず");
+});
+
+test("createLead: 同一email×異なるcompany_urlは正当な別Leadとして新規作成される", async (t) => {
+  const email = "p0-1-same-email-diff-company@example.invalid";
+  const first = await createLead(sampleParams({ email, company_url: "https://company-a.example" }));
+  t.after(() => cleanupLead(first.lead_id));
+
+  const second = await createLead(sampleParams({ email, company_url: "https://company-b.example" }));
+  t.after(() => cleanupLead(second.lead_id));
+
+  assert.notEqual(second.lead_id, first.lead_id, "別のlead_idが発番されるはず");
+  assert.equal(second.email, email);
+  assert.equal(second.company_url, "https://company-b.example");
+  assert.equal(second.history.length, 1, "新規Leadなのでhistoryはcollectedの1件のみのはず");
+
+  const all = await listLeads();
+  const matching = all.filter((l) => l.email === email);
+  assert.equal(matching.length, 2, "emailが同じでもcompany_urlが違えば2件のLeadが存在するはず");
+});
+
+test("createLead: 異なるemail×同一company_urlは別Leadとして新規作成される（1社に複数連絡先を許容）", async (t) => {
+  const companyUrl = "https://p0-1-multi-contact.example";
+  const first = await createLead(sampleParams({ email: "p0-1-contact-a@example.invalid", company_url: companyUrl }));
+  t.after(() => cleanupLead(first.lead_id));
+
+  const second = await createLead(sampleParams({ email: "p0-1-contact-b@example.invalid", company_url: companyUrl }));
+  t.after(() => cleanupLead(second.lead_id));
+
+  assert.notEqual(second.lead_id, first.lead_id);
+  assert.equal(first.company_url, companyUrl);
+  assert.equal(second.company_url, companyUrl);
+});
+
+test("createLead: 再投入しても既存Leadの主要属性（lead_id・company_slug・collected_at・既存history）を破壊しない", async (t) => {
+  const params = sampleParams({ email: "p0-1-preserve-attrs@example.invalid" });
+  const first = await createLead(params);
+  t.after(() => cleanupLead(first.lead_id));
+
+  // 1回目と2回目の間に、他のイベント（例: validated）が既存Leadに積まれている状態を作る
+  await updateLead(first.lead_id, { status: "validated" });
+  await appendHistory(first.lead_id, "validated");
+  const beforeResubmit = await readLead(first.lead_id);
+
+  const second = await createLead(params);
+
+  assert.equal(second.lead_id, first.lead_id, "lead_idは維持されるはず");
+  assert.equal(second.company_slug, beforeResubmit.company_slug, "company_slug（Phase2まではnull）は変更されないはず");
+  assert.equal(second.collected_at, beforeResubmit.collected_at, "collected_at（作成日時相当）は変更されないはず");
+  assert.equal(second.status, beforeResubmit.status, "既存のstatusは変更されないはず（新規Lead扱いにされてcollectedへ戻ったりしない）");
+  assert.deepEqual(
+    second.history.slice(0, beforeResubmit.history.length),
+    beforeResubmit.history,
+    "既存historyの内容・順序はそのまま維持され、末尾にresubmittedが追記されるだけのはず"
+  );
+  assert.equal(second.history[second.history.length - 1].event, "resubmitted");
+});
+
+test("createLead: 配信ブロック済み（unsubscribed等）のLeadへ再投入しても、delivery_status/statusは変更されずresubmittedイベントのみ追記される", async (t) => {
+  const params = sampleParams({ email: "p0-1-blocked-resubmit@example.invalid" });
+  const first = await createLead(params);
+  t.after(() => cleanupLead(first.lead_id));
+  await updateLead(first.lead_id, { delivery_status: "unsubscribed" });
+
+  const second = await createLead(params);
+
+  assert.equal(second.lead_id, first.lead_id);
+  assert.equal(second.delivery_status, "unsubscribed", "既存の状態ルール（配信ブロック）は今回の重複判定によって変更されないはず");
+  assert.equal(isDeliveryBlocked(second), true);
+  assert.equal(second.history[second.history.length - 1].event, "resubmitted");
+});
+
+test("findLeadByEmailAndCompanyUrl: email×company_urlの組で検索できる（company_slugフィールドは参照しない）", async (t) => {
+  const email = "p0-1-find-helper@example.invalid";
+  const companyUrl = "https://p0-1-find-helper-corp.example";
+  const created = await createLead(sampleParams({ email, company_url: companyUrl }));
+  t.after(() => cleanupLead(created.lead_id));
+
+  assert.equal(created.company_slug, null, "company_slugはPhase2まで従来どおりnullのはず");
+
+  const found = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(found);
+  assert.equal(found.lead_id, created.lead_id);
+
+  const notFoundDifferentCompany = await findLeadByEmailAndCompanyUrl(email, "https://totally-different.example");
+  assert.equal(notFoundDifferentCompany, null);
+});
+
+test("findLeadByEmailAndCompanyUrl: 存在しない組み合わせはnullを返す", async () => {
+  const found = await findLeadByEmailAndCompanyUrl(
+    "p0-1-nonexistent@example.invalid",
+    "https://nonexistent.example"
+  );
+  assert.equal(found, null);
 });
 
 // ---------------------------------------------------------------------------

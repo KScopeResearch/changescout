@@ -43,6 +43,7 @@
 const crypto = require("crypto");
 
 const { nowIso } = require("../shared/date-utils");
+const { slugFromUrl } = require("../generate-company-report"); // PJ2 AOR: email×company_slug重複判定PoC（下記コメント参照）
 
 /**
  * 環境変数LEAD_STORE_BACKENDに応じたバックエンドモジュールを返す
@@ -90,6 +91,13 @@ const VALID_EVENTS = [
   "weekly_report_consent",
   "unsubscribed",
   "weekly_report_sent",
+  "resubmitted", // PJ2 AOR: 「Leadは重複を許容する」確定仕様（P0-1）で追加。
+  // 既存のLeadライフサイクル系イベント（collected/validated/report_generated等）は
+  // いずれもLeadが前進する遷移を表すが、これは唯一「同じ入力が再び届いた」という
+  // 事実だけを表す、性質の異なるイベント。既存のVALID_EVENTSにも一度だけ前例がある
+  // 追加パターン（"initial_report_failed"、上記コメント参照）を踏襲し、
+  // {at, event, metadata}という既存のhistory形式はそのまま、イベント名を1つ
+  // 追加するだけにとどめている（新しいhistory構造は発明していない）。
 ];
 
 // delivery_statusのうち、配信をブロックすべき値。status:"rejected"はここに含めない
@@ -127,7 +135,13 @@ function appendHistoryEntry(history, entry) {
 /**
  * 新規Leadオブジェクトを組み立てる（Pure Function、I/Oなし）。
  * @param {{email:string, company_url:string, source:string, collection_method:string,
- *   contact_name?:string, department?:string, notes?:string, source_url?:string, now?:string}} params
+ *   contact_name?:string, department?:string, notes?:string, source_url?:string, now?:string,
+ *   company_url_source?:string, company_url_confidence?:string, contact_name_source?:string}} params -
+ *   company_url_source/company_url_confidence/contact_name_sourceはPJ2 AOR本来のStep②
+ *   （company-inference.jsによるemail起点の企業・担当者調査）で使う、推定の根拠・確度を
+ *   保持するための任意フィールド（CSV取込等、company_urlを直接指定する既存経路では未設定＝
+ *   nullのままでよい。既存フィールドに混ぜず独立させることで、推定情報と確定情報を
+ *   区別する）
  * @returns {Object} lead
  */
 function buildNewLead({
@@ -140,6 +154,9 @@ function buildNewLead({
   notes,
   source_url,
   now,
+  company_url_source,
+  company_url_confidence,
+  contact_name_source,
 } = {}) {
   if (!email) throw new Error("Leadの作成にはemailが必須です");
   if (!company_url) throw new Error("Leadの作成にはcompany_urlが必須です");
@@ -153,10 +170,13 @@ function buildNewLead({
     report_token: generateToken(),
     email,
     company_url,
+    company_url_source: company_url_source || null,
+    company_url_confidence: company_url_confidence || null,
     company_slug: null, // Phase2でreport_generated時に確定する
     source,
     collection_method,
     contact_name: contact_name || null,
+    contact_name_source: contact_name_source || null,
     department: department || null,
     notes: notes || null,
     source_url: source_url || null,
@@ -221,6 +241,28 @@ function normalizeEmail(email) {
 }
 
 /**
+ * company_urlから、重複判定「比較専用」のcompany_slugを導出する（Pure Function）。
+ *
+ * 【PJ2 AOR: email×company_slug重複判定（P0-1）】「Leadは重複を許容する」確定仕様は、
+ * Leadの一意性をemail×company_slugの組で決定する。しかし既存のLead schemaでは
+ * company_slugはPhase2（process-validated.jsがgenerateCompanyReport()の結果を
+ * 反映するタイミング）まで一貫してnullのまま（buildNewLead()参照）であり、
+ * この既存の「Phase2で確定する」という意味を変えるとsend-initial-report.jsの
+ * 送信前ゲート（`!lead.company_slug`）等、既存の状態ルールに影響する可能性がある。
+ *
+ * そのため、Leadオブジェクト自体のcompany_slugフィールドには一切手を加えず、
+ * 重複判定の「比較」にだけ、generate-company-report.jsのslugFromUrl()
+ * （company_urlのhostnameから決定的に導出する既存の純粋関数、Phase2でも
+ * 同じcompany_urlに対して同じ値を返す）をその場で適用する。この関数の戻り値は
+ * どこにも保存しない。
+ * @param {string} companyUrl
+ * @returns {string}
+ */
+function companySlugForComparison(companyUrl) {
+  return slugFromUrl(companyUrl);
+}
+
+/**
  * Leadの配信が現在ブロックされているかを判定する（Pure Function）。
  * status:"rejected"だけでは配信ブロックと判定しない（rejectedは再検証可能なため）。
  * @param {Object} lead
@@ -236,11 +278,29 @@ function isDeliveryBlocked(lead) {
 
 /**
  * 新規Leadを作成し保存する（I/O）。
+ *
+ * 【PJ2 AOR: email×company_slug重複判定（P0-1）】確定仕様「Leadは重複を許容する」＝
+ * 「同一email×同一company_slugの再投入をエラーにも新規Lead作成にもしない」を
+ * ここで実装する。email×company_urlが一致する既存Leadが見つかった場合、新規Leadは
+ * 作らず、既存Leadを一切変更（company_slug・lead_id・created_at相当のcollected_at・
+ * 既存historyのいずれも）せず、"resubmitted"イベントをhistoryへ追記するだけに留めて
+ * 既存Leadを返す。呼び出し側から見た戻り値の形（Leadオブジェクト、lead_id等を
+ * そのまま利用できる）は、新規作成時・既存Lead時のいずれでも変わらない。
+ *
+ * email×company_urlが一致しない（company_urlが異なる、または初めてのemail）場合は、
+ * 従来どおり新規Leadを作成する。
  * @param {{email:string, company_url:string, source:string, collection_method:string,
  *   contact_name?:string, department?:string, notes?:string, source_url?:string}} params
- * @returns {Promise<Object>} 作成したlead
+ * @returns {Promise<Object>} 既存Lead、または新規作成したlead
  */
 async function createLead(params) {
+  const existing = await findLeadByEmailAndCompanyUrl(params && params.email, params && params.company_url);
+  if (existing) {
+    return appendHistory(existing.lead_id, "resubmitted", {
+      source: (params && params.source) || null,
+      collection_method: (params && params.collection_method) || null,
+    });
+  }
   const lead = buildNewLead(params);
   await getBackend().writeLead(lead.lead_id, lead);
   return lead;
@@ -314,6 +374,27 @@ async function findLeadByEmail(email) {
   return leads.find((lead) => normalizeEmail(lead.email) === target) || null;
 }
 
+/**
+ * email×company_urlからLeadを検索する（I/O、全件走査）。PJ2 AOR確定仕様「Leadの一意性は
+ * email×company_slugで決定する」の実体。company_slug自体ではなく、companySlugForComparison()
+ * によるcompany_urlからの導出値どうしを比較する（上記コメント参照。company_slugフィールドは
+ * 一切参照・変更しない）。
+ * @param {string} email
+ * @param {string} companyUrl
+ * @returns {Promise<Object|null>}
+ */
+async function findLeadByEmailAndCompanyUrl(email, companyUrl) {
+  const targetEmail = normalizeEmail(email);
+  if (!targetEmail) return null;
+  const targetSlug = companySlugForComparison(companyUrl);
+  const leads = await getBackend().listLeads();
+  return (
+    leads.find(
+      (lead) => normalizeEmail(lead.email) === targetEmail && companySlugForComparison(lead.company_url) === targetSlug
+    ) || null
+  );
+}
+
 module.exports = {
   VALID_STATUSES,
   VALID_DELIVERY_STATUSES,
@@ -325,6 +406,7 @@ module.exports = {
   withHistoryEvent,
   normalizeEmail,
   isDeliveryBlocked,
+  companySlugForComparison,
   // I/O
   createLead,
   readLead,
@@ -332,4 +414,5 @@ module.exports = {
   appendHistory,
   listLeads,
   findLeadByEmail,
+  findLeadByEmailAndCompanyUrl,
 };
