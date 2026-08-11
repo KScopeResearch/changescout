@@ -23,6 +23,9 @@
  * status/historyを一切変更せず送信対象から除外する（失敗ではなく「まだ準備できていない」
  * ため、initial_report_failedにはしない）。
  *
+ * 【PJ2 AOR Phase 3-D-1】isPublished()はpublished-store.js経由（Lambda側の公開判定にも
+ * 使えるcanonical state）になり、Promiseを返すようになったためawaitして使う。
+ *
  * 【Job Runnerを使わない理由（既存調査の再確認）】jobs/job-store.jsはプロセス内メモリの
  * Mapで状態を保持する設計であり、website/aor-admin/server.js（常駐プロセス）内で動かす
  * 前提の仕組みである。本CLIのような独立した一回実行のスクリプトから無理にenqueue()しても、
@@ -164,7 +167,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
       error: `delivery_statusが"${lead.delivery_status}"のため送信対象外です`,
     };
   }
-  if (!isPublished(lead.company_slug)) {
+  if (!(await isPublished(lead.company_slug))) {
     return {
       ok: false,
       leadId,

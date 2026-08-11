@@ -40,22 +40,22 @@ function cleanupCompany(slug) {
   fs.rmSync(published, { force: true });
 }
 
-test("publishReport: review.jsonが無い（pending_review相当）場合は公開を拒否する", () => {
+test("publishReport: review.jsonが無い（pending_review相当）場合は公開を拒否する", async () => {
   const slug = "test-publish-no-review";
   cleanupCompany(slug);
   setupCompany(slug);
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, false);
     assert.match(result.error, /公開できません/);
-    assert.equal(isPublished(slug), false);
+    assert.equal(await isPublished(slug), false);
     assert.equal(fs.existsSync(publishedPathFor(slug)), false);
   } finally {
     cleanupCompany(slug);
   }
 });
 
-test("publishReport: needs_revisionの場合は公開を拒否する", () => {
+test("publishReport: needs_revisionの場合は公開を拒否する", async () => {
   const slug = "test-publish-needs-revision";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -64,16 +64,16 @@ test("publishReport: needs_revisionの場合は公開を拒否する", () => {
   review = engine.requestRevision(review, { reviewer: "tester", comment: "要修正" });
   writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, false);
     assert.ok(result.reasons.some((r) => r.includes("approved")));
-    assert.equal(isPublished(slug), false);
+    assert.equal(await isPublished(slug), false);
   } finally {
     cleanupCompany(slug);
   }
 });
 
-test("publishReport: 承認済み（approved）は公開に成功し、内容がそのままコピーされる", () => {
+test("publishReport: 承認済み（approved）は公開に成功し、内容がそのままコピーされる", async () => {
   const slug = "test-publish-approved";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -82,9 +82,9 @@ test("publishReport: 承認済み（approved）は公開に成功し、内容が
   writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
 
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, true);
-    assert.equal(isPublished(slug), true);
+    assert.equal(await isPublished(slug), true);
 
     const published = readJson(result.publishedPath);
     assert.deepEqual(published, report, "公開されたJSONはreport.jsonの内容と完全に一致するはず（変換・加工しない）");
@@ -93,7 +93,7 @@ test("publishReport: 承認済み（approved）は公開に成功し、内容が
   }
 });
 
-test("publishReport: report.json・review.jsonを一切書き換えない", () => {
+test("publishReport: report.json・review.jsonを一切書き換えない", async () => {
   const slug = "test-publish-no-mutation";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -107,7 +107,7 @@ test("publishReport: report.json・review.jsonを一切書き換えない", () =
   const reviewBefore = fs.readFileSync(reviewPath, "utf-8");
 
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, true);
     assert.equal(fs.readFileSync(reportPath, "utf-8"), reportBefore, "report.jsonが変更されてはならない");
     assert.equal(fs.readFileSync(reviewPath, "utf-8"), reviewBefore, "review.jsonが変更されてはならない");
@@ -116,7 +116,7 @@ test("publishReport: report.json・review.jsonを一切書き換えない", () =
   }
 });
 
-test("publishReport: evaluation.status===FAILの場合はreview.statusがapprovedでも公開を拒否する", () => {
+test("publishReport: evaluation.status===FAILの場合はreview.statusがapprovedでも公開を拒否する", async () => {
   const slug = "test-publish-eval-fail";
   cleanupCompany(slug);
   const dir = path.join(OUTPUT_DIR, slug);
@@ -128,7 +128,7 @@ test("publishReport: evaluation.status===FAILの場合はreview.statusがapprove
   writeJson(path.join(dir, "review.json"), review);
 
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, false);
     assert.ok(result.reasons.some((r) => r.includes("FAIL")));
   } finally {
@@ -136,13 +136,13 @@ test("publishReport: evaluation.status===FAILの場合はreview.statusがapprove
   }
 });
 
-test("publishReport: 存在しないslugはエラーメッセージ付きで失敗する", () => {
-  const result = publishReport("test-publish-does-not-exist-at-all");
+test("publishReport: 存在しないslugはエラーメッセージ付きで失敗する", async () => {
+  const result = await publishReport("test-publish-does-not-exist-at-all");
   assert.equal(result.ok, false);
   assert.match(result.error, /report\.json/);
 });
 
-test("isPublished: 公開前はfalse、publishReport()成功後はtrue", () => {
+test("isPublished: 公開前はfalse、publishReport()成功後はtrue", async () => {
   const slug = "test-publish-isPublished-flag";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -151,9 +151,9 @@ test("isPublished: 公開前はfalse、publishReport()成功後はtrue", () => {
   writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
 
   try {
-    assert.equal(isPublished(slug), false);
-    publishReport(slug);
-    assert.equal(isPublished(slug), true);
+    assert.equal(await isPublished(slug), false);
+    await publishReport(slug);
+    assert.equal(await isPublished(slug), true);
   } finally {
     cleanupCompany(slug);
   }
@@ -195,16 +195,16 @@ test("validateSlug: 絶対パス・スラッシュ・バックスラッシュを
   });
 });
 
-test("publishReport: パストラバーサルを狙ったslugは、report.jsonの有無に関わらず拒否され、OUTPUT_DIR・AOR_DATA_DIR外へは一切アクセスしない", () => {
+test("publishReport: パストラバーサルを狙ったslugは、report.jsonの有無に関わらず拒否され、OUTPUT_DIR・AOR_DATA_DIR外へは一切アクセスしない", async () => {
   const maliciousSlugs = ["..\\..\\Windows\\System32\\drivers\\etc\\hosts", "../../../../etc/passwd", ".."];
-  maliciousSlugs.forEach((slug) => {
-    const result = publishReport(slug);
+  for (const slug of maliciousSlugs) {
+    const result = await publishReport(slug);
     assert.equal(result.ok, false, `拒否されるべき: ${JSON.stringify(slug)}`);
     assert.match(result.error, /不正なslug/);
-  });
+  }
 });
 
-test("publishReport: 公開先パスは常にAOR_DATA_DIR直下に収まる（正常系での再確認）", () => {
+test("publishReport: 公開先パスは常にAOR_DATA_DIR直下に収まる（正常系での再確認）", async () => {
   const slug = "test-publish-path-containment";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -213,10 +213,141 @@ test("publishReport: 公開先パスは常にAOR_DATA_DIR直下に収まる（�
   writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
 
   try {
-    const result = publishReport(slug);
+    const result = await publishReport(slug);
     assert.equal(result.ok, true);
     const resolvedDir = path.dirname(path.resolve(result.publishedPath));
     assert.equal(resolvedDir, path.resolve(AOR_DATA_DIR));
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PJ2 AOR Phase 3-D-1: published-store.js経由でのS3対応
+// PUBLISHED_STORE_BACKEND=s3時、published storeがLambda側の公開判定に使う
+// canonical stateとして正しく機能すること、かつ既存のローカルwebsite/aor/data/経路
+// （deploy-aor-web.jsの同期元）が引き続き維持されることを確認する。
+// 実AWSへは一切接続しない（company-context-store.test.js等と同じインメモリ疑似S3クライアント）。
+// ---------------------------------------------------------------------------
+
+const ENV_VARS = ["PUBLISHED_STORE_BACKEND", "PUBLISHED_STORE_S3_BUCKET", "PUBLISHED_STORE_S3_PREFIX", "AWS_REGION"];
+
+function snapshotEnv() {
+  const snap = {};
+  ENV_VARS.forEach((name) => (snap[name] = process.env[name]));
+  return snap;
+}
+function restoreEnv(snap) {
+  ENV_VARS.forEach((name) => {
+    if (snap[name] === undefined) delete process.env[name];
+    else process.env[name] = snap[name];
+  });
+}
+function withS3PublishedStore(t) {
+  const snap = snapshotEnv();
+  t.after(() => restoreEnv(snap));
+  process.env.PUBLISHED_STORE_BACKEND = "s3";
+  process.env.PUBLISHED_STORE_S3_BUCKET = "test-publish-report-published-bucket";
+  process.env.AWS_REGION = "ap-northeast-1";
+  delete process.env.PUBLISHED_STORE_S3_PREFIX;
+}
+
+/** published-store.test.jsと同じ、インメモリの疑似S3クライアント（Head/Delete対応込み）。 */
+function createFakeS3Client(opts = {}) {
+  const objects = opts.objects || {};
+  const calls = [];
+  const send = async (command) => {
+    calls.push(command);
+    const name = command.constructor.name;
+    if (name === "GetObjectCommand") {
+      const key = command.input.Key;
+      if (!(key in objects)) {
+        const err = new Error("The specified key does not exist.");
+        err.name = "NoSuchKey";
+        throw err;
+      }
+      return { Body: { transformToString: async () => objects[key] } };
+    }
+    if (name === "HeadObjectCommand") {
+      if (!(command.input.Key in objects)) {
+        const err = new Error("Not Found");
+        err.name = "NotFound";
+        throw err;
+      }
+      return {};
+    }
+    if (name === "PutObjectCommand") {
+      objects[command.input.Key] = command.input.Body;
+      return {};
+    }
+    if (name === "DeleteObjectCommand") {
+      delete objects[command.input.Key];
+      return {};
+    }
+    throw new Error(`未対応のコマンド: ${name}`);
+  };
+  return { send, calls, objects };
+}
+
+test("publishReport: PUBLISHED_STORE_BACKEND=s3時、公開に成功するとpublished store（S3）のcanonical stateもtrueになる", async (t) => {
+  const slug = "test-publish-s3-canonical-state";
+  cleanupCompany(slug);
+  t.after(() => cleanupCompany(slug));
+  withS3PublishedStore(t);
+
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  const client = createFakeS3Client();
+  const result = await publishReport(slug, { client });
+  assert.equal(result.ok, true);
+
+  // canonical state（published-store.js経由、S3）がtrueになっているはず。
+  assert.equal(await isPublished(slug, { client }), true);
+  assert.ok(
+    client.calls.some((c) => c.constructor.name === "PutObjectCommand"),
+    "published store（S3）へも書き込まれているはず"
+  );
+
+  // 既存のローカルwebsite/aor/data/経路（deploy-aor-web.jsの同期元）もPUBLISHED_STORE_BACKENDの
+  // 値に関わらず維持されているはず。
+  assert.equal(fs.existsSync(publishedPathFor(slug)), true, "ローカル公開経路も引き続き維持されるはず");
+  assert.deepEqual(readJson(publishedPathFor(slug)), report);
+});
+
+test("publishReport: PUBLISHED_STORE_BACKEND=s3時、published store（S3）側に書き込まれたキーは<prefix><slug>.jsonである", async (t) => {
+  const slug = "test-publish-s3-key-naming";
+  cleanupCompany(slug);
+  t.after(() => cleanupCompany(slug));
+  withS3PublishedStore(t);
+
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  const client = createFakeS3Client();
+  await publishReport(slug, { client });
+
+  assert.ok(Object.keys(client.objects).includes(`published/${slug}.json`));
+});
+
+test("publishReport: PUBLISHED_STORE_BACKEND未設定（既定filesystem）時は、published store側への書き込みは発生しない（二重I/O回避）", async () => {
+  const slug = "test-publish-filesystem-no-double-write";
+  cleanupCompany(slug);
+  delete process.env.PUBLISHED_STORE_BACKEND;
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  const client = createFakeS3Client();
+  try {
+    const result = await publishReport(slug, { client });
+    assert.equal(result.ok, true);
+    assert.equal(client.calls.length, 0, "filesystemバックエンド時はS3クライアントが一切呼ばれないはず");
   } finally {
     cleanupCompany(slug);
   }

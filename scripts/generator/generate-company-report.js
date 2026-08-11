@@ -204,8 +204,18 @@ async function generateCompanyReport(companyUrl, options = {}) {
   onProgress("report:saved", { reportPath });
 
   const evaluationMdPath = path.join(outDir, "evaluation.md");
-  fs.writeFileSync(evaluationMdPath, renderEvaluationMarkdown(report, evaluation), "utf-8");
-  onProgress("evaluation_md:saved", { evaluationMdPath });
+  // PJ2 AOR Phase 3-D-1: evaluation.mdは開発者向けの人間可読レポートであり、Reportそのもの
+  // ではない（evaluation.score/grade/status/breakdown等のデータ実体はこの直前で
+  // report.evaluation経由でreport.json側へ既に永続化済み。report.jsonはreport-store.js経由で
+  // 既にS3対応済みのため、Lambda本番経路ではevaluation.md無しでも評価データは失われない）。
+  // Lambda等、ローカルOUTPUT_DIRへの書き込みが成立しない/意味を持たない実行環境
+  // （REPORT_STORE_BACKEND=s3で判定。report.jsonの永続化先と同じ判断軸を流用し、
+  // evaluation.md専用の新しい環境変数は導入しない）では生成をスキップする。
+  // filesystemバックエンド（既定）では従来通り常に生成する。
+  if ((process.env.REPORT_STORE_BACKEND || "filesystem").toLowerCase() !== "s3") {
+    fs.writeFileSync(evaluationMdPath, renderEvaluationMarkdown(report, evaluation), "utf-8");
+    onProgress("evaluation_md:saved", { evaluationMdPath });
+  }
 
   const validation = validateReport(report);
   onProgress("validation:done", { validation });

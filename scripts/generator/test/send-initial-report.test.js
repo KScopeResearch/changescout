@@ -478,6 +478,59 @@ test("company_slugがまだ公開されていない（website/aor/data/未生成
 });
 
 // ---------------------------------------------------------------------------
+// PJ2 AOR Phase 3-D-1: 公開ゲートがpublished-store.js（canonical state）へ完全に
+// 委譲されていること（＝website/aor/data/への直接のfs参照に依存していないこと）の確認。
+// published-store.jsのisPublished()自体（filesystem/S3双方）はpublished-store.test.js・
+// publish-report.test.jsで検証済みのため、ここではsend-initial-report.js側が
+// その戻り値を正しく送信可否判定へ反映していることだけを、published-store.jsを
+// 直接差し替えて確認する（実AWSへは一切接続しない）。
+// ---------------------------------------------------------------------------
+
+test("published-store.jsのisPublished()がtrueを返せば、website/aor/data/にローカルファイルが無くても送信対象になる", async (t) => {
+  withSiteConfig(t);
+  const lead = await createReportGeneratedLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  // publishTestCompanyData()を呼ばない = ローカルには公開データが存在しない状態のまま。
+
+  const publishedStore = require("../published-store");
+  const original = publishedStore.isPublished;
+  publishedStore.isPublished = async () => true; // S3等、他backendでcanonicalがtrueな状況を模す
+  t.after(() => {
+    publishedStore.isPublished = original;
+  });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, true, "canonical state（published-store.js）がtrueであれば、ローカルファイルの有無に関わらず送信対象になるはず");
+  assert.equal(calls.length, 1);
+});
+
+test("published-store.jsのisPublished()がfalseを返せば、website/aor/data/にローカルファイルが存在していても送信をスキップする", async (t) => {
+  withSiteConfig(t);
+  const lead = await createReportGeneratedLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  publishTestCompanyData(lead.company_slug); // ローカルには公開データが存在する状態にしておく
+
+  const publishedStore = require("../published-store");
+  const original = publishedStore.isPublished;
+  publishedStore.isPublished = async () => false; // S3等、他backendでcanonicalがfalseな状況を模す
+  t.after(() => {
+    publishedStore.isPublished = original;
+  });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.skipped, true, "canonical state（published-store.js）がfalseであれば、ローカルファイルが存在してもスキップされるはず");
+  assert.equal(calls.length, 0, "SESは呼ばれないはず");
+});
+
+// ---------------------------------------------------------------------------
 // AOR_SITE_BASE_URL未設定時の扱い
 // ---------------------------------------------------------------------------
 

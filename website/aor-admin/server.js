@@ -106,10 +106,12 @@ function loadCompany(slug) {
 /**
  * 一覧画面用のサマリーを1社分組み立てる。
  * publishableの値は必ずengine.isPublishable()から得る（Task14要件④: 独自判定は禁止）。
+ * 【PJ2 AOR Phase 3-D-1】isPublished()がpublished-store.js経由でPromiseを返すように
+ * なったため、本関数もasyncへ変更した。
  * @param {{slug:string, report:Object, review:Object}} company
- * @returns {Object}
+ * @returns {Promise<Object>}
  */
-function toSummary(company) {
+async function toSummary(company) {
   const { slug, report, review } = company;
   const evaluation = report.evaluation || null;
   const { publishable } = engine.isPublishable(review, evaluation, report);
@@ -122,18 +124,24 @@ function toSummary(company) {
     evaluation_score: evaluation ? evaluation.score : null,
     evaluation_grade: evaluation ? evaluation.grade : null,
     publishable,
-    published: isPublished(slug), // Task24: website/aor/data/<slug>.jsonが存在するか
+    published: await isPublished(slug), // Task24: 公開済みかどうか（PJ2 AOR: published-store.js経由）
     reviewer: review.reviewer,
     reviewed_at: review.reviewed_at,
   };
 }
 
-/** @returns {Object[]} */
-function listCompanySummaries() {
-  return listSlugs()
-    .map((slug) => loadCompany(slug))
-    .filter(Boolean)
-    .map(toSummary);
+/**
+ * 【PJ2 AOR Phase 3-D-1】toSummary()がasync化されたため、本関数もPromise<Object[]>を
+ * 返すよう変更した。listSlugs()・loadCompany()自体は変更していない（同期のまま）。
+ * @returns {Promise<Object[]>}
+ */
+async function listCompanySummaries() {
+  return Promise.all(
+    listSlugs()
+      .map((slug) => loadCompany(slug))
+      .filter(Boolean)
+      .map(toSummary)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -195,13 +203,28 @@ let watchDebounceTimer = null;
 // 会社数が増えるとリクエストのたびに毎回フルスキャンするコストが無視できなくなる
 // （Task45で実測: 5,000社で約1秒、10,000社で約2秒）。GET /api/reports・SSE接続の
 // たびに再計算するのではなく、結果をreportsCacheへ保持し、既存のfs.watchデバウンス
-// 機構（下記）が発火した時だけ再計算する。起動時に1回だけ計算しておくことで、
-// fs.watchが発火する前のGET /api/reportsでも従来と同じ内容を返せるようにする。
-let reportsCache = listCompanySummaries();
+// 機構（下記）が発火した時だけ再計算する。
+// PJ2 AOR Phase 3-D-1: listCompanySummaries()がtoSummary()のasync化に伴いPromiseを返す
+// ようになったため、module top-levelで同期実行できなくなった。空配列で初期化し、
+// 実際の初回計算は「サーバー起動」セクションのstartServer()内でawaitする
+// （「fs.watchが発火する前のGET /api/reportsでも従来と同じ内容を返す」という保証は、
+// listenを呼ぶ前に初回計算を待つことで維持する）。
+let reportsCache = [];
 
-/** 接続中の全SSEクライアントへ最新の一覧を送る（reportsCacheを更新し、そのまま使う。二重計算しない）。 */
-function broadcastReportsUpdate() {
-  reportsCache = listCompanySummaries();
+/**
+ * 接続中の全SSEクライアントへ最新の一覧を送る（reportsCacheを更新し、そのまま使う。二重計算しない）。
+ * 【PJ2 AOR Phase 3-D-1】listCompanySummaries()のasync化に伴い本関数もasyncへ変更した。
+ * fs.watchのデバウンスタイマー（下記）からawaitなしで呼ばれるため、失敗時にunhandled
+ * rejectionでプロセスを落とさないよう、ここでcatchしてログに残すだけに留める
+ * （直前のreportsCacheの内容は保持されたままになる）。
+ */
+async function broadcastReportsUpdate() {
+  try {
+    reportsCache = await listCompanySummaries();
+  } catch (err) {
+    logger.error(`reportsCacheの更新に失敗しました（直前の一覧を維持します）: ${err.stack || err.message}`);
+    return;
+  }
   const payload = `data: ${JSON.stringify(reportsCache)}\n\n`;
   sseClients.forEach((res) => {
     try {
@@ -399,7 +422,7 @@ async function handleApi(req, res, url, session, ip) {
       review: company.review,
       publishable: publishableResult.publishable,
       publishable_reasons: publishableResult.reasons,
-      published: isPublished(company.slug), // Task24
+      published: await isPublished(company.slug), // Task24 / PJ2 AOR: published-store.js経由
       validation: {
         report: validateReport(company.report),
         review: validateReview(company.review),
@@ -437,7 +460,7 @@ async function handleApi(req, res, url, session, ip) {
 
   if ((m = pathname.match(/^\/api\/publish\/([^/]+)$/)) && req.method === "POST") {
     const slug = m[1];
-    const result = publishReport(slug);
+    const result = await publishReport(slug); // PJ2 AOR Phase 3-D-1: published-store.js経由でasync化
     if (!result.ok) {
       auth.logAudit({ user: session.username, ip, action: "publish", target: slug, success: false, detail: result.error });
       sendJson(res, 400, { error: result.error, reasons: result.reasons || [] });
@@ -455,7 +478,7 @@ async function handleApi(req, res, url, session, ip) {
 
   if ((m = pathname.match(/^\/api\/unpublish\/([^/]+)$/)) && req.method === "POST") {
     const slug = m[1];
-    const result = unpublishReport(slug);
+    const result = await unpublishReport(slug); // PJ2 AOR Phase 3-D-1: published-store.js経由でasync化
     if (!result.ok) {
       auth.logAudit({ user: session.username, ip, action: "unpublish", target: slug, success: false, detail: result.error });
       sendJson(res, 400, { error: result.error });
@@ -551,6 +574,20 @@ if (!envCheck.ok) {
   logger.error(`起動を中止しました: ${envCheck.message}`);
   process.exitCode = 1;
 } else {
+  // PJ2 AOR Phase 3-D-1: reportsCache初期化（listCompanySummaries()）がtoSummary()の
+  // async化に伴いPromiseを返すようになったため、module top-levelで同期実行できなくなった。
+  // ここでIIFE相当のstartServer()にしてawaitし、「cache初期化完了前にserverをlistenさせない・
+  // 初期化失敗時に中途半端なserverを起動しない」を満たす。GET /api/reports・SSEのレスポンス
+  // 形式・reportsCacheの意味は一切変更していない（従来通り「事前計算済みの一覧をそのまま返す」）。
+  startServer().catch((err) => {
+    logger.error(`起動を中止しました: reportsCacheの初期化に失敗しました: ${err.stack || err.message}`);
+    process.exitCode = 1;
+  });
+}
+
+async function startServer() {
+  reportsCache = await listCompanySummaries();
+
   // Task23: 起動時復旧。前回プロセスが「実行中」のまま終了したジョブがあれば、
   // job-history.jsonlへstatus:"interrupted"の記録を残す（job構造・キューの状態遷移は
   // 変更しない。詳細はjob-runner.js「起動時復旧（Task23）」参照）。

@@ -32,39 +32,70 @@
  *   - website/aor/data/<slug>.jsonへは、report.jsonの内容をそのまま書き込む
  *     （フィールドの変換・加工は一切行わない）
  *
+ * 【PJ2 AOR Phase 3-D-1: published-store.js経由でのS3対応】
+ * Lambda等、website/aor/data/へのローカルファイル書き込みが成立しない実行環境からも
+ * 「公開済みかどうか」を判定できるよう、公開状態の永続化をpublished-store.js
+ * （company-context-store.js等と同じfilesystem/S3バックエンド切替パターン）経由に変更した。
+ *
+ *   - website/aor/data/<slug>.jsonへのローカル書き込みは、PUBLISHED_STORE_BACKENDの値に
+ *     関わらず**常に**行う（published-store/backends/filesystem-backend.jsを直接使用）。
+ *     これはdeploy-aor-web.js（ローカルのwebsite/aor/配下を直接読んで実公開用S3+CloudFrontへ
+ *     同期する）が今回のPhase 3-D-1のスコープ外であり、既存のローカル公開経路を廃止しない
+ *     ためである。
+ *   - PUBLISHED_STORE_BACKEND=s3を指定した場合のみ、上記に加えてpublished-store.js
+ *     （設定されたbackend）へも書き込む。PUBLISHED_STORE_BACKEND未設定・"filesystem"の場合は
+ *     上と同じファイルへの冪等な再書き込みになるだけなので、二重I/Oを避けるためスキップする。
+ *   - **Lambda側の公開判定に使うcanonical stateはpublished store（PUBLISHED_STORE_BACKENDで
+ *     設定されたbackend）である。** filesystem設定時（既定）はこのcanonical stateが
+ *     website/aor/data/<slug>.json自身と一致するため、既存の挙動・意味は一切変わらない。
+ *   - isPublished()はpublished-store.jsのisPublished()（上記canonical state）へ完全に委譲する
+ *     形へ変更したため、**戻り値がbooleanからPromise<boolean>に変わった**（呼び出し元は
+ *     すべてawaitするよう更新済み。unpublish-report.js・send-initial-report.js・
+ *     website/aor-admin/server.js参照）。
+ *
  * 使い方:
  *   node scripts/generator/publish-report.js <slug>
  */
 
-const fs = require("fs");
 const path = require("path");
 
-const { readJsonSafe, writeJson } = require("./shared/json-file");
-const { OUTPUT_DIR, REPO_ROOT } = require("./shared/paths");
+const { readJsonSafe } = require("./shared/json-file");
+const { OUTPUT_DIR } = require("./shared/paths");
 const { validateSlug, isWithinDir } = require("./shared/path-safety"); // Task25: パストラバーサル対策
 const engine = require("./review/review-engine");
+const publishedStore = require("./published-store"); // PJ2 AOR Phase 3-D-1: 公開状態のcanonical state
+const publishedFsBackend = require("./published-store/backends/filesystem-backend"); // 既存ローカル公開経路（常時維持）
 const { createLogger } = require("./shared/logger");
 const { runCli } = require("./shared/cli-utils");
 
 const logger = createLogger("publish-report");
 
-const AOR_DATA_DIR = path.join(REPO_ROOT, "website", "aor", "data");
+const AOR_DATA_DIR = publishedFsBackend.AOR_DATA_DIR;
 
 /**
  * @param {string} slug
  * @returns {string} website/aor/data/<slug>.json の絶対パス
  */
 function publishedPathFor(slug) {
-  return path.join(AOR_DATA_DIR, `${slug}.json`);
+  return publishedFsBackend.publishedPathFor(slug);
 }
 
 /**
- * 指定slugが公開済みかどうかを返す（website/aor/data/<slug>.jsonの存在確認のみ）。
+ * 指定slugが公開済みかどうかを返す（published-store.js経由。PUBLISHED_STORE_BACKENDで
+ * 設定されたbackendでの判定＝Lambda側の公開判定に使うcanonical state）。
+ * 【PJ2 AOR Phase 3-D-1】従来は同期関数（fs.existsSyncの戻り値をそのまま返す）だったが、
+ * published-store.jsのAPIに合わせてPromiseを返すよう変更した。呼び出し元は必ずawaitすること。
  * @param {string} slug
- * @returns {boolean}
+ * @param {{client?:Object}} [options] - PUBLISHED_STORE_BACKEND=s3使用時のテスト用DIフック（省略可）。
+ * @returns {Promise<boolean>}
  */
-function isPublished(slug) {
-  return fs.existsSync(publishedPathFor(slug));
+async function isPublished(slug, options = {}) {
+  return publishedStore.isPublished(slug, options);
+}
+
+/** @returns {boolean} PUBLISHED_STORE_BACKENDがs3等、filesystem以外に設定されているか */
+function usesNonFilesystemPublishedBackend() {
+  return (process.env.PUBLISHED_STORE_BACKEND || "filesystem").toLowerCase() !== "filesystem";
 }
 
 /**
@@ -72,9 +103,13 @@ function isPublished(slug) {
  * report.json・review.jsonはいずれも読み取りのみで、一切変更しない。
  *
  * @param {string} slug
- * @returns {{ok:boolean, publishedPath?:string, reasons?:string[], error?:string}}
+ * @param {{client?:Object}} [options] - PUBLISHED_STORE_BACKEND=s3使用時、テスト用の
+ *   モックS3クライアントをpublished-store.jsへ注入するためのフック（省略可。他store
+ *   （report-store.js等）と同じDIパターン）。website/aor/data/へのローカル書き込みには
+ *   S3クライアントを使わないため影響しない。
+ * @returns {Promise<{ok:boolean, publishedPath?:string, reasons?:string[], error?:string}>}
  */
-function publishReport(slug) {
+async function publishReport(slug, options = {}) {
   // Task25: HTTPルーティング（server.jsの正規表現）やCLI引数など、呼び出し経路に
   // 関わらずここで必ず検証する（パストラバーサル対策の多層防御、詳細は
   // shared/path-safety.jsのコメント参照）。
@@ -120,18 +155,27 @@ function publishReport(slug) {
   // （再公開、またはたまたまslugがサンプルのファイル名と一致した場合）は必ず警告ログを出す
   // （ブロックはしない。再公開は意図した正規の操作のため）。運用方針の詳細は
   // scripts/generator/README.md「website/aor/data/の管理方針」参照。
-  if (fs.existsSync(publishedPath)) {
+  if (await publishedFsBackend.existsPublished(slug)) {
     logger.warn(`既存のファイルを上書きします: ${publishedPath}（再公開、または偶然のファイル名衝突の可能性があります）`);
   }
 
-  fs.mkdirSync(AOR_DATA_DIR, { recursive: true });
-  writeJson(publishedPath, report); // 内容は変換・加工せずそのまま書き込む
+  // 既存のローカル公開経路（deploy-aor-web.jsの同期元）はPUBLISHED_STORE_BACKENDの値に
+  // 関わらず常に維持する。内容は変換・加工せずそのまま書き込む。
+  await publishedFsBackend.writePublished(slug, report);
+  logger.info(`公開しました（filesystem）: ${slug} → ${publishedPath}`);
 
-  logger.info(`公開しました: ${slug} → ${publishedPath}`);
+  // PJ2 AOR Phase 3-D-1: Lambda側の公開判定に使うcanonical stateはpublished store。
+  // PUBLISHED_STORE_BACKEND=filesystem（既定）の場合は上と同じファイルへの冪等な
+  // 再書き込みになるだけなので、二重I/Oを避けるためs3等の非filesystem設定時のみ実行する。
+  if (usesNonFilesystemPublishedBackend()) {
+    await publishedStore.savePublished(slug, report, options);
+    logger.info(`公開しました（published store / ${process.env.PUBLISHED_STORE_BACKEND}）: ${slug}`);
+  }
+
   return { ok: true, publishedPath };
 }
 
-function main() {
+async function main() {
   const slug = process.argv[2];
   if (!slug) {
     console.error("使い方: node publish-report.js <slug>");
@@ -139,7 +183,7 @@ function main() {
     return;
   }
 
-  const result = publishReport(slug);
+  const result = await publishReport(slug);
   if (!result.ok) {
     console.error(`公開できませんでした: ${result.error}`);
     if (result.reasons) result.reasons.forEach((r) => console.error(`  - ${r}`));
@@ -151,7 +195,7 @@ function main() {
 }
 
 if (require.main === module) {
-  runCli(async () => main());
+  runCli(main);
 }
 
 module.exports = { publishReport, isPublished, publishedPathFor, validateSlug, AOR_DATA_DIR };

@@ -53,8 +53,13 @@ async function runQualityCheck(params) {
   report.evaluation = evaluation;
   writeJson(reportPath, report);
 
+  // PJ2 AOR Phase 3-D-1: generate-company-report.jsと同じ判断（ヘッダコメント参照）。
+  // evaluation.mdは開発者向けの人間可読レポートであり、データ実体は既にreport.evaluation
+  // 経由でreport.json（S3対応済み）へ保存済みのため、REPORT_STORE_BACKEND=s3では生成しない。
   const evaluationMdPath = path.join(outDir, "evaluation.md");
-  fs.writeFileSync(evaluationMdPath, renderEvaluationMarkdown(report, evaluation), "utf-8");
+  if ((process.env.REPORT_STORE_BACKEND || "filesystem").toLowerCase() !== "s3") {
+    fs.writeFileSync(evaluationMdPath, renderEvaluationMarkdown(report, evaluation), "utf-8");
+  }
 
   const validation = validateReport(report);
   return { slug: params.slug, evaluation, validation };
