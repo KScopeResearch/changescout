@@ -1,4 +1,4 @@
-# website/aor-lead-api/ — メール回収API（PJ2 第1実装: 保存基盤／第2実装: 公開フォーム接続）
+# website/aor-lead-api/ — メール回収API（PJ2 第1実装: 保存基盤／第2実装: 公開フォーム接続／P0-2: 正式なLeadライフサイクルへ接続）
 
 ## これは何か
 
@@ -43,13 +43,25 @@ node website/aor-lead-api/server.js
 ```
 
 - `email`: 必須。簡易な形式検証（`@`とドメインのドットの存在、254文字以内）を行う
-- `company_slug`: 必須。`shared/path-safety.js`の`validateSlug()`で検証する
-  （既存のReview Dashboard等と同じslug検証ロジックを再利用しており、独自実装はしていない）
-- `consent`: 必須。厳密なboolean `true`のみ許可（文字列`"true"`等は拒否）
-- `captured_at`はクライアントが指定しても無視され、サーバー側で生成した値を使う
-- 上記4項目以外のフィールドは一切保存しない（許可リスト方式）
+- `company_slug`: 必須。`shared/path-safety.js`の`validateSlug()`で形式検証したうえで、
+  `company-context-store.js`の`loadCompanyContext(company_slug)`で対応する
+  `company_context.json`（`input_url`）を解決する。存在しない`company_slug`は`400`
+  （合成URLは作らない）
+- `consent`: 必須。厳密なboolean `true`のみ許可（文字列`"true"`等は拒否）。受信条件としては
+  維持するが、Lead本体には保存しない（`lead-store.js`のLead schemaに対応フィールドが無く、
+  P0-2ではschemaを拡張しないという設計判断のため）
+- `captured_at`はクライアントが指定しても無視される（サーバー側で保存する`collected_at`は
+  `lead-store.js`が生成する）
+- 上記以外のフィールドは一切保存しない
 
-成功時は`201 { "ok": true }`、検証エラーは`400`、レート制限時は`429`を返す。
+Lead本体の保存は`scripts/generator/leads/lead-store.js`の`createLead()`に委譲する
+（`source`は固定値`"AOR公開フォーム"`、`collection_method`は既存の全Lead生成経路と同じ
+`"public_website"`）。重複判定（同一`email`×同一`company_slug`は同一Lead、再投入は
+history へ`resubmitted`を記録するのみ）も`createLead()`の既存ロジックがそのまま行う。
+
+成功時（新規作成・resubmittedのいずれも）は`201 { "ok": true }`のみを返す
+（`lead_id`・`report_token`・`email`は一切含めない）。検証エラーは`400`、レート制限時は
+`429`を返す。
 
 ### Phase4-A/B API（PJ2 Phase4-A/B、今回追加）
 
@@ -76,9 +88,10 @@ report-preview.html経由のメールリンクからの操作を受け付ける�
 
 ## 保存先とログ
 
-| ファイル | 内容 | 備考 |
+| ファイル/ディレクトリ | 内容 | 備考 |
 |---|---|---|
-| `scripts/generator/logs/leads.jsonl` | 保存されたリード本体（`email`を含む） | 自動アーカイブ・保持期間ポリシーは未実装（`docs/email-capture-design.md`⑫参照、個人情報の保持方針は今回決定していない） |
+| `scripts/generator/logs/leads/<lead_id>.json` | Lead本体（`email`を含む、`lead-store.js`管理） | P0-2以降の正式な保存先。import-leads.js・create-lead-from-email.js等、他のLead作成経路と同じライフサイクル管理下。自動アーカイブ・保持期間ポリシーは未実装（`docs/email-capture-design.md`⑫参照、個人情報の保持方針は今回決定していない） |
+| `scripts/generator/logs/leads.jsonl` | （P0-2で廃止・過去データのみ残置） | POST /api/leadsからの新規追記は停止した。旧データの保持期間・削除方針は未決のため現状のまま残置している |
 | `scripts/generator/logs/leads-audit.jsonl` | 取得イベント（`timestamp`/`action`/`company_slug`/`success`のみ） | `admin-audit.jsonl`とは別ファイル。**`email`は一切含めない**（構造的に、この関数へemailを渡すコード自体が存在しない）。`admin-audit.jsonl`と同じくサイズ超過時はアーカイブする（Task43の`archiveIfOversize()`を再利用） |
 
 いずれも既存の`shared/paths.js`の`LOGS_DIR`配下に置いているため、`scripts/generator/backup.js`の
@@ -135,9 +148,10 @@ consent必須化・ハニーポットである。
 ## テスト
 
 `scripts/generator/test/lead-api.test.js`（`run-all-tests.js`から自動実行される）。
-バリデーション・レート制限・CORS許可リスト・ハニーポットの単体/統合テストに加え、
-「登録したメールアドレスが`leads.jsonl`以外（`leads-audit.jsonl`・サーバーの
-標準出力/標準エラー出力）に一切出現しない」ことを確認するテストを含む。
+バリデーション・レート制限・CORS許可リスト・ハニーポット・Lead重複（email×company_slug）の
+単体/統合テストに加え、「登録したメールアドレスがLead本体（`leads/<lead_id>.json`）以外
+（`leads-audit.jsonl`・サーバーの標準出力/標準エラー出力）に一切出現しない」こと、および
+`leads.jsonl`へ新規追記されないことを確認するテストを含む。
 
 **実ブラウザでのE2E確認について**: このリポジトリにはPlaywright等のnpm依存が無いため
 （本プロジェクト全体の「npm依存なし」方針、[README.md](../../README.md)参照）、実際の

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * server.js — AOPメール回収API（PJ2 第1実装: 安全なリード保存基盤／第2実装: 公開フォーム接続）
+ * server.js — AOPメール回収API（PJ2 第1実装: 安全なリード保存基盤／第2実装: 公開フォーム接続／
+ * P0-2: 正式なLeadライフサイクル（lead-store.js）への接続）
  *
  * website/aor（受信者向け静的LP）のメール登録フォームから将来送信される想定の
  * リード情報を、最小限の4フィールド（email, company_slug, captured_at, consent）
@@ -19,25 +20,27 @@
  *   このファイル内でリクエストボディの`email`・生ボディ文字列を
  *   logger.*() / console.*() へ渡す処理は一切書かない。エラーメッセージは常に
  *   固定文言のみを使い、ユーザー入力を含めない。emailが書き込まれる先は
- *   leads.jsonl（保存データそのもの）だけであり、admin-audit.jsonlや
- *   leads-audit.jsonl（イベントログ、timestamp/action/company_slug/successのみ）
- *   を含め、他のいかなるログにも出力しない。shared/redact.jsはAPIキー等の秘密情報
- *   専用（emailは非対応）のため、redactに頼るのではなく「そもそも渡さない」という
- *   構造で保証する。
+ *   lead-store.js管理下のLead本体（scripts/generator/logs/leads/<lead_id>.json）
+ *   だけであり、admin-audit.jsonlやleads-audit.jsonl（イベントログ、
+ *   timestamp/action/company_slug/successのみ）を含め、他のいかなるログにも
+ *   出力しない。shared/redact.jsはAPIキー等の秘密情報専用（emailは非対応）のため、
+ *   redactに頼るのではなく「そもそも渡さない」という構造で保証する。
  *
- * 保存先: LOGS_DIR（scripts/generator/logs/）配下に leads.jsonl / leads-audit.jsonl
- * を置く。json-file.jsのappendJsonLine()は元々「ログファイル（llm-usage.jsonl等）用」
- * として設計されており、この用途にもそのまま合致する。LOGS_DIR全体はbackup.jsの
- * TARGETS（label:"logs", required:true）で既にバックアップ対象になっているため、
- * backup.js自体の変更は不要（新規ディレクトリを切る場合はTARGETSへの追記が必要だが、
- * 既存のlogs配下に置く限りは既存設定がそのまま適用される）。
+ * 保存先（P0-2で変更）: Lead本体はscripts/generator/leads/lead-store.jsの
+ * createLead()経由でLEADS_DIR（scripts/generator/logs/leads/）へ保存する
+ * （import-leads.js・create-lead-from-email.js等、他のLead作成経路と同じ正式な
+ * ライフサイクル管理下に置く）。leads.jsonl（LOGS_DIR直下）は、POST /api/leadsの
+ * 保存先としては廃止した（過去データはそのまま残置、新規追記のみ停止）。
+ * leads-audit.jsonl（API操作イベントログ）は従来どおりLOGS_DIR配下に置き続ける。
+ * LEADS_DIRもLOGS_DIR配下にあるため、backup.jsのTARGETS（label:"logs",
+ * required:true）はP0-2でも変更不要のまま引き続きバックアップ対象になる。
  *
  * 【未実装・今回のスコープ外（意図的な見送り）】
- *   - leads.jsonlの自動アーカイブ・保持期間ポリシー: docs/email-capture-design.md
- *     （Task27）で「削除/エクスポートAPI未実装」として保留されている個人情報の
- *     保持方針そのものに関わるため、今回勝手に決めず現状維持（無制限追記）とする。
- *     leads-audit.jsonl（PIIを含まない）側はadmin-audit.jsonlと同じくTask43の
- *     archiveIfOversize()を適用する。
+ *   - Lead本体（leads.jsonl時代からの積み残し）の自動アーカイブ・保持期間ポリシー:
+ *     docs/email-capture-design.md（Task27）で「削除/エクスポートAPI未実装」として
+ *     保留されている個人情報の保持方針そのものに関わるため、今回も決めず現状維持
+ *     とする。leads-audit.jsonl（PIIを含まない）側はadmin-audit.jsonlと同じく
+ *     Task43のarchiveIfOversize()を適用する。
  *
  * 【PJ2 第2実装で追加】
  *   - website/aor/email-capture.jsから実際にPOST /api/leadsを呼ぶよう配線した
@@ -60,6 +63,26 @@
  *   このAPIの責務はPhase4-A/Bの属性（paid_report_requested/weekly_report_consent）の
  *   更新のみであり、Leadのstatus・delivery_statusは一切変更しない（別概念のため）。
  *
+ * 【P0-2で変更: POST /api/leadsを正式なLeadライフサイクルへ接続】
+ *   - 保存経路をappendJsonLine(leads.jsonl)からlead-store.jsのcreateLead()へ変更した。
+ *     重複判定（同一email×同一company_slugは同一Lead、再投入はhistoryへ"resubmitted"を
+ *     追記するのみ）はcreateLead()の既存ロジックにそのまま委譲し、本ファイルでは
+ *     独自実装しない。
+ *   - createLead()はcompany_url（company_slugではない）を要求するため、
+ *     company-context-store.jsのloadCompanyContext(company_slug)で、そのslugに対応する
+ *     company_context.json（generate-company-report.jsがcompany_url確定時に生成する既存
+ *     データ）を読み、その`input_url`をcompany_urlとして使う。company_context.jsonが
+ *     存在しないcompany_slug（実在しないcompany_slug・report未生成の企業等）は、既存の
+ *     company_slug形式検証（validateSlug）と同じ400として扱う（合成URLは作らない）。
+ *   - consent: 受信条件（consent===trueを必須とするバリデーション）はそのまま維持するが、
+ *     lead-store.jsのLead schemaにconsent相当のフィールド・自然な保存先が無いため、
+ *     Lead本体には保存しない（schemaを不用意に拡張しない）。
+ *   - source/collection_methodは固定値（LEAD_SOURCE/LEAD_COLLECTION_METHOD、下記定数）。
+ *     collection_methodは既存の全Lead生成経路（import-leads.js等）で使われている
+ *     "public_website"をそのまま踏襲し、新しい値を増やさない。
+ *   - レスポンスは新規作成・resubmittedのいずれも201 { ok: true }のみ（lead_id・
+ *     report_token・emailは一切含めない）。
+ *
  * 使い方:
  *   node website/aor-lead-api/server.js
  *   （LEAD_API_PORT環境変数でポート変更可、既定4700。
@@ -77,15 +100,24 @@ const { nowIso } = require("../../scripts/generator/shared/date-utils");
 const { createLogger } = require("../../scripts/generator/shared/logger");
 const { LOGS_DIR } = require("../../scripts/generator/shared/paths");
 const { archiveIfOversize } = require("../../scripts/generator/shared/log-rotation");
-const { readLead, updateLead, appendHistory } = require("../../scripts/generator/leads/lead-store");
+const { readLead, updateLead, appendHistory, createLead, LEADS_DIR } = require("../../scripts/generator/leads/lead-store");
+const { loadCompanyContext } = require("../../scripts/generator/company-context-store");
 const rateLimit = require("./rate-limit");
 
 const logger = createLogger("aor-lead-api");
 
 const PORT = Number(process.env.LEAD_API_PORT) || 4700;
 
+// P0-2以降、新規Leadの保存先ではない（lead-store.jsのLEADS_DIRへ移行済み）。
+// 過去データの残置確認・回帰テスト（「新規追記されないこと」の検証）用に定数のみ残す。
 const LEADS_PATH = path.join(LOGS_DIR, "leads.jsonl");
 const LEADS_AUDIT_PATH = path.join(LOGS_DIR, "leads-audit.jsonl");
+
+// P0-2: 公開フォーム由来Leadのsource/collection_method固定値。collection_methodは
+// 既存の全Lead生成経路（import-leads.js等）が使っている"public_website"を再利用する
+// （lead-store.jsに正式なenumは無いが、事実上の標準値のため新しい値を増やさない）。
+const LEAD_SOURCE = "AOR公開フォーム";
+const LEAD_COLLECTION_METHOD = "public_website";
 const AUDIT_ARCHIVE_SIZE_BYTES = 10 * 1024 * 1024; // admin-audit.jsonlと同じ閾値（Task43踏襲）
 
 // このAPIは4フィールドの小さなJSONのみを受け付けるため、aor-admin/server.jsの
@@ -296,18 +328,36 @@ async function handleCreateLead(req, res) {
     return;
   }
 
-  // 保存するのは以下4フィールドのみ（許可リスト方式）。bodyに含まれるそれ以外の
-  // フィールド（将来のハニーポット用フィールド等）は一切保存しない。
-  // captured_atはクライアント指定値を無視し、必ずサーバー側で生成する。
-  const record = {
-    email: body.email,
-    company_slug: body.company_slug,
-    captured_at: nowIso(),
-    consent: true,
-  };
-
+  // company_slug → company_url解決（P0-2）。company_context.jsonが存在しない
+  // company_slug（実在しない・report未生成の企業等）は、合成URLを作らず400として扱う
+  // （既存のcompany_slug形式検証と同じ「不正なcompany_slug」の延長として扱い、
+  // leads-audit.jsonlのaction種別も新設せずlead_rejectedを再利用する）。
+  let companyContext;
   try {
-    appendJsonLine(LEADS_PATH, record);
+    companyContext = await loadCompanyContext(body.company_slug);
+  } catch (e) {
+    logger.error(`company_context読み込みに失敗しました: ${e.message}`); // emailを含まない固定文言
+    logLeadEvent({ action: "lead_capture_failed", company_slug: body.company_slug, success: false });
+    sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
+    return;
+  }
+  if (!companyContext || !companyContext.input_url) {
+    logLeadEvent({ action: "lead_rejected", company_slug: body.company_slug, success: false });
+    sendJson(res, 400, { ok: false, error: "company_slugが不正です" });
+    return;
+  }
+
+  // Lead本体の保存はlead-store.jsのcreateLead()に委譲する（email×company_slugの
+  // 重複判定＝resubmitted記録もcreateLead()側の既存ロジックがそのまま行う。
+  // 本ファイルでは重複判定を独自実装しない）。consentはここまでのバリデーションで
+  // trueであることを確認済みだが、Lead schemaには保存しない（P0-2設計確認事項）。
+  try {
+    await createLead({
+      email: body.email,
+      company_url: companyContext.input_url,
+      source: LEAD_SOURCE,
+      collection_method: LEAD_COLLECTION_METHOD,
+    });
   } catch (e) {
     logger.error(`リード保存に失敗しました: ${e.message}`); // emailを含まない固定文言
     logLeadEvent({ action: "lead_capture_failed", company_slug: body.company_slug, success: false });
@@ -315,6 +365,8 @@ async function handleCreateLead(req, res) {
     return;
   }
 
+  // 新規作成・resubmitted（重複再投入）のいずれも正常処理として201を返す
+  // （確定仕様: 重複時も正常処理）。lead_id/report_token/emailはレスポンスに含めない。
   logLeadEvent({ action: "lead_captured", company_slug: body.company_slug, success: true });
   sendJson(res, 201, { ok: true });
 }
@@ -492,7 +544,7 @@ function startServer() {
 
   server.listen(PORT, () => {
     console.log(`AOP Lead API: http://localhost:${PORT}`);
-    console.log(`  保存先: ${LEADS_PATH}`);
+    console.log(`  保存先: ${LEADS_DIR}`);
     console.log(`  イベントログ: ${LEADS_AUDIT_PATH}`);
   });
 
@@ -512,4 +564,6 @@ module.exports = {
   LEADS_AUDIT_PATH,
   HONEYPOT_FIELD,
   ALLOWED_ORIGINS,
+  LEAD_SOURCE,
+  LEAD_COLLECTION_METHOD,
 };

@@ -1,20 +1,29 @@
 /**
  * lead-api.test.js — website/aor-lead-api/server.jsの自動テスト（PJ2 第1実装で新設、
- * 第2実装でCORS許可リスト・ハニーポットのテストを追加）。
+ * 第2実装でCORS許可リスト・ハニーポットのテストを追加、P0-2でLead保存先の
+ * lead-store.js移行・重複（resubmitted）テストを追加）。
  *
  * security.test.js（website/aor-admin/server.jsの子プロセス起動テスト）と同じ方式で、
  * website/aor-lead-api/server.jsを一時ポートで起動してHTTPレベルの動作を確認する。
  * 加えて、rate-limit.jsの内部ロジック（auth.jsのTask41テストと同じ、時刻注入パターン）
  * と、validateEmail()/validateConsent()の単体テストも含む。
  *
+ * 【P0-2で変更】Lead本体の保存先はleads.jsonl（廃止）からlead-store.js管理下の
+ * scripts/generator/logs/leads/<lead_id>.jsonへ移行した。POST /api/leadsは
+ * company_slugからcompany_url解決のためcompany-context-store.jsのcompany_context.jsonを
+ * 参照するため、成功が期待されるテストは事前にsetupCompanyContextFixture()で
+ * company_context.jsonフィクスチャを用意する（scripts/generator/output/配下、
+ * company-context-store.test.jsと同じ「テスト専用slug・テスト後に必ず削除」方式）。
+ *
  * 【最重要】「PIIがどのログにも漏れない」ことの検証（テストケース群の最後にまとめて実施）:
  * 実在しないダミーのメールアドレス（例のためRFC 2606予約ドメインを使用）でリードを
- * 登録し、leads.jsonl以外のどこにもそのメール文字列が出現しないことを、
+ * 登録し、Lead本体（leads/<lead_id>.json）以外のどこにもそのメール文字列が出現しないことを、
  * leads-audit.jsonl・サーバーの標準出力/標準エラー出力の両方に対して確認する。
  *
- * 本ファイルが追記するleads.jsonl/leads-audit.jsonlの行は、company_slugを必ず
- * "test-lead-api-"で始める値にし、テスト前後でその接頭辞の行だけを取り除く
- * （unpublish-report.test.jsのsetup/cleanup方式を踏襲。実データには一切触れない）。
+ * 本ファイルが作成するLead・company_contextフィクスチャは、company_slugを必ず
+ * "test-lead-api-"で始める値にし、各テストのt.after()で個別に削除する
+ * （unpublish-report.test.js・company-context-store.test.jsのsetup/cleanup方式を踏襲。
+ * 実データには一切触れない）。
  */
 
 const { test } = require("node:test");
@@ -24,15 +33,46 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 
-const { GENERATOR_DIR } = require("../shared/paths");
+const { GENERATOR_DIR, OUTPUT_DIR } = require("../shared/paths");
 const { readJsonLines } = require("../shared/json-file");
-const { createLead, readLead, updateLead, LEADS_DIR } = require("../leads/lead-store");
+const { createLead, readLead, updateLead, findLeadByEmailAndCompanyUrl, LEADS_DIR } = require("../leads/lead-store");
+const { saveCompanyContext } = require("../company-context-store");
 
 const SERVER_PATH = path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server.js");
 const leadApi = require(path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server"));
-const { LEADS_PATH, LEADS_AUDIT_PATH, validateEmail, validateConsent } = leadApi;
+const { LEADS_PATH, LEADS_AUDIT_PATH, validateEmail, validateConsent, LEAD_SOURCE, LEAD_COLLECTION_METHOD } = leadApi;
 
 const TEST_SLUG_PREFIX = "test-lead-api-";
+
+/**
+ * POST /api/leadsが要求するcompany_slug→company_url解決（company-context-store.js経由）の
+ * テスト用フィクスチャ。generate-company-report.jsのslugFromUrl()と対称になるよう、
+ * デフォルトのinput_urlはhostnameがslugそのものになる値にしている（本番でslugが
+ * slugFromUrl(company_url)から決定的に導出されるのと同じ対応関係をテストでも保つため）。
+ * @param {string} slug
+ * @param {string} [inputUrl]
+ */
+async function setupCompanyContextFixture(slug, inputUrl) {
+  await saveCompanyContext(slug, {
+    input_url: inputUrl || `https://${slug}`,
+    generated_at: "2026-01-01T00:00:00.000Z",
+    industry_hint: "テスト",
+    company_fetch_ok: true,
+    company_fetch_error: null,
+    pipeline_stats: { fetched_total: 0, normalized_total: 0, duplicates_removed: 0, after_dedupe: 0, selected_for_ai: 0, max_sources_for_ai: 20 },
+    sources: [],
+  });
+}
+
+/** @param {string} slug */
+function cleanupCompanyContextFixture(slug) {
+  fs.rmSync(path.join(OUTPUT_DIR, slug), { recursive: true, force: true });
+}
+
+/** @param {string} leadId */
+function cleanupLeadFile(leadId) {
+  fs.rmSync(path.join(LEADS_DIR, `${leadId}.json`), { force: true });
+}
 
 /**
  * テスト実行前のleads.jsonl/leads-audit.jsonlの内容をスナップショットし、テスト後に
@@ -205,55 +245,64 @@ function validBody(overrides = {}) {
   });
 }
 
-test("POST /api/leads: 正常な入力は201になり、4フィールドのみがleads.jsonlへ保存される", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
+test("POST /api/leads: 正常な入力は201になり、lead-store.jsの正式なLeadとして保存される（P0-2）", async (t) => {
   const port = 4701;
   await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}example`;
+  const email = "lead-api-test@example.invalid";
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
 
   const res = await httpRequest({
     path: "/api/leads",
     method: "POST",
     port,
     body: JSON.stringify({
-      email: "lead-api-test@example.invalid",
-      company_slug: `${TEST_SLUG_PREFIX}example`,
+      email,
+      company_slug: slug,
       consent: true,
       captured_at: "2000-01-01T00:00:00.000Z", // クライアント指定値、無視されるはず
       unexpected_field: "honeypot-candidate", // 保存されないはず
     }),
   });
   assert.equal(res.status, 201);
-  assert.equal(JSON.parse(res.body).ok, true);
+  assert.deepEqual(JSON.parse(res.body), { ok: true }, "レスポンスは{ok:true}のみ（lead_id/report_token/emailを含まない）");
+  assert.ok(!res.body.includes(email), "レスポンスにemailが含まれてはならない");
 
-  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === `${TEST_SLUG_PREFIX}example`);
-  assert.equal(stored.length, 1);
-  const record = stored[0];
-  assert.deepEqual(Object.keys(record).sort(), ["captured_at", "company_slug", "consent", "email"]);
-  assert.equal(record.email, "lead-api-test@example.invalid");
-  assert.equal(record.consent, true);
-  assert.notEqual(record.captured_at, "2000-01-01T00:00:00.000Z", "captured_atはサーバー側で生成され、クライアント指定値は無視されるはず");
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead, "lead-store.js管理下にLeadが作成されるはず");
+  t.after(() => cleanupLeadFile(lead.lead_id));
+
+  assert.equal(lead.email, email);
+  assert.equal(lead.company_url, companyUrl);
+  assert.equal(lead.source, LEAD_SOURCE);
+  assert.equal(lead.collection_method, LEAD_COLLECTION_METHOD);
+  assert.equal(lead.status, "collected");
+  assert.notEqual(lead.collected_at, "2000-01-01T00:00:00.000Z", "collected_atはサーバー側で生成され、クライアント指定値は無視されるはず");
+  assert.equal(lead.history.filter((h) => h.event === "collected").length, 1);
+  assert.equal("consent" in lead, false, "consentはLead本体に保存しない（P0-2設計確認事項）");
 });
 
-test("POST /api/leads: consentがfalse/未指定だと400になり保存されない", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
+test("POST /api/leads: consentがfalse/未指定だと400になり、Leadが作成されない", async (t) => {
   const port = 4702;
   await startTestServer(port, t);
 
-  const res1 = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ consent: false }) });
+  const email = "lead-api-test-consent-check@example.invalid";
+  const companyUrl = `https://${TEST_SLUG_PREFIX}example`;
+
+  const res1 = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ email, consent: false }) });
   assert.equal(res1.status, 400);
 
-  const res2 = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ consent: "true" }) });
+  const res2 = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ email, consent: "true" }) });
   assert.equal(res2.status, 400, "文字列'true'は拒否されるはず");
 
-  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === `${TEST_SLUG_PREFIX}example`);
-  assert.equal(stored.length, 0);
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.equal(lead, null, "consent検証で拒否された場合、Leadは作成されないはず");
 });
 
 test("POST /api/leads: 不正な形式のemailは400になる", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4703;
   await startTestServer(port, t);
 
@@ -262,13 +311,159 @@ test("POST /api/leads: 不正な形式のemailは400になる", async (t) => {
 });
 
 test("POST /api/leads: 不正なcompany_slug（パストラバーサル試行を含む）は400になる", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4704;
   await startTestServer(port, t);
 
   const res = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ company_slug: "../../etc" }) });
   assert.equal(res.status, 400);
+});
+
+test("POST /api/leads: company_context.jsonが存在しないcompany_slug（未知の企業）は400になる（合成URLは作らない）", async (t) => {
+  const port = 4715;
+  await startTestServer(port, t);
+
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: validBody({ company_slug: `${TEST_SLUG_PREFIX}unknown-company` }),
+  });
+  assert.equal(res.status, 400);
+});
+
+// ---------------------------------------------------------------------------
+// Lead重複（email×company_slug）: P0-1で確定した仕様（lead-store.jsのcreateLead()に
+// 委譲するのみで、server.js側に独自のduplicate判定は一切実装しない）をHTTP経由で確認する。
+// ---------------------------------------------------------------------------
+
+test("POST /api/leads: 同一email×同一company_slugを再POSTしても新規Leadは増えず、resubmitted historyが記録され201になる", async (t) => {
+  const port = 4716;
+  await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}dup-same`;
+  const email = "lead-api-test-dup-same@example.invalid";
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const first = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email, company_slug: slug, consent: true }) });
+  assert.equal(first.status, 201);
+
+  const firstLead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(firstLead);
+  t.after(() => cleanupLeadFile(firstLead.lead_id));
+
+  const second = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email, company_slug: slug, consent: true }) });
+  assert.equal(second.status, 201, "重複時も正常処理として201を返すはず");
+  assert.deepEqual(JSON.parse(second.body), { ok: true });
+
+  const secondLead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.equal(secondLead.lead_id, firstLead.lead_id, "新規Leadは作られず、同一Leadのままのはず");
+
+  const resubmittedEvents = secondLead.history.filter((h) => h.event === "resubmitted");
+  assert.equal(resubmittedEvents.length, 1, "resubmitted historyが1件記録されるはず");
+});
+
+test("POST /api/leads: 同一email×別company_slugは別Leadとして新規作成される", async (t) => {
+  const port = 4717;
+  await startTestServer(port, t);
+
+  const email = "lead-api-test-dup-diffslug@example.invalid";
+  const slugA = `${TEST_SLUG_PREFIX}dup-diffslug-a`;
+  const slugB = `${TEST_SLUG_PREFIX}dup-diffslug-b`;
+  const urlA = `https://${slugA}`;
+  const urlB = `https://${slugB}`;
+  await setupCompanyContextFixture(slugA, urlA);
+  await setupCompanyContextFixture(slugB, urlB);
+  t.after(() => cleanupCompanyContextFixture(slugA));
+  t.after(() => cleanupCompanyContextFixture(slugB));
+
+  const resA = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email, company_slug: slugA, consent: true }) });
+  assert.equal(resA.status, 201);
+  const leadA = await findLeadByEmailAndCompanyUrl(email, urlA);
+  assert.ok(leadA);
+  t.after(() => cleanupLeadFile(leadA.lead_id));
+
+  const resB = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email, company_slug: slugB, consent: true }) });
+  assert.equal(resB.status, 201);
+  const leadB = await findLeadByEmailAndCompanyUrl(email, urlB);
+  assert.ok(leadB);
+  t.after(() => cleanupLeadFile(leadB.lead_id));
+
+  assert.notEqual(leadA.lead_id, leadB.lead_id, "company_slugが異なるため別Leadが作成されるはず");
+});
+
+test("POST /api/leads: 別email×同一company_slugは別Leadとして新規作成される", async (t) => {
+  const port = 4718;
+  await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}dup-diffemail`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const emailA = "lead-api-test-dup-diffemail-a@example.invalid";
+  const emailB = "lead-api-test-dup-diffemail-b@example.invalid";
+
+  const resA = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email: emailA, company_slug: slug, consent: true }) });
+  assert.equal(resA.status, 201);
+  const leadA = await findLeadByEmailAndCompanyUrl(emailA, companyUrl);
+  assert.ok(leadA);
+  t.after(() => cleanupLeadFile(leadA.lead_id));
+
+  const resB = await httpRequest({ path: "/api/leads", method: "POST", port, body: JSON.stringify({ email: emailB, company_slug: slug, consent: true }) });
+  assert.equal(resB.status, 201);
+  const leadB = await findLeadByEmailAndCompanyUrl(emailB, companyUrl);
+  assert.ok(leadB);
+  t.after(() => cleanupLeadFile(leadB.lead_id));
+
+  assert.notEqual(leadA.lead_id, leadB.lead_id, "emailが異なるため別Leadが作成されるはず");
+});
+
+test("POST /api/leads: 保存失敗（lead-store.jsのcreateLead()が例外を投げる）は500になる", async (t) => {
+  const port = 4719;
+  // LEAD_STORE_S3_BUCKET未設定のままLEAD_STORE_BACKEND=s3を指定し、createLead()内部の
+  // getBackend().listLeads()/writeLead()がresolveConfig()で同期的に例外を投げる状態を作る
+  // （実AWSへは一切接続しない。leads/backends/s3-backend.jsの既存のガード節を利用するだけ）。
+  const child = spawn(process.execPath, [SERVER_PATH], {
+    env: { ...process.env, LEAD_API_PORT: String(port), LEAD_STORE_BACKEND: "s3" },
+    stdio: "pipe",
+  });
+  const output = { stdout: "", stderr: "" };
+  child.stdout.on("data", (chunk) => (output.stdout += chunk.toString()));
+  child.stderr.on("data", (chunk) => (output.stderr += chunk.toString()));
+  t.after(() => child.kill());
+
+  let ready = false;
+  for (let i = 0; i < 25; i++) {
+    await sleep(200);
+    try {
+      const res = await httpRequest({ path: "/api/leads", method: "OPTIONS", port });
+      if (res.status === 204) {
+        ready = true;
+        break;
+      }
+    } catch (e) {
+      // まだ起動していない
+    }
+  }
+  assert.ok(ready, `テスト用サーバーが起動しませんでした: ${output.stderr}`);
+
+  const slug = `${TEST_SLUG_PREFIX}store-failure`;
+  const companyUrl = `https://${slug}`;
+  // company-context-storeはCOMPANY_CONTEXT_STORE_BACKEND（未設定=filesystem）を使うため、
+  // LEAD_STORE_BACKEND=s3の影響を受けず、通常どおりfilesystemフィクスチャで解決できる。
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: JSON.stringify({ email: "lead-api-test-store-failure@example.invalid", company_slug: slug, consent: true }),
+  });
+  assert.equal(res.status, 500);
+  assert.equal(JSON.parse(res.body).ok, false);
 });
 
 test("GET /api/leads は405、未知のパスは404、OPTIONSは204を返す", async (t) => {
@@ -341,29 +536,44 @@ test("CORS: LEAD_API_ALLOWED_ORIGINS環境変数（カンマ区切り）で許�
 });
 
 test("CORS: 非ブラウザ相当のリクエスト（Originヘッダー無し）は許可リストに関わらず通常どおり処理される", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4710;
   await startTestServer(port, t);
 
-  const res = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody() });
+  const slug = `${TEST_SLUG_PREFIX}example`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const email = "lead-api-test-cors@example.invalid";
+  const res = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ email }) });
   assert.equal(res.status, 201, "Originヘッダーが無いリクエストはCORSの対象外であり、通常どおり処理されるはず");
+
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead);
+  t.after(() => cleanupLeadFile(lead.lead_id));
 });
 
 test("POST /api/leads: レート制限（5回目でブロック設定、6回目以降は429）", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4706;
   await startTestServer(port, t);
 
+  const slug = `${TEST_SLUG_PREFIX}example`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
   for (let i = 0; i < 5; i++) {
+    const email = `lead-api-test-ratelimit-${i}@example.invalid`;
     const res = await httpRequest({
       path: "/api/leads",
       method: "POST",
       port,
-      body: validBody({ email: `lead-api-test-${i}@example.invalid` }),
+      body: validBody({ email }),
     });
     assert.equal(res.status, 201, `${i + 1}回目は成功するはず`);
+    const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+    assert.ok(lead);
+    t.after(() => cleanupLeadFile(lead.lead_id));
   }
 
   const blocked = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody() });
@@ -375,18 +585,19 @@ test("POST /api/leads: レート制限（5回目でブロック設定、6回目�
 // ---------------------------------------------------------------------------
 
 test("ハニーポット: hp_websiteに値が入っていると、保存されずに本物の成功と同じ201が返る", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4711;
   await startTestServer(port, t);
 
   const slug = `${TEST_SLUG_PREFIX}honeypot`;
+  const email = "lead-api-test-honeypot@example.invalid";
+  // ハニーポット判定は他の検証（company_slug解決を含む）より先に行われるため、
+  // company_context.jsonフィクスチャは不要（存在しないslugのままでよい）。
   const res = await httpRequest({
     path: "/api/leads",
     method: "POST",
     port,
     body: JSON.stringify({
-      email: "lead-api-test-honeypot@example.invalid",
+      email,
       company_slug: slug,
       consent: true,
       hp_website: "http://bot-filled-this-field.example",
@@ -395,31 +606,37 @@ test("ハニーポット: hp_websiteに値が入っていると、保存され�
   assert.equal(res.status, 201, "botに検知を悟らせないため、本物の成功と同じ201を返すはず");
   assert.equal(JSON.parse(res.body).ok, true);
 
-  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === slug);
-  assert.equal(stored.length, 0, "ハニーポット検知時はleads.jsonlへ保存されないはず");
+  const lead = await findLeadByEmailAndCompanyUrl(email, `https://${slug}`);
+  assert.equal(lead, null, "ハニーポット検知時はLeadが作成されないはず");
 
   const auditRecords = readJsonLines(LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered");
   assert.ok(auditRecords.length >= 1, "leads-audit.jsonlにlead_honeypot_triggeredが記録されるはず");
 });
 
 test("ハニーポット: hp_websiteが空文字・未指定の場合は通常どおり処理される（正規ユーザーへの影響なし）", async (t) => {
-  const snapshot = snapshotLeadFiles();
-  t.after(() => restoreLeadFiles(snapshot));
   const port = 4712;
   await startTestServer(port, t);
 
+  const slug = `${TEST_SLUG_PREFIX}nohp`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const email = "lead-api-test-nohp@example.invalid";
   const res = await httpRequest({
     path: "/api/leads",
     method: "POST",
     port,
-    body: JSON.stringify({ email: "lead-api-test-nohp@example.invalid", company_slug: `${TEST_SLUG_PREFIX}nohp`, consent: true, hp_website: "" }),
+    body: JSON.stringify({ email, company_slug: slug, consent: true, hp_website: "" }),
   });
   assert.equal(res.status, 201);
-  const stored = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === `${TEST_SLUG_PREFIX}nohp`);
-  assert.equal(stored.length, 1);
+
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead);
+  t.after(() => cleanupLeadFile(lead.lead_id));
 });
 
-test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外（leads-audit.jsonl・サーバーのstdout/stderr）に一切出現しない", async (t) => {
+test("PII非漏洩確認: 登録したメールアドレスはLead本体（leads/<lead_id>.json）以外（leads-audit.jsonl・サーバーのstdout/stderr）に一切出現しない", async (t) => {
   const snapshot = snapshotLeadFiles();
   t.after(() => restoreLeadFiles(snapshot));
   const port = 4707;
@@ -427,6 +644,9 @@ test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外�
 
   const secretEmail = "pii-leak-check-9f3a7c@example.invalid";
   const slug = `${TEST_SLUG_PREFIX}pii-check`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
 
   // 成功ケースと、あえて失敗させるケース（バリデーションエラー時のログ経路も確認するため）の両方を送る
   const okRes = await httpRequest({
@@ -447,10 +667,11 @@ test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外�
 
   await sleep(200); // stdout/stderrのflushを待つ
 
-  // leads.jsonlには保存されているはず（保存先そのものなので出現して当然）
-  const leadRecords = readJsonLines(LEADS_PATH).filter((r) => r.company_slug === slug);
-  assert.equal(leadRecords.length, 1);
-  assert.equal(leadRecords[0].email, secretEmail);
+  // Lead本体には保存されているはず（保存先そのものなので出現して当然）
+  const lead = await findLeadByEmailAndCompanyUrl(secretEmail, companyUrl);
+  assert.ok(lead);
+  assert.equal(lead.email, secretEmail);
+  t.after(() => cleanupLeadFile(lead.lead_id));
 
   // leads-audit.jsonlには出現してはならない
   const auditRaw = fs.existsSync(LEADS_AUDIT_PATH) ? fs.readFileSync(LEADS_AUDIT_PATH, "utf-8") : "";
@@ -459,9 +680,41 @@ test("PII非漏洩確認: 登録したメールアドレスはleads.jsonl以外�
   assert.ok(auditRecords.some((r) => r.action === "lead_captured" && r.success === true));
   assert.ok(auditRecords.some((r) => r.action === "lead_rejected" && r.success === false));
 
+  // leads.jsonl（P0-2以降の新規追記は無いはず）にも出現してはならない
+  const leadsJsonlRaw = fs.existsSync(LEADS_PATH) ? fs.readFileSync(LEADS_PATH, "utf-8") : "";
+  assert.ok(!leadsJsonlRaw.includes(secretEmail), "leads.jsonlにメールアドレスが漏洩している（新規追記されないはず）");
+
   // サーバーの標準出力・標準エラー出力にも出現してはならない
   assert.ok(!output.stdout.includes(secretEmail), "サーバーのstdoutにメールアドレスが漏洩している");
   assert.ok(!output.stderr.includes(secretEmail), "サーバーのstderrにメールアドレスが漏洩している");
+});
+
+test("POST /api/leads: 成功しても leads.jsonl へ新規追記されない（P0-2でLead保存先はlead-store.jsへ移行）", async (t) => {
+  const port = 4713;
+  await startTestServer(port, t);
+
+  const before = fs.existsSync(LEADS_PATH) ? fs.readFileSync(LEADS_PATH, "utf-8") : null;
+
+  const slug = `${TEST_SLUG_PREFIX}no-jsonl-write`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const email = "lead-api-test-no-jsonl-write@example.invalid";
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: JSON.stringify({ email, company_slug: slug, consent: true }),
+  });
+  assert.equal(res.status, 201);
+
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead);
+  t.after(() => cleanupLeadFile(lead.lead_id));
+
+  const after = fs.existsSync(LEADS_PATH) ? fs.readFileSync(LEADS_PATH, "utf-8") : null;
+  assert.equal(after, before, "POST /api/leadsの成功でleads.jsonlの内容が変化してはならない（新規追記されないはず）");
 });
 
 // ---------------------------------------------------------------------------

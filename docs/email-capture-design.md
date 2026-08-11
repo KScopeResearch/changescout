@@ -251,7 +251,10 @@ company_slug・captured_at・consent）以外を保存しない設計を推奨�
 
 - `POST /api/leads`で`email`・`company_slug`・`captured_at`（サーバー生成、
   クライアント指定値は無視）・`consent`（厳密なboolean trueのみ許可）の4項目のみを
-  `scripts/generator/logs/leads.jsonl`へ保存する（④の「必須（最小限）」どおり）
+  `scripts/generator/logs/leads.jsonl`へ保存する（④の「必須（最小限）」どおり。
+  **この保存先はPJ2 AOR P0-2で変更されている。現在の実装ではLead本体は
+  `leads/lead-store.js`のcreateLead()経由で`scripts/generator/logs/leads/`へ保存され、
+  leads.jsonlは使用しない。詳細はwebsite/aor-lead-api/README.md参照**）
 - `company_slug`の検証は`shared/path-safety.js`の`validateSlug()`を再利用（⑧の
   想定どおり、重複実装していない）
 - リード取得イベントは`admin-audit.jsonl`とは別の`leads-audit.jsonl`へ、
