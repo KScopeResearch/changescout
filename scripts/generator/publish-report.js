@@ -59,10 +59,11 @@
 
 const path = require("path");
 
-const { readJsonSafe } = require("./shared/json-file");
 const { OUTPUT_DIR } = require("./shared/paths");
 const { validateSlug, isWithinDir } = require("./shared/path-safety"); // Task25: パストラバーサル対策
 const engine = require("./review/review-engine");
+const reviewStore = require("./review/review-store"); // PJ2 AOR: review backend接続PoC（下記コメント参照）
+const reportStore = require("./report-store"); // PJ2 AOR: report backend接続（Phase B-4）
 const publishedStore = require("./published-store"); // PJ2 AOR Phase 3-D-1: 公開状態のcanonical state
 const publishedFsBackend = require("./published-store/backends/filesystem-backend"); // 既存ローカル公開経路（常時維持）
 const { createLogger } = require("./shared/logger");
@@ -102,6 +103,29 @@ function usesNonFilesystemPublishedBackend() {
  * 承認済み（isPublishable()===true）のレポートをwebsite/aor/data/<slug>.jsonへ公開する。
  * report.json・review.jsonはいずれも読み取りのみで、一切変更しない。
  *
+ * 【PJ2 AOR: review backend接続PoC】review.jsonの読み込みは、従来の
+ * `engine.loadReview(reviewPath, ...)`（任意のファイルパスを直接受け取る既存API）から、
+ * `review-store.js`（company_slugを安定したidentifierとして受け取るbackend抽象化層）
+ * 経由へ切り替えた。REVIEW_STORE_BACKEND環境変数が未設定の場合は既定でfilesystem
+ * backendが使われ、filesystem-backend.jsのreviewFilePath(slug)は
+ * `OUTPUT_DIR/<slug>/review.json`という、このファイルが従来使っていた`reviewPath`と
+ * **全く同じ物理パス**を指すため、既存のreview.json・既存の呼び出し元との互換性は
+ * 完全に維持される（review.jsonの内容・スキーマは一切変更しない）。review-store.jsの
+ * loadReview/saveReviewはPromiseを返すため、本関数もこれに伴いasyncへ変更した。
+ *
+ * 【PJ2 AOR: report backend接続（Phase B-4）】report.jsonの読み込みも、従来の
+ * `readJsonSafe(reportPath)`（直接filesystem読み込み）から`report-store.js`の
+ * `loadReport(slug)`経由へ切り替えた。REPORT_STORE_BACKEND環境変数が未設定の場合は
+ * 既定でfilesystem backendが使われ、filesystem-backend.jsのreportFilePath(slug)は
+ * `OUTPUT_DIR/<slug>/report.json`という、このファイルが従来使っていた`reportPath`と
+ * **全く同じ物理パス**を指すため、既存のreport.json・既存の呼び出し元との互換性は
+ * 完全に維持される（report.jsonの内容・スキーマは一切変更しない）。
+ * `loadReport()`は「存在しない」場合にnullを返す点は従来の`readJsonSafe()`と同じだが、
+ * 「存在するが不正JSON」の場合は例外を投げる点が異なる（filesystem-backend.jsが
+ * readJson()を使うため）。従来の`readJsonSafe()`はいずれのケースもnullへ丸めていたため、
+ * 既存の「report.jsonが見つかりません」というエラー文言・挙動を変えないよう、
+ * 下記でtry/catchして同じ意味へ揃えている。
+ *
  * @param {string} slug
  * @param {{client?:Object}} [options] - PUBLISHED_STORE_BACKEND=s3使用時、テスト用の
  *   モックS3クライアントをpublished-store.jsへ注入するためのフック（省略可。他store
@@ -127,14 +151,22 @@ async function publishReport(slug, options = {}) {
     return { ok: false, error: `不正なslugです（OUTPUT_DIR外を指しています）: ${slug}` };
   }
 
-  const report = readJsonSafe(reportPath);
+  let report;
+  try {
+    report = await reportStore.loadReport(slug);
+  } catch (err) {
+    // 既存のreadJsonSafe()と同じく、不正JSONも「見つからない」扱いへ丸める
+    // （report-store.jsのfilesystem backendは不正JSON時に例外を投げるため、
+    // ここで吸収して従来のエラーメッセージ・挙動を維持する）。
+    report = null;
+  }
   if (!report) {
     return { ok: false, error: `report.jsonが見つかりません: ${slug}（先にgenerate-reportジョブを実行してください）` };
   }
 
-  // engine.loadReview()はreview.jsonが無ければcreateEmptyReview()相当の初期状態を返す
-  // （review-cli.js/server.jsと同じ既存パターンをそのまま再利用。独自実装しない）。
-  const review = engine.loadReview(reviewPath, report.id);
+  // reviewStore.loadReview()はreview.jsonが無ければcreateEmptyReview()相当の初期状態を返す
+  // （engine.loadReview()と同じ既存契約。PJ2 AOR: 今回backend経由へ切り替えた）。
+  const review = await reviewStore.loadReview(slug, report.id);
   const { publishable, reasons } = engine.isPublishable(review, report.evaluation || null, report);
 
   if (!publishable) {

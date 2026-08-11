@@ -16,17 +16,18 @@
  * （詳細はjobs/README.md「アーキテクチャ上の判断」参照）。
  */
 
-const fs = require("fs");
 const path = require("path");
 
 const store = require("./job-store");
 const engine = require("./job-engine");
 const { appendJsonLine, readJsonLines, readJsonSafe, writeJson } = require("../shared/json-file"); // Task18: JSON読み書きの共通化
-const { LOGS_DIR, OUTPUT_DIR: SHARED_OUTPUT_DIR } = require("../shared/paths"); // Task18: パス計算の共通化
+const { LOGS_DIR } = require("../shared/paths"); // Task18: パス計算の共通化
 const { nowIso } = require("../shared/date-utils");
 const { createLogger } = require("../shared/logger");
 const { redactSecrets } = require("../shared/redact"); // Task23: 永続ログへの秘密情報混入対策
 const { pruneOlderThan } = require("../shared/log-rotation"); // Task43
+const { listCompanySlugs } = require("../company-index"); // PJ2 AOR: company_slug一覧backend接続PoC
+const { loadCompanyContext } = require("../company-context-store"); // PJ2 AOR: company_context内容読み込みbackend非依存化
 
 const logger = createLogger("job-runner");
 const HISTORY_PATH = path.join(LOGS_DIR, "job-history.jsonl");
@@ -375,23 +376,40 @@ function cancel(id) {
 // スケジューラ（Task16要件④: setInterval()のみ使用、cronライブラリ禁止）
 // ---------------------------------------------------------------------------
 
-const OUTPUT_DIR = SHARED_OUTPUT_DIR; // Task18: shared/paths.jsへ一本化
-
 /**
  * scripts/generator/output/配下の既存company_context.jsonから、定期再生成の対象となる
  * 会社URL一覧を集める。新しい登録リストの仕組みは作らず、既存データを再利用する。
- * @returns {string[]}
+ *
+ * PJ2 AOR: slug一覧の取得はcompany-index.jsのlistCompanySlugs({source:"company_context"})、
+ * 各slugのcompany_context本体の読み込みはcompany-context-store.jsのloadCompanyContext(slug)
+ * へ委譲した（従来のfilesystem直接走査・直接readJsonSafe()呼び出しはいずれも廃止）。
+ * これにより、一覧・内容読み込みの双方が常に同じCOMPANY_CONTEXT_STORE_BACKEND設定を参照する
+ * ようになり、以前存在した「一覧はS3から取れるが内容はfilesystemのままで見つからない」
+ * という不整合は解消された。job-runner.jsからcompany_context.jsonの保存先
+ * （filesystemかS3か）への直接参照は完全になくなっている。
+ *
+ * 【壊れたJSONの扱いについて】company-context-store.jsのfilesystem backendは
+ * readJson()（パース失敗時に例外を投げる）を使う設計であり、従来この関数が使っていた
+ * readJsonSafe()（パース失敗時にnullを返す）とは挙動が異なる。company-context-store.js
+ * 自体は変更せず、ここでtry/catchすることで、従来通り「壊れたcompany_context.jsonは
+ * スキップする」というスケジューラの既存仕様を維持している。
+ * @param {{client?:Object}} [options] - S3使用時、テスト用のモッククライアントを注入するためのフック（省略可）
+ * @returns {Promise<string[]>}
  */
-function getScheduledCompanyUrls() {
-  if (!fs.existsSync(OUTPUT_DIR)) return [];
-  const slugs = fs.readdirSync(OUTPUT_DIR, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name);
+async function getScheduledCompanyUrls(options = {}) {
+  const slugs = await listCompanySlugs({ source: "company_context" }, options);
   const urls = [];
-  slugs.forEach((slug) => {
-    const contextPath = path.join(OUTPUT_DIR, slug, "company_context.json");
-    if (!fs.existsSync(contextPath)) return;
-    const context = readJsonSafe(contextPath); // 壊れたcompany_context.jsonはnullでスキップされる
+  for (const slug of slugs) {
+    let context;
+    try {
+      // eslint-disable-next-line no-await-in-loop
+      context = await loadCompanyContext(slug, options);
+    } catch (err) {
+      logger.warn(`company_context.jsonの読み込みに失敗しました（スキップします）: ${slug}: ${err.message}`);
+      continue;
+    }
     if (context && context.input_url) urls.push(context.input_url);
-  });
+  }
   return urls;
 }
 
@@ -405,8 +423,9 @@ function getScheduledCompanyUrls() {
 function startScheduler(intervalMs) {
   if (schedulerTimer) stopScheduler();
   schedulerTimer = setInterval(() => {
-    const urls = getScheduledCompanyUrls();
-    urls.forEach((url) => enqueue("generate-report", { url }));
+    getScheduledCompanyUrls()
+      .then((urls) => urls.forEach((url) => enqueue("generate-report", { url })))
+      .catch((err) => logger.error(`スケジューラのURL一覧取得に失敗しました: ${err.stack || err.message}`));
   }, intervalMs);
   return stopScheduler;
 }

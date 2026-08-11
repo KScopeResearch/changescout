@@ -29,17 +29,19 @@ const path = require("path");
 const { URL } = require("url");
 
 const engine = require("../../scripts/generator/review/review-engine");
+const reviewStore = require("../../scripts/generator/review/review-store"); // PJ2 AOR: review backend接続PoC
 const { validateReport, validateReview } = require("../../scripts/generator/validate-report");
 const auth = require("./auth");
 const jobRunner = require("../../scripts/generator/jobs/job-runner");
 const jobStore = require("../../scripts/generator/jobs/job-store");
-const { readJsonSafe } = require("../../scripts/generator/shared/json-file"); // Task18: JSON読み込みの共通化
 const { createLogger } = require("../../scripts/generator/shared/logger");
 const { checkLlmConfig, checkSearchConfig, formatReport } = require("../../scripts/generator/shared/config-validator"); // Task21
 const { LOGS_DIR } = require("../../scripts/generator/shared/paths"); // Task23: Health API拡張用
 const { publishReport, isPublished } = require("../../scripts/generator/publish-report"); // Task24
 const { unpublishReport } = require("../../scripts/generator/unpublish-report"); // Task38
 const { validateSlug, isWithinDir } = require("../../scripts/generator/shared/path-safety"); // Task25
+const { listCompanySlugs } = require("../../scripts/generator/company-index"); // PJ2 AOR: company_slug一覧backend接続PoC
+const reportStore = require("../../scripts/generator/report-store"); // PJ2 AOR: report backend接続（Phase B-5）
 
 const logger = createLogger("aor-admin-server");
 const { JOB_TYPES } = require("../../scripts/generator/jobs/job-engine");
@@ -66,24 +68,37 @@ const MIME_TYPES = {
 
 /**
  * 会社ディレクトリ（slug）の一覧を返す（report.jsonが存在するものだけ）。
- * @returns {string[]}
+ * PJ2 AOR: 一覧取得はcompany-index.jsのlistCompanySlugs({source:"report"})へ委譲した
+ * （report.json基準というこの関数の意味自体は変えていない。従来のfilesystem直接走査と
+ * 完全に等価であることをtest/company-index.test.jsで確認済み）。
+ * @returns {Promise<string[]>}
  */
 function listSlugs() {
-  if (!fs.existsSync(OUTPUT_DIR)) return [];
-  return fs
-    .readdirSync(OUTPUT_DIR, { withFileTypes: true })
-    .filter((d) => d.isDirectory())
-    .map((d) => d.name)
-    .filter((slug) => fs.existsSync(path.join(OUTPUT_DIR, slug, "report.json")));
+  return listCompanySlugs({ source: "report" });
 }
 
 /**
  * 1社分のreport.json・review.jsonを読み込む。review.jsonが存在しない場合は
  * review-engine.jsのcreateEmptyReview()相当の初期状態を返す（ファイルは作らない、読み取り専用）。
+ *
+ * 【PJ2 AOR: report/review backend接続（Phase B-5）】report.jsonの読み込みを
+ * `reportStore.loadReport(slug)`へ、review.jsonの読み込みを
+ * `reviewStore.loadReview(slug, report.id)`へ、それぞれ移行した。いずれもfilesystem
+ * backend使用時はOUTPUT_DIR/<slug>/report.json・review.jsonという、このファイルが
+ * 従来使っていた`reportPath`/`reviewPath`と全く同じ物理パスを指すため、既存データとの
+ * 互換性は完全に維持される。
+ *
+ * 【不正JSON時の挙動維持】従来は`readJsonSafe()`を使い、report.json・review.jsonの
+ * どちらも「存在しない」と「不正JSON」を区別せず、いずれもnull（reviewの場合は
+ * createEmptyReview()）に丸めていた。report-store.js・review-store.jsのfilesystem
+ * backendはいずれも`readJson()`を使う設計のため不正JSON時は例外を投げる（Phase B-3・
+ * review-store PoC双方の既存設計）。ここでtry/catchして従来と同じ「丸める」挙動を
+ * 再現している（report-store.js・review-store.js自体は変更しない。publish-report.js
+ * Phase B-4と同じ対処パターン）。
  * @param {string} slug
- * @returns {{slug:string, reportPath:string, reviewPath:string, report:Object|null, review:Object}|null}
+ * @returns {Promise<{slug:string, reportPath:string, reviewPath:string, report:Object|null, review:Object}|null>}
  */
-function loadCompany(slug) {
+async function loadCompany(slug) {
   // Task25: パストラバーサル対策（多層防御）。listSlugs()経由の呼び出し
   // （実際のディレクトリ名のみ）は常にvalidateSlug()を通過するため影響しない。
   if (!validateSlug(slug).ok) return null;
@@ -93,12 +108,20 @@ function loadCompany(slug) {
   const reviewPath = path.join(dir, "review.json");
   if (!isWithinDir(reportPath, OUTPUT_DIR) || !isWithinDir(reviewPath, OUTPUT_DIR)) return null;
 
-  const report = readJsonSafe(reportPath);
+  let report;
+  try {
+    report = await reportStore.loadReport(slug);
+  } catch (err) {
+    report = null;
+  }
   if (!report) return null;
 
-  const review = fs.existsSync(reviewPath)
-    ? readJsonSafe(reviewPath) || engine.createEmptyReview(report.id)
-    : engine.createEmptyReview(report.id);
+  let review;
+  try {
+    review = await reviewStore.loadReview(slug, report.id);
+  } catch (err) {
+    review = engine.createEmptyReview(report.id);
+  }
 
   return { slug, reportPath, reviewPath, report, review };
 }
@@ -130,18 +153,15 @@ async function toSummary(company) {
   };
 }
 
-/**
- * 【PJ2 AOR Phase 3-D-1】toSummary()がasync化されたため、本関数もPromise<Object[]>を
- * 返すよう変更した。listSlugs()・loadCompany()自体は変更していない（同期のまま）。
- * @returns {Promise<Object[]>}
- */
+/** @returns {Promise<Object[]>} */
 async function listCompanySummaries() {
-  return Promise.all(
-    listSlugs()
-      .map((slug) => loadCompany(slug))
-      .filter(Boolean)
-      .map(toSummary)
-  );
+  const slugs = await listSlugs();
+  // PJ2 AOR: loadCompany()がasync化された（Phase B-5）ため、Promise.all()でまとめてawaitする。
+  // Promise.all()は入力配列の順序を保ったまま結果を返すため、従来の同期.map()と
+  // 順序の意味は変わらない。toSummary()自体もPhase 3-D-1でasync化されたため、
+  // .map(toSummary)の結果もPromiseの配列になり、2段階目のPromise.all()でまとめてawaitする。
+  const companies = await Promise.all(slugs.map((slug) => loadCompany(slug)));
+  return Promise.all(companies.filter(Boolean).map(toSummary));
 }
 
 // ---------------------------------------------------------------------------
@@ -204,24 +224,21 @@ let watchDebounceTimer = null;
 // （Task45で実測: 5,000社で約1秒、10,000社で約2秒）。GET /api/reports・SSE接続の
 // たびに再計算するのではなく、結果をreportsCacheへ保持し、既存のfs.watchデバウンス
 // 機構（下記）が発火した時だけ再計算する。
-// PJ2 AOR Phase 3-D-1: listCompanySummaries()がtoSummary()のasync化に伴いPromiseを返す
-// ようになったため、module top-levelで同期実行できなくなった。空配列で初期化し、
-// 実際の初回計算は「サーバー起動」セクションのstartServer()内でawaitする
-// （「fs.watchが発火する前のGET /api/reportsでも従来と同じ内容を返す」という保証は、
-// listenを呼ぶ前に初回計算を待つことで維持する）。
+// PJ2 AOR: listCompanySummaries()がcompany-index.js経由でasync化された（S3 backend対応の
+// ため）。そのため起動時の初回計算はもうここで同期実行できない。ここでは空配列で
+// 初期化するだけにし、実際の初回計算とawaitは「サーバー起動」セクション（envCheck.ok
+// 判定後）で行い、その完了を待ってからserver.listen()する（意味は変えていない。
+// 「fs.watchが発火する前のGET /api/reportsでも従来と同じ内容を返す」という保証は
+// 維持される。詳細は起動セクションのコメント参照）。
 let reportsCache = [];
 
-/**
- * 接続中の全SSEクライアントへ最新の一覧を送る（reportsCacheを更新し、そのまま使う。二重計算しない）。
- * 【PJ2 AOR Phase 3-D-1】listCompanySummaries()のasync化に伴い本関数もasyncへ変更した。
- * fs.watchのデバウンスタイマー（下記）からawaitなしで呼ばれるため、失敗時にunhandled
- * rejectionでプロセスを落とさないよう、ここでcatchしてログに残すだけに留める
- * （直前のreportsCacheの内容は保持されたままになる）。
- */
+/** 接続中の全SSEクライアントへ最新の一覧を送る（reportsCacheを更新し、そのまま使う。二重計算しない）。 */
 async function broadcastReportsUpdate() {
   try {
     reportsCache = await listCompanySummaries();
   } catch (err) {
+    // PJ2 AOR: 一覧再計算に失敗しても、既存のreportsCache（直前の正常な一覧）は
+    // 保持したまま維持する（中途半端な一覧でSSEクライアントを更新しない）。
     logger.error(`reportsCacheの更新に失敗しました（直前の一覧を維持します）: ${err.stack || err.message}`);
     return;
   }
@@ -334,6 +351,15 @@ function serveStatic(res, pathname) {
  * 【Task15】reviewer/actorはbody（クライアント入力）からは取らず、必ず認証済み
  * session.usernameを使う。クライアントがbodyに別人の名前を仕込んでも無視される。
  *
+ * 【PJ2 AOR: review backend接続PoC】review.jsonの保存は、従来の
+ * `engine.saveReview(company.reviewPath, ...)`から`reviewStore.saveReview(slug, ...)`
+ * （company_slugを安定したidentifierとするbackend抽象化層）へ切り替えた。
+ * REVIEW_STORE_BACKEND未設定時は既定でfilesystem backendが使われ、
+ * `OUTPUT_DIR/<slug>/review.json`という`company.reviewPath`と全く同じ物理パスへ
+ * 書き込むため、既存の読み込み側とのデータ互換性は維持される。読み込み側
+ * （loadCompany()）はPhase B-5でreportStore.loadReport()/reviewStore.loadReview()
+ * 経由へ移行し、async関数になった（詳細はloadCompany()自身のコメント参照）。
+ *
  * @param {http.ServerResponse} res
  * @param {string} slug
  * @param {"comment"|"fix"|"approve"|"reject"|"revise"} action
@@ -341,8 +367,8 @@ function serveStatic(res, pathname) {
  * @param {{username:string}} session
  * @param {string} ip
  */
-function handleReviewAction(res, slug, action, body, session, ip) {
-  const company = loadCompany(slug);
+async function handleReviewAction(res, slug, action, body, session, ip) {
+  const company = await loadCompany(slug);
   if (!company) {
     auth.logAudit({ user: session.username, ip, action, target: slug, success: false, detail: "company not found" });
     sendJson(res, 404, { error: `company not found: ${slug}` });
@@ -367,7 +393,7 @@ function handleReviewAction(res, slug, action, body, session, ip) {
     return;
   }
 
-  engine.saveReview(company.reviewPath, nextReview);
+  await reviewStore.saveReview(slug, nextReview);
   auth.logAudit({ user: session.username, ip, action, target: slug, success: true });
 
   const evaluation = company.report.evaluation || null;
@@ -412,7 +438,7 @@ async function handleApi(req, res, url, session, ip) {
   let m;
 
   if ((m = pathname.match(/^\/api\/report\/([^/]+)$/)) && req.method === "GET") {
-    const company = loadCompany(m[1]);
+    const company = await loadCompany(m[1]);
     if (!company) return sendJson(res, 404, { error: `company not found: ${m[1]}` }), true;
     const evaluation = company.report.evaluation || null;
     const publishableResult = engine.isPublishable(company.review, evaluation, company.report);
@@ -432,7 +458,7 @@ async function handleApi(req, res, url, session, ip) {
   }
 
   if ((m = pathname.match(/^\/api\/status\/([^/]+)$/)) && req.method === "GET") {
-    const company = loadCompany(m[1]);
+    const company = await loadCompany(m[1]);
     if (!company) return sendJson(res, 404, { error: `company not found: ${m[1]}` }), true;
     const evaluation = company.report.evaluation || null;
     const { publishable, reasons } = engine.isPublishable(company.review, evaluation, company.report);
@@ -450,7 +476,7 @@ async function handleApi(req, res, url, session, ip) {
       return true;
     }
 
-    handleReviewAction(res, slug, action, body, session, ip);
+    await handleReviewAction(res, slug, action, body, session, ip);
     return true;
   }
 
@@ -460,7 +486,7 @@ async function handleApi(req, res, url, session, ip) {
 
   if ((m = pathname.match(/^\/api\/publish\/([^/]+)$/)) && req.method === "POST") {
     const slug = m[1];
-    const result = await publishReport(slug); // PJ2 AOR Phase 3-D-1: published-store.js経由でasync化
+    const result = await publishReport(slug); // PJ2 AOR: publishReport()がreview-store経由になりasync化されたため
     if (!result.ok) {
       auth.logAudit({ user: session.username, ip, action: "publish", target: slug, success: false, detail: result.error });
       sendJson(res, 400, { error: result.error, reasons: result.reasons || [] });
@@ -574,11 +600,11 @@ if (!envCheck.ok) {
   logger.error(`起動を中止しました: ${envCheck.message}`);
   process.exitCode = 1;
 } else {
-  // PJ2 AOR Phase 3-D-1: reportsCache初期化（listCompanySummaries()）がtoSummary()の
-  // async化に伴いPromiseを返すようになったため、module top-levelで同期実行できなくなった。
-  // ここでIIFE相当のstartServer()にしてawaitし、「cache初期化完了前にserverをlistenさせない・
-  // 初期化失敗時に中途半端なserverを起動しない」を満たす。GET /api/reports・SSEのレスポンス
-  // 形式・reportsCacheの意味は一切変更していない（従来通り「事前計算済みの一覧をそのまま返す」）。
+  // PJ2 AOR: reportsCache初期化（listCompanySummaries()）がcompany-index.js経由でasync化
+  // されたため、module top-levelで同期実行できなくなった。ここでIIFEにしてawaitし、
+  // 「cache初期化完了前にserverをlistenさせない・初期化失敗時に中途半端なserverを
+  // 起動しない」を満たす。GET /api/reports・SSEのレスポンス形式・reportsCacheの意味は
+  // 一切変更していない（従来通り「事前計算済みの一覧をそのまま返す」）。
   startServer().catch((err) => {
     logger.error(`起動を中止しました: reportsCacheの初期化に失敗しました: ${err.stack || err.message}`);
     process.exitCode = 1;
@@ -691,3 +717,4 @@ async function startServer() {
 
   module.exports = { server, listCompanySummaries, loadCompany };
 }
+

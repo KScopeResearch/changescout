@@ -33,11 +33,12 @@ const fs = require("fs");
 const path = require("path");
 
 const { buildCompanyContext } = require("./company-context");
+const { saveCompanyContext } = require("./company-context-store"); // PJ2 AOR: company_context backend接続PoC
+const { saveReport } = require("./report-store"); // PJ2 AOR: report backend接続（Phase B-3）
 const { buildSourcePages } = require("./simulate-ai-analysis");
 const { generateAnalysis, resolveProviderId } = require("./llm/llm-client");
 const { evaluateReportQuality, renderEvaluationMarkdown } = require("./quality-evaluator");
 const { validateReport } = require("./validate-report");
-const { writeJson } = require("./shared/json-file"); // Task18: JSON読み書きの共通化
 const { OUTPUT_DIR } = require("./shared/paths"); // Task18: パス計算の共通化
 const { runCli } = require("./shared/cli-utils"); // Task18: process.exit()回避パターンの共通化
 const { checkLlmConfig, checkSearchConfig } = require("./shared/config-validator"); // Task21: 起動時Configチェック
@@ -187,7 +188,11 @@ async function generateCompanyReport(companyUrl, options = {}) {
   const outDir = path.join(OUTPUT_DIR, slug);
 
   const contextPath = path.join(outDir, "company_context.json");
-  writeJson(contextPath, context);
+  // PJ2 AOR: company_context backend接続PoC。COMPANY_CONTEXT_STORE_BACKEND未設定時は
+  // 既定でfilesystem backendが使われ、filesystem-backend.jsのcompanyContextFilePath(slug)は
+  // 上記contextPathと全く同じ物理パスを指すため、既存の読み込み側（job-runner.jsの
+  // getScheduledCompanyUrls()等）との互換性は維持される。
+  await saveCompanyContext(slug, context);
   onProgress("context:saved", { contextPath });
 
   const providerId = resolveProviderId();
@@ -200,7 +205,12 @@ async function generateCompanyReport(companyUrl, options = {}) {
   onProgress("evaluation:done", { evaluation });
 
   const reportPath = path.join(outDir, "report.json");
-  writeJson(reportPath, report);
+  // PJ2 AOR: report backend接続（Phase B-3）。REPORT_STORE_BACKEND未設定時は既定でfilesystem
+  // backendが使われ、filesystem-backend.jsのreportFilePath(slug)は上記reportPathと
+  // 全く同じ物理パスを指すため、既存の読み込み側（server.jsのloadCompany()等、今回は
+  // 未接続のまま）との互換性は維持される。reportPath自体はpaths.reportPathとして
+  // 戻り値・onProgressで引き続き使うため変数は残す（company_context移行時と同じ判断）。
+  await saveReport(slug, report);
   onProgress("report:saved", { reportPath });
 
   const evaluationMdPath = path.join(outDir, "evaluation.md");

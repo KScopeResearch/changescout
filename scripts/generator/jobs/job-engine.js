@@ -19,8 +19,9 @@ const { generateCompanyReport, slugFromUrl } = require("../generate-company-repo
 const { evaluateReportQuality, renderEvaluationMarkdown } = require("../quality-evaluator");
 const { validateReport } = require("../validate-report");
 const { buildCompanyContext } = require("../company-context");
-const { readJson, writeJson } = require("../shared/json-file"); // Task18: JSON読み書きの共通化
+const { saveCompanyContext } = require("../company-context-store"); // PJ2 AOR: company_context backend接続PoC
 const { OUTPUT_DIR } = require("../shared/paths"); // Task18: パス計算の共通化
+const { loadReport, saveReport } = require("../report-store"); // PJ2 AOR: report backend接続（Phase B-3）
 
 /**
  * generate-report: 会社URLからフルパイプラインを実行する。
@@ -44,14 +45,20 @@ async function runQualityCheck(params) {
   if (!params || !params.slug) throw new Error('quality-check job には params.slug が必須です');
   const outDir = path.join(OUTPUT_DIR, params.slug);
   const reportPath = path.join(outDir, "report.json");
-  if (!fs.existsSync(reportPath)) {
+
+  // PJ2 AOR: report backend接続（Phase B-3）。read-modify-writeの流れ
+  // （loadReport→evaluation更新→saveReport）自体は変更していない。
+  // report.jsonが存在しない場合の「見つかりません」という既存の分かりやすい
+  // エラーメッセージ（reportPathを含む）は呼び出し側であるここで維持する
+  // （loadReport()自体は単にnullを返すだけで、メッセージの文言は上位の責務のため）。
+  const report = await loadReport(params.slug);
+  if (!report) {
     throw new Error(`report.jsonが見つかりません: ${reportPath}（先にgenerate-reportジョブを実行してください）`);
   }
 
-  const report = readJson(reportPath);
   const evaluation = evaluateReportQuality(report);
   report.evaluation = evaluation;
-  writeJson(reportPath, report);
+  await saveReport(params.slug, report);
 
   // PJ2 AOR Phase 3-D-1: generate-company-report.jsと同じ判断（ヘッダコメント参照）。
   // evaluation.mdは開発者向けの人間可読レポートであり、データ実体は既にreport.evaluation
@@ -102,7 +109,8 @@ async function runSearchRefresh(params) {
   const slug = slugFromUrl(params.url);
   const outDir = path.join(OUTPUT_DIR, slug);
   const contextPath = path.join(outDir, "company_context.json");
-  writeJson(contextPath, context);
+  // PJ2 AOR: company_context backend接続PoC（generate-company-report.jsと同じ理由）。
+  await saveCompanyContext(slug, context);
   return { slug, contextPath, pipeline_stats: context.pipeline_stats };
 }
 

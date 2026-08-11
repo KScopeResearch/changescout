@@ -17,6 +17,7 @@ const { publishReport, isPublished, publishedPathFor, validateSlug, AOR_DATA_DIR
 const { readJson, writeJson } = require("../shared/json-file");
 const { OUTPUT_DIR } = require("../shared/paths");
 const engine = require("../review/review-engine");
+const reportStore = require("../report-store"); // PJ2 AOR: report backend接続（Phase B-4）のテストで使用
 
 const FIXTURE_REPORT = readJson(path.join(__dirname, "..", "fixtures", "good.json"));
 
@@ -154,6 +155,77 @@ test("isPublished: 公開前はfalse、publishReport()成功後はtrue", async (
     assert.equal(await isPublished(slug), false);
     await publishReport(slug);
     assert.equal(await isPublished(slug), true);
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PJ2 AOR: report backend接続（Phase B-4） — report.jsonの読み込みが
+// report-store.js（loadReport）経由になっており、publish-report.jsが直接
+// filesystemを読んでいないことを確認する
+// ---------------------------------------------------------------------------
+
+test("publishReport: report-store.js経由でreport.jsonを保存したcompanyも正しく公開できる", async () => {
+  // setupCompany()は既存の他テストと同じくwriteJson()で直接fixtureを配置しているが、
+  // このテストではあえてreportStore.saveReport()（report-store.js自身のAPI）で
+  // report.jsonを書き込み、publishReport()が同じ物理ファイルを問題なく読めることを示す
+  // （filesystem-backend.jsのパスがOUTPUT_DIR/<slug>/report.jsonと一致している証拠）。
+  const slug = "test-publish-via-report-store";
+  cleanupCompany(slug);
+  const report = { ...FIXTURE_REPORT, id: slug };
+  await reportStore.saveReport(slug, report);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, true);
+    const published = readJson(result.publishedPath);
+    assert.deepEqual(published, report);
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+test("publishReport: report.jsonの読み込みはreport-store.jsのloadReport()経由で行われる（直接filesystem読み込みではない）", async () => {
+  const slug = "test-publish-uses-report-store";
+  cleanupCompany(slug);
+  const { report } = setupCompany(slug);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  const originalLoadReport = reportStore.loadReport;
+  const calls = [];
+  reportStore.loadReport = async (...args) => {
+    calls.push(args);
+    return originalLoadReport(...args);
+  };
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, true);
+    assert.equal(calls.length, 1, "publishReport()の内部でloadReport()が正確に1回呼ばれるはず");
+    assert.equal(calls[0][0], slug, "loadReport()にslugがそのまま渡されるはず");
+  } finally {
+    reportStore.loadReport = originalLoadReport;
+    cleanupCompany(slug);
+  }
+});
+
+test("publishReport: 不正JSON（壊れたreport.json）は既存のreadJsonSafe()相当の挙動（見つからない扱い）を維持する", async () => {
+  const slug = "test-publish-broken-report-json";
+  cleanupCompany(slug);
+  const dir = path.join(OUTPUT_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, "report.json"), "{ this is not valid json", "utf-8");
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, false);
+    assert.match(result.error, /report\.json/, "不正JSONも従来同様「見つかりません」相当のエラーになるはず");
   } finally {
     cleanupCompany(slug);
   }
