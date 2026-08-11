@@ -542,18 +542,29 @@ test("sendInitialReportsForAllReportGenerated: report_generatedなLeadだけを�
 test("sendInitialReportsForAllReportGenerated: sent/skipped/failedがLeadごとに正しく判定される", async (t) => {
   withSiteConfig(t);
 
-  const sentLead = await createReportGeneratedLead();
+  // sampleParams()はemail/company_urlを固定値で返すため、overridesを指定せずに
+  // createReportGeneratedLead()を複数回呼ぶと、P0-1で確定したemail×company_url同一性判定
+  // により3件とも同一Leadに収束してしまう（resubmittedが記録されるだけで新規Leadにならない）。
+  // sent/skipped/failedを独立した3件のLeadとして検証するため、それぞれ異なる
+  // email・company_urlを明示的に渡す。
+  const sentLead = await createReportGeneratedLead({
+    overrides: { email: "send-initial-report-sent-test@example.invalid", company_url: "https://send-initial-report-sent-test.example" },
+  });
   t.after(() => {
     cleanupLead(sentLead.lead_id);
     cleanupPublished(sentLead.company_slug);
   });
   publishTestCompanyData(sentLead.company_slug);
 
-  const skippedLead = await createReportGeneratedLead();
+  const skippedLead = await createReportGeneratedLead({
+    overrides: { email: "send-initial-report-skipped-test@example.invalid", company_url: "https://send-initial-report-skipped-test.example" },
+  });
   t.after(() => cleanupLead(skippedLead.lead_id));
   // skippedLeadは公開しない → skip対象
 
-  const failedLead = await createReportGeneratedLead();
+  const failedLead = await createReportGeneratedLead({
+    overrides: { email: "send-initial-report-failed-test@example.invalid", company_url: "https://send-initial-report-failed-test.example" },
+  });
   t.after(() => {
     cleanupLead(failedLead.lead_id);
     cleanupPublished(failedLead.company_slug);

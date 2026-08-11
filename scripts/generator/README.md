@@ -572,7 +572,7 @@ node scripts/generator/leads/import-leads.js <csv-path>
 
 ### 現在のS3バケット運用設定（`changescout-pj2-leads-179127602551`・`ap-northeast-1`）
 
-PJ2 AOP Persona A構築時に作成したLead保存用バケットの設定（2026-08-09時点）。
+PJ2 AOR Persona A構築時に作成したLead保存用バケットの設定（2026-08-09時点）。
 
 | 項目 | 設定 |
 |---|---|

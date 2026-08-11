@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * server.js — AOPメール回収API（PJ2 第1実装: 安全なリード保存基盤／第2実装: 公開フォーム接続／
+ * server.js — AORメール回収API（PJ2 第1実装: 安全なリード保存基盤／第2実装: 公開フォーム接続／
  * P0-2: 正式なLeadライフサイクル（lead-store.js）への接続）
  *
  * website/aor（受信者向け静的LP）のメール登録フォームから将来送信される想定の
@@ -543,7 +543,7 @@ function startServer() {
   });
 
   server.listen(PORT, () => {
-    console.log(`AOP Lead API: http://localhost:${PORT}`);
+    console.log(`AOR Lead API: http://localhost:${PORT}`);
     console.log(`  保存先: ${LEADS_DIR}`);
     console.log(`  イベントログ: ${LEADS_AUDIT_PATH}`);
   });
