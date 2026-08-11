@@ -354,11 +354,25 @@ test("GET /api/reports（Task46）: report.json追加直後はキャッシュ未
     "作成直後はreportsCacheがまだ更新されていないため一覧に含まれないはず（毎回フルスキャンしていないことの確認）"
   );
 
-  // デバウンス（300ms）を十分に超えて待つ
-  await sleep(700);
+  // デバウンス（300ms）後に反映されるまでポーリングする。website/aor-admin/server.jsの
+  // fs.watch(OUTPUT_DIR, {recursive:true})は、OUTPUT_DIR配下のどのファイル変更でも
+  // 300msデバウンスタイマーを再始動する仕様（本テスト専用ディレクトリに限らない）。
+  // run-all-tests.jsは複数テストファイルを並列実行するため、他のテストファイルが
+  // 同時にOUTPUT_DIR配下へ書き込むと、そのたびにデバウンスタイマーが再始動し、
+  // 固定sleep(700)だけでは足りないことがある（単独実行では他の書き込みが無いため
+  // 安定してPASSする）。デバウンス自体の仕組みは変えず、確認側を「一定時間内に
+  // 反映されること」を確認するポーリングにすることで、並列実行下でも安定させる。
+  const pollTimeoutMs = 8000;
+  const pollIntervalMs = 100;
+  const pollDeadline = Date.now() + pollTimeoutMs;
+  let afterBody;
+  do {
+    const after = await httpRequest({ path: "/api/reports", cookie: sidCookie, port });
+    afterBody = JSON.parse(after.body);
+    if (afterBody.some((c) => c.id === CACHE_TEST_SLUG)) break;
+    await sleep(pollIntervalMs);
+  } while (Date.now() < pollDeadline);
 
-  const after = await httpRequest({ path: "/api/reports", cookie: sidCookie, port });
-  const afterBody = JSON.parse(after.body);
   assert.equal(
     afterBody.some((c) => c.id === CACHE_TEST_SLUG),
     true,
