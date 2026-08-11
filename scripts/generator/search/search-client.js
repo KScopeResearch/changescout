@@ -97,10 +97,19 @@ function callWithRetryAndTimeout(provider, query, options, { timeoutMs, maxRetri
   );
 }
 
-/** @param {Object} entry */
+/**
+ * 【Lambda互換性】llm-client.jsのwriteLog()と同じ理由でtry/catchする
+ * （デプロイパッケージ配下は読み取り専用のため失敗しうるが、検索結果そのものには
+ * 影響させない。詳細はllm-client.jsのwriteLog()コメント参照）。
+ * @param {Object} entry
+ */
 function writeLog(entry) {
-  archiveIfOversize(LOG_FILE, ARCHIVE_SIZE_BYTES); // Task43
-  appendJsonLine(LOG_FILE, entry);
+  try {
+    archiveIfOversize(LOG_FILE, ARCHIVE_SIZE_BYTES); // Task43
+    appendJsonLine(LOG_FILE, entry);
+  } catch (err) {
+    logger.warn(`search-usage.jsonlへの追記に失敗しました（使用量ログのみ、検索結果には影響しません）: ${err.message}`);
+  }
 }
 
 /**

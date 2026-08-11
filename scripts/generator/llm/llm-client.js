@@ -183,11 +183,21 @@ function calculateCost(usage, pricing) {
 
 /**
  * コストログを scripts/generator/logs/llm-usage.jsonl へ追記する（Task7）。
+ *
+ * 【Lambda互換性】Lambdaのデプロイパッケージ配下（このファイルの__dirname相対で
+ * 解決されるLOGS_DIR）は読み取り専用のため、このローカル追記は失敗しうる。
+ * コストログはLLM分析結果そのものではなく付随的な記録であるため、失敗してもレポート
+ * 生成全体を失敗させない（warnログのみ残す）。Lambda環境でのコストログの永続化先
+ * （CloudWatch Logs構造化ログ・S3等）は今回未設計・未実装（別途の設計判断が必要）。
  * @param {Object} entry
  */
 function writeLog(entry) {
-  archiveIfOversize(LOG_FILE, ARCHIVE_SIZE_BYTES); // Task43
-  appendJsonLine(LOG_FILE, entry);
+  try {
+    archiveIfOversize(LOG_FILE, ARCHIVE_SIZE_BYTES); // Task43
+    appendJsonLine(LOG_FILE, entry);
+  } catch (err) {
+    logger.warn(`llm-usage.jsonlへの追記に失敗しました（コストログのみ、分析結果には影響しません）: ${err.message}`);
+  }
 }
 
 /**
