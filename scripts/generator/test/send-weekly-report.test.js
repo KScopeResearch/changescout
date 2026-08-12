@@ -566,3 +566,159 @@ test("後方互換性: last_weekly_sent_report_generated_atフィールドが無
   assert.equal(result.ok, true, "フィールド欠落は「未送信」として扱われ、送信対象になるはず");
   assert.equal(calls.length, 1);
 });
+
+// ---------------------------------------------------------------------------
+// Phase24 Case A-F: SES送信成功後の永続化失敗を「送信失敗」と誤記録しないことの検証
+// ---------------------------------------------------------------------------
+
+test("Phase24 Case A. SES送信失敗 → weekly_report_failed、weekly_report_sentなし、last_weekly_sent_report_generated_at更新なし、次回再送可能", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+  const { fn } = fakeSendEmail({ ok: false });
+
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn });
+  assert.equal(result.ok, false);
+  assert.equal(result.sentButNotPersisted, undefined, "SES未成功時はsentButNotPersistedを含まないはず");
+
+  const after = await readLead(lead.lead_id);
+  assert.equal(after.last_weekly_sent_report_generated_at, null);
+  assert.ok(after.history.some((h) => h.event === "weekly_report_failed"));
+  assert.equal(
+    after.history.some((h) => h.event === "weekly_report_sent"),
+    false
+  );
+
+  // 次回再送可能であることの確認
+  const retry = fakeSendEmail({ messageId: "ses-msg-phase24-case-a-retry" });
+  const retryResult = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: retry.fn });
+  assert.equal(retryResult.ok, true);
+});
+
+test("Phase24 Case B. SES成功+updateLead成功+appendHistory成功 → 正常終了（従来通りの戻り値形状）", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+  const { fn } = fakeSendEmail({ messageId: "ses-msg-phase24-case-b" });
+
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn });
+  assert.deepEqual(result, { ok: true, leadId: lead.lead_id, messageId: "ses-msg-phase24-case-b" }, "従来と同じ戻り値形状のはず（余分なフィールドを含まない）");
+
+  const after = await readLead(lead.lead_id);
+  assert.equal(after.last_weekly_sent_report_generated_at, GENERATED_AT_1);
+  const entry = after.history.find((h) => h.event === "weekly_report_sent");
+  assert.ok(entry);
+  assert.equal(entry.metadata.message_id, "ses-msg-phase24-case-b");
+  assert.equal(entry.metadata.report_generated_at, GENERATED_AT_1);
+});
+
+test("Phase24 Case C. SES成功+updateLead失敗 → 「送信自体は成功済み」と判定でき、weekly_report_failedとして誤記録しない", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+  const { fn } = fakeSendEmail({ messageId: "ses-msg-phase24-case-c" });
+  const failingUpdateLead = async () => {
+    throw new Error("ダミーのS3書き込み失敗（updateLead）");
+  };
+
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn, updateLead: failingUpdateLead });
+
+  assert.equal(result.ok, true, "SES送信自体は成功しているためok:trueのはず");
+  assert.equal(result.messageId, "ses-msg-phase24-case-c");
+  assert.equal(result.sentButNotPersisted, true);
+  assert.equal(result.dedupPersisted, false);
+  assert.equal(result.historyPersisted, true, "appendHistoryは独立して試行され成功するはず");
+  assert.match(result.persistError, /S3書き込み失敗/);
+
+  const after = await readLead(lead.lead_id);
+  assert.equal(after.last_weekly_sent_report_generated_at, null, "updateLead失敗のため更新されていないはず");
+  const entry = after.history.find((h) => h.event === "weekly_report_sent");
+  assert.ok(entry, "appendHistoryは成功しているため記録は残るはず");
+  assert.equal(entry.metadata.dedup_not_persisted, true);
+  assert.equal(
+    after.history.some((h) => h.event === "weekly_report_failed"),
+    false,
+    "weekly_report_failedとして誤記録してはならない"
+  );
+});
+
+test("Phase24 Case D. SES成功+updateLead成功+appendHistory失敗 → SES送信済みとして扱われ、weekly_report_failedとして誤記録しない", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+  const { fn } = fakeSendEmail({ messageId: "ses-msg-phase24-case-d" });
+  const failingAppendHistory = async () => {
+    throw new Error("ダミーのS3書き込み失敗（appendHistory）");
+  };
+
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn, appendHistory: failingAppendHistory });
+
+  assert.equal(result.ok, true, "SES送信済みとして扱われるはず");
+  assert.equal(result.messageId, "ses-msg-phase24-case-d");
+  assert.equal(result.sentButNotPersisted, true);
+  assert.equal(result.dedupPersisted, true, "updateLeadは独立して試行され成功するはず");
+  assert.equal(result.historyPersisted, false);
+  assert.match(result.persistError, /S3書き込み失敗/);
+
+  const after = await readLead(lead.lead_id);
+  assert.equal(after.last_weekly_sent_report_generated_at, GENERATED_AT_1, "updateLeadは成功しているため更新されているはず");
+  assert.equal(
+    after.history.some((h) => h.event === "weekly_report_failed"),
+    false,
+    "weekly_report_failedとして誤記録してはならない"
+  );
+});
+
+test("Phase24 Case E. 同一generated_atの再実行 → 二重送信防止（Case Bの正常系が維持している前提の再確認）", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+
+  const first = fakeSendEmail({ messageId: "ses-msg-phase24-case-e-1" });
+  const r1 = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: first.fn });
+  assert.equal(r1.ok, true);
+
+  const second = fakeSendEmail({ messageId: "ses-msg-phase24-case-e-2" });
+  const r2 = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: second.fn });
+  assert.equal(r2.ok, false);
+  assert.equal(r2.skipped, true);
+  assert.equal(second.calls.length, 0, "二重送信防止によりSESに到達しないはず");
+});
+
+test("Phase24 Case F. 新しいgenerated_at → 新reportとして送信対象になる", async (t) => {
+  withSiteConfig(t);
+  const lead = await createEligibleLead({ patch: { last_weekly_sent_report_generated_at: GENERATED_AT_1 } });
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_2 });
+  const { fn, calls } = fakeSendEmail({ messageId: "ses-msg-phase24-case-f" });
+
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn });
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1);
+
+  const after = await readLead(lead.lead_id);
+  assert.equal(after.last_weekly_sent_report_generated_at, GENERATED_AT_2);
+});

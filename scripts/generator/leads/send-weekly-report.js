@@ -103,6 +103,11 @@ function buildWeeklyEmailContent({ companyName, reportUrl }) {
  */
 async function sendWeeklyReportForLead(leadId, options = {}) {
   const sendEmailFn = options.sendEmail || sesClient.sendEmail;
+  // 【Phase24】SES送信成功後の永続化失敗（updateLead/appendHistory）をテストで個別に
+  // 再現できるよう、options経由の差し替えフックを追加した（既存のoptions.sendEmailと
+  // 同じDIパターン。デフォルトは実際のlead-store.js関数のため、本番動作は変更なし）。
+  const updateLeadFn = options.updateLead || updateLead;
+  const appendHistoryFn = options.appendHistory || appendHistory;
 
   const lead = await readLead(leadId);
   if (!lead) {
@@ -179,6 +184,7 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
     return { ok: false, leadId, error: err.message };
   }
 
+  let messageId;
   try {
     const result = await sendEmailFn({
       to: lead.email,
@@ -187,20 +193,15 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
       html,
       tags: [{ Name: "lead_id", Value: lead.lead_id }],
     });
-
-    // 送信成功時にのみ、送信済み判定に使うgenerated_atを更新する（この順序が
-    // 二重送信防止の要。SES失敗時はここへ到達しないため、次回実行で同じreportが
-    // 再び送信対象になる）。
-    await updateLead(leadId, { last_weekly_sent_report_generated_at: generatedAt });
-    await appendHistory(leadId, "weekly_report_sent", {
-      message_id: result.messageId,
-      report_generated_at: generatedAt,
-    });
-    return { ok: true, leadId, messageId: result.messageId };
+    messageId = result.messageId;
   } catch (err) {
     // send-initial-report.jsのinitial_report_failedと同じ扱い: statusは触らず
     // （Weeklyはstatusを一切変更しない設計）、historyにのみ失敗を記録する。
     // AWS credential・report_token・emailはerrに含まれない構造（ses-client.jsのコメント参照）。
+    // 【重要】このcatchはsendEmailFn()自体の失敗（＝SES送信未成功）のみを捕捉する。
+    // SES送信成功後の後続処理（updateLead/appendHistory）はここでは扱わない
+    // （Phase24: 「送信成功」と「送信後の永続化失敗」を同じ"送信失敗"として扱わないため、
+    // 意図的に別のtry/catchへ分離した）。
     await appendHistory(leadId, "weekly_report_failed", {
       error: redactSecrets(err.message),
       code: err.code || null,
@@ -208,6 +209,52 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
     });
     return { ok: false, leadId, error: err.message };
   }
+
+  // ここに到達した時点でSES送信は成功済み（message_id取得済み）。以降の
+  // updateLead()/appendHistory()の失敗は「メール送信失敗」ではないため、
+  // weekly_report_failedとして記録してはならない（Phase24で修正した論点）。
+  // 二重送信防止フラグ（last_weekly_sent_report_generated_at）とhistory記録を
+  // それぞれ独立に試行し、どちらが失敗したかを呼び出し元が診断できるようにする
+  // （片方の失敗がもう片方の試行を妨げないようにするため、あえて別々のtry/catchにする）。
+  let dedupPersisted = false;
+  let historyPersisted = false;
+  let persistErrorMessage = null;
+
+  try {
+    await updateLeadFn(leadId, { last_weekly_sent_report_generated_at: generatedAt });
+    dedupPersisted = true;
+  } catch (err) {
+    persistErrorMessage = err.message;
+  }
+
+  try {
+    await appendHistoryFn(leadId, "weekly_report_sent", {
+      message_id: messageId,
+      report_generated_at: generatedAt,
+      ...(dedupPersisted ? {} : { dedup_not_persisted: true }),
+    });
+    historyPersisted = true;
+  } catch (err) {
+    persistErrorMessage = persistErrorMessage || err.message;
+  }
+
+  if (dedupPersisted && historyPersisted) {
+    return { ok: true, leadId, messageId };
+  }
+
+  // 【Phase24】SES送信自体は成功しているため ok:true のまま返す。ただし、
+  // 二重送信防止フラグまたはhistory記録の永続化に失敗しており、次回実行で
+  // 同一reportが再送される可能性がある（完全なatomic防止は行わない設計上の限界。
+  // Step3で合意した通り、誤検知を防ぎ状態を診断可能にすることを優先する）。
+  return {
+    ok: true,
+    leadId,
+    messageId,
+    sentButNotPersisted: true,
+    dedupPersisted,
+    historyPersisted,
+    persistError: persistErrorMessage ? redactSecrets(persistErrorMessage) : null,
+  };
 }
 
 /**
