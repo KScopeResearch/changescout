@@ -91,6 +91,8 @@ const VALID_EVENTS = [
   "weekly_report_consent",
   "unsubscribed",
   "weekly_report_sent",
+  "weekly_report_failed", // PJ2 AOR Phase 18: initial_report_failedと同じ理由（上記コメント参照）で、
+  // weekly_report_sentにはSES失敗時の対になるイベント名がここに未登録だった。
   "resubmitted", // PJ2 AOR: 「Leadは重複を許容する」確定仕様（P0-1）で追加。
   // 既存のLeadライフサイクル系イベント（collected/validated/report_generated等）は
   // いずれもLeadが前進する遷移を表すが、これは唯一「同じ入力が再び届いた」という
@@ -186,6 +188,8 @@ function buildNewLead({
     paid_report_requested_at: null,
     weekly_report_consent: false,
     weekly_report_consent_at: null,
+    last_weekly_sent_report_generated_at: null, // PJ2 AOR Phase 18: Weekly配信の二重送信防止
+    // （publishedの現在のmeta.generated_atと比較し、同じreportを同じLeadへ再送しないための判定に使う）。
     delivery_status: "active",
     history: [],
   };
