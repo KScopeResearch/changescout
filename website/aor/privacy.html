@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プライバシーポリシー | AI Opportunity Report</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/css/base.css">
+</head>
+<body class="theme-blue">
+
+<div class="page">
+
+  <header class="report-header">
+    <p class="report-header__eyebrow">AI Opportunity Report</p>
+    <h1 class="report-header__company">プライバシーポリシー</h1>
+    <p class="report-header__generated">Privacy Policy（日本語が正本です）</p>
+  </header>
+
+  <main>
+
+    <section class="section">
+      <h2 class="section-title">取得する情報</h2>
+      <p>
+        AI Opportunity Report（以下「本サービス」）では、以下の情報を取り扱います。
+      </p>
+      <ul>
+        <li>対象企業の公式サイト等で公開されている業務用の連絡先メールアドレス</li>
+        <li>対象企業名・公式サイトURL等、公開されている企業情報</li>
+        <li>受信者ご本人からメールへのご返信等でご提供いただいた内容（配信停止のご依頼を含む）</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">情報の取得方法</h2>
+      <p>
+        本サービスは、一般ユーザーによる自己登録は行っておりません。連絡先は、社内で以下の段階を
+        経て管理されます。
+      </p>
+      <p>
+        まず、運営チームが対象企業の公式サイトやお問い合わせページ等、公開されている情報源から
+        業務用連絡先を収集し、「候補リスト（Candidate List）」としてシステムへ登録します。この時点では、
+        いかなる連絡先にもメールは送信されません。
+      </p>
+      <p>
+        次に、認証済みの担当者が社内の管理画面で個別に内容を確認したうえで、「Approved List（承認済みリスト）」へ
+        登録します。<strong>Approved Listは、当社が送信対象として社内で管理するための管理リストであり、
+        登録されている連絡先について受信者ご本人の事前の同意（オプトイン）が既に得られていることを
+        意味するものではありません。</strong>初回のAI Opportunity Reportの送信方式については現在社内で
+        設計を整理している段階であり、Amazon SESを利用した継続配信（週次AOR）の運用方針とは区別して
+        管理しています。
+      </p>
+      <p>
+        初回AORを受け取った方が、ご本人の操作により継続受信を希望された場合に限り、その後の更新版レポート
+        （週次AOR）をAmazon SESから送信します。継続希望が登録されていない受信者に対して、週次AORを
+        送信することはありません。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">利用目的</h2>
+      <ul>
+        <li>対象企業の公開情報をAIで分析し、AI Opportunity Report（初回レポート・週次更新レポート）を作成・送付するため</li>
+        <li>配信停止のご依頼など、受信者からのご連絡に対応するため</li>
+        <li>送信結果（配信エラー等）を確認し、配信品質を維持するため</li>
+      </ul>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">外部サービスの利用</h2>
+      <p>
+        レポート作成にあたり、企業の公開情報を分析するためのAI・検索に関する外部APIサービスを
+        利用する場合があります。これらのサービスへは、分析対象企業の公開情報の範囲で連携する
+        設計としており、受信者個人を特定する機微な情報を積極的に提供するものではありません。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">データの保存</h2>
+      <p>
+        取得した情報は、AWS（Amazon Web Services）のサーバー（東京リージョン）上に保存します。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">配信停止について</h2>
+      <p>
+        本サービスからのメール配信の停止をご希望の場合は、受信されたメールに直接ご返信ください。
+        運営チームがご返信内容を確認のうえ、対象の記録を配信停止の状態に変更します。
+        自動的に即時反映される仕組みではなく、運営チームの確認後に反映される点にご留意ください。
+        反映後は、初回レポート・週次レポートいずれの送信対象からも除外されます。
+        また、Amazon SESから通知されるBounce（配信不能）およびComplaint（苦情）についても監視しており、
+        該当する受信者は以後の送信対象から除外されます。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">お問い合わせ</h2>
+      <p>
+        本サービス・本ポリシーに関するお問い合わせは、受信されたメールへのご返信、または
+        <a href="mailto:aor-report@changescout.jp">aor-report@changescout.jp</a> までご連絡ください。
+      </p>
+    </section>
+
+    <section class="section fatal-error">
+      <p class="fatal-error__title">未整備事項（TODO・公開前に要確認）</p>
+      <p class="fatal-error__detail">
+        本ページは現時点の実装・運用仕様に基づく最低限の説明であり、法務確認を経た正式な
+        プライバシーポリシーではありません。特に以下は未整備であり、法的な完全性を
+        保証するものではないことに留意してください。
+      </p>
+      <ul>
+        <li>事業者名・所在地・代表者等、特定商取引法/個人情報保護法上の事業者情報の明記</li>
+        <li>個人情報保護法上の利用目的の通知・公表義務との整合性の法的確認</li>
+        <li>データの保存期間・削除方針の明文化</li>
+        <li>開示・訂正・削除等の請求対応フローの整備</li>
+        <li>特定電子メール法など関連法令への適合性についての法的判断（本ページはその適合を主張するものではありません）</li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer class="report-footer">
+    <p class="report-footer__row">AI Opportunity Report 運営事務局</p>
+    <p class="report-footer__row"><a href="index.html">サービス概要ページに戻る</a></p>
+  </footer>
+
+</div>
+
+</body>
+</html>

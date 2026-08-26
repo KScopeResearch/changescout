@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ChangeScout AOR | AI Opportunity Report</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/css/base.css">
+</head>
+<body class="theme-blue">
+
+<div class="page">
+
+  <header class="report-header">
+    <p class="report-header__eyebrow">ChangeScout</p>
+    <h1 class="report-header__company">AI Opportunity Report（AOR）</h1>
+    <p class="report-header__summary">
+      企業の公開情報をAIで分析し、その企業にとってのビジネス機会・市場変化をレポートとして
+      お届けするB2Bサービスです。
+    </p>
+  </header>
+
+  <main>
+
+    <section class="section">
+      <h2 class="section-title">English summary (for reviewers)</h2>
+      <p>
+        ChangeScout AOR (AI Opportunity Report) is a B2B service that analyzes a target
+        company's publicly available information with AI and delivers a business
+        opportunity / market-change report by email. This page also describes our
+        Amazon SES usage policy for reviewers.
+      </p>
+      <p>
+        There is no self-registration by end users. Contacts move through a sequence
+        of internally managed stages: a <strong>Candidate List</strong> (publicly
+        available business contacts our operations team has collected, e.g. from
+        official company websites or contact pages) is reviewed by an authenticated
+        staff member and, once confirmed, promoted to our <strong>Approved List</strong>.
+        The Approved List is an internal management list we use to track which
+        contacts are eligible to be sent an initial report and, later, managed for
+        Amazon SES sending &mdash; it does not by itself represent that every listed
+        recipient has already opted in.
+      </p>
+      <p>
+        <strong>Amazon SES is the sending infrastructure we use for our continued
+        (weekly) report delivery.</strong> After a recipient has received an initial
+        AI Opportunity Report, we send further, updated weekly reports via Amazon SES
+        only if that recipient has taken an explicit action to request continued
+        delivery. Recipients who have not registered this continuation request never
+        receive weekly emails.
+      </p>
+      <p>
+        The sending mechanism for the very first (initial) AI Opportunity Report is
+        still being finalized on our side, and we are designing it to be managed
+        separately from the Amazon SES usage policy described on this page. Depending
+        on how this is finalized, initial reports may in the future be sent via
+        Amazon SES after we have obtained separate, explicit permission from the
+        recipient for that purpose, or they may be sent through a different email
+        delivery mechanism entirely.
+      </p>
+      <p>
+        Every email includes sender identification and instructions to reply
+        directly to request removal from future emails; reply-based opt-out requests
+        are reviewed by our operations team and applied to the recipient's record,
+        and our system's delivery gate independently enforces this exclusion for all
+        future emails. We also monitor bounce and complaint notifications from
+        Amazon SES and automatically suppress further sending to any recipient who
+        bounces or complains. See our <a href="privacy.html">Privacy Policy</a> for
+        details.
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">サービス概要</h2>
+      <p>
+        ChangeScout AOR（AI Opportunity Report）は、対象企業の公開情報をAIで分析し、
+        その企業に関連するビジネス機会・市場変化を「レポート」としてお届けするサービスです。
+        法改正・業界動向・競合動向など、企業が見落としがちな変化を可視化し、次の一手の
+        検討材料としてご活用いただくことを目的としています。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">メール配信の全体像</h2>
+      <p>
+        本サービスは、一般ユーザーが自由にメール登録できる自己登録型サービスでは
+        <strong>ありません</strong>。連絡先は、社内で以下の段階を経て管理されます。
+      </p>
+      <p>
+        候補リスト（Candidate List）<br>
+        ↓<br>
+        承認済みリスト（Approved List）<br>
+        ↓<br>
+        初回AOR（Initial AOR）<br>
+        ↓<br>
+        受信者ご本人による継続希望の登録<br>
+        ↓<br>
+        週次AOR（Weekly AOR） via Amazon SES
+      </p>
+      <p>
+        まず、運営チームが対象企業の公式サイトやお問い合わせページなど、公開されている情報源から
+        業務用の連絡先を収集し、「候補リスト（Candidate List）」としてシステムへ登録します。この時点では、
+        いかなる連絡先にもメールは送信されません。
+      </p>
+      <p>
+        次に、認証済みの担当者が社内の管理画面で個別に内容を確認したうえで、「Approved List（承認済みリスト）」へ
+        登録します。<strong>Approved Listは、当社が送信対象として社内で管理するための管理リストであり、
+        登録されている連絡先について受信者ご本人の事前の同意（オプトイン）が既に得られていることを
+        意味するものではありません。</strong>
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">初回AORについて</h2>
+      <p>
+        初回のAI Opportunity Report（Initial AOR）の送信方式については、現在社内で設計を整理している
+        段階です。初回AORの送信基盤は、本ページで説明するAmazon SES利用方針とは区別して管理する方針としており、
+        今後の整理の結果によっては、(a) 受信者ご本人から別途明示的な許可をいただいたうえでAmazon SESを
+        利用する、または (b) Amazon SES以外の送信基盤を利用する、のいずれの可能性も残しています。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">継続配信（Weekly AOR）について</h2>
+      <p>
+        初回AORを受け取った方が、<strong>ご本人の操作により継続受信を希望された場合に限り</strong>、
+        その後の更新版レポート（週次AOR／Weekly AOR）をAmazon SESから送信します。継続希望が登録されて
+        いない受信者に対して、週次AORを送信することはありません。
+      </p>
+      <p>
+        将来的には、より詳細な分析を含む有料版の週次レポートの提供を予定しています。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">メール配信について</h2>
+      <p>
+        メールは <strong>aor-report@changescout.jp</strong> から送信します。
+        各メールには送信者情報を明記し、配信停止をご希望の場合の連絡方法（返信）を
+        必ず記載しています。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">配信停止について</h2>
+      <p>
+        配信停止をご希望の場合は、受信されたメールに直接ご返信ください。運営チームが
+        返信内容を確認したうえで、対象の記録を配信停止（unsubscribed）の状態へ変更します。
+        自動で即時反映される仕組みではなく、運営チームの確認を経て反映される点にご留意
+        ください。反映後は、初回レポート・週次レポートいずれの送信対象からも除外されます。
+        また、Amazon SESから通知されるBounce（配信不能）およびComplaint（苦情）についても監視しており、
+        該当する受信者は以後の送信対象から除外されます。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">プライバシーポリシー</h2>
+      <p>
+        個人情報・企業情報の取り扱いについては<a href="privacy.html">プライバシーポリシー</a>を
+        ご確認ください。
+      </p>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">お問い合わせ</h2>
+      <p>
+        本サービスに関するお問い合わせは、受信されたメールへのご返信、または
+        <a href="mailto:aor-report@changescout.jp">aor-report@changescout.jp</a> までご連絡ください。
+      </p>
+    </section>
+
+  </main>
+
+  <footer class="report-footer">
+    <p class="report-footer__row">AI Opportunity Report 運営事務局</p>
+    <p class="report-footer__row"><a href="privacy.html">プライバシーポリシー</a></p>
+  </footer>
+
+</div>
+
+</body>
+</html>
