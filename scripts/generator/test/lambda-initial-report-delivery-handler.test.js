@@ -4,11 +4,17 @@
  *
  * initial-report-delivery-handler.js は既存のsendInitialReportForLead()/
  * sendInitialReportsForAllReportGenerated()（leads/send-initial-report.js）をそのまま
- * 呼ぶ薄いadapterである。SES送信・公開判定（published-store.js経由）・Lead status遷移
- * 自体の正しさはsend-initial-report.test.js・published-store.test.jsで既に検証済みの
+ * 呼ぶ薄いadapterである。blastengine送信・公開判定（published-store.js経由）・Lead status
+ * 遷移自体の正しさはsend-initial-report.test.js・published-store.test.jsで既に検証済みの
  * ため、ここでは重複させない。本テストは「adapterとして正しくmode分岐・委譲・入力検証
  * しているか」にのみ焦点を当てる（sendInitialReportModule配下の関数を差し替えたテストが
- * 中心）。実SES送信・実AWSへは一切接続しない。
+ * 中心）。実blastengine送信・実AWSへは一切接続しない。
+ *
+ * 【PJ2 AOR Phase45 STEP3D】本Lambda adapterの環境変数事前チェックがses-client.jsから
+ * blastengine-client.jsへ切り替わったことに伴い、モック対象をsesClientからmailClientへ
+ * 変更した。Weekly側のLambda（lambda-weekly-report-delivery-handler.test.js）は
+ * 引き続きses-client.jsを対象とするテストのままであり、本変更の影響を受けない
+ * （別ファイル・別importのため、今回一切変更していない）。
  */
 
 const { test } = require("node:test");
@@ -16,7 +22,7 @@ const assert = require("node:assert/strict");
 
 const { handler } = require("../lambda/initial-report-delivery-handler");
 const sendInitialReportModule = require("../leads/send-initial-report");
-const sesClient = require("../leads/ses-client");
+const mailClient = require("../leads/blastengine-client");
 
 /** @param {Function} fakeFn @returns {Function} 元へ戻す関数 */
 function stubSendForLead(fakeFn) {
@@ -37,18 +43,18 @@ function stubSendForAll(fakeFn) {
 }
 
 /**
- * SES/AOR_SITE_BASE_URLの環境変数チェックを「揃っている」状態に固定する
+ * blastengine/AOR_SITE_BASE_URLの環境変数チェックを「揃っている」状態に固定する
  * （実環境変数をいじらず、判定関数自体を差し替える。他テストファイルとの並行実行時に
  * 実環境変数の変更が影響しないようにするため）。
  * @param {import('node:test').TestContext} t
  */
 function withEnvChecksSatisfied(t) {
-  const originalMissingEnvVars = sesClient.missingEnvVars;
+  const originalMissingEnvVars = mailClient.missingEnvVars;
   const originalMissingSiteConfig = sendInitialReportModule.missingSiteConfig;
-  sesClient.missingEnvVars = () => [];
+  mailClient.missingEnvVars = () => [];
   sendInitialReportModule.missingSiteConfig = () => [];
   t.after(() => {
-    sesClient.missingEnvVars = originalMissingEnvVars;
+    mailClient.missingEnvVars = originalMissingEnvVars;
     sendInitialReportModule.missingSiteConfig = originalMissingSiteConfig;
   });
 }
@@ -57,13 +63,13 @@ function withEnvChecksSatisfied(t) {
 // 必須環境変数チェック（既存CLIと同じ事前チェックを再利用しているだけであることの確認）
 // ---------------------------------------------------------------------------
 
-test("initial-report-delivery-handler: SES関連の環境変数が不足している場合は例外を投げる（送信を試みない）", async (t) => {
-  const originalMissingEnvVars = sesClient.missingEnvVars;
+test("initial-report-delivery-handler: blastengine関連の環境変数が不足している場合は例外を投げる（送信を試みない）", async (t) => {
+  const originalMissingEnvVars = mailClient.missingEnvVars;
   const originalMissingSiteConfig = sendInitialReportModule.missingSiteConfig;
-  sesClient.missingEnvVars = () => ["SES_FROM"];
+  mailClient.missingEnvVars = () => ["BLASTENGINE_FROM"];
   sendInitialReportModule.missingSiteConfig = () => ["AOR_SITE_BASE_URL"];
   t.after(() => {
-    sesClient.missingEnvVars = originalMissingEnvVars;
+    mailClient.missingEnvVars = originalMissingEnvVars;
     sendInitialReportModule.missingSiteConfig = originalMissingSiteConfig;
   });
 
@@ -74,8 +80,36 @@ test("initial-report-delivery-handler: SES関連の環境変数が不足して�
   });
   t.after(restore);
 
-  await assert.rejects(() => handler({ mode: "all" }), /SES_FROM.*AOR_SITE_BASE_URL|AOR_SITE_BASE_URL.*SES_FROM/);
+  await assert.rejects(
+    () => handler({ mode: "all" }),
+    /BLASTENGINE_FROM.*AOR_SITE_BASE_URL|AOR_SITE_BASE_URL.*BLASTENGINE_FROM/
+  );
   assert.equal(calls.length, 0, "環境変数不足時は送信関数を一切呼ばないはず");
+});
+
+test("initial-report-delivery-handler: blastengine関連の環境変数が揃っている場合はエラーにならず送信関数が呼ばれる", async (t) => {
+  const originalMissingEnvVars = mailClient.missingEnvVars;
+  const originalMissingSiteConfig = sendInitialReportModule.missingSiteConfig;
+  // BLASTENGINE_USER_ID/BLASTENGINE_API_KEY/BLASTENGINE_FROMが揃っている状態を模擬
+  // （BLASTENGINE_REPLY_TOは任意項目のためmissingEnvVars()には含まれない、
+  // blastengine-client.test.jsで別途検証済み）。
+  mailClient.missingEnvVars = () => [];
+  sendInitialReportModule.missingSiteConfig = () => [];
+  t.after(() => {
+    mailClient.missingEnvVars = originalMissingEnvVars;
+    sendInitialReportModule.missingSiteConfig = originalMissingSiteConfig;
+  });
+
+  const calls = [];
+  const restore = stubSendForAll(async () => {
+    calls.push(true);
+    return { summary: { total: 0, sent: 0, skipped: 0, failed: 0 }, results: [] };
+  });
+  t.after(restore);
+
+  const result = await handler({ mode: "all" });
+  assert.equal(calls.length, 1, "環境変数が揃っていれば送信関数が呼ばれるはず");
+  assert.deepEqual(result.summary, { total: 0, sent: 0, skipped: 0, failed: 0 });
 });
 
 // ---------------------------------------------------------------------------
@@ -140,7 +174,7 @@ test("initial-report-delivery-handler: 未知のmodeは例外を投げる", asyn
 });
 
 // ---------------------------------------------------------------------------
-// 業務上の失敗（未公開スキップ・SES送信失敗）は例外にせず、戻り値としてそのまま返す
+// 業務上の失敗（未公開スキップ・blastengine送信失敗）は例外にせず、戻り値としてそのまま返す
 // ---------------------------------------------------------------------------
 
 test("initial-report-delivery-handler: skipped（未公開等）の結果もそのまま返す（例外にしない）", async (t) => {
@@ -153,15 +187,15 @@ test("initial-report-delivery-handler: skipped（未公開等）の結果もそ�
   assert.deepEqual(result, fakeResult);
 });
 
-test("initial-report-delivery-handler: SES送信失敗（initial_report_failed）の結果もそのまま返す（例外にしない）", async (t) => {
+test("initial-report-delivery-handler: blastengine送信失敗（initial_report_failed）の結果もそのまま返す（例外にしない）", async (t) => {
   withEnvChecksSatisfied(t);
-  const fakeResult = { ok: false, leadId: "lead-1", error: "SES API エラー: HTTP 400 (MessageRejected)" };
+  const fakeResult = { ok: false, leadId: "lead-1", error: "blastengine APIエラー: HTTP 400 送信先アドレスが不正です" };
   const restore = stubSendForLead(async () => fakeResult);
   t.after(restore);
 
   const result = await handler({ mode: "single", lead_id: "lead-1" });
   assert.equal(result.ok, false);
-  assert.match(result.error, /MessageRejected/);
+  assert.match(result.error, /送信先アドレスが不正です/);
 });
 
 test("initial-report-delivery-handler: sendInitialReportForLead()自体が例外を投げた場合はそのまま伝播する", async (t) => {
