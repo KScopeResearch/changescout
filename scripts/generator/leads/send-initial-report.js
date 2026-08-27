@@ -9,7 +9,8 @@
  *           ↓
  *   status: initial_report_queued（history追加）
  *           ↓
- *   SES送信（scripts/generator/leads/ses-client.js）
+ *   blastengine送信（scripts/generator/leads/blastengine-client.js、Phase45 STEP3Bで
+ *   ses-client.jsから切り替え。Weekly AOR送信は引き続きses-client.jsのまま）
  *      ├─ 成功 → status: initial_report_sent（history: message_id）
  *      └─ 失敗 → status: initial_report_failed（history: 失敗理由・コード）
  *
@@ -45,19 +46,32 @@
  * ため、rejectedかどうかとdelivery_statusは完全に独立して扱う。ブロック時は公開ゲートと
  * 同様「skip」として扱い、status/historyを一切変更しない。
  *
+ * 【delivery_approval_status送信ゲート（PJ2 AOR: Candidate/Approved分離仕様で追加）】
+ * status:"report_generated"かつ未公開ゲート・delivery_statusゲートを通過しても、
+ * delivery_approval_status（lead-store.jsのisDeliveryApproved()参照）が"approved"で
+ * ないLeadは送信しない。CandidateとしてLeadが作られただけでは自動的にApprovedには
+ * ならない（buildNewLead()の既定値は"pending"）ため、Approvedへの昇格は
+ * import-leads.js・create-lead-from-email.js等の収集経路とは別の、明示的な操作
+ * （updateLead()によるdelivery_approval_status更新）を経る必要がある。他のゲートと
+ * 同様「skip」として扱い、status/historyを一切変更しない。
+ *
  * 使い方:
- *   AWS_ACCESS_KEY_ID=... AWS_SECRET_ACCESS_KEY=... AWS_REGION=... SES_FROM=... \
+ *   BLASTENGINE_USER_ID=... BLASTENGINE_API_KEY=... BLASTENGINE_FROM=... \
  *   AOR_SITE_BASE_URL=https://aor.example.jp \
  *   node scripts/generator/leads/send-initial-report.js
  *   （status:"report_generated"の全Leadを対象に一括処理する）
  */
 
-const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked } = require("./lead-store");
+const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked, isDeliveryApproved } = require("./lead-store");
 const { isPublished, publishedPathFor } = require("../publish-report");
 const { readJsonSafe } = require("../shared/json-file");
 const { redactSecrets } = require("../shared/redact");
 const { runCli } = require("../shared/cli-utils");
-const sesClient = require("./ses-client");
+const { buildUnsubscribeUrl, buildListUnsubscribeHeaders } = require("./unsubscribe-url");
+// PJ2 AOR Phase45 STEP3B: Initial AORの送信基盤をSESからblastengineへ切り替えた
+// （docs/strategy_v2/13_architecture.md「メール送信アーキテクチャ v1.0」）。
+// Weekly AOR（send-weekly-report.js）は引き続きses-client.jsを使用し、本ファイルの変更対象外。
+const mailClient = require("./blastengine-client");
 
 // AOR_SITE_BASE_URL: website/aor（受信者向け静的LP）の配置先ベースURL。
 // common.js の LEAD_API_BASE_URL / OPERATOR_EMAIL と同じ「配置ごとに設定する」方針を踏襲する
@@ -110,8 +124,8 @@ function buildEmailContent({ companyName, reportUrl }) {
     "AI Opportunity Report 運営事務局",
   ].join("\n");
 
-  const escapedName = sesClient.escapeHtml(companyName);
-  const escapedUrl = sesClient.escapeHtml(reportUrl);
+  const escapedName = mailClient.escapeHtml(companyName);
+  const escapedUrl = mailClient.escapeHtml(reportUrl);
   const html =
     `<!doctype html><html lang="ja"><head><meta charset="utf-8"></head>` +
     `<body style="font-family:sans-serif;line-height:1.7;color:#1a1a1a;">` +
@@ -131,14 +145,14 @@ function buildEmailContent({ companyName, reportUrl }) {
  * 1件のLeadへ初期レポートメールを送信する。
  * @param {string} leadId
  * @param {{sendEmail?: (params:Object) => Promise<{messageId:string}>}} [options] -
- *   sendEmailはテスト時にses-client.jsを差し替えるためのフック（省略時は実際の
- *   sesClient.sendEmail()を使う。実HTTP通信・実AWS認証を伴うため、テストでは
+ *   sendEmailはテスト時にblastengine-client.jsを差し替えるためのフック（省略時は実際の
+ *   mailClient.sendEmail()を使う。実HTTP通信・実API認証を伴うため、テストでは
  *   ネットワーク非依存のダミー関数に差し替える。process-validated.jsの
  *   options.generateReportと同じ依存性注入パターン）。
  * @returns {Promise<{ok:boolean, leadId:string, skipped?:boolean, messageId?:string, error?:string}>}
  */
 async function sendInitialReportForLead(leadId, options = {}) {
-  const sendEmailFn = options.sendEmail || sesClient.sendEmail;
+  const sendEmailFn = options.sendEmail || mailClient.sendEmail;
 
   const lead = await readLead(leadId);
   if (!lead) {
@@ -175,10 +189,25 @@ async function sendInitialReportForLead(leadId, options = {}) {
       error: `company_slug "${lead.company_slug}" はまだ公開されていません（website/aor/data/未生成）。先にレビュー承認・公開を行ってください。`,
     };
   }
+  // PJ2 AOR: Candidate/Approved分離仕様（送信前ゲートの5番目）。ここまでの4条件
+  // （status/company_slug/isDeliveryBlocked/isPublished）を満たしても、
+  // delivery_approval_statusが"approved"でなければ送信しない。Candidate（収集された
+  // だけのLead）が承認手続きを経ずにそのままSES送信対象になることを防ぐための必須ゲート
+  // （lead-store.jsのisDeliveryApproved()をそのまま再利用し、独自の判定ロジックは
+  // ここに新設しない）。ブロック時は他のゲートと同様「skip」として扱い、status/historyは
+  // 一切変更しない。
+  if (!isDeliveryApproved(lead)) {
+    return {
+      ok: false,
+      leadId,
+      skipped: true,
+      error: `delivery_approval_statusが"approved"ではないため送信対象外です（実際: "${lead.delivery_approval_status}"）`,
+    };
+  }
 
   // プリフライト（メール本文の組み立てまで）はLeadのstatus/historyを一切変更しない。
-  // ここで失敗した場合はinitial_report_failedにはしない（SES送信を試みてすらいないため）。
-  let subject, text, html;
+  // ここで失敗した場合はinitial_report_failedにはしない（送信を試みてすらいないため）。
+  let subject, text, html, unsubscribeHeaders;
   try {
     const missingSite = missingSiteConfig();
     if (missingSite.length) {
@@ -193,6 +222,19 @@ async function sendInitialReportForLead(leadId, options = {}) {
       reportToken: lead.report_token,
     });
     ({ subject, text, html } = buildEmailContent({ companyName, reportUrl }));
+
+    // PJ2 AOR Phase45 STEP3A/3B: List-Unsubscribeヘッダーの組み立て（Provider非依存の
+    // 共通ヘルパーunsubscribe-url.jsを使用）。まだ実送信は行っていない段階のため、
+    // ヘッダーをmailClient.sendEmail()へ渡す配線だけを用意する
+    // （blastengine側で実際にこのheadersを反映するかは要検証、blastengine-client.js冒頭参照）。
+    const unsubscribeUrl = buildUnsubscribeUrl(process.env.AOR_SITE_BASE_URL, {
+      leadId: lead.lead_id,
+      reportToken: lead.report_token,
+    });
+    unsubscribeHeaders = buildListUnsubscribeHeaders({
+      unsubscribeUrl,
+      mailtoAddress: process.env.BLASTENGINE_FROM || undefined,
+    });
   } catch (err) {
     return { ok: false, leadId, error: err.message };
   }
@@ -202,13 +244,14 @@ async function sendInitialReportForLead(leadId, options = {}) {
   await appendHistory(leadId, "initial_report_queued");
 
   try {
-    // SES message tag（lead_idのみ）を付与する。emailやreport_tokenはtagに含めない。
+    // message tag（lead_idのみ）を付与する。emailやreport_tokenはtagに含めない。
     const result = await sendEmailFn({
       to: lead.email,
       subject,
       text,
       html,
       tags: [{ Name: "lead_id", Value: lead.lead_id }],
+      headers: unsubscribeHeaders,
     });
 
     await updateLead(leadId, { status: "initial_report_sent" });
@@ -216,7 +259,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
     return { ok: true, leadId, messageId: result.messageId };
   } catch (err) {
     await updateLead(leadId, { status: "initial_report_failed" });
-    // AWS credential・report_token・emailはerrに含まれない構造（ses-client.jsのコメント参照）。
+    // API認証情報・report_token・emailはerrに含まれない構造（blastengine-client.jsのコメント参照）。
     // 念のためjob-runner.js（Task23）と同じくredactSecrets()を通してからhistoryへ保存する。
     await appendHistory(leadId, "initial_report_failed", {
       error: redactSecrets(err.message),
@@ -287,10 +330,10 @@ function printSummary(result) {
 async function main() {
   // 一括送信の前に、送信そのものに必要な環境変数が揃っているかをまとめて確認する
   // （揃っていない場合、Lead 1件ごとに同じエラーを繰り返し表示するのを避けるため）。
-  const missing = [...sesClient.missingEnvVars(), ...missingSiteConfig()];
+  const missing = [...mailClient.missingEnvVars(), ...missingSiteConfig()];
   if (missing.length) {
-    console.error(`SES送信に必要な環境変数が設定されていません: ${missing.join(", ")}`);
-    console.error("AWS認証情報・SES_FROM・AOR_SITE_BASE_URLを設定してから再実行してください。");
+    console.error(`blastengine送信に必要な環境変数が設定されていません: ${missing.join(", ")}`);
+    console.error("BLASTENGINE_USER_ID・BLASTENGINE_API_KEY・BLASTENGINE_FROM・AOR_SITE_BASE_URLを設定してから再実行してください。");
     process.exitCode = 1;
     return;
   }

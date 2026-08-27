@@ -67,14 +67,16 @@ function sampleParams(overrides = {}) {
 }
 
 /**
- * status:"report_generated"、company_slug確定済みのLeadを作成する。
+ * status:"report_generated"、company_slug確定済み、delivery_approval_status:"approved"の
+ * Leadを作成する（他のゲートを検証するテストが、PJ2 AOR: Candidate/Approved分離仕様で
+ * 新設したdelivery_approval_statusゲートに引っかからないよう、既定でapproved済みにする）。
  * @param {{slug?:string, overrides?:Object}} [opts]
  * @returns {Promise<Object>} 作成したLead（更新後の内容）
  */
 async function createReportGeneratedLead(opts = {}) {
   const created = await createLead(sampleParams(opts.overrides));
   const slug = opts.slug || `${TEST_SLUG_PREFIX}${created.lead_id.slice(0, 12)}`;
-  await updateLead(created.lead_id, { company_slug: slug, status: "report_generated" });
+  await updateLead(created.lead_id, { company_slug: slug, status: "report_generated", delivery_approval_status: "approved" });
   await appendHistory(created.lead_id, "report_generated", { slug });
   return readLead(created.lead_id);
 }
@@ -188,6 +190,37 @@ test("6. SES message tagにlead_idが入り、7. report_tokenはmessage tagに�
   const tagValues = calls[0].tags.map((tg) => tg.Value);
   assert.ok(!tagValues.includes(lead.report_token));
   assert.ok(!tagValues.some((v) => v.includes("@")), "message tagにemailらしき値が入っていないはず");
+});
+
+test("PJ2 AOR Phase45 STEP3B: sendEmailFnにList-Unsubscribeヘッダーが渡される（実送信配線はまだ無し）", async (t) => {
+  withSiteConfig(t);
+  const originalFrom = process.env.BLASTENGINE_FROM;
+  process.env.BLASTENGINE_FROM = "aor-report@changescout.jp";
+  t.after(() => {
+    if (originalFrom === undefined) delete process.env.BLASTENGINE_FROM;
+    else process.env.BLASTENGINE_FROM = originalFrom;
+  });
+
+  const lead = await createReportGeneratedLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  publishTestCompanyData(lead.company_slug);
+
+  const { fn, calls } = fakeSendEmail();
+  await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  const headers = calls[0].headers;
+  assert.ok(headers, "headersが渡されるはず");
+  assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+  assert.match(headers["List-Unsubscribe"], /<mailto:aor-report@changescout\.jp>/);
+  assert.match(headers["List-Unsubscribe"], /unsubscribe\.html/);
+  const urlMatch = headers["List-Unsubscribe"].match(/<(https:\/\/[^>]+)>/);
+  assert.ok(urlMatch, "List-UnsubscribeにHTTPS URLが含まれるはず");
+  const parsedUnsubUrl = new URL(urlMatch[1]);
+  assert.equal(parsedUnsubUrl.searchParams.get("lead"), lead.lead_id);
+  assert.equal(parsedUnsubUrl.searchParams.get("token"), lead.report_token);
 });
 
 test("SES送信は宛先(to)にlead.emailを使う（配信そのものには必要な唯一の箇所）", async (t) => {
@@ -378,6 +411,78 @@ test('Case5. status:"rejected"から復帰しstatus:report_generated・delivery_
   assert.equal(result.ok, true, "delivery_status:activeであれば、rejectedを経由していてもブロックされないはず");
   assert.equal(calls.length, 1);
   assert.equal((await readLead(lead.lead_id)).status, "initial_report_sent");
+});
+
+// ---------------------------------------------------------------------------
+// delivery_approval_status送信ゲート（PJ2 AOR: Candidate/Approved分離仕様で追加）
+// ---------------------------------------------------------------------------
+
+test("delivery_approval_status:approved + status:report_generated → 送信対象になる（前提確認）", async (t) => {
+  withSiteConfig(t);
+  const lead = await createReportGeneratedLead();
+  t.after(() => {
+    cleanupLead(lead.lead_id);
+    cleanupPublished(lead.company_slug);
+  });
+  publishTestCompanyData(lead.company_slug);
+  assert.equal(lead.delivery_approval_status, "approved", "createReportGeneratedLead()の既定値がapprovedであることの前提確認");
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, true);
+  assert.equal(calls.length, 1, "SESが呼ばれるはず");
+});
+
+["pending", "rejected"].forEach((approvalStatus) => {
+  test(`delivery_approval_status:${approvalStatus} + status:report_generated → 送信対象外（skip、SES未呼び出し、status/history/delivery_approval_status不変）`, async (t) => {
+    withSiteConfig(t);
+    const lead = await createReportGeneratedLead();
+    t.after(() => {
+      cleanupLead(lead.lead_id);
+      cleanupPublished(lead.company_slug);
+    });
+    publishTestCompanyData(lead.company_slug);
+    await updateLead(lead.lead_id, { delivery_approval_status: approvalStatus });
+    const beforeHistoryLength = (await readLead(lead.lead_id)).history.length;
+
+    const { fn, calls } = fakeSendEmail();
+    const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+    assert.equal(result.ok, false);
+    assert.equal(result.skipped, true);
+    assert.equal(calls.length, 0, "SESが呼ばれてはいけない");
+
+    const after = await readLead(lead.lead_id);
+    assert.equal(after.status, "report_generated", "statusは変わらないはず");
+    assert.equal(after.delivery_approval_status, approvalStatus, "delivery_approval_status自体も変更されないはず");
+    assert.equal(after.history.length, beforeHistoryLength, "historyは増えないはず");
+    assert.equal(
+      after.history.some((h) => h.event === "initial_report_queued" || h.event === "initial_report_failed"),
+      false,
+      "queued/failedいずれのhistoryも記録しないはず"
+    );
+  });
+});
+
+test("新規Lead（createLead()直後、delivery_approval_status更新なし）は、他の条件をすべて満たしても送信対象にならない（Candidateのまま自動承認されないことの確認）", async (t) => {
+  withSiteConfig(t);
+  const created = await createLead(sampleParams({ email: "delivery-approval-default-pending@example.invalid" }));
+  const slug = `${TEST_SLUG_PREFIX}${created.lead_id.slice(0, 12)}`;
+  await updateLead(created.lead_id, { company_slug: slug, status: "report_generated" }); // delivery_approval_statusは更新しない
+  t.after(() => {
+    cleanupLead(created.lead_id);
+    cleanupPublished(slug);
+  });
+  publishTestCompanyData(slug);
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(created.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.skipped, true);
+  assert.match(result.error, /delivery_approval_status/);
+  assert.equal(calls.length, 0);
 });
 
 // ---------------------------------------------------------------------------
