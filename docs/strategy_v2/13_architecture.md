@@ -40,6 +40,69 @@
 - オプトイン/オプトアウト状態を単一の真実源（Single Source of Truth）で管理し、
   送信基盤がこれを必ず参照する設計にする（誤送信防止、[14_risk.md](14_risk.md)）
 
+## メール送信アーキテクチャ v1.0
+
+Phase44でSmartlead・blastengine双方から書面回答を受領したことを受け、Initial AOR・Weekly AORの
+送信Provider構成を正式仕様として記録する（回答原文・詳細な許容/条件事項は
+[docs/external-provider-confirmations.md](../external-provider-confirmations.md)参照）。
+
+### 1. Provider構成
+
+| メール種別 | Provider | 送信条件 |
+|---|---|---|
+| Initial AOR | blastengine API | 公開メールアドレス宛・企業ごとの個別レポート・初回接触として原則1回のみ |
+| Weekly AOR | Amazon SES API | 本人が明示的にオプトインした宛先のみ・定期配信 |
+
+InitialとWeeklyは異なる送信用途であり、異なる送信ポリシーを持つ。両者は別の送信基盤・別の送信条件で
+運用し、一方の変更が他方の送信ポリシーへ影響しないようにする。
+
+### 2. Provider選定理由
+
+**Initial AOR = blastengine API**
+- blastengine確認済み利用ポリシーに適合（`docs/external-provider-confirmations.md`「2. blastengine — 正式回答」参照）
+- 初回・個別送信という用途に合致
+- 対象は公開アドレスであり、一斉メルマガ用途ではない
+
+**Weekly AOR = Amazon SES API**
+- 受信者本人の明示的なオプトイン後にのみ送信
+- Lambdaによるスケジュール配信を想定した定期配信基盤
+
+**blastengineの許可は無条件ではない**: blastengineからの回答は、Provider構成表に記載した利用パターン（公開アドレス・個別レポート・原則1回のみ、外部購入リストではない、苦情/バウンス後は送信しない）に加えて、本ドキュメント3節（共通Suppression）・4節（オプトアウト仕様）・5節（ドメインウォームアップ仕様）に記載する条件の実装・遵守を実質的な前提条件として提示している（詳細は`docs/external-provider-confirmations.md`「2. blastengine — 正式回答」の「必須条件として要求した事項」参照）。
+
+※ 上記はいずれも各Providerの運用ポリシー・利用規約との整合性に基づく記載であり、法律上の適法性評価ではない。
+
+### 3. 共通Suppression仕様
+
+Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppression状態を確認する共通レイヤーを
+設計原則とする。
+
+- Bounce
+- Complaint
+- Unsubscribe
+
+いずれかに該当する宛先には、使用するProviderにかかわらず送信しない。実装方法は本ドキュメントの対象外とする。
+
+### 4. オプトアウト仕様
+
+**Initial AOR**:
+- 配信停止導線をメール本文へ記載する
+- List-Unsubscribeヘッダー対応は**予定**（未実装）
+
+**Weekly AOR**:
+- ワンクリック配信停止URLを設ける
+- List-Unsubscribeヘッダー対応は**予定**（未実装）
+
+いずれも現時点では未実装であり、上記は目標仕様として記録する。
+
+### 5. ドメインウォームアップ仕様
+
+blastengineからの回答（`docs/external-provider-confirmations.md`「2. blastengine — 正式回答」参照）を
+根拠として、以下を運用仕様とする。
+
+- 新しいFromドメインは、送信開始から約2週間かけてウォームアップする
+- 初期は少量送信から開始し、段階的に送信量を増やす
+- 「2週間」等の数値はblastengineから提示された目安の一例であり、確定した固定値ではない
+
 ## 段階的な構築方針
 
 初期フェーズ（Phase 0〜1、[15_roadmap.md](15_roadmap.md)）では上記コンポーネントの多くを
