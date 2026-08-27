@@ -192,7 +192,7 @@ test("6. SES message tagにlead_idが入り、7. report_tokenはmessage tagに�
   assert.ok(!tagValues.some((v) => v.includes("@")), "message tagにemailらしき値が入っていないはず");
 });
 
-test("PJ2 AOR Phase45 STEP3B: sendEmailFnにList-Unsubscribeヘッダーが渡される（実送信配線はまだ無し）", async (t) => {
+test("PJ2 AOR Phase45 STEP3C: sendEmailFnにunsubscribe({url,mailto})が渡される（blastengineのlist_unsubscribe用、実送信配線はまだ無し）", async (t) => {
   withSiteConfig(t);
   const originalFrom = process.env.BLASTENGINE_FROM;
   process.env.BLASTENGINE_FROM = "aor-report@changescout.jp";
@@ -211,14 +211,11 @@ test("PJ2 AOR Phase45 STEP3B: sendEmailFnにList-Unsubscribeヘッダーが渡�
   const { fn, calls } = fakeSendEmail();
   await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
 
-  const headers = calls[0].headers;
-  assert.ok(headers, "headersが渡されるはず");
-  assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
-  assert.match(headers["List-Unsubscribe"], /<mailto:aor-report@changescout\.jp>/);
-  assert.match(headers["List-Unsubscribe"], /unsubscribe\.html/);
-  const urlMatch = headers["List-Unsubscribe"].match(/<(https:\/\/[^>]+)>/);
-  assert.ok(urlMatch, "List-UnsubscribeにHTTPS URLが含まれるはず");
-  const parsedUnsubUrl = new URL(urlMatch[1]);
+  const unsubscribe = calls[0].unsubscribe;
+  assert.ok(unsubscribe, "unsubscribeが渡されるはず");
+  assert.equal(unsubscribe.mailto, "aor-report@changescout.jp");
+  assert.match(unsubscribe.url, /unsubscribe\.html/);
+  const parsedUnsubUrl = new URL(unsubscribe.url);
   assert.equal(parsedUnsubUrl.searchParams.get("lead"), lead.lead_id);
   assert.equal(parsedUnsubUrl.searchParams.get("token"), lead.report_token);
 });

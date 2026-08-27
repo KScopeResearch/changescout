@@ -13,19 +13,32 @@
  * 実装しているのと同じ考え方）を踏襲し、Node標準の`fetch`・`crypto`のみで実装する。新規npm
  * パッケージは追加していない。
  *
- * 【要検証事項（実装時点でAPIへ一切接続していないため、公式ドキュメント本文で必ず確認すること）】
- *   - 認証トークンの正確な生成手順（`buildAuthToken()`のコメント参照。公開情報からの推測に
- *     基づく実装であり、実際のAPIへの接続確認は本Phaseの対象外）
- *   - リクエストボディの`encode`フィールドの既定値（本実装では"UTF-8"を仮定）
- *   - `headers`フィールド（List-Unsubscribe等のカスタムヘッダーをAPIへ渡す方法）の実際の
- *     フィールド名・対応可否。`docs/external-provider-confirmations.md`「2. blastengine —
- *     正式回答」ではList-Unsubscribeヘッダー付与自体は「可能」との案内があったが、APIリクエスト
- *     上の具体的なパラメータ名は今回未確認のため、本実装では`headers`というキー名で仮置きしている
- *   - `tags`（PJ2のlead_id追跡用）に相当するカスタムメタデータ機能の有無。今回は未確認のため、
- *     `sendEmail()`の引数としては受け取るが、実際のAPIリクエストへは反映していない
- *
- * これらはすべて、実際にblastengineへ接続する前（Phase45より後の実装Phase）に、
- * `https://blastengine.jp/documents/`の一次資料で確認・修正すべき事項として明記する。
+ * 【Phase45 STEP3C: 公式APIドキュメント（https://blastengine.jp/documents/ のRedoc生成
+ * リファレンス）を一次資料として照合し、STEP3Bの推測実装を修正した】
+ *   - 認証トークン生成（`buildAuthToken()`）: 公式ドキュメント記載のシェルスクリプト例
+ *     （`sha256 → 小文字化 → base64`、hex文字列をbase64化する。バイト列への変換は行わない）
+ *     と実装が一致することを確認済み。**修正不要だった**
+ *   - リクエストヘッダー形式（`Authorization: Bearer <token>`）: 公式記載と一致。**修正不要**
+ *   - List-Unsubscribe: 公式ドキュメントにより、汎用的な`headers`キーではなく
+ *     `list_unsubscribe: {mailto?, url?}`という専用フィールドであることが判明したため修正した
+ *     （下記`buildSendEmailBody()`参照）。DKIM設定必須・データサイズ目安980byte以内という
+ *     公式の注意事項があるが、これらはインフラ側（DNS/SES等）の設定事項でありコード側では
+ *     対応不要（本Phaseでも変更していない）
+ *   - Reply-To: `reply_to: {email, name}`という専用フィールドが存在することが判明したため追加した
+ *   - エラーレスポンス形式: `{"error_messages": {"main": ["メッセージ", ...]}}`であることが
+ *     判明したため、エラーメッセージの抽出方法を修正した。機械可読な`code`相当のフィールドは
+ *     公式ドキュメントに記載がないため、`err.code`は常に`null`とする
+ *   - レート制限: 500 req/min、`X-Rate-Limit-Remaining`・`X-Rate-Limit-Retry-After-Seconds`
+ *     ヘッダーで通知される。429を受け取った場合の`retryable: true`判定は既存のまま正しい
+ *   - `insert_code`（配列、`{key, value}`）はメール本文内の差し込みコード（テンプレート変数の
+ *     置換）用の機能であり、PJ2のlead_id追跡用メタデータ/タグとは異なる。PJ2側は本文を
+ *     送信前に自前で組み立て済み（`buildEmailContent()`）のため`insert_code`は使用しない。
+ *     lead_id追跡に相当するAPI機能は引き続き確認できなかったため、`tags`は`sendEmail()`の
+ *     引数としては受け取るが、実際のAPIリクエストへは反映しない（STEP3Bから変更なし）
+ *   - Webhook（Bounce/Complaint相当のイベント通知）: `https://blastengine.jp/webhook/`により、
+ *     イベント種別は`DROP`/`SOFTERROR`/`HARDERROR`の3種類のみで、SESのような明示的な
+ *     Complaint（苦情）イベントは提供されていないことが判明した。署名検証の仕組みは
+ *     ドキュメントに記載がなく、リトライは最大3回。**本Phaseでは仕様確認のみ、実装はしていない**
  */
 
 const crypto = require("crypto");
@@ -81,12 +94,13 @@ function buildRequestHeaders(token) {
 }
 
 /**
- * Transaction APIのリクエストボディを組み立てる（Pure Function）。
- * @param {{to:string, from:string, fromName?:string, subject:string, text:string, html:string,
- *   headers?:Object}} params
+ * Transaction APIのリクエストボディを組み立てる（Pure Function）。フィールド名は
+ * 公式APIドキュメント（Phase45 STEP3Cで確認）に基づく。
+ * @param {{to:string, from:string, fromName?:string, replyTo?:string, replyToName?:string,
+ *   subject:string, text:string, html:string, unsubscribe?:{mailto?:string, url?:string}}} params
  * @returns {Object}
  */
-function buildSendEmailBody({ to, from, fromName, subject, text, html, headers }) {
+function buildSendEmailBody({ to, from, fromName, replyTo, replyToName, subject, text, html, unsubscribe }) {
   const body = {
     from: fromName ? { email: from, name: fromName } : { email: from },
     to,
@@ -95,10 +109,14 @@ function buildSendEmailBody({ to, from, fromName, subject, text, html, headers }
     html_part: html,
     encode: "UTF-8",
   };
-  // 【要検証】List-Unsubscribe等のカスタムヘッダーをAPIへ渡す実際のフィールド名は未確認。
-  // ここでは"headers"というキー名で仮置きしている（このファイル冒頭「要検証事項」参照）。
-  if (headers && Object.keys(headers).length) {
-    body.headers = headers;
+  if (replyTo) {
+    body.reply_to = replyToName ? { email: replyTo, name: replyToName } : { email: replyTo };
+  }
+  // 公式フィールド名は"list_unsubscribe"（{mailto?, url?}）。mailto・urlのいずれも任意。
+  if (unsubscribe && (unsubscribe.mailto || unsubscribe.url)) {
+    body.list_unsubscribe = {};
+    if (unsubscribe.mailto) body.list_unsubscribe.mailto = unsubscribe.mailto;
+    if (unsubscribe.url) body.list_unsubscribe.url = unsubscribe.url;
   }
   return body;
 }
@@ -132,10 +150,13 @@ async function callSendEmail(bodyObj, signal, options = {}) {
     } catch (e) {
       // JSONでない場合はerrorTextをそのままメッセージに使う
     }
-    const code = (parsed && (parsed.code || parsed.error)) || null;
-    const message = (parsed && parsed.message) || errorText || `HTTP ${response.status}`;
-    const err = new Error(`blastengine APIエラー: HTTP ${response.status}${code ? ` (${code})` : ""} ${message}`);
-    err.code = code;
+    // 公式エラー形式（Phase45 STEP3Cで確認）: {"error_messages": {"main": ["...", ...]}}。
+    // 機械可読なcode相当のフィールドはドキュメントに記載が無いため常にnullとする。
+    const messages =
+      parsed && parsed.error_messages && Array.isArray(parsed.error_messages.main) ? parsed.error_messages.main : null;
+    const message = (messages && messages.join(" / ")) || errorText || `HTTP ${response.status}`;
+    const err = new Error(`blastengine APIエラー: HTTP ${response.status} ${message}`);
+    err.code = null;
     err.statusCode = response.status;
     err.retryable = response.status >= 500 || response.status === 429;
     throw err;
@@ -153,13 +174,14 @@ async function callSendEmail(bodyObj, signal, options = {}) {
 /**
  * Initial AORメールを1通送信する。SES Clientのsendmail()と同じ公開契約。
  * @param {{to:string, subject:string, text:string, html:string,
- *   tags?:Array<{Name:string,Value:string}>, headers?:Object}} params - `tags`は現時点では
- *   APIリクエストへ反映していない（このファイル冒頭「要検証事項」参照）。`headers`は
- *   List-Unsubscribe等のカスタムヘッダーを想定
+ *   tags?:Array<{Name:string,Value:string}>, unsubscribe?:{mailto?:string, url?:string}}} params -
+ *   `tags`は現時点ではAPIリクエストへ反映していない（このファイル冒頭のコメント参照。
+ *   blastengineにlead_id追跡に相当するメタデータ機能は確認できていない）。`unsubscribe`は
+ *   List-Unsubscribe相当（`list_unsubscribe`フィールド）を組み立てるための入力
  * @param {{fetchImpl?:Function}} [options] - callSendEmail()と同じDIフック
  * @returns {Promise<{messageId:string}>}
  */
-async function sendEmail({ to, subject, text, html, headers }, options = {}) {
+async function sendEmail({ to, subject, text, html, unsubscribe }, options = {}) {
   if (!isConfigured()) {
     throw new Error(`blastengine送信に必要な環境変数が設定されていません: ${missingEnvVars().join(", ")}`);
   }
@@ -167,10 +189,11 @@ async function sendEmail({ to, subject, text, html, headers }, options = {}) {
   const bodyObj = buildSendEmailBody({
     to,
     from: process.env.BLASTENGINE_FROM,
+    replyTo: process.env.BLASTENGINE_REPLY_TO || undefined,
     subject,
     text,
     html,
-    headers,
+    unsubscribe,
   });
 
   return withRetryAndTimeout((signal) => callSendEmail(bodyObj, signal, options), {

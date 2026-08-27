@@ -67,7 +67,7 @@ const { isPublished, publishedPathFor } = require("../publish-report");
 const { readJsonSafe } = require("../shared/json-file");
 const { redactSecrets } = require("../shared/redact");
 const { runCli } = require("../shared/cli-utils");
-const { buildUnsubscribeUrl, buildListUnsubscribeHeaders } = require("./unsubscribe-url");
+const { buildUnsubscribeUrl } = require("./unsubscribe-url");
 // PJ2 AOR Phase45 STEP3B: Initial AORの送信基盤をSESからblastengineへ切り替えた
 // （docs/strategy_v2/13_architecture.md「メール送信アーキテクチャ v1.0」）。
 // Weekly AOR（send-weekly-report.js）は引き続きses-client.jsを使用し、本ファイルの変更対象外。
@@ -207,7 +207,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
 
   // プリフライト（メール本文の組み立てまで）はLeadのstatus/historyを一切変更しない。
   // ここで失敗した場合はinitial_report_failedにはしない（送信を試みてすらいないため）。
-  let subject, text, html, unsubscribeHeaders;
+  let subject, text, html, unsubscribe;
   try {
     const missingSite = missingSiteConfig();
     if (missingSite.length) {
@@ -223,18 +223,16 @@ async function sendInitialReportForLead(leadId, options = {}) {
     });
     ({ subject, text, html } = buildEmailContent({ companyName, reportUrl }));
 
-    // PJ2 AOR Phase45 STEP3A/3B: List-Unsubscribeヘッダーの組み立て（Provider非依存の
-    // 共通ヘルパーunsubscribe-url.jsを使用）。まだ実送信は行っていない段階のため、
-    // ヘッダーをmailClient.sendEmail()へ渡す配線だけを用意する
-    // （blastengine側で実際にこのheadersを反映するかは要検証、blastengine-client.js冒頭参照）。
+    // PJ2 AOR Phase45 STEP3A/3B/3C: 配信停止URLの組み立て（Provider非依存の共通ヘルパー
+    // unsubscribe-url.jsを使用）。blastengineの公式API仕様（STEP3Cで確認）に合わせ、
+    // list_unsubscribeフィールド用の{url, mailto}という形でmailClient.sendEmail()へ渡す
+    // （RFC 8058ヘッダー文字列ではなく、blastengine-client.js側が構造化データから
+    // list_unsubscribeを組み立てる）。まだ実送信は行っていない。
     const unsubscribeUrl = buildUnsubscribeUrl(process.env.AOR_SITE_BASE_URL, {
       leadId: lead.lead_id,
       reportToken: lead.report_token,
     });
-    unsubscribeHeaders = buildListUnsubscribeHeaders({
-      unsubscribeUrl,
-      mailtoAddress: process.env.BLASTENGINE_FROM || undefined,
-    });
+    unsubscribe = { url: unsubscribeUrl, mailto: process.env.BLASTENGINE_FROM || undefined };
   } catch (err) {
     return { ok: false, leadId, error: err.message };
   }
@@ -251,7 +249,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
       text,
       html,
       tags: [{ Name: "lead_id", Value: lead.lead_id }],
-      headers: unsubscribeHeaders,
+      unsubscribe,
     });
 
     await updateLead(leadId, { status: "initial_report_sent" });

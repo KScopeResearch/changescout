@@ -131,37 +131,87 @@ test("buildSendEmailBody: to/from/subject/text_part/html_partを正しく組み�
   assert.equal(body.encode, "UTF-8");
 });
 
-test("buildSendEmailBody: headersが指定された場合はリクエストボディへ含める", () => {
+test("buildSendEmailBody: fromNameを指定した場合はfrom.nameを含む", () => {
+  const body = blastengineClient.buildSendEmailBody({
+    to: "recipient@example.com",
+    from: "aor-report@changescout.jp",
+    fromName: "AI Opportunity Report 運営事務局",
+    subject: "s",
+    text: "t",
+    html: "<p>h</p>",
+  });
+  assert.deepEqual(body.from, { email: "aor-report@changescout.jp", name: "AI Opportunity Report 運営事務局" });
+});
+
+test("buildSendEmailBody: replyToを指定した場合はreply_toフィールドを含む（公式フィールド名、Phase45 STEP3Cで確認）", () => {
+  const body = blastengineClient.buildSendEmailBody({
+    to: "recipient@example.com",
+    from: "aor-report@changescout.jp",
+    replyTo: "reply@changescout.jp",
+    subject: "s",
+    text: "t",
+    html: "<p>h</p>",
+  });
+  assert.deepEqual(body.reply_to, { email: "reply@changescout.jp" });
+});
+
+test("buildSendEmailBody: replyTo未指定の場合はreply_toフィールドを含まない", () => {
   const body = blastengineClient.buildSendEmailBody({
     to: "recipient@example.com",
     from: "aor-report@changescout.jp",
     subject: "s",
     text: "t",
     html: "<p>h</p>",
-    headers: { "List-Unsubscribe": "<https://example.com/unsubscribe.html>" },
   });
-  assert.deepEqual(body.headers, { "List-Unsubscribe": "<https://example.com/unsubscribe.html>" });
+  assert.equal("reply_to" in body, false);
 });
 
-test("buildSendEmailBody: headers未指定・空オブジェクトの場合はheadersフィールドを含めない", () => {
-  const bodyNoHeaders = blastengineClient.buildSendEmailBody({
+test("buildSendEmailBody: unsubscribe指定時はlist_unsubscribeフィールドを組み立てる（公式フィールド名、Phase45 STEP3Cで確認）", () => {
+  const body = blastengineClient.buildSendEmailBody({
     to: "recipient@example.com",
     from: "aor-report@changescout.jp",
     subject: "s",
     text: "t",
     html: "<p>h</p>",
+    unsubscribe: { url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1", mailto: "aor-report@changescout.jp" },
   });
-  assert.equal("headers" in bodyNoHeaders, false);
+  assert.deepEqual(body.list_unsubscribe, {
+    mailto: "aor-report@changescout.jp",
+    url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1",
+  });
+});
 
-  const bodyEmptyHeaders = blastengineClient.buildSendEmailBody({
+test("buildSendEmailBody: unsubscribe.urlのみ（mailto省略）の場合はurlのみのlist_unsubscribeになる", () => {
+  const body = blastengineClient.buildSendEmailBody({
     to: "recipient@example.com",
     from: "aor-report@changescout.jp",
     subject: "s",
     text: "t",
     html: "<p>h</p>",
-    headers: {},
+    unsubscribe: { url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1" },
   });
-  assert.equal("headers" in bodyEmptyHeaders, false);
+  assert.deepEqual(body.list_unsubscribe, { url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1" });
+});
+
+test("buildSendEmailBody: unsubscribe未指定・空オブジェクトの場合はlist_unsubscribeフィールドを含めない", () => {
+  const bodyNoUnsub = blastengineClient.buildSendEmailBody({
+    to: "recipient@example.com",
+    from: "aor-report@changescout.jp",
+    subject: "s",
+    text: "t",
+    html: "<p>h</p>",
+  });
+  assert.equal("list_unsubscribe" in bodyNoUnsub, false);
+
+  const bodyEmptyUnsub = blastengineClient.buildSendEmailBody({
+    to: "recipient@example.com",
+    from: "aor-report@changescout.jp",
+    subject: "s",
+    text: "t",
+    html: "<p>h</p>",
+    unsubscribe: {},
+  });
+  assert.equal("list_unsubscribe" in bodyEmptyUnsub, false);
 });
 
 // ---------------------------------------------------------------------------
@@ -191,18 +241,19 @@ test("callSendEmail: 成功時、delivery_id(数値)を文字列化したmessage
   assert.equal(typeof result.messageId, "string");
 });
 
-test("callSendEmail: HTTPエラー時はcode/statusCode/retryable付きのErrorをthrowする", async () => {
+test("callSendEmail: HTTPエラー時、公式エラー形式（error_messages.main）からメッセージを抽出しstatusCode/retryableを設定する", async () => {
   const fakeFetch = async () => ({
     ok: false,
     status: 503,
-    text: async () => JSON.stringify({ message: "temporarily unavailable", code: "SERVICE_UNAVAILABLE" }),
+    text: async () => JSON.stringify({ error_messages: { main: ["temporarily unavailable", "please retry later"] } }),
   });
 
   await assert.rejects(
     () => blastengineClient.callSendEmail({ to: "x@example.com" }, undefined, { fetchImpl: fakeFetch }),
     (err) => {
       assert.match(err.message, /temporarily unavailable/);
-      assert.equal(err.code, "SERVICE_UNAVAILABLE");
+      assert.match(err.message, /please retry later/);
+      assert.equal(err.code, null, "公式ドキュメントに機械可読なcodeフィールドの記載が無いため常にnull");
       assert.equal(err.statusCode, 503);
       assert.equal(err.retryable, true, "5xxはretryable扱いのはず");
       return true;
@@ -214,14 +265,32 @@ test("callSendEmail: 4xx（429以外）はretryable:falseになる", async () =>
   const fakeFetch = async () => ({
     ok: false,
     status: 400,
-    text: async () => JSON.stringify({ message: "bad request" }),
+    text: async () => JSON.stringify({ error_messages: { main: ["bad request"] } }),
   });
 
   await assert.rejects(
     () => blastengineClient.callSendEmail({ to: "x@example.com" }, undefined, { fetchImpl: fakeFetch }),
     (err) => {
+      assert.match(err.message, /bad request/);
       assert.equal(err.statusCode, 400);
       assert.equal(err.retryable, false);
+      return true;
+    }
+  );
+});
+
+test("callSendEmail: 429（レート制限）はretryable:trueになる（公式仕様: 500req/min）", async () => {
+  const fakeFetch = async () => ({
+    ok: false,
+    status: 429,
+    text: async () => JSON.stringify({ error_messages: { main: ["rate limit exceeded"] } }),
+  });
+
+  await assert.rejects(
+    () => blastengineClient.callSendEmail({ to: "x@example.com" }, undefined, { fetchImpl: fakeFetch }),
+    (err) => {
+      assert.equal(err.statusCode, 429);
+      assert.equal(err.retryable, true);
       return true;
     }
   );
