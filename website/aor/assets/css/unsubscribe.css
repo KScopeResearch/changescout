@@ -1,0 +1,7 @@
+/* unsubscribe.html 専用スタイル（共通トークン・コンポーネントは base.css） */
+
+.field-error {
+  color: var(--color-error-text);
+  font-size: 0.8rem;
+  margin: 6px 0 0;
+}

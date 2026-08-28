@@ -101,6 +101,7 @@ const { createLogger } = require("../../scripts/generator/shared/logger");
 const { LOGS_DIR } = require("../../scripts/generator/shared/paths");
 const { archiveIfOversize } = require("../../scripts/generator/shared/log-rotation");
 const { readLead, updateLead, appendHistory, createLead, LEADS_DIR } = require("../../scripts/generator/leads/lead-store");
+const { unsubscribeLeadByToken } = require("../../scripts/generator/leads/unsubscribe-lead");
 const { loadCompanyContext } = require("../../scripts/generator/company-context-store");
 const rateLimit = require("./rate-limit");
 
@@ -467,11 +468,90 @@ async function handlePhase4Action(req, res, leadId, action) {
 }
 
 // ---------------------------------------------------------------------------
+// PJ2 AOR Phase46 STEP3: POST /api/leads/unsubscribe
+// ---------------------------------------------------------------------------
+
+/**
+ * 配信停止（unsubscribe）用POST endpoint。website/aor/unsubscribe.html（GET・静的ページ、
+ * 確認ボタン押下時のみ本endpointへPOST）からの利用を想定する。
+ *
+ * 【新しい判定ロジックは作らない】実際の状態変更は既存の
+ * scripts/generator/leads/unsubscribe-lead.js の unsubscribeLeadByToken(leadId, token) に
+ * そのまま委譲する（lead_id・report_tokenによる既存の認証方式を維持し、新しいtoken方式は
+ * 作らない）。Initial/Weekly双方の送信ゲート（isDeliveryBlocked()）が参照する
+ * delivery_status:"unsubscribed"への変更も、既存ロジックがそのまま行う。
+ *
+ * 【lead_id列挙対策（PJ2 AOR Phase46 STEP3 STEP4の要件）】
+ * handlePhase4Action()は「lead_id不明→404」「report_token不一致→403」を区別しているが、
+ * 本endpointはこれとは意図的に異なる方式を取る。unsubscribeは受信者本人以外が
+ * 悪意を持ってlead_idを推測・総当たりする動機が最も強いエンドポイントであるため、
+ * 「lead_idが存在しない」場合と「tokenが不正」の場合を外部から区別できないよう、
+ * どちらも同一のレスポンス（400 invalid_request）に統一する。
+ *
+ * 【冪等性】既にunsubscribed済みのLeadへの再POSTも、エラーではなく成功（200 {ok:true}）
+ * として扱う（unsubscribeLeadByToken()のalready_unsubscribedをok:trueとして統一する）。
+ *
+ * 【token/lead_idをレスポンス・ログへ含めない】成功・失敗いずれのレスポンスにも
+ * lead_id・tokenを一切含めない。leads-audit.jsonlへの記録も行わない
+ * （handlePhase4Action()と同じ判断。Leadのhistory自体がunsubscribeLeadByToken()経由で
+ * 既に監査証跡として記録されるため、二重記録しない）。
+ *
+ * @param {import("http").IncomingMessage} req
+ * @param {import("http").ServerResponse} res
+ */
+async function handleUnsubscribe(req, res) {
+  let body;
+  try {
+    body = await readJsonBody(req);
+  } catch (e) {
+    if (e.message === "too_large") {
+      sendJson(res, 413, { ok: false, error: "リクエストボディが大きすぎます" });
+    } else {
+      sendJson(res, 400, { ok: false, error: "invalid_request" });
+    }
+    return;
+  }
+
+  const leadId = body.lead_id;
+  const token = body.token;
+  if (typeof leadId !== "string" || leadId.length === 0 || typeof token !== "string" || token.length === 0) {
+    sendJson(res, 400, { ok: false, error: "invalid_request" });
+    return;
+  }
+
+  let result;
+  try {
+    result = await unsubscribeLeadByToken(leadId, token);
+  } catch (e) {
+    logger.error(`unsubscribe処理に失敗しました: ${e.message}`); // lead_id/tokenを含まない固定文言
+    sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
+    return;
+  }
+
+  // not_found・invalid_tokenはどちらも区別せず同一の400として返す（lead_id列挙対策）。
+  if (!result.ok) {
+    sendJson(res, 400, { ok: false, error: "invalid_request" });
+    return;
+  }
+
+  // unsubscribed・already_unsubscribedのいずれも成功として扱う（冪等）。
+  sendJson(res, 200, { ok: true });
+}
+
+// ---------------------------------------------------------------------------
 // サーバー起動
 // ---------------------------------------------------------------------------
 
-function startServer() {
-  const server = http.createServer(async (req, res) => {
+/**
+ * HTTPリクエスト1件を処理する（http.createServerのコールバック本体）。
+ * PJ2 AOR Phase49 STEP6で、AWS Lambda（Function URL）アダプター
+ * （scripts/generator/lambda/lead-api-handler.js）からも再利用できるよう、
+ * startServer()のインラインコールバックから独立した名前付き関数として切り出した。
+ * ルーティング・CORS・レート制限・エラーハンドリングのロジックは一切変更していない。
+ * @param {import("http").IncomingMessage} req
+ * @param {import("http").ServerResponse} res
+ */
+async function requestListener(req, res) {
     let url;
     try {
       url = new URL(req.url, `http://${req.headers.host}`);
@@ -511,6 +591,32 @@ function startServer() {
       return;
     }
 
+    // PJ2 AOR Phase46 STEP3: POST /api/leads/unsubscribe
+    // Phase4-A/B（/api/leads/:lead_id/...）とはURL形状が異なる（lead_idはbodyで受け取る、
+    // STEP3指示書のとおり）ため、パスマッチはPhase4-Aのそれより先に、固定パスとして扱う。
+    if (url.pathname === "/api/leads/unsubscribe") {
+      if (req.method !== "POST") {
+        res.setHeader("Allow", "POST, OPTIONS");
+        sendJson(res, 405, { ok: false, error: "method not allowed" });
+        return;
+      }
+
+      const ip = clientIp(req);
+      if (rateLimit.isBlocked(ip)) {
+        sendJson(res, 429, { ok: false, error: "リクエストが多すぎます。しばらく待ってから再試行してください。" });
+        return;
+      }
+      rateLimit.recordRequest(ip);
+
+      try {
+        await handleUnsubscribe(req, res);
+      } catch (e) {
+        logger.error(`予期しないエラー: ${e.message}`); // lead_id/tokenを含まない固定文言
+        if (!res.headersSent) sendJson(res, 500, { ok: false, error: "サーバー内部でエラーが発生しました" });
+      }
+      return;
+    }
+
     // PJ2 Phase4-A/B API。website/aor-admin/server.jsの既存のパスパラメータ方式
     // （正規表現マッチ）を踏襲する。
     const phase4Match = url.pathname.match(/^\/api\/leads\/([^/]+)\/(paid-report-request|weekly-report-consent)$/);
@@ -540,7 +646,10 @@ function startServer() {
     }
 
     sendJson(res, 404, { ok: false, error: "not found" });
-  });
+}
+
+function startServer() {
+  const server = http.createServer(requestListener);
 
   server.listen(PORT, () => {
     console.log(`AOR Lead API: http://localhost:${PORT}`);
@@ -557,6 +666,7 @@ if (require.main === module) {
 
 module.exports = {
   startServer,
+  requestListener, // PJ2 AOR Phase49 STEP6: Lambda（Function URL）アダプターが再利用する
   validateEmail,
   validateConsent,
   PORT,
@@ -566,4 +676,5 @@ module.exports = {
   ALLOWED_ORIGINS,
   LEAD_SOURCE,
   LEAD_COLLECTION_METHOD,
+  handleUnsubscribe,
 };

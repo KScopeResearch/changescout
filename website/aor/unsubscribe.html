@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>配信停止 | AI Opportunity Report</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="assets/css/base.css">
+<link rel="stylesheet" href="assets/css/unsubscribe.css">
+</head>
+<body class="theme-blue">
+
+<!-- PJ2 AOR Phase46 STEP3: 配信停止ページ（静的、サーバーサイドコードなし）。
+     website/aor/README.mdの既存方針（website/aorはHTML/CSS/JS + 静的JSONのみ、
+     email-capture.htmlのフォーム送信のみwebsite/aor-lead-api/へfetchする）を踏襲し、
+     本ページも同じ例外（POST /api/leads/unsubscribeへのfetch）としてのみ通信する。
+
+     【重要】ページ読み込み時（GET）には一切のPOSTを行わない。メールセキュリティ
+     スキャナ・リンクプレビュー機能によるGETアクセスで意図せず配信停止されることを
+     防ぐため、実際の配信停止はユーザーが下記ボタンを明示的にクリックした場合のみ
+     POSTで実行する（assets/js/unsubscribe.js参照）。 -->
+
+<div class="page" id="page" hidden>
+
+  <header class="report-header">
+    <p class="report-header__eyebrow">AI Opportunity Report</p>
+    <h1 class="report-header__company">配信停止</h1>
+  </header>
+
+  <main>
+
+    <section class="section" id="confirm-section" hidden>
+      <p>配信停止をご希望ですか？</p>
+      <button type="button" class="btn btn-primary btn-cta" id="unsubscribe-btn">配信停止する</button>
+      <p class="field-error" id="unsubscribe-error" hidden></p>
+    </section>
+
+    <section class="section" id="result-section" hidden>
+      <p id="result-message"></p>
+    </section>
+
+  </main>
+
+  <footer class="report-footer">
+    <p class="report-footer__row">AI Opportunity Report 運営事務局</p>
+  </footer>
+
+</div>
+
+<div class="state-message" id="state-loading">
+  <p>読み込んでいます…</p>
+</div>
+
+<div class="state-message state-message--error" id="state-error" hidden>
+  <div id="state-error-content"></div>
+</div>
+
+<script src="assets/js/common.js"></script>
+<script src="assets/js/unsubscribe.js"></script>
+</body>
+</html>
