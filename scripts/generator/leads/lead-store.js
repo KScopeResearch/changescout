@@ -70,6 +70,14 @@ const VALID_STATUSES = [
 
 const VALID_DELIVERY_STATUSES = ["active", "unsubscribed", "bounced", "suppressed"];
 
+// PJ2 AOR: Candidate/Approved分離仕様（「PJ2 AOR — Candidate/Approved分離仕様
+// 実装指示書」）で追加。delivery_statusとは別概念——delivery_statusは「配信を継続して
+// よいか」（送信後に発生するブロック理由）を表すのに対し、delivery_approval_statusは
+// 「そもそも初回送信してよい相手か（Approved Listに属するか）」を表す、送信前のゲート。
+// 新規Leadは常に"pending"から始まり（buildNewLead()参照）、CandidateがApprovedへ
+// 昇格する具体的な判定基準・操作手段は本モジュールの責務外（別途運用側で定める）。
+const VALID_DELIVERY_APPROVAL_STATUSES = ["pending", "approved", "rejected"];
+
 // 「PJ2 Leadライフサイクル 実装仕様 最終確定」で固定したhistoryイベント名。
 const VALID_EVENTS = [
   "collected",
@@ -100,6 +108,10 @@ const VALID_EVENTS = [
   // 追加パターン（"initial_report_failed"、上記コメント参照）を踏襲し、
   // {at, event, metadata}という既存のhistory形式はそのまま、イベント名を1つ
   // 追加するだけにとどめている（新しいhistory構造は発明していない）。
+  "delivery_approved", // PJ2 AOR: Candidate/Approved分離仕様で追加。delivery_approval_status
+  // が"approved"へ変わった事実を記録する（判定基準・判定者の記録方法自体は本モジュールの
+  // 責務外。appendHistory()のmetadata引数へ任意に含められる）。
+  "delivery_rejected", // 同上。delivery_approval_statusが"rejected"へ変わった事実を記録する。
 ];
 
 // delivery_statusのうち、配信をブロックすべき値。status:"rejected"はここに含めない
@@ -191,6 +203,12 @@ function buildNewLead({
     last_weekly_sent_report_generated_at: null, // PJ2 AOR Phase 18: Weekly配信の二重送信防止
     // （publishedの現在のmeta.generated_atと比較し、同じreportを同じLeadへ再送しないための判定に使う）。
     delivery_status: "active",
+    // PJ2 AOR: Candidate/Approved分離仕様で追加。新規Leadは常に"pending"から始まる
+    // （＝収集されただけではApprovedにならない）。buildNewLead()の引数として受け付けない
+    // ことで、import-leads.js・create-lead-from-email.js等どの収集経路であっても
+    // 自動承認を経由できない構造にしている（承認はcreateLead()完了後にupdateLead()で
+    // 明示的に行う別操作としてのみ可能）。
+    delivery_approval_status: "pending",
     history: [],
   };
 
@@ -212,6 +230,12 @@ function applyPatch(lead, patch) {
   }
   if (patch.delivery_status !== undefined && !VALID_DELIVERY_STATUSES.includes(patch.delivery_status)) {
     throw new Error(`不正なdelivery_statusです: ${patch.delivery_status}`);
+  }
+  if (
+    patch.delivery_approval_status !== undefined &&
+    !VALID_DELIVERY_APPROVAL_STATUSES.includes(patch.delivery_approval_status)
+  ) {
+    throw new Error(`不正なdelivery_approval_statusです: ${patch.delivery_approval_status}`);
   }
   return { ...lead, ...patch };
 }
@@ -274,6 +298,19 @@ function companySlugForComparison(companyUrl) {
  */
 function isDeliveryBlocked(lead) {
   return !!lead && BLOCKED_DELIVERY_STATUSES.includes(lead.delivery_status);
+}
+
+/**
+ * Leadが初回送信の対象として承認済み（Approved List相当）かどうかを判定する
+ * （Pure Function）。PJ2 AOR: Candidate/Approved分離仕様で追加。
+ * delivery_approval_statusフィールドを持たない旧データ（undefined）は"approved"と
+ * 一致しないため、自然に「pending扱い（未承認）」として安全側に倒れる
+ * （既存データのマイグレーション処理は別途不要）。
+ * @param {Object} lead
+ * @returns {boolean}
+ */
+function isDeliveryApproved(lead) {
+  return !!lead && lead.delivery_approval_status === "approved";
 }
 
 // ---------------------------------------------------------------------------
@@ -399,9 +436,38 @@ async function findLeadByEmailAndCompanyUrl(email, companyUrl) {
   );
 }
 
+/**
+ * "initial_report_sent"のhistoryへ記録されたmetadata.message_id（Initial AOR送信時に
+ * 記録した送信Provider側のメッセージ識別子。blastengineの場合はdelivery_id、SESの場合は
+ * SESのMessageId）からLeadを検索する（I/O、全件走査）。
+ *
+ * 【PJ2 AOR Phase47 STEP2】blastengine Webhookにはlead_id相当のタグが無く、mailaddressのみ
+ * から特定しようとすると「同一emailで複数Leadが存在しうる」（P0-1確定仕様）ため一意に
+ * 特定できない。一方、send-initial-report.js（sendInitialReportForLead()）は送信成功時に
+ * 必ず`appendHistory(leadId, "initial_report_sent", {message_id: result.messageId})`を
+ * 記録しており、この`message_id`はそのLeadへの、その1回の送信だけを指す一意な識別子である
+ * （blastengineのdelivery_idは1送信ごとに新規発行されるため、同一emailの別Lead・別送信とは
+ * 衝突しない）。この既存の記録を再利用することで、mailaddressに基づく推測を一切行わずに
+ * Webhookイベントの送信元Leadを一意に特定できる（新しいLeadスキーマ・新しいstorageは
+ * 追加していない。既存のhistory機構をそのまま検索対象にしているだけ）。
+ * @param {string} messageId
+ * @returns {Promise<Object|null>}
+ */
+async function findLeadByInitialSendMessageId(messageId) {
+  if (typeof messageId !== "string" || !messageId) return null;
+  const leads = await getBackend().listLeads();
+  return (
+    leads.find((lead) =>
+      Array.isArray(lead.history) &&
+      lead.history.some((h) => h.event === "initial_report_sent" && h.metadata && h.metadata.message_id === messageId)
+    ) || null
+  );
+}
+
 module.exports = {
   VALID_STATUSES,
   VALID_DELIVERY_STATUSES,
+  VALID_DELIVERY_APPROVAL_STATUSES,
   VALID_EVENTS,
   LEADS_DIR: require("../shared/paths").LEADS_DIR, // 既存呼び出し元（テストのクリーンアップ等）との互換のため再エクスポート
   // Pure Functions（テスト・呼び出し元での組み立てに利用可能）
@@ -410,6 +476,7 @@ module.exports = {
   withHistoryEvent,
   normalizeEmail,
   isDeliveryBlocked,
+  isDeliveryApproved,
   companySlugForComparison,
   // I/O
   createLead,
@@ -419,4 +486,5 @@ module.exports = {
   listLeads,
   findLeadByEmail,
   findLeadByEmailAndCompanyUrl,
+  findLeadByInitialSendMessageId,
 };
