@@ -121,9 +121,22 @@ Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppre
 - 配信停止導線をメール本文へ記載する
 - blastengineの`list_unsubscribe`フィールド（`{mailto?, url?}`）でList-Unsubscribe相当を付与する（実装済み）
 
-**Weekly AOR**:
-- ワンクリック配信停止URLを設ける
-- List-Unsubscribeヘッダー対応は**予定**（未実装）
+**Weekly AOR**（Phase49 STEP5でメール側を実装）:
+- 配信停止導線をメール本文へ記載する（text/html両方に配信停止リンク。返信ベースの停止も併記）
+- SESv2 `Content.Simple.Headers` で `List-Unsubscribe` ヘッダーを付与する（`ses-client.js` を拡張。
+  URL・ヘッダー値は Initial と同じ `unsubscribe-url.js` の `buildUnsubscribeUrl()` / `buildListUnsubscribeHeaders()` を使用）
+- RFC 8058 の `List-Unsubscribe-Post`（真のワンクリック）は **`oneClick: false` で未付与**。現在の配信停止URLは
+  静的な確認ページであり MUA からの直接 POST を処理しないため（付けると誤って「停止完了」と表示される）。
+  POST を受けて即座に配信停止する軽量エンドポイントを用意したら `oneClick: true` へ戻す
+- **残ギャップ（配線）**: `unsubscribe.html` が POST する `LEAD_API_BASE_URL` は `common.js` でプレースホルダ
+  （`http://localhost:4700`）。`website/aor-lead-api` は本番未デプロイ、`unsubscribe.html` 等の静的ファイルも
+  配信サイトへ未デプロイ。このためメール内リンク／`List-Unsubscribe` を辿っても end-to-end の配信停止まで
+  到達しない（Initial 側も同様）。現状 end-to-end で機能するのは返信ベースのみ。
+  - **Phase49 STEP6**: 配線方式を確定（Lambda + Function URL、blastengine-webhook と同じ薄い HTTP アダプター方針）。
+    `website/aor-lead-api/server.js` から `requestListener(req, res)` を切り出し、`scripts/generator/lambda/lead-api-handler.js`
+    （Function URL v2 イベント ⇔ Node req/res 変換）を実装・ローカルテスト済み（`test/lambda-lead-api-handler.test.js`
+    9件 pass）。**残るのはデプロイ**（新 Lambda `pj2-aor-lead-api` + Function URL + 環境変数、`common.js` の
+    `LEAD_API_BASE_URL` 書き換え、サイト再デプロイ）。次 STEP で実施
 
 #### blastengine `list_unsubscribe` の仕様分離（Phase48 STEP7〜8）
 
@@ -133,7 +146,8 @@ Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppre
 | **実APIで観測した事実**（2026-08-28、実疎通検証。書面回答ではない） | (a) `list_unsubscribe.mailto`にbare email address（例: `aor-report@changescout.jp`）を渡すとHTTP 400 `{"error_messages":{"list_unsubscribe":{"mailto":["{validation.pattern.error}"]}}}`。`mailto:`スキーム付きURI（`mailto:aor-report@changescout.jp`）が必須。(b) `url`のみ、または`mailto:`付きなら200が返り`delivery_id`を採番。(c) エラーレスポンスはPhase45時点で想定していた`error_messages.main`配列だけでなく、`error_messages.<field>.<subfield>: string[]`のネストしたオブジェクト形式でも返る |
 | **PJ2側の設計判断**（コード実装） | `blastengine-client.js`に`normalizeMailto()`を追加し、呼び出し側がbare emailを渡しても送信前に`mailto:`を付与して正規化する（呼び出し側`send-initial-report.js`は変更不要）。エラー抽出は`flattenErrorMessages()`でネストした`error_messages`を再帰的に平坦化し、フィールドパス付きメッセージ（`list_unsubscribe.mailto: ...`）を得る。APIキー・Authorization・Bearerトークン・リクエストボディ・PIIはエラーメッセージへ含めない |
 
-Weekly AOR側のList-Unsubscribe対応は引き続き未実装であり、目標仕様として記録する。
+Weekly AOR側の `List-Unsubscribe` ヘッダー・本文リンクは Phase49 STEP5 で実装済み（上記4節参照）。
+残るのは配信停止HTTPエンドポイントのデプロイ・配線（Initial/Weekly共通の残課題）。
 
 ### 5. ドメインウォームアップ仕様
 
