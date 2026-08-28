@@ -33,7 +33,21 @@ AWS Support Case `178662791300353` への回答（公開情報から収集した
 提出前に、実際の運用開始日・送信量見込み等、申請フォーム側で追加入力が必要な項目が
 無いかを別途確認すること。
 
----
+### 【2026-08-28 追記 / Phase48】初回AORの送信基盤をblastengineへ分離済み
+
+本ドキュメントの英文・和文（下記「AWS提出用」「日本語訳」節）は **Phase 32A 時点の状態**を
+記述したものであり、初回AORを「SES経由・送信方式は未確定（選択肢(a)/(b)を検討中）」と説明している。
+Phase45〜48で **選択肢(b)（初回の未承諾接触には別のメール配信手段を用い、SESは既に接点のある
+受信者専用とする）を実装・デプロイ済み**:
+
+- 初回AOR送信は `pj2-aor-initial-report-delivery` Lambda（2026-08-28 デプロイ、`blastengine-client.js`
+  経由の blastengine Transaction API）。SESは呼ばない
+- 週次AOR送信（`pj2-aor-weekly-report-delivery`）は引き続き SES（`weekly_report_consent === true` の
+  受信者のみ）
+- 2026-08-28 に AWS 実環境から blastengine 経由で初回AORを1通実送信し、`delivery_id` 採番・受信まで確認済み
+
+**AWSへの提出文（下記本文）は Phase 32A 提出時点の記述として保持する**（提出済みの内容を後から
+書き換えない）。現状との差分は本追記と「技術的根拠」表・「未確定事項」節の各追記で示す。
 
 ## AWS提出用（英語）
 
@@ -159,7 +173,7 @@ AWS Support Case `178662791300353` への回答（公開情報から収集した
 | 主張 | 根拠となるコード |
 |---|---|
 | Candidateは常に`"pending"`から始まる | `scripts/generator/leads/lead-store.js` `buildNewLead()`。`delivery_approval_status`を引数として受け付けない設計のため、収集経路（`import-leads.js`・`create-lead-from-email.js`・`website/aor-lead-api/server.js`のPOST /api/leads）のいずれも自動承認を経由できない |
-| Approved以外はSESへ到達しない | `scripts/generator/leads/send-initial-report.js` `sendInitialReportForLead()`内の`isDeliveryApproved(lead)`チェック（`lead-store.js`の同名関数）。falseの場合はSES呼び出し自体を行わずskipする |
+| Approved以外は送信基盤へ到達しない | `scripts/generator/leads/send-initial-report.js` `sendInitialReportForLead()`内の`isDeliveryApproved(lead)`チェック（`lead-store.js`の同名関数）。falseの場合は送信呼び出し自体を行わずskipする（初回=blastengine、週次=SESのいずれのゲートでも同じ） |
 | 承認は認証済みスタッフによる明示操作のみ | `website/aor-admin/server.js` `POST /api/leads/:lead_id/delivery-approval`（同ファイルの既存認証・CSRF保護・`auth.logAudit()`監査ログの仕組みをそのまま適用）。フロントエンドは`website/aor-admin/public/leads.html`・`assets/js/leads.js` |
 | 承認者・日時が事後追跡できる | `lead-store.js`の`appendHistory()`により、`delivery_approved`/`delivery_rejected`イベントへ`reviewer`（認証済みセッションのusername、クライアント入力は信用しない）を記録 |
 | 配信停止も同じゲートで除外される | `isDeliveryBlocked(lead)`（`delivery_status`が`unsubscribed`/`bounced`/`suppressed`の場合）。`send-initial-report.js`・`send-weekly-report.js`双方が送信直前にチェックする |
@@ -167,7 +181,7 @@ AWS Support Case `178662791300353` への回答（公開情報から収集した
 | Approved判定基準は本人の事前オプトインではない（誇張していない） | Approved判定基準（[03_lead_generation.md](03_lead_generation.md)「Candidate / Approved分離とApproved判定」）は、収集元の適法性（公開アドレスか・受信拒否の記載が無いか）の当てはめであり、受信者本人の事前リクエストの記録ではない。提出文2.・3.はこれを正確に反映している |
 | Bounce/Complaint通知を実際に処理するプロセスがある | `scripts/generator/leads/process-ses-event.js`（コアロジック、Bounce→`delivery_status:"bounced"`、Complaint→`delivery_status:"suppressed"`）を`scripts/generator/lambda/ses-event-handler.js`がAWS Lambda（`pj2-aor-ses-event-processing`）としてラップし、実際にAWSへデプロイ・配線済み。配線: SES Configuration Set `pj2-aor-delivery`（Event Destination: Delivery/Bounce/Complaint）→ SNS Topic `pj2-aor-ses-events` → 上記Lambda。初回・週次送信Lambda（`pj2-aor-initial-report-delivery`・`pj2-aor-weekly-report-delivery`）には環境変数`SES_CONFIGURATION_SET=pj2-aor-delivery`を設定済みで、この2つのLambdaが送るメールは必ずこのConfiguration Set経由になる（`ses-client.js`の`ConfigurationSetName`付与）。デプロイ後、テスト用のBounceイベントをLambdaへ直接invokeし、実際にAWS上でLead JSONのdelivery_statusが更新されることを確認済み |
 | 送信可否は送信直前に毎回再確認される（承認時の1回きりではない） | `sendInitialReportForLead()`・`sendWeeklyReportForLead()`はいずれも、対象Lead一覧の事前フィルタだけでなく、実際のSES呼び出し直前に個別Leadへ対して`isDeliveryApproved()`/`isDeliveryBlocked()`等のゲートを再評価する（一括処理の事前フィルタと送信直前チェックが二重になっている設計） |
-| 初回AORは現時点でSESから分離されていない（事実として明記） | `sendInitialReportForLead()`は現在も`ses-client.js`の`sendEmail()`を直接呼ぶ。Candidate/Approved分離の実装はSES送信対象の絞り込みであり、送信基盤自体をSESから分離する変更ではない。提出文3.の「送信方式は未確定」はこの現状を正確に反映している（別Phaseで送信基盤分離を検討する） |
+| 初回AORの送信基盤 | **【Phase 32A 提出時点】** `sendInitialReportForLead()`は`ses-client.js`の`sendEmail()`を直接呼んでいた。提出文3.の「送信方式は未確定」はこの状態を反映。<br>**【2026-08-28 / Phase48 更新】** 初回AORはSESから分離済み。`sendInitialReportForLead()`・`lambda/initial-report-delivery-handler.js`はいずれも`ses-client`をrequireせず`leads/blastengine-client.js`（blastengine Transaction API）を使う。`pj2-aor-initial-report-delivery` Lambda は 2026-08-28 に blastengine版へデプロイ済み（環境変数 `BLASTENGINE_USER_ID`/`BLASTENGINE_API_KEY`/`BLASTENGINE_FROM` 設定済み）。SESを呼ぶのは週次（`pj2-aor-weekly-report-delivery`、`weekly_report_consent === true` のみ）だけになった。詳細は [13_architecture.md](13_architecture.md)「メール送信アーキテクチャ」節を参照 |
 
 **関連する自動テスト**（実装が上記の通り動作することの回帰確認）:
 `scripts/generator/test/lead-store.test.js`、`send-initial-report.test.js`、
@@ -179,9 +193,12 @@ AWS Support Case `178662791300353` への回答（公開情報から収集した
 
 ## 未確定・提出前に確認すべき事項
 
-- **初回AORの送信方式が未確定**（今回追加）: 提出文3.に記載のとおり、初回AORをSES経由で
-  送り続けるか、SES以外の基盤へ切り出すかは未決定。この判断・実装は別Phaseで行う。今回の
-  ドキュメント更新は、この未確定な状態を正直に説明することが目的であり、判断を先取りしていない
+- ~~**初回AORの送信方式が未確定**（Phase32A追加）: 提出文3.に記載のとおり、初回AORをSES経由で
+  送り続けるか、SES以外の基盤へ切り出すかは未決定~~ → **【2026-08-28 / Phase48 解消】** 選択肢(b)を採用し
+  実装・デプロイ済み。初回AOR = blastengine Transaction API（`pj2-aor-initial-report-delivery` Lambda）、
+  週次AOR = SES。**提出済みのAWS向け文面（提出文3.）は「検討中」のまま保持**しているため、AWSへの
+  追加連絡が必要かどうか（「(b)を選択・実装した」旨を伝えるべきか）は別途判断すること。
+  なお blastengine の規約適合性は書面回答受領済み（[external-provider-confirmations.md](../external-provider-confirmations.md)「2. blastengine — 正式回答」）
 - 実際の運用開始時期・想定送信数（申請フォーム側で問われる場合、本ドキュメントの範囲外のため別途用意する）
 - Approved判定基準自体（[03_lead_generation.md](03_lead_generation.md)記載の3条件）は法務専門家による
   正式な確認を経ていない（[14_risk.md](14_risk.md)参照）。AWSへの技術的な説明とは独立した論点として、

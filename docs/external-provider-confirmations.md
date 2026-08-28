@@ -255,3 +255,111 @@ Phase38で作成した問い合わせ文を`https://blastengine.jp/contact/`（�
 | Weekly opt-in条件 | 回答あり（proper opt-in checkを要求） | 言及なし（Weekly用途はSmartleadにもblastengineにも問い合わせていないため対象外） |
 | 法的判断ではない旨 | 回答あり（明示的に「法的意見ではない」と明言） | 言及なし（適法性について肯定・否定どちらの言及もなし） |
 | 追加の必須条件 | ワンクリック配信停止の推奨（EU/カナダ宛先がある場合）、送信者情報明記 | オプトアウト導線明記、Webhook連携、ドメインウォームアップ（2週間） |
+
+---
+
+## 3. blastengine Webhook正式回答（2026-08-28）
+
+### 記載形式についての注記
+
+上記1・2のエントリ（Smartlead・blastengineの規約適合性回答）は、受領したメール原文をそのまま「原文」節に引用する形式で記録している。本エントリは、2026-08-28にPJ2 AOR運営者（幸田）がblastengineサポートへ確認し受領したWebhook仕様の回答内容を、Phase47 STEP1の指示に基づき要旨として記録するものであり、**受信メールの原文（verbatim）は本ファイルに引用していない**。以下は指示書に明記された「正式回答のみ・推測禁止」の内容をそのまま転記したものであり、本ファイルの筆者（Claude Code）が独自に推測・補完した内容は含まない。原文メール自体の保存が必要な場合は、別途原文を確認のうえ追記することを推奨する。
+
+### 確認できた事項
+
+| 項目 | blastengineの回答 |
+|---|---|
+| Webhook署名（認証） | HMAC等の署名機能は提供されない。Basic認証付きWebhook URLの利用を推奨 |
+| Webhook送信元IP | `3.114.82.121`、`35.79.248.35` の2つに固定 |
+| 重複通知 | 同一Webhookが複数回届く可能性がある。Event ID（一意なイベント識別子）は存在しない。`delivery_id` を識別子として利用可能 |
+| timestampフィールド | `event.datetime`。ISO8601形式、JSTオフセット付き |
+| SOFTERRORの再試行 | blastengine側で24時間以内に自動再試行される。送信元（PJ2）システム側での再送は不要 |
+| HTTPS | HTTPでも受信は可能だが、blastengineとしてはHTTPSを推奨。PJ2ではHTTPSを採用する |
+
+### Webhook payload構造（公式マニュアル記載。https://blastengine.jp/webhook/ 、Phase48 STEP11で確認）
+
+**区分: blastengine公式マニュアル記載事項**（サポートからのメール回答ではなく、公開マニュアルの掲載内容）。
+
+```json
+{
+  "events": [
+    {
+      "event": {
+        "type": "DROP",
+        "datetime": "YYYY-MM-DDTHH:mm:ss+09:00",
+        "detail": {
+          "mailaddress": "xxxx@xxxxx.xxx",
+          "subject": "XXXXXXXX",
+          "error_code": "554(errors)",
+          "error_message": "....",
+          "delivery_id": 123,
+          "insert_codes": []
+        }
+      }
+    }
+  ]
+}
+```
+
+- `events` は配列。各要素は `events[].event` でイベント本体をラップし、受信者情報・`delivery_id` 等は `events[].event.detail` 配下にネストする
+- `event.type` / `event.datetime` はイベント直下、`detail.mailaddress` / `detail.subject` / `detail.error_code` / `detail.error_message` / `detail.delivery_id` / `detail.insert_codes` は `detail` 配下
+- `delivery_id` はマニュアルの例では**数値**
+
+**Phase47 STEP1実装との差異**: Phase47 STEP1では、公式マニュアル未確認のまま `events[]` 要素にフィールドが直接並ぶ**flat構造**を仮定してParser（`process-blastengine-event.js`）を実装していた。Phase48 STEP11で上記の正しい構造が判明し、Phase48 STEP12でParserを公式構造へ合わせて修正した（→「4. 実API疎通検証で観測した事実」の 4-4 参照。これはPJ2側の実装変更）。
+
+**未確認**: 上記は公式マニュアルの記載であり、**実際のWebhook受信トラフィックでの検証はまだ行っていない**（実Webhook未受信。次STEP以降）。マニュアルの例と実payloadでキー名・ネストが完全一致するかは実受信時に最終確認する。
+
+### 未確定のまま残る事項（今回の回答に含まれない）
+
+- Webhook署名が提供されない前提での、なりすまし対策の具体的な実装方法（Basic認証＋IPホワイトリストの組み合わせで対応する設計をSTEP2で検討する）
+- `delivery_id`・`mailaddress`・`error_code`・`event.datetime`以外に、重複判定へ使える追加フィールドの有無
+- Basic認証の資格情報（ユーザー名・パスワード）の発行方法・タイミング（blastengine管理画面側の設定はPhase47では未実施）
+- 管理画面の「テストWebhook送信」機能の有無（公式マニュアルには設定手順のみ記載。テスト送信ボタンの記載は確認できていない）
+
+### 今回確認・記録できたこと
+
+- blastengine WebhookにはHMAC等の署名機構が無いため、送信元認証はBasic認証＋（AWS側での）IPホワイトリストの組み合わせで設計する方針が現実的であることが確定した。
+- 重複通知が起こりうる前提で、`delivery_id`を軸とした冪等化設計が必要であることが確定した（Event IDが存在しないため）。
+- SOFTERRORはPJ2側での再送処理が不要（blastengine側が24時間以内に自動再試行）であることが確定した。
+
+---
+
+## 4. blastengine 実API疎通検証で観測した事実（検証日: 2026-08-28）
+
+### このエントリの位置づけ（重要）
+
+**本エントリは「サービス提供者からの正式な回答」ではない。** 1〜3節はblastengineサポートから書面で受領した回答を記録したものだが、本エントリはPJ2 AOR運営者（Claude Code経由）がPhase48 STEP7で**blastengine Transaction APIへ実際にリクエストを送って観測した挙動**を記録するものである。テスト用宛先（`BLASTENGINE_TEST_TO`）へ検証メールを**2通のみ**送信し、成功`delivery_id`を確認した時点で疎通確認は完了しており、以後このSTEPでの実API送信は行わない。
+
+観測した事実と、blastengine公式ドキュメントの記載、PJ2側の実装対応を、以下のとおり明確に分離して記録する。
+
+### 4-1. `list_unsubscribe.mailto` の形式
+
+| 区分 | 内容 |
+|---|---|
+| **blastengine公式仕様**（APIドキュメント `https://blastengine.jp/documents/#tag/List-Unsubscribe`、Phase45 STEP3Cで確認済み） | List-Unsubscribeは汎用的な`headers`キーではなく、`list_unsubscribe: {mailto?, url?}` という専用フィールドで指定する。`mailto`・`url`はいずれも任意。公式ドキュメントには`mailto`値の具体的な文字列フォーマット（スキームの要否）についての明示的な記載は確認できていない |
+| **実APIで観測した事実**（2026-08-28） | `list_unsubscribe.mailto` に bare email address（`aor-report@changescout.jp`）を渡すと **HTTP 400**。レスポンスボディは `{"error_messages":{"list_unsubscribe":{"mailto":["{validation.pattern.error}"]}}}`。`mailto:` スキームを付けた URI（`mailto:aor-report@changescout.jp`）を渡すと **HTTP 200**、`delivery_id` を採番。`url` のみ（`mailto` 省略）でも **HTTP 200** |
+| **PJ2側の実装対応**（設計判断） | `scripts/generator/leads/blastengine-client.js` に `normalizeMailto()` を追加。`buildSendEmailBody()` が `list_unsubscribe.mailto` を組み立てる際、既に `mailto:` が付いていればそのまま、bare email なら `mailto:` を付与して正規化する。呼び出し側（`send-initial-report.js`、`process.env.BLASTENGINE_FROM` を bare で渡している）は変更不要 |
+
+### 4-2. エラーレスポンスの構造
+
+| 区分 | 内容 |
+|---|---|
+| **blastengine公式仕様**（Phase45 STEP3Cで確認した範囲） | エラー形式は `{"error_messages": {"main": ["メッセージ", ...]}}`。機械可読な `code` 相当のフィールドは公式ドキュメントに記載がない |
+| **実APIで観測した事実**（2026-08-28） | フィールド単位のバリデーションエラーは `error_messages.main`（配列）ではなく、`{"error_messages":{"list_unsubscribe":{"mailto":["{validation.pattern.error}"]}}}` のように **`error_messages.<field>.<subfield>: string[]` のネストしたオブジェクト**で返る。`main` 専用の抽出ロジックではこの種のエラー原因が完全に欠落する |
+| **PJ2側の実装対応**（設計判断） | `blastengine-client.js` に `flattenErrorMessages()` を追加。`error_messages` を再帰的に平坦化し、`main` 直下はprefixなし・それ以外はフィールドパスを前置（`list_unsubscribe.mailto: {validation.pattern.error}`）した文字列配列を得る。APIキー・Authorizationヘッダー・Bearerトークン・リクエストボディ・PIIはこの抽出対象（サーバー返却のバリデーションメッセージのみ）に含まれない。`err.code` は従来どおり常に `null`、`statusCode`／`retryable` の判定は無変更 |
+
+### 4-3. リトライ挙動（Phase48 STEP8 read-only調査で確認、コード変更なし）
+
+| 区分 | 内容 |
+|---|---|
+| **PJ2側の現行実装** | `scripts/generator/shared/retry.js` の `withRetryAndTimeout()` は **`err.retryable` を参照しない**。タイムアウト以外のあらゆるエラーを `maxRetries` 回まで再試行する。blastengine送信は `maxRetries: 2`（合計3回）。HTTP 400（`retryable: false`）でも3回試行してから `blastengine Transaction APIが3回とも失敗しました: ...` を投げる。最終エラーは素の `Error` であり、`retryable`／`statusCode`／`code` は引き継がれない（これらは `send-initial-report.js` が job history へ記録する用途で `callSendEmail()` が付与するもので、リトライ制御には使われていない） |
+| **影響評価** | 400は「何も送信されていない」ことを意味するため、再試行で重複メールは発生しない。ただし確定失敗に対して3回APIを呼ぶのはレートリミット（500回/分）とレイテンシの無駄。Phase48 STEP7の実検証時に実際に「3回とも失敗」ログが出たのはこの挙動による |
+| **今回の対応** | STEP8の指示範囲は read-only 調査のため、retry仕様は変更していない。現行挙動を明文化する回帰テストのみ追加（`test/shared.test.js`）。`err.retryable` を見て非retryableエラーを即時打ち切る改善は次STEP以降の検討事項 |
+
+### 4-4. Webhook payload構造（Phase48 STEP11-12）
+
+| 区分 | 内容 |
+|---|---|
+| **blastengine公式マニュアル記載**（https://blastengine.jp/webhook/ ） | Webhook payloadは `{ "events": [ { "event": { "type", "datetime", "detail": { "mailaddress", "subject", "error_code", "error_message", "delivery_id", "insert_codes" } } } ] }` というネスト構造（詳細は「3. blastengine Webhook正式回答」の「Webhook payload構造」節、または `docs/strategy_v2/13_architecture.md` 7節参照）。`delivery_id` はマニュアルの例では数値 |
+| **Phase47 STEP1実装の誤り** | Phase47 STEP1では公式マニュアル未確認のまま、`events[]` 要素にフィールドが直接並ぶ**flat構造**（`events[].{type, datetime, mailaddress, delivery_id, ...}`）を仮定して `parseBlastengineEvent()` を実装していた。これは推測であり、公式構造と一致しない |
+| **PJ2側の実装対応**（Phase48 STEP12、設計判断） | `scripts/generator/leads/process-blastengine-event.js` の `parseBlastengineEvent()` を公式マニュアル構造へ合わせて全面修正。`events[].event.detail` をunwrapし、正規化後の内部イベント形式（`{type, datetime, mailaddress, subject, error_code, error_message, delivery_id, insert_codes}` のflat）・Event Mapping（HARDERROR/DROP→bounced 等）・冪等キー（delivery_id + error_code + datetime）・Lead特定方式（`findLeadByInitialSendMessageId(delivery_id)`）はいずれも無変更。`delivery_id` は数値でも `String()` で正規化。Validation例外メッセージは `events[index]` とフィールドパスのみで mailaddress 等のPIIを含めない。テストfixture（`process-blastengine-event.test.js`・`blastengine-webhook-suppression-integration.test.js`）も公式構造へ更新 |
+| **未確認** | 上記は公式マニュアルの記載構造への適合であり、**実Webhook受信トラフィックでの検証は未実施**（実Webhook未受信）。マニュアルの例と実payloadが完全一致するかは実受信時に最終確認する。一致しない場合はコードを再修正する |
