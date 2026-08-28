@@ -21,7 +21,12 @@
  *   - リクエストヘッダー形式（`Authorization: Bearer <token>`）: 公式記載と一致。**修正不要**
  *   - List-Unsubscribe: 公式ドキュメントにより、汎用的な`headers`キーではなく
  *     `list_unsubscribe: {mailto?, url?}`という専用フィールドであることが判明したため修正した
- *     （下記`buildSendEmailBody()`参照）。DKIM設定必須・データサイズ目安980byte以内という
+ *     （下記`buildSendEmailBody()`参照）。**実API検証（2026-08）で追加判明**: `list_unsubscribe.mailto`は
+ *     bare email addressだとHTTP 400（`{validation.pattern.error}`）になり、`mailto:`スキーム付きの
+ *     URIが必須。`normalizeMailto()`で正規化する。また実エラーレスポンスは
+ *     `{"error_messages":{"<field>":{"<subfield>":["msg"]}}}`のようにネストするため、
+ *     `flattenErrorMessages()`で再帰的に抽出する（旧`error_messages.main`専用実装では欠落していた）。
+ *     DKIM設定必須・データサイズ目安980byte以内という
  *     公式の注意事項があるが、これらはインフラ側（DNS/SES等）の設定事項でありコード側では
  *     対応不要（本Phaseでも変更していない）
  *   - Reply-To: `reply_to: {email, name}`という専用フィールドが存在することが判明したため追加した
@@ -94,6 +99,18 @@ function buildRequestHeaders(token) {
 }
 
 /**
+ * list_unsubscribe.mailto用に"mailto:"スキームを正規化する（Pure Function）。
+ * 既に"mailto:"が付いていればそのまま、bare email addressなら"mailto:"を付与する。
+ * 空文字・非文字列はそのまま返す（呼び出し側のガードに委ねる）。
+ * @param {string} value
+ * @returns {string}
+ */
+function normalizeMailto(value) {
+  if (typeof value !== "string" || value === "") return value;
+  return /^mailto:/i.test(value) ? value : `mailto:${value}`;
+}
+
+/**
  * Transaction APIのリクエストボディを組み立てる（Pure Function）。フィールド名は
  * 公式APIドキュメント（Phase45 STEP3Cで確認）に基づく。
  * @param {{to:string, from:string, fromName?:string, replyTo?:string, replyToName?:string,
@@ -113,12 +130,60 @@ function buildSendEmailBody({ to, from, fromName, replyTo, replyToName, subject,
     body.reply_to = replyToName ? { email: replyTo, name: replyToName } : { email: replyTo };
   }
   // 公式フィールド名は"list_unsubscribe"（{mailto?, url?}）。mailto・urlのいずれも任意。
+  // 【実API検証（2026-08時点）で判明】list_unsubscribe.mailtoはbare email addressだと
+  // HTTP 400 {"error_messages":{"list_unsubscribe":{"mailto":["{validation.pattern.error}"]}}}
+  // となる。"mailto:"スキーム付きのURI（RFC 8058相当）でなければ受け付けない。呼び出し側は
+  // bare email（例: process.env.BLASTENGINE_FROM）を渡してくるため、ここで正規化する。
   if (unsubscribe && (unsubscribe.mailto || unsubscribe.url)) {
     body.list_unsubscribe = {};
-    if (unsubscribe.mailto) body.list_unsubscribe.mailto = unsubscribe.mailto;
+    if (unsubscribe.mailto) body.list_unsubscribe.mailto = normalizeMailto(unsubscribe.mailto);
     if (unsubscribe.url) body.list_unsubscribe.url = unsubscribe.url;
   }
   return body;
+}
+
+/**
+ * blastengineの`error_messages`（配列・ネストしたオブジェクトの混在）を、人間が原因を
+ * 理解できる文字列配列へ平坦化する（Pure Function）。
+ *
+ * 対応する形:
+ *   - `{"main": ["msg", ...]}`               → `["msg", ...]`（"main"はprefixを付けない＝旧挙動を維持）
+ *   - `{"list_unsubscribe": {"mailto": ["msg"]}}` → `["list_unsubscribe.mailto: msg"]`
+ *   - 上記の混在、文字列単体の値、任意の深さのネスト
+ *
+ * APIキー・Authorizationヘッダー・Bearerトークン・リクエストボディ・PIIはこの関数の
+ * 入力（サーバーが返すバリデーションメッセージのみ）に含まれないため、そのまま抽出してよい。
+ * 想定外の型（数値・真偽値など）はStringに変換して取り込む。
+ *
+ * @param {*} errorMessages - `parsed.error_messages` 相当
+ * @param {string} [pathPrefix] - 再帰用のフィールドパス
+ * @returns {string[]|null}
+ */
+function flattenErrorMessages(errorMessages, pathPrefix = "") {
+  if (errorMessages === null || typeof errorMessages !== "object") return null;
+
+  const out = [];
+  const walk = (node, path) => {
+    if (node === null || node === undefined) return;
+    if (Array.isArray(node)) {
+      node.forEach((item) => walk(item, path));
+      return;
+    }
+    if (typeof node === "object") {
+      Object.keys(node).forEach((key) => {
+        walk(node[key], path ? `${path}.${key}` : key);
+      });
+      return;
+    }
+    // プリミティブ（文字列・数値・真偽値）
+    const text = String(node);
+    if (text === "") return;
+    // "main"直下のメッセージは従来どおりprefixなし。それ以外はフィールドパスを前置する。
+    out.push(path && path !== "main" ? `${path}: ${text}` : text);
+  };
+
+  walk(errorMessages, pathPrefix);
+  return out.length ? out : null;
 }
 
 /**
@@ -151,10 +216,13 @@ async function callSendEmail(bodyObj, signal, options = {}) {
       // JSONでない場合はerrorTextをそのままメッセージに使う
     }
     // 公式エラー形式（Phase45 STEP3Cで確認）: {"error_messages": {"main": ["...", ...]}}。
+    // ただし実API検証（2026-08）で、フィールド単位のバリデーションエラーは
+    // {"error_messages": {"list_unsubscribe": {"mailto": ["{validation.pattern.error}"]}}}
+    // のようにネストしたオブジェクトで返ることを確認した。mainだけを見る旧実装では
+    // この種のエラー原因が完全に欠落するため、ネストを再帰的に平坦化して抽出する。
     // 機械可読なcode相当のフィールドはドキュメントに記載が無いため常にnullとする。
-    const messages =
-      parsed && parsed.error_messages && Array.isArray(parsed.error_messages.main) ? parsed.error_messages.main : null;
-    const message = (messages && messages.join(" / ")) || errorText || `HTTP ${response.status}`;
+    const messages = parsed ? flattenErrorMessages(parsed.error_messages) : null;
+    const message = (messages && messages.length && messages.join(" / ")) || errorText || `HTTP ${response.status}`;
     const err = new Error(`blastengine APIエラー: HTTP ${response.status} ${message}`);
     err.code = null;
     err.statusCode = response.status;
@@ -212,5 +280,7 @@ module.exports = {
   buildAuthToken,
   buildRequestHeaders,
   buildSendEmailBody,
+  normalizeMailto,
+  flattenErrorMessages,
   callSendEmail,
 };

@@ -84,6 +84,54 @@ test("callOnceWithTimeout: 正常終了時はresultを返す", async () => {
   assert.equal(result, 42);
 });
 
+// --- 現行仕様の明文化（Phase48 STEP8 read-only調査） -------------------------
+// withRetryAndTimeout() は err.retryable を参照しない。timeout以外のあらゆるエラーを
+// maxRetries 回まで再試行し、最終的に "(maxRetries+1)回とも失敗しました" を投げる。
+// blastengine-client / ses-client が付与する err.retryable / err.statusCode / err.code は
+// この最終エラーには引き継がれない（呼び出し側の job history 記録用途のみ）。
+test("retry: retryableでないエラー（HTTP 400相当）でもmaxRetries回まで再試行される（現行仕様）", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () =>
+      withRetryAndTimeout(
+        async () => {
+          attempts++;
+          throw Object.assign(new Error("HTTP 400 bad request"), {
+            retryable: false,
+            statusCode: 400,
+            code: null,
+          });
+        },
+        { timeoutMs: 1000, maxRetries: 2, backoffMs: 5, label: "テストAPI" }
+      ),
+    (err) => {
+      assert.match(err.message, /テストAPIが3回とも失敗しました/);
+      assert.match(err.message, /HTTP 400 bad request/);
+      // 最終エラーは素の Error。retryable/statusCode は失われる。
+      assert.equal(err.retryable, undefined);
+      assert.equal(err.statusCode, undefined);
+      return true;
+    }
+  );
+  assert.equal(attempts, 3, "maxRetries:2 → 合計3回試行される");
+});
+
+test("retry: maxRetries:0 なら1回のみ試行して即座に失敗する", async () => {
+  let attempts = 0;
+  await assert.rejects(
+    () =>
+      withRetryAndTimeout(
+        async () => {
+          attempts++;
+          throw new Error("即時失敗");
+        },
+        { timeoutMs: 1000, maxRetries: 0, label: "テストAPI" }
+      ),
+    /テストAPIが1回とも失敗しました/
+  );
+  assert.equal(attempts, 1);
+});
+
 test("date-utils: nowIso()はISO_8601_PATTERNにマッチする", () => {
   const value = nowIso();
   assert.ok(ISO_8601_PATTERN.test(value));

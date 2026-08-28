@@ -112,6 +112,61 @@ test("buildRequestHeaders: Content-TypeとBearerトークンを含む", () => {
 });
 
 // ---------------------------------------------------------------------------
+// normalizeMailto()（Pure Function）
+// ---------------------------------------------------------------------------
+
+test("normalizeMailto: bare email addressには mailto: を付与する", () => {
+  assert.equal(blastengineClient.normalizeMailto("aor-report@changescout.jp"), "mailto:aor-report@changescout.jp");
+});
+
+test("normalizeMailto: 既に mailto: 付き（大文字含む）なら二重付与しない", () => {
+  assert.equal(blastengineClient.normalizeMailto("mailto:aor-report@changescout.jp"), "mailto:aor-report@changescout.jp");
+  assert.equal(blastengineClient.normalizeMailto("MAILTO:aor-report@changescout.jp"), "MAILTO:aor-report@changescout.jp");
+});
+
+test("normalizeMailto: 空文字・非文字列はそのまま返す（呼び出し側のガードに委ねる）", () => {
+  assert.equal(blastengineClient.normalizeMailto(""), "");
+  assert.equal(blastengineClient.normalizeMailto(undefined), undefined);
+  assert.equal(blastengineClient.normalizeMailto(null), null);
+});
+
+// ---------------------------------------------------------------------------
+// flattenErrorMessages()（Pure Function）
+// ---------------------------------------------------------------------------
+
+test("flattenErrorMessages: main直下の配列はprefixなしでそのまま抽出する（旧挙動を維持）", () => {
+  assert.deepEqual(
+    blastengineClient.flattenErrorMessages({ main: ["temporarily unavailable", "please retry later"] }),
+    ["temporarily unavailable", "please retry later"]
+  );
+});
+
+test("flattenErrorMessages: ネストしたフィールドバリデーション（実API 400形状）はフィールドパスを前置して抽出する", () => {
+  assert.deepEqual(
+    blastengineClient.flattenErrorMessages({ list_unsubscribe: { mailto: ["{validation.pattern.error}"] } }),
+    ["list_unsubscribe.mailto: {validation.pattern.error}"]
+  );
+});
+
+test("flattenErrorMessages: main と ネストフィールドの混在も両方抽出する", () => {
+  assert.deepEqual(
+    blastengineClient.flattenErrorMessages({
+      main: ["general error"],
+      to: ["invalid address"],
+      list_unsubscribe: { mailto: ["bad", "worse"] },
+    }),
+    ["general error", "to: invalid address", "list_unsubscribe.mailto: bad", "list_unsubscribe.mailto: worse"]
+  );
+});
+
+test("flattenErrorMessages: error_messagesが無い/オブジェクトでない場合はnull", () => {
+  assert.equal(blastengineClient.flattenErrorMessages(undefined), null);
+  assert.equal(blastengineClient.flattenErrorMessages(null), null);
+  assert.equal(blastengineClient.flattenErrorMessages("nope"), null);
+  assert.equal(blastengineClient.flattenErrorMessages({}), null);
+});
+
+// ---------------------------------------------------------------------------
 // buildSendEmailBody()
 // ---------------------------------------------------------------------------
 
@@ -166,7 +221,7 @@ test("buildSendEmailBody: replyTo未指定の場合はreply_toフィールドを
   assert.equal("reply_to" in body, false);
 });
 
-test("buildSendEmailBody: unsubscribe指定時はlist_unsubscribeフィールドを組み立てる（公式フィールド名、Phase45 STEP3Cで確認）", () => {
+test("buildSendEmailBody: unsubscribe(mailto+url)指定時はlist_unsubscribeを組み立て、bare emailのmailtoには mailto: スキームを付与する（実API検証で必須と判明）", () => {
   const body = blastengineClient.buildSendEmailBody({
     to: "recipient@example.com",
     from: "aor-report@changescout.jp",
@@ -176,9 +231,21 @@ test("buildSendEmailBody: unsubscribe指定時はlist_unsubscribeフィールド
     unsubscribe: { url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1", mailto: "aor-report@changescout.jp" },
   });
   assert.deepEqual(body.list_unsubscribe, {
-    mailto: "aor-report@changescout.jp",
+    mailto: "mailto:aor-report@changescout.jp",
     url: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1",
   });
+});
+
+test("buildSendEmailBody: mailtoが既に mailto: スキーム付きの場合は二重付与しない", () => {
+  const body = blastengineClient.buildSendEmailBody({
+    to: "recipient@example.com",
+    from: "aor-report@changescout.jp",
+    subject: "s",
+    text: "t",
+    html: "<p>h</p>",
+    unsubscribe: { mailto: "mailto:aor-report@changescout.jp" },
+  });
+  assert.deepEqual(body.list_unsubscribe, { mailto: "mailto:aor-report@changescout.jp" });
 });
 
 test("buildSendEmailBody: unsubscribe.urlのみ（mailto省略）の場合はurlのみのlist_unsubscribeになる", () => {
@@ -256,6 +323,26 @@ test("callSendEmail: HTTPエラー時、公式エラー形式（error_messages.m
       assert.equal(err.code, null, "公式ドキュメントに機械可読なcodeフィールドの記載が無いため常にnull");
       assert.equal(err.statusCode, 503);
       assert.equal(err.retryable, true, "5xxはretryable扱いのはず");
+      return true;
+    }
+  );
+});
+
+test("callSendEmail: ネストしたerror_messages（実API 400: list_unsubscribe.mailto）からフィールドパス付きメッセージを抽出する", async () => {
+  const fakeFetch = async () => ({
+    ok: false,
+    status: 400,
+    // 実blastengine APIが返した400レスポンスの形状（2026-08検証）
+    text: async () => JSON.stringify({ error_messages: { list_unsubscribe: { mailto: ["{validation.pattern.error}"] } } }),
+  });
+
+  await assert.rejects(
+    () => blastengineClient.callSendEmail({ to: "x@example.com" }, undefined, { fetchImpl: fakeFetch }),
+    (err) => {
+      assert.match(err.message, /list_unsubscribe\.mailto: \{validation\.pattern\.error\}/);
+      assert.equal(err.statusCode, 400);
+      assert.equal(err.retryable, false);
+      assert.equal(err.code, null);
       return true;
     }
   );
