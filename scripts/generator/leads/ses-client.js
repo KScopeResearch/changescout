@@ -15,6 +15,13 @@
  *   - AWS_REGION（必須）
  *   - SES_FROM（必須。SESで検証済みの送信元メールアドレス。ユーザー指定の慣例名をそのまま採用）
  *   - SES_REPLY_TO（任意。未設定時はReply-Toヘッダーを付与しない）
+ *   - SES_CONFIGURATION_SET（任意。PJ2 AOR: Candidate/Approved分離仕様のAWS再申請対応で追加。
+ *     未設定時はConfigurationSetName自体をリクエストボディに含めない（後方互換、既存の
+ *     ローカル開発・テスト環境はConfiguration Set未設定のまま動作し続ける）。設定した場合、
+ *     SESがこの送信をConfiguration SetのEvent Destination（SNS Topic等）へ通知するように
+ *     なる。Bounce/Complaint通知を受け取ってdelivery_statusへ反映する処理自体は
+ *     leads/process-ses-event.js・lambda/ses-event-handler.jsが担う（このファイルは
+ *     送信時にConfigurationSetNameを添えるところまでが責務）。
  *
  * 【PJ2次工程: 認証情報の取得元をAWS SDK credential provider chainへ移行】
  * 署名処理（SigV4）自体は変更していない（引き続き自前実装、下記参照）。変更したのは
@@ -163,26 +170,37 @@ function escapeHtml(text) {
 
 /**
  * SESv2 SendEmail APIのリクエストボディを組み立てる（Pure Function）。
+ *
+ * 【headers（PJ2 AOR Phase49 STEP5で追加）】SESv2 SendEmail の Simple コンテンツは
+ * `Content.Simple.Headers`（`[{Name, Value}]`）で追加ヘッダーを指定できる。Weekly AOR の
+ * List-Unsubscribe / List-Unsubscribe-Post ヘッダー付与に使う（値の組み立ては
+ * `unsubscribe-url.js` の `buildListUnsubscribeHeaders()` が担当し、このモジュールは
+ * 受け取った配列をそのまま `Headers` へ渡すだけ）。SES が拒否する予約ヘッダー
+ * （From / To / Subject / Date / Message-ID / Content-系 / MIME-Version / Reply-To など）は
+ * 呼び出し側で渡さない前提。未指定時は `Headers` キー自体を含めない（後方互換）。
  * @param {{to:string, from:string, replyTo?:string, subject:string, text:string, html:string,
- *   tags?:Array<{Name:string, Value:string}>}} params
+ *   tags?:Array<{Name:string, Value:string}>, configurationSetName?:string,
+ *   headers?:Array<{Name:string, Value:string}>}} params
  * @returns {Object}
  */
-function buildSendEmailBody({ to, from, replyTo, subject, text, html, tags }) {
+function buildSendEmailBody({ to, from, replyTo, subject, text, html, tags, configurationSetName, headers }) {
+  const simple = {
+    Subject: { Data: subject, Charset: "UTF-8" },
+    Body: {
+      Text: { Data: text, Charset: "UTF-8" },
+      Html: { Data: html, Charset: "UTF-8" },
+    },
+  };
+  if (headers && headers.length) simple.Headers = headers;
+
   const body = {
     FromEmailAddress: from,
     Destination: { ToAddresses: [to] },
-    Content: {
-      Simple: {
-        Subject: { Data: subject, Charset: "UTF-8" },
-        Body: {
-          Text: { Data: text, Charset: "UTF-8" },
-          Html: { Data: html, Charset: "UTF-8" },
-        },
-      },
-    },
+    Content: { Simple: simple },
   };
   if (replyTo) body.ReplyToAddresses = [replyTo];
   if (tags && tags.length) body.EmailTags = tags;
+  if (configurationSetName) body.ConfigurationSetName = configurationSetName;
   return body;
 }
 
@@ -243,15 +261,17 @@ const { withRetryAndTimeout } = require("../shared/retry");
 
 /**
  * 初期レポートメールを1通送信する。
- * @param {{to:string, subject:string, text:string, html:string, tags?:Array<{Name:string,Value:string}>}} params -
+ * @param {{to:string, subject:string, text:string, html:string, tags?:Array<{Name:string,Value:string}>,
+ *   headers?:Array<{Name:string,Value:string}>}} params -
  *   `to`（宛先）以外はすべて呼び出し元が組み立てた完成形の値。fromEmailAddress/replyToは
- *   このモジュールが環境変数（SES_FROM/SES_REPLY_TO）から解決する。
+ *   このモジュールが環境変数（SES_FROM/SES_REPLY_TO）から解決する。`headers`は任意で、
+ *   `Content.Simple.Headers`へそのまま渡す（Weekly AORのList-Unsubscribe用。buildSendEmailBody参照）。
  * @param {{credentialProvider?: Function}} [options] - resolveCredentials()と同じDIフック
  *   （省略時はcredential provider chainをそのまま使う。既存呼び出し元との後方互換性のため
  *   第2引数は省略可能）。
  * @returns {Promise<{messageId:string}>}
  */
-async function sendEmail({ to, subject, text, html, tags }, options = {}) {
+async function sendEmail({ to, subject, text, html, tags, headers }, options = {}) {
   if (!isConfigured()) {
     throw new Error(`SES送信に必要な環境変数が設定されていません: ${missingEnvVars().join(", ")}`);
   }
@@ -264,6 +284,8 @@ async function sendEmail({ to, subject, text, html, tags }, options = {}) {
     text,
     html,
     tags,
+    headers,
+    configurationSetName: process.env.SES_CONFIGURATION_SET || undefined,
   });
 
   return withRetryAndTimeout((signal) => callSendEmail(bodyObj, signal, options), {

@@ -40,20 +40,27 @@ function buildUnsubscribeUrl(baseUrl, { leadId, reportToken }) {
 }
 
 /**
- * List-Unsubscribe / List-Unsubscribe-Post ヘッダーを組み立てる（Pure Function、
- * RFC 8058のOne-Click Unsubscribe形式に準拠）。mailtoAddressを省略した場合は
- * URLのみのList-Unsubscribe値になる。
- * @param {{unsubscribeUrl:string, mailtoAddress?:string}} params
- * @returns {{"List-Unsubscribe":string, "List-Unsubscribe-Post":string}}
+ * List-Unsubscribe / List-Unsubscribe-Post ヘッダーを組み立てる（Pure Function）。
+ * mailtoAddressを省略した場合はURLのみのList-Unsubscribe値になる。
+ *
+ * 【oneClick（PJ2 AOR Phase49 STEP5で追加）】`List-Unsubscribe-Post: List-Unsubscribe=One-Click`
+ * （RFC 8058のワンクリック）を付けるかどうか。**このヘッダーを付けると、対応MUA（Gmail等）は
+ * unsubscribeUrlへ直接POSTし、その応答だけで「配信停止完了」と表示する。** したがって
+ * unsubscribeUrlがPOSTを受けてその場で配信停止を実行できる場合のみ`true`にすること。
+ * 現状のunsubscribeUrl（`<base>/unsubscribe.html?...`、静的な確認ページ）はPOSTを処理しない
+ * ため、静的サイト構成では`false`（＝`List-Unsubscribe`のみ。MUAは確認ページを開くだけ）を
+ * 指定する。将来、POSTを受けてその場で配信停止するエンドポイントを用意したら`true`へ戻す。
+ * 既定は`true`（既存呼び出し元の挙動を変えない）。
+ * @param {{unsubscribeUrl:string, mailtoAddress?:string, oneClick?:boolean}} params
+ * @returns {{"List-Unsubscribe":string, "List-Unsubscribe-Post"?:string}}
  */
-function buildListUnsubscribeHeaders({ unsubscribeUrl, mailtoAddress }) {
+function buildListUnsubscribeHeaders({ unsubscribeUrl, mailtoAddress, oneClick = true }) {
   const parts = [];
   if (mailtoAddress) parts.push(`<mailto:${mailtoAddress}>`);
   parts.push(`<${unsubscribeUrl}>`);
-  return {
-    "List-Unsubscribe": parts.join(", "),
-    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-  };
+  const headers = { "List-Unsubscribe": parts.join(", ") };
+  if (oneClick) headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  return headers;
 }
 
 module.exports = {

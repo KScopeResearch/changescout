@@ -57,3 +57,21 @@ test("buildListUnsubscribeHeaders: mailtoAddress省略時はURLのみになる",
   assert.equal(headers["List-Unsubscribe"], "<https://aor.example.jp/unsubscribe.html?lead=l1&token=t1>");
   assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
 });
+
+test("buildListUnsubscribeHeaders: oneClick既定はtrue（既存呼び出し元の挙動を変えない）", () => {
+  const headers = buildListUnsubscribeHeaders({ unsubscribeUrl: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1" });
+  assert.equal(headers["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click");
+});
+
+test("buildListUnsubscribeHeaders: oneClick:falseならList-Unsubscribe-Postを付けない（Phase49 STEP5: 確認ページはワンクリックPOST不可）", () => {
+  const headers = buildListUnsubscribeHeaders({
+    unsubscribeUrl: "https://aor.example.jp/unsubscribe.html?lead=l1&token=t1",
+    mailtoAddress: "aor-report@changescout.jp",
+    oneClick: false,
+  });
+  assert.equal(
+    headers["List-Unsubscribe"],
+    "<mailto:aor-report@changescout.jp>, <https://aor.example.jp/unsubscribe.html?lead=l1&token=t1>"
+  );
+  assert.equal("List-Unsubscribe-Post" in headers, false);
+});

@@ -46,6 +46,7 @@
 const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked } = require("./lead-store");
 const publishedStore = require("../published-store");
 const { buildReportUrl, missingSiteConfig } = require("./send-initial-report"); // report URL生成・サイト設定チェックを再利用
+const { buildUnsubscribeUrl, buildListUnsubscribeHeaders } = require("./unsubscribe-url"); // Provider非依存の配信停止URL/ヘッダー生成
 const { redactSecrets } = require("../shared/redact");
 const { isValidIso8601 } = require("../shared/date-utils");
 const { runCli } = require("../shared/cli-utils");
@@ -55,11 +56,19 @@ const sesClient = require("./ses-client");
  * Weeklyメール本文（件名・text・html）を組み立てる（Pure Function）。send-initial-report.jsの
  * buildEmailContent()と構造は同じだが、「完成しました（初回）」ではなく「更新されました
  * （Weekly）」という意味になるよう文言のみを変える。
- * @param {{companyName:string, reportUrl:string}} params
+ *
+ * 【PJ2 AOR Phase49 STEP5】unsubscribeUrl（配信停止確認ページへのURL）を受け取り、本文
+ * （text/html両方）に配信停止リンクを明記する。従来の「返信で配信停止」も併記して残す
+ * （返信ベースの停止フローは維持）。unsubscribeUrl未指定時は返信のみ案内する（後方互換）。
+ * @param {{companyName:string, reportUrl:string, unsubscribeUrl?:string}} params
  * @returns {{subject:string, text:string, html:string}}
  */
-function buildWeeklyEmailContent({ companyName, reportUrl }) {
+function buildWeeklyEmailContent({ companyName, reportUrl, unsubscribeUrl }) {
   const subject = `${companyName} 様向け AI Opportunity Report が更新されました`;
+
+  const optOutText = unsubscribeUrl
+    ? [`配信停止をご希望の場合は、次のリンクから手続きいただけます: ${unsubscribeUrl}`, "（本メールへの直接のご返信でも承ります。）"]
+    : ["配信停止をご希望の場合は、本メールに直接ご返信ください。"];
 
   const text = [
     `${companyName} 様`,
@@ -70,13 +79,17 @@ function buildWeeklyEmailContent({ companyName, reportUrl }) {
     reportUrl,
     "",
     "本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。",
-    "配信停止をご希望の場合は、本メールに直接ご返信ください。",
+    ...optOutText,
     "",
     "AI Opportunity Report 運営事務局",
   ].join("\n");
 
   const escapedName = sesClient.escapeHtml(companyName);
   const escapedUrl = sesClient.escapeHtml(reportUrl);
+  const optOutHtml = unsubscribeUrl
+    ? `配信停止をご希望の場合は<a href="${sesClient.escapeHtml(unsubscribeUrl)}">こちら</a>から手続きいただけます` +
+      `（本メールへの直接のご返信でも承ります）。`
+    : `配信停止をご希望の場合は、本メールに直接ご返信ください。`;
   const html =
     `<!doctype html><html lang="ja"><head><meta charset="utf-8"></head>` +
     `<body style="font-family:sans-serif;line-height:1.7;color:#1a1a1a;">` +
@@ -85,7 +98,7 @@ function buildWeeklyEmailContent({ companyName, reportUrl }) {
     `<p><a href="${escapedUrl}" style="display:inline-block;padding:10px 18px;background:#1d4ed8;` +
     `color:#ffffff;text-decoration:none;border-radius:6px;">レポートを見る</a></p>` +
     `<p style="font-size:0.85em;color:#555555;">本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。<br>` +
-    `配信停止をご希望の場合は、本メールに直接ご返信ください。</p>` +
+    `${optOutHtml}</p>` +
     `<p style="font-size:0.85em;color:#555555;">AI Opportunity Report 運営事務局</p>` +
     `</body></html>`;
 
@@ -167,7 +180,7 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
   }
 
   // プリフライト（メール本文の組み立てまで）はLeadを一切変更しない。
-  let subject, text, html;
+  let subject, text, html, unsubHeaders;
   try {
     const missingSite = missingSiteConfig();
     if (missingSite.length) {
@@ -179,7 +192,22 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
       leadId: lead.lead_id,
       reportToken: lead.report_token,
     });
-    ({ subject, text, html } = buildWeeklyEmailContent({ companyName, reportUrl }));
+    // PJ2 AOR Phase49 STEP5: 配信停止URL（Initialと同じProvider非依存ヘルパー・同じ
+    // report_tokenベース）を組み立て、本文リンクとList-Unsubscribeヘッダー双方に使う。
+    const unsubscribeUrl = buildUnsubscribeUrl(process.env.AOR_SITE_BASE_URL, {
+      leadId: lead.lead_id,
+      reportToken: lead.report_token,
+    });
+    ({ subject, text, html } = buildWeeklyEmailContent({ companyName, reportUrl, unsubscribeUrl }));
+    // oneClick:false — 現状のunsubscribeUrlは静的な確認ページでありPOSTを処理しないため、
+    // RFC 8058のワンクリック（List-Unsubscribe-Post）は付けない。MUAは確認ページを開くだけ。
+    // POSTを受けてその場で配信停止するエンドポイントを用意したらtrueへ戻す（unsubscribe-url.js参照）。
+    const headerMap = buildListUnsubscribeHeaders({
+      unsubscribeUrl,
+      mailtoAddress: process.env.SES_FROM,
+      oneClick: false,
+    });
+    unsubHeaders = Object.entries(headerMap).map(([Name, Value]) => ({ Name, Value }));
   } catch (err) {
     return { ok: false, leadId, error: err.message };
   }
@@ -192,6 +220,7 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
       text,
       html,
       tags: [{ Name: "lead_id", Value: lead.lead_id }],
+      headers: unsubHeaders,
     });
     messageId = result.messageId;
   } catch (err) {

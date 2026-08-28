@@ -316,6 +316,126 @@ test("buildSendEmailBody: replyTo/tagsを指定すると対応するキーが追
   assert.deepEqual(body.EmailTags, [{ Name: "lead_id", Value: "abc123" }]);
 });
 
+test("buildSendEmailBody: configurationSetNameを指定するとConfigurationSetNameキーが追加される（PJ2 AOR: Bounce/Complaint通知配線対応）", () => {
+  const body = sesClient.buildSendEmailBody({
+    to: "recipient@example.invalid",
+    from: "sender@example.invalid",
+    subject: "件名",
+    text: "本文",
+    html: "<p>本文</p>",
+    configurationSetName: "pj2-aor-delivery",
+  });
+  assert.equal(body.ConfigurationSetName, "pj2-aor-delivery");
+});
+
+test("buildSendEmailBody: configurationSetName未指定時はConfigurationSetNameキー自体を含めない（後方互換）", () => {
+  const body = sesClient.buildSendEmailBody({
+    to: "recipient@example.invalid",
+    from: "sender@example.invalid",
+    subject: "件名",
+    text: "本文",
+    html: "<p>本文</p>",
+  });
+  assert.equal("ConfigurationSetName" in body, false);
+});
+
+test("buildSendEmailBody: headersを指定するとContent.Simple.Headersへ渡す（Phase49 STEP5: List-Unsubscribe用）", () => {
+  const headers = [
+    { Name: "List-Unsubscribe", Value: "<mailto:aor-report@changescout.jp>, <https://aor.example.invalid/unsubscribe.html?lead=l1&token=t1>" },
+  ];
+  const body = sesClient.buildSendEmailBody({
+    to: "recipient@example.invalid",
+    from: "sender@example.invalid",
+    subject: "件名",
+    text: "本文",
+    html: "<p>本文</p>",
+    headers,
+  });
+  assert.deepEqual(body.Content.Simple.Headers, headers);
+});
+
+test("buildSendEmailBody: headers未指定・空配列時はContent.Simple.Headersキー自体を含めない（後方互換）", () => {
+  const bodyNoHeaders = sesClient.buildSendEmailBody({
+    to: "recipient@example.invalid",
+    from: "sender@example.invalid",
+    subject: "件名",
+    text: "本文",
+    html: "<p>本文</p>",
+  });
+  assert.equal("Headers" in bodyNoHeaders.Content.Simple, false);
+
+  const bodyEmptyHeaders = sesClient.buildSendEmailBody({
+    to: "recipient@example.invalid",
+    from: "sender@example.invalid",
+    subject: "件名",
+    text: "本文",
+    html: "<p>本文</p>",
+    headers: [],
+  });
+  assert.equal("Headers" in bodyEmptyHeaders.Content.Simple, false);
+});
+
+test("sendEmail: params.headersが送信ボディのContent.Simple.Headersへ反映される", async (t) => {
+  const snap = { region: process.env.AWS_REGION, from: process.env.SES_FROM };
+  process.env.AWS_REGION = "us-east-1";
+  process.env.SES_FROM = "sender@example.invalid";
+  t.after(() => {
+    if (snap.region === undefined) delete process.env.AWS_REGION;
+    else process.env.AWS_REGION = snap.region;
+    if (snap.from === undefined) delete process.env.SES_FROM;
+    else process.env.SES_FROM = snap.from;
+  });
+
+  const captured = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (url, init) => {
+    captured.push(JSON.parse(init.body));
+    return { ok: true, json: async () => ({ MessageId: "msg-headers-1" }) };
+  };
+  t.after(() => {
+    global.fetch = originalFetch;
+  });
+
+  const headers = [{ Name: "List-Unsubscribe", Value: "<https://aor.example.invalid/unsubscribe.html?lead=l1&token=t1>" }];
+  const res = await sesClient.sendEmail(
+    { to: "r@example.invalid", subject: "s", text: "t", html: "<p>h</p>", headers },
+    { credentialProvider: async () => ({ accessKeyId: "AKIAEXAMPLE", secretAccessKey: "secret" }) }
+  );
+  assert.equal(res.messageId, "msg-headers-1");
+  assert.deepEqual(captured[0].Content.Simple.Headers, headers);
+});
+
+test("sendEmail: SES_CONFIGURATION_SET環境変数が設定されていれば、送信ボディにConfigurationSetNameとして反映される", async (t) => {
+  const snap = snapshotSesEnv();
+  const configSetSnap = process.env.SES_CONFIGURATION_SET;
+  t.after(() => {
+    restoreSesEnv(snap);
+    if (configSetSnap === undefined) delete process.env.SES_CONFIGURATION_SET;
+    else process.env.SES_CONFIGURATION_SET = configSetSnap;
+  });
+  process.env.AWS_REGION = "us-east-1";
+  process.env.SES_FROM = "sender@example.invalid";
+  process.env.SES_CONFIGURATION_SET = "pj2-aor-delivery";
+
+  const originalFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url, init) => {
+    calls.push({ url, body: JSON.parse(init.body) });
+    return { ok: true, json: async () => ({ MessageId: "ses-config-set-test-id" }) };
+  };
+  t.after(() => {
+    global.fetch = originalFetch;
+  });
+
+  await sesClient.sendEmail(
+    { to: "recipient@example.invalid", subject: "件名", text: "本文", html: "<p>本文</p>" },
+    { credentialProvider: async () => ({ accessKeyId: "AKIATESTDUMMY", secretAccessKey: "dummy-secret" }) }
+  );
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.ConfigurationSetName, "pj2-aor-delivery");
+});
+
 test("escapeHtml: HTML特殊文字をエスケープする", () => {
   assert.equal(sesClient.escapeHtml('<script>alert("x")</script>'), "&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
   assert.equal(sesClient.escapeHtml("A & B"), "A &amp; B");

@@ -118,6 +118,69 @@ test("buildWeeklyEmailContent: 初回（完成）ではなく更新の文言に�
   assert.match(html, /更新されました/);
 });
 
+test("buildWeeklyEmailContent: unsubscribeUrl指定時はtext/html双方に配信停止リンクを含み、返信案内も残す（Phase49 STEP5）", () => {
+  const unsubscribeUrl = "https://aor.example.invalid/unsubscribe.html?lead=l1&token=t1";
+  const { text, html } = buildWeeklyEmailContent({
+    companyName: "テスト株式会社",
+    reportUrl: "https://aor.example.invalid/report-preview.html?company=test",
+    unsubscribeUrl,
+  });
+  assert.ok(text.includes(unsubscribeUrl), "textに配信停止URLを含むはず");
+  assert.match(text, /ご返信/, "返信ベースの案内も残すはず");
+  // htmlのhref属性内では & が &amp; へエスケープされる（escapeHtml、reportUrlと同じ扱い）
+  assert.ok(
+    html.includes(`href="https://aor.example.invalid/unsubscribe.html?lead=l1&amp;token=t1"`),
+    "htmlに配信停止リンク（HTMLエスケープ済み）を含むはず"
+  );
+  assert.match(html, /ご返信/);
+});
+
+test("buildWeeklyEmailContent: unsubscribeUrl未指定時は返信のみ案内する（後方互換）", () => {
+  const { text, html } = buildWeeklyEmailContent({
+    companyName: "テスト株式会社",
+    reportUrl: "https://aor.example.invalid/report-preview.html?company=test",
+  });
+  assert.match(text, /本メールに直接ご返信ください/);
+  assert.doesNotMatch(text, /unsubscribe\.html/);
+  assert.doesNotMatch(html, /unsubscribe\.html/);
+});
+
+test("Weekly送信: SES payloadにList-Unsubscribeヘッダーが含まれ、URLは unsubscribe.html?lead=<id>&token=<report_token> 形式（Phase49 STEP5）", async (t) => {
+  withSiteConfig(t);
+  const originalFrom = process.env.SES_FROM;
+  process.env.SES_FROM = "aor-report@changescout.jp";
+  t.after(() => {
+    if (originalFrom === undefined) delete process.env.SES_FROM;
+    else process.env.SES_FROM = originalFrom;
+  });
+  const lead = await createEligibleLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  t.after(() => cleanupPublished(lead.company_slug));
+  await publishTestReport(lead.company_slug, { generatedAt: GENERATED_AT_1 });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendWeeklyReportForLead(lead.lead_id, { sendEmail: fn });
+  assert.equal(result.ok, true);
+
+  const headers = calls[0].headers || [];
+  const listUnsub = headers.find((h) => h.Name === "List-Unsubscribe");
+  assert.ok(listUnsub, "List-Unsubscribeヘッダーが渡されるはず");
+  const expectedUrl = `https://aor.example.invalid/unsubscribe.html?lead=${lead.lead_id}&token=${lead.report_token}`;
+  assert.ok(listUnsub.Value.includes(`<${expectedUrl}>`), "List-Unsubscribeに確認ページURLを含むはず");
+  assert.ok(listUnsub.Value.includes("<mailto:aor-report@changescout.jp>"), "SES_FROMのmailto: も含むはず");
+
+  // oneClick:false — 静的確認ページはPOSTを処理しないため List-Unsubscribe-Post は付けない
+  assert.equal(
+    headers.find((h) => h.Name === "List-Unsubscribe-Post"),
+    undefined,
+    "List-Unsubscribe-Postは付けないはず（確認ページはワンクリックPOSTを処理できない）"
+  );
+
+  // token/URLにemail等のPIIが含まれないこと
+  assert.ok(!listUnsub.Value.includes("@example.invalid"), "URLにemailが含まれてはならない");
+  assert.match(lead.report_token, /^[0-9a-f]{64}$/, "tokenは既存のreport_token（32byte hex）");
+});
+
 // ---------------------------------------------------------------------------
 // Case 1-5: 送信対象外（skip）の各条件
 // ---------------------------------------------------------------------------
