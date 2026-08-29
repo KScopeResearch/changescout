@@ -90,8 +90,9 @@ require しない）。SES から送るのは、受信者本人が明示的に�
 >
 > **3. Frequency and content**
 > At most one email per consented recipient per week, containing an updated version of the report that
-> recipient already received and asked to keep receiving. This is not a marketing list, a drip sequence,
-> or bulk promotional mail.
+> recipient already received and asked to keep receiving. Recipients are added only by their own explicit
+> opt-in — this is not a purchased or scraped list, a cold-outreach drip sequence, or unsolicited bulk
+> mail.
 >
 > **4. Unsubscribe and suppression**
 > Every email identifies the sender and gives the recipient two ways to stop future emails — a
@@ -154,7 +155,8 @@ require しない）。SES から送るのは、受信者本人が明示的に�
 >
 > **3. 頻度と内容**
 > 同意済み受信者1人あたり最大で週1通。内容は、その受信者が既に受け取り継続を希望したレポートの
-> 更新版です。マーケティングリスト・ドリップシーケンス・一斉販促メールではありません。
+> 更新版です。受信者は本人による明示的なオプトインによってのみ追加されます。購入・スクレイピングした
+> リスト、コールドアウトリーチのドリップ配信、未承諾の一斉送信メールではありません。
 >
 > **4. 配信停止と抑制**
 > すべてのメールに送信者情報を明記し、配信停止の手段を2つ用意します——受信者ごとの配信停止リンクと、
