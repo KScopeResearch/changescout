@@ -68,6 +68,28 @@ test("OPTIONS プリフライトは 204 を返す", async () => {
   assert.equal(res.statusCode, 204);
 });
 
+test("許可リスト外のルート（POST /api/leads・公開フォーム）は 404（Phase49 STEP10）", async () => {
+  const res = await handler(
+    fnUrlEvent({ rawPath: "/api/leads", body: JSON.stringify({ email: "x@example.invalid", company_slug: "s", consent: true }) })
+  );
+  assert.equal(res.statusCode, 404);
+  assert.deepEqual(JSON.parse(res.body), { ok: false, error: "not found" });
+});
+
+test("許可リスト内のルート（weekly-report-consent / paid-report-request）は 404 にならない", async (t) => {
+  const lead = await createSubscribableLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  // token 不一致で 403 になる（＝ルーティング自体は通っている）
+  const res = await handler(
+    fnUrlEvent({ rawPath: `/api/leads/${lead.lead_id}/weekly-report-consent`, body: JSON.stringify({ report_token: "wrong" }) })
+  );
+  assert.equal(res.statusCode, 403);
+  const res2 = await handler(
+    fnUrlEvent({ rawPath: `/api/leads/${lead.lead_id}/paid-report-request`, body: JSON.stringify({ report_token: "wrong" }) })
+  );
+  assert.equal(res2.statusCode, 403);
+});
+
 test("POST /api/leads/unsubscribe: 正しい lead_id/token で 200 {ok:true}、delivery_status が unsubscribed へ", async (t) => {
   const lead = await createSubscribableLead();
   t.after(() => cleanupLead(lead.lead_id));

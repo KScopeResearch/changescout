@@ -168,12 +168,39 @@ function buildReqRes(event) {
   return { req, res, done };
 }
 
+// PJ2 AOR Phase49 STEP10: この Lambda（Function URL、AuthType=NONE）で外部公開するルートを
+// 明示的に絞る。`server.js` の requestListener は 4 ルート（/api/leads・/api/leads/unsubscribe・
+// /api/leads/:id/weekly-report-consent・/api/leads/:id/paid-report-request）を扱うが、本 Lambda が
+// 公開するのは **report_token による capability 認証を持つ受信者向けルートのみ**:
+//   - /api/leads/unsubscribe
+//   - /api/leads/:id/weekly-report-consent
+//   - /api/leads/:id/paid-report-request
+// /api/leads（公開フォーム。token 認証なし・company-context ストア依存・全 Lead 走査）は
+// このエンドポイントからは公開しない（許可リスト外 → 404）。OPTIONS は CORS プリフライトのため通す。
+const ALLOWED_PATH_EXACT = new Set(["/api/leads/unsubscribe"]);
+const ALLOWED_PATH_RE = /^\/api\/leads\/[^/]+\/(weekly-report-consent|paid-report-request)$/;
+
+/** @param {Object} event @returns {boolean} */
+function isAllowedPath(event) {
+  const method = extractMethod(event);
+  if (method === "OPTIONS") return true;
+  const rawPath = (event && (event.rawPath || event.path)) || "/";
+  return ALLOWED_PATH_EXACT.has(rawPath) || ALLOWED_PATH_RE.test(rawPath);
+}
+
 /**
  * @param {Object} event - Lambda Function URL / API Gateway HTTP API のプロキシ統合イベント
  * @returns {Promise<{statusCode:number, headers:Object, body:string}>}
  */
 async function handler(event) {
   const { req, res, done } = buildReqRes(event || {});
+
+  if (!isAllowedPath(event || {})) {
+    res.writeHead(404, { "Content-Type": "application/json; charset=utf-8" });
+    res.end(JSON.stringify({ ok: false, error: "not found" }));
+    return done;
+  }
+
   try {
     await leadApi.requestListener(req, res);
   } catch (e) {
@@ -187,4 +214,4 @@ async function handler(event) {
   return done;
 }
 
-module.exports = { handler, buildReqRes };
+module.exports = { handler, buildReqRes, isAllowedPath };

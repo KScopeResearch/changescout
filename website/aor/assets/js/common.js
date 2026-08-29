@@ -16,11 +16,13 @@ const OPERATOR_EMAIL = "support@aor.example.jp";
 
 // PJ2 第2実装: website/aor-lead-api/（メール回収API）のベースURL。
 // website/aorはビルドステップを持たない純粋な静的サイトのため、OPERATOR_EMAILと同じ
-// 「配置ごとにこの定数を書き換える」という既存方針を踏襲する。本番の配信先URLは
-// 未確定のため、ここでは決め打ちせず、ローカル動作確認の既定値（website/aor-lead-api
-// のLEAD_API_PORT既定値4700）のみを設定する。本番配信時は配信環境に合わせて
-// この値を書き換えること（詳細はwebsite/aor-lead-api/README.md参照）。
-const LEAD_API_BASE_URL = "http://localhost:4700";
+// 「配置ごとにこの定数を書き換える」という既存方針を踏襲する。
+// PJ2 AOR Phase49 STEP10: aor-lead-api を Lambda + Function URL（pj2-aor-lead-api、
+// AuthType=NONE、公開ルートは unsubscribe / weekly-report-consent / paid-report-request のみ）
+// として本番構築したため、本番の Function URL を設定する。末尾スラッシュは付けない
+// （unsubscribe.js 等が `${LEAD_API_BASE_URL}/api/leads/...` と連結するため）。
+// ローカル動作確認時は `http://localhost:4700` へ一時的に戻すこと。
+const LEAD_API_BASE_URL = "https://6nvmhes7wgy6h3keiiqqsoij4y0wegss.lambda-url.ap-northeast-1.on.aws";
 
 const SOURCE_TYPE_LABELS = {
   company: "企業",
