@@ -358,8 +358,16 @@ require しない）。SES から送るのは、受信者本人が明示的に�
   使っていたが、審査担当者向けの説明ページ（`index.html`・`privacy.html`）をこのドメインへ
   移設済み。**これはあくまで見た目の信頼性の話であり、送信内容・送信対象の実態（Approved
   判定の中身＝本人の事前オプトインではないこと）を偽らない範囲でのみ行っている**点に
-  変わりはない。提出前に `https://aor.changescout.jp/` が現在も到達可能で、現行の
-  サービス説明・privacy ページを指していることを再確認すること
+  変わりはない。
+  - **配信元（Phase49 STEP13 で判明）**: `aor.changescout.jp` は `changescout` リポジトリでも
+    `.github/workflows/deploy-pages.yml`（＝ChangeScout マーケ本体 `kscoperesearch.github.io/changescout/`
+    用）でもなく、**別リポジトリ `github.com/KScopeResearch/aor-site`（`main` / root、workflow なし、
+    Pages は branch 配信）**が配信している。`website/aor/` の内容を手動でこのミラーへ反映して push する運用。
+  - Phase49 STEP13 で `aor-site` を現行 `website/aor/`（`index.html` / `privacy.html` / `unsubscribe.html`
+    + assets）へ同期済み（`aor-site` commit `1cf361e`）。`aor.changescout.jp/` `/privacy.html` `/unsubscribe.html`
+    はいずれも 200 で CloudFront 版とバイト一致。「one-click unsubscribe は未実装」等の旧文言は消去済み。
+  - 提出前に `https://aor.changescout.jp/` が現行のサービス説明・privacy・unsubscribe ページを
+    指していることを再確認すること（今後 `website/aor/` を更新した場合は `aor-site` への手動反映が必要）
 - ~~**週次 SES メールのワンクリック配信停止が未実装**（Phase49 STEP4 で判明）~~ → **【メール側は実装済み /
   Phase49 STEP5】** `send-weekly-report.js` が Initial と同じ `buildUnsubscribeUrl()`（同じ `report_token`
   ベース）で配信停止URLを組み立て、(a) `buildWeeklyEmailContent()` が text/html 本文に配信停止リンクを明記、
@@ -376,10 +384,10 @@ require しない）。SES から送るのは、受信者本人が明示的に�
     List-Unsubscribe コードへ更新済み（CodeSha256 変更確認）。**専用テスト Lead 1件で E2E 確認済み**:
     確認ページ → POST → `delivery_status = "unsubscribed"` + history 追記 → `isDeliveryBlocked()` = true →
     初回・週次ゲートが除外。2回目 POST も 200・履歴重複なし（冪等）。CloudWatch に PII 出力なし。
-    - **審査担当者向け説明サイト `https://aor.changescout.jp/`（GitHub Pages）は別系統**で、STEP21 の文言更新
-      （返信のみ → リンク + 返信の2手段）を反映するには `deploy-pages.yml` の実行が必要（`gh` CLI 未導入の
-      ため未反映。運営者が workflow 実行 or main へマージ）。メールが実際にリンクするのは CloudFront 側で、
-      そちらは反映済み・E2E 済み。
+    - **審査担当者向け説明サイト `https://aor.changescout.jp/` は別リポジトリ `KScopeResearch/aor-site`
+      （`changescout` の `deploy-pages.yml` とは無関係）が配信**。Phase49 STEP13 で現行 `website/aor/` へ
+      同期済み（`aor-site` commit `1cf361e`）。`/` `/privacy.html` `/unsubscribe.html` すべて 200・CloudFront 版と
+      バイト一致・旧文言消去済み。メールが実際にリンクするのは CloudFront 側で、そちらも反映済み・E2E 済み。
   - **⚠️ 残るギャップ 2: RFC 8058 の真のワンクリック（`List-Unsubscribe-Post`）は未対応**: 現在の配信停止URLは
     静的な確認ページであり MUA からの直接 POST を処理しない。Weekly は `oneClick: false` で `List-Unsubscribe-Post`
     を付けていない（付けると Gmail 等が「配信停止完了」と誤表示するため意図的に不採用）。POST を受けてその場で
@@ -404,8 +412,9 @@ require しない）。SES から送るのは、受信者本人が明示的に�
   List-Unsubscribe、consent 登録）は**実配信実績ゼロ**で、E2E 確認はテスト用 Lead / 直接 invoke に留まる。申請文面
   はこの区別を保ち、「deployed」「operational」「verified end to end」は使うが、Weekly については「No weekly email
   has been sent yet」と明記する。**未デプロイのものを「稼働中」と書かない／稼働中のものを「予定」と書かない**方針は
-  STEP7 から継続。審査担当者向け説明サイト（GitHub Pages `aor.changescout.jp`）の STEP21 文言更新のみ、
-  `deploy-pages.yml` 実行待ちで未反映（メールが実際にリンクする CloudFront 側は反映済み）
+  STEP7 から継続。審査担当者向け説明サイト `aor.changescout.jp`（別リポジトリ `KScopeResearch/aor-site`）も
+  Phase49 STEP13 で現行 `website/aor/` へ同期済み（`/` `/privacy.html` `/unsubscribe.html` すべて 200・
+  CloudFront 版とバイト一致）
 - **現行版申請文面のレビュー観点（その他）**: (1) blastengine 側の実運用実績は初回1通のみ。「deployed」「tested」
   という語のみ使い「実績多数」のような表現はしていない。(2) Weekly の Bounce/Complaint は「tested by injecting a
   bounce event」= Lambda 直接 invoke テスト。実 SES バウンス検証はまだ。文面はこの範囲。(3) 特定電子メール法は

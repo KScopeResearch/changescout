@@ -141,8 +141,12 @@ Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppre
     へ再デプロイ。Weekly Lambda（`pj2-aor-weekly-report-delivery`）も STEP5 の List-Unsubscribe コードへ更新。
     **専用テスト Lead 1件で E2E 確認済み**: 確認ページ → POST → `delivery_status = "unsubscribed"` → `isDeliveryBlocked()`
     = true → 初回・週次ゲートが除外。2回目 POST も 200・履歴重複なし（冪等）。CloudWatch に PII 出力なし。
-  - **未反映**: 審査担当者向け説明サイト（GitHub Pages `aor.changescout.jp`）の STEP21 文言更新は `deploy-pages.yml`
-    実行待ち（`gh` CLI 未導入）。メールが実際にリンクする CloudFront 側は反映済み。
+  - **Phase49 STEP13**: 審査担当者向け説明サイト `aor.changescout.jp` は `changescout` の `deploy-pages.yml`
+    （＝ChangeScout マーケ本体 `kscoperesearch.github.io/changescout/` 用）とは無関係で、**別リポジトリ
+    `KScopeResearch/aor-site`（`main` / root、workflow なし）**が配信していると判明。`website/aor/` の内容を手動で
+    ミラーへ反映して push する運用。STEP13 で現行 `website/aor/`（`index.html` / `privacy.html` / `unsubscribe.html`
+    + assets）へ同期済み（`aor-site` commit `1cf361e`）。`/` `/privacy.html` `/unsubscribe.html` すべて 200・
+    CloudFront 版とバイト一致。
 
 #### blastengine `list_unsubscribe` の仕様分離（Phase48 STEP7〜8）
 
