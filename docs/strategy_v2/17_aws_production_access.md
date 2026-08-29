@@ -94,12 +94,16 @@ require しない）。SES から送るのは、受信者本人が明示的に�
 > or bulk promotional mail.
 >
 > **4. Unsubscribe and suppression**
-> Every email identifies the sender and tells the recipient they can reply to be removed from future
-> emails; those requests are recorded on the recipient's account. Every weekly send is then preceded by a
-> single delivery gate, in code, that excludes any recipient who has opted out, or whose address has
-> bounced or generated a complaint — this check runs before every individual SES call, not once at
-> sign-up. We have additionally implemented a `List-Unsubscribe` header and a per-recipient tokenised
-> unsubscribe link, and are deploying the small HTTP endpoint that completes that self-service flow.
+> Every email identifies the sender and gives the recipient two ways to stop future emails — a
+> one-per-recipient unsubscribe link and a reply — and either one is recorded on the recipient's account.
+> Every weekly send is then preceded by a single delivery gate, in code, that excludes any recipient who
+> has opted out, or whose address has bounced or generated a complaint — this check runs before every
+> individual SES call, not once at sign-up. Weekly emails additionally carry a `List-Unsubscribe` header,
+> and the small HTTP endpoint that completes the self-service unsubscribe flow is now deployed and
+> operational: we have verified end to end that following the link marks the recipient's record as
+> unsubscribed and that the same delivery gate then excludes that recipient from all further sending. No
+> weekly email has been sent yet, so this has been exercised against a test recipient rather than in live
+> traffic.
 >
 > **5. Bounce and complaint handling**
 > Amazon SES bounce and complaint notifications are captured automatically through an SES Configuration
@@ -153,12 +157,14 @@ require しない）。SES から送るのは、受信者本人が明示的に�
 > 更新版です。マーケティングリスト・ドリップシーケンス・一斉販促メールではありません。
 >
 > **4. 配信停止と抑制**
-> すべてのメールに送信者情報を明記し、配信停止をご希望の場合は返信いただくよう案内します。返信による
-> 依頼は受信者の記録へ反映します。そのうえで、すべての週次送信の前にコード上の単一の配信ゲートを通し、
-> 配信停止した受信者、またはアドレスがバウンス・苦情を発生させた受信者を、以後の全 SES 送信対象から
-> 除外します。このチェックは登録時1回きりではなく、個々の SES 送信の直前に実行されます。加えて、
-> `List-Unsubscribe` ヘッダーと受信者ごとのトークン付き配信停止リンクを実装済みで、そのセルフサービス
-> 導線を完成させる小さな HTTP エンドポイントを現在デプロイ中です。
+> すべてのメールに送信者情報を明記し、配信停止の手段を2つ用意します——受信者ごとの配信停止リンクと、
+> メールへの返信で、いずれの場合も受信者の記録へ反映します。そのうえで、すべての週次送信の前にコード上の
+> 単一の配信ゲートを通し、配信停止した受信者、またはアドレスがバウンス・苦情を発生させた受信者を、以後の
+> 全 SES 送信対象から除外します。このチェックは登録時1回きりではなく、個々の SES 送信の直前に実行されます。
+> 週次メールにはさらに `List-Unsubscribe` ヘッダーを付与し、セルフサービスの配信停止導線を完成させる小さな
+> HTTP エンドポイントはデプロイ済みで稼働しています。リンクをたどると受信者の記録が「配信停止」に変わり、
+> 同じ配信ゲートがその受信者を以後の全送信対象から除外することを、エンドツーエンドで確認済みです。週次
+> メールはまだ1通も送信しておらず、この確認は実トラフィックではなくテスト用受信者に対して行いました。
 >
 > **5. バウンス・苦情の処理**
 > Amazon SES のバウンス・苦情通知は、SES Configuration Set → SNS トピック → AWS Lambda の
@@ -360,42 +366,46 @@ require しない）。SES から送るのは、受信者本人が明示的に�
   (b) `ses-client.js` を `Content.Simple.Headers` 対応へ拡張し `List-Unsubscribe` ヘッダーを付与。返信ベースの
   停止も併記して維持。テスト 197/197 pass（`send-weekly-report.test.js` / `ses-client.test.js` /
   `unsubscribe-url.test.js`）。
-  - **⚠️ 残るインフラギャップ**（申請前に対応推奨、Initial 側にも同じ問題）:
-    1. **配信停止HTTPエンドポイントが本番未デプロイ**（Phase49 STEP3 で判明 → STEP6 で配線方式確定）:
-       `website/aor-lead-api`（`POST /api/leads/unsubscribe` → `unsubscribeLeadByToken()`、および weekly-consent /
-       paid-request / 公開フォーム）は AWS へデプロイされていない。API Gateway・Function URL とも未作成
-       （`aws lambda list-functions` / `apigateway get-rest-apis` で確認済み）。`unsubscribe.html` が POST する
-       `LEAD_API_BASE_URL` は `common.js` でプレースホルダ（`http://localhost:4700`）。**このため現状は Initial・
-       Weekly とも、メール内リンク／`List-Unsubscribe` を辿っても実際の配信停止まで到達しない。返信ベースの
-       停止のみが機能する。**
-       - **Phase49 STEP6 で配線方式を確定**: Lambda + Function URL（`blastengine-webhook` と同じ薄い HTTP
-         アダプター方針）。`server.js` から `requestListener(req, res)` を切り出し、`scripts/generator/lambda/
-         lead-api-handler.js` を実装・ローカルテスト済み（9件 pass）。残るのはデプロイ（新 Lambda `pj2-aor-lead-api`
-         + Function URL + 環境変数 `LEAD_API_ALLOWED_ORIGINS`、`common.js` の `LEAD_API_BASE_URL` 書き換え、
-         `unsubscribe.html`/`common.js` を配信サイトへ再デプロイ）。次 STEP で実施
-    2. **RFC 8058 の真のワンクリック（`List-Unsubscribe-Post`）は未対応**: 現在の配信停止URLは静的な確認ページ
-       であり MUA からの直接 POST を処理しない。Weekly は `oneClick: false` で `List-Unsubscribe-Post` を付けて
-       いない（付けると Gmail 等が「配信停止完了」と誤表示するため意図的に不採用）。POST を受けてその場で
-       配信停止する軽量エンドポイントを用意したら `oneClick: true` へ戻す（`unsubscribe-url.js` にフラグあり）
-  - 申請文面（現行版 §4）は返信ベースの配信停止 + 配信ゲート + suppression を「実装済み・稼働」として記載し、
-    `List-Unsubscribe` ヘッダー + トークン付きリンクは「実装済み・エンドポイントをデプロイ中」と記載する
-    （Phase49 STEP7 で「稼働中」と断定しない表現へ修正）。ギャップ1解消後に「デプロイ中」→「稼働」へ更新
+  - ~~**⚠️ 残るインフラギャップ 1: 配信停止HTTPエンドポイントが本番未デプロイ**（Phase49 STEP3–6）~~ → **【解消 / Phase49 STEP10–11】**
+    新 Lambda `pj2-aor-lead-api`（専用 IAM Role `pj2-aor-lead-api-role`、`s3:GetObject`/`s3:PutObject` on
+    `leads/*` のみ）+ Function URL（AuthType NONE）を構築し、`scripts/generator/lambda/lead-api-handler.js`
+    アダプター（許可ルート: `POST /api/leads/unsubscribe` / `:id/weekly-report-consent` / `:id/paid-report-request`
+    のみ。公開フォーム `POST /api/leads` は 404）をデプロイ。配信サイト（CloudFront `E1TGUCT9CYALRK` →
+    `changescout-pj2-aor-web` = メールがリンクする `AOR_SITE_BASE_URL`）へ `unsubscribe.html` と Function URL を
+    書き込んだ `common.js` を再デプロイ済み。Weekly Lambda（`pj2-aor-weekly-report-delivery`）も STEP5 の
+    List-Unsubscribe コードへ更新済み（CodeSha256 変更確認）。**専用テスト Lead 1件で E2E 確認済み**:
+    確認ページ → POST → `delivery_status = "unsubscribed"` + history 追記 → `isDeliveryBlocked()` = true →
+    初回・週次ゲートが除外。2回目 POST も 200・履歴重複なし（冪等）。CloudWatch に PII 出力なし。
+    - **審査担当者向け説明サイト `https://aor.changescout.jp/`（GitHub Pages）は別系統**で、STEP21 の文言更新
+      （返信のみ → リンク + 返信の2手段）を反映するには `deploy-pages.yml` の実行が必要（`gh` CLI 未導入の
+      ため未反映。運営者が workflow 実行 or main へマージ）。メールが実際にリンクするのは CloudFront 側で、
+      そちらは反映済み・E2E 済み。
+  - **⚠️ 残るギャップ 2: RFC 8058 の真のワンクリック（`List-Unsubscribe-Post`）は未対応**: 現在の配信停止URLは
+    静的な確認ページであり MUA からの直接 POST を処理しない。Weekly は `oneClick: false` で `List-Unsubscribe-Post`
+    を付けていない（付けると Gmail 等が「配信停止完了」と誤表示するため意図的に不採用）。POST を受けてその場で
+    配信停止する軽量エンドポイントを用意したら `oneClick: true` へ戻す（`unsubscribe-url.js` にフラグあり）
+  - 申請文面（現行版 §4）は返信ベースの配信停止 + 配信ゲート + suppression + `List-Unsubscribe` ヘッダー +
+    トークン付きリンク + 遷移先 HTTP エンドポイントを、いずれも「実装済み・稼働（E2E 確認済み。ただし実 Weekly
+    送信実績はゼロ）」として記載する（Phase49 STEP22 でギャップ1解消を受けて「デプロイ中」→「稼働」へ更新）
 - **現行版申請文面の記述と実装状況の対応（Phase49 STEP7 レビュー、3分類）**:
 
   | 申請文面の記述 | 分類 | 実装/デプロイ状況 |
   |---|---|---|
   | Initial = blastengine（SES 非経由、Lambda が `ses-client` 非依存） | **A: 実装済み・稼働** | `pj2-aor-initial-report-delivery` 2026-08-28 デプロイ。実送信1通確認済み |
-  | Weekly = SES（`weekly_report_consent === true` のみ、送信直前に再チェック） | **A（コード）／実配信実績ゼロ** | `send-weekly-report.js` にゲート実装。Weekly Lambda は旧コードのまま（STEP5 の List-Unsubscribe は未デプロイ）。同意済み受信者ゼロ・週次送信ゼロ |
+  | Weekly = SES（`weekly_report_consent === true` のみ、送信直前に再チェック） | **A（コード）／実配信実績ゼロ** | `send-weekly-report.js` にゲート実装。Weekly Lambda は STEP5 の List-Unsubscribe コードへ更新済み（Phase49 STEP11、CodeSha256 変更確認）。同意済み受信者ゼロ・週次送信ゼロ |
   | 返信による配信停止 → 記録へ反映 → 配信ゲートで除外 | **A: 実装済み・稼働** | `unsubscribeLeadByToken()`（CLI/reply）+ `isDeliveryBlocked()`。運用手順は `operations-checklist.md` に記載 |
-  | `List-Unsubscribe` ヘッダー + トークン付き配信停止リンク | **B: 実装済み・本番未稼働** | Weekly=STEP5 実装（未コミット・未デプロイ）。Initial=blastengine `list_unsubscribe` で稼働だが遷移先エンドポイント未デプロイ |
-  | 配信停止用 HTTP エンドポイント（`aor-lead-api`） | **B→C: 実装済み・デプロイ未実施** | STEP6 で Lambda アダプター実装・ローカルテスト済み。デプロイは次 STEP |
-  | 継続希望（consent）の登録リンク（§1「following a link ... and confirming」） | **B: 実装済み・本番未稼働** | 同じ `aor-lead-api`（`POST /api/leads/:id/weekly-report-consent`）。エンドポイント未デプロイのため、現時点で consent をオンラインで登録する導線は動かない（＝そもそも週次送信対象が発生しない） |
+  | `List-Unsubscribe` ヘッダー + トークン付き配信停止リンク | **A: 実装済み・稼働（E2E 確認済み）** | Weekly=STEP5 実装・STEP11 で Weekly Lambda へデプロイ。Initial=blastengine `list_unsubscribe`。遷移先の確認ページ（`unsubscribe.html`）は CloudFront 配信サイトへ再デプロイ済み |
+  | 配信停止用 HTTP エンドポイント（`aor-lead-api`） | **A: 実装済み・稼働（E2E 確認済み）** | Phase49 STEP10 で新 Lambda `pj2-aor-lead-api` + Function URL（AuthType NONE、許可ルート限定）を構築、STEP11 で専用テスト Lead 1件の unsubscribe E2E を確認（POST → `unsubscribed` → gate 除外、冪等、ログに PII なし） |
+  | 継続希望（consent）の登録リンク（§1「following a link ... and confirming」） | **A: 経路稼働（実 consent ゼロ）** | 同じ `aor-lead-api`（`POST /api/leads/:id/weekly-report-consent`）が STEP10 でデプロイ済み・許可ルート内。実際に consent を登録した受信者はまだゼロ（＝週次送信対象が未発生） |
   | SES Bounce/Complaint パイプライン（Config Set → SNS → Lambda）+ アカウント抑制 | **A: 実装済み・稼働（実バウンス未経験）** | `pj2-aor-ses-event-processing` デプロイ・配線済み。直接 invoke テスト済み。実 SES バウンス処理はまだ（週次送信実績ゼロのため） |
   | DKIM（`changescout.jp` Verified / SUCCESS） | **A: 実装済み・稼働** | `get-email-identity` で確認済み |
 
-  → 申請文面は「is implemented and deployed」を Initial 分離・Bounce パイプラインにのみ使い、Weekly の
-  List-Unsubscribe/リンク/consent 導線には「implemented ... and are deploying」を使う。**未デプロイのものを
-  「稼働中」と書かない／稼働中のものを「予定」と書かない**、を STEP7 で担保した
+  → Phase49 STEP22 時点で、上表はすべて **A（実装済み・稼働）**。ただし A のうち「Weekly 系」（Weekly SES 送信、
+  List-Unsubscribe、consent 登録）は**実配信実績ゼロ**で、E2E 確認はテスト用 Lead / 直接 invoke に留まる。申請文面
+  はこの区別を保ち、「deployed」「operational」「verified end to end」は使うが、Weekly については「No weekly email
+  has been sent yet」と明記する。**未デプロイのものを「稼働中」と書かない／稼働中のものを「予定」と書かない**方針は
+  STEP7 から継続。審査担当者向け説明サイト（GitHub Pages `aor.changescout.jp`）の STEP21 文言更新のみ、
+  `deploy-pages.yml` 実行待ちで未反映（メールが実際にリンクする CloudFront 側は反映済み）
 - **現行版申請文面のレビュー観点（その他）**: (1) blastengine 側の実運用実績は初回1通のみ。「deployed」「tested」
   という語のみ使い「実績多数」のような表現はしていない。(2) Weekly の Bounce/Complaint は「tested by injecting a
   bounce event」= Lambda 直接 invoke テスト。実 SES バウンス検証はまだ。文面はこの範囲。(3) 特定電子メール法は

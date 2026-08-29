@@ -128,15 +128,21 @@ Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppre
 - RFC 8058 の `List-Unsubscribe-Post`（真のワンクリック）は **`oneClick: false` で未付与**。現在の配信停止URLは
   静的な確認ページであり MUA からの直接 POST を処理しないため（付けると誤って「停止完了」と表示される）。
   POST を受けて即座に配信停止する軽量エンドポイントを用意したら `oneClick: true` へ戻す
-- **残ギャップ（配線）**: `unsubscribe.html` が POST する `LEAD_API_BASE_URL` は `common.js` でプレースホルダ
-  （`http://localhost:4700`）。`website/aor-lead-api` は本番未デプロイ、`unsubscribe.html` 等の静的ファイルも
-  配信サイトへ未デプロイ。このためメール内リンク／`List-Unsubscribe` を辿っても end-to-end の配信停止まで
-  到達しない（Initial 側も同様）。現状 end-to-end で機能するのは返信ベースのみ。
+- ~~**残ギャップ（配線）**: 配信停止HTTPエンドポイント未デプロイ~~ → **【解消 / Phase49 STEP10–11】**
   - **Phase49 STEP6**: 配線方式を確定（Lambda + Function URL、blastengine-webhook と同じ薄い HTTP アダプター方針）。
     `website/aor-lead-api/server.js` から `requestListener(req, res)` を切り出し、`scripts/generator/lambda/lead-api-handler.js`
-    （Function URL v2 イベント ⇔ Node req/res 変換）を実装・ローカルテスト済み（`test/lambda-lead-api-handler.test.js`
-    9件 pass）。**残るのはデプロイ**（新 Lambda `pj2-aor-lead-api` + Function URL + 環境変数、`common.js` の
-    `LEAD_API_BASE_URL` 書き換え、サイト再デプロイ）。次 STEP で実施
+    （Function URL v2 イベント ⇔ Node req/res 変換）を実装・ローカルテスト済み。
+  - **Phase49 STEP10**: 新 Lambda `pj2-aor-lead-api`（専用 IAM Role `pj2-aor-lead-api-role`、`s3:GetObject`/
+    `s3:PutObject` on `leads/*` のみ）+ Function URL（AuthType NONE）を構築。アダプターに許可ルートの allowlist を
+    追加（`POST /api/leads/unsubscribe` / `:id/weekly-report-consent` / `:id/paid-report-request` のみ。公開フォーム
+    `POST /api/leads` は 404）。
+  - **Phase49 STEP11**: `common.js` の `LEAD_API_BASE_URL` を Function URL へ書き換え、`unsubscribe.html` + `common.js`
+    を CloudFront 配信サイト（`E1TGUCT9CYALRK` → `changescout-pj2-aor-web` = メールがリンクする `AOR_SITE_BASE_URL`）
+    へ再デプロイ。Weekly Lambda（`pj2-aor-weekly-report-delivery`）も STEP5 の List-Unsubscribe コードへ更新。
+    **専用テスト Lead 1件で E2E 確認済み**: 確認ページ → POST → `delivery_status = "unsubscribed"` → `isDeliveryBlocked()`
+    = true → 初回・週次ゲートが除外。2回目 POST も 200・履歴重複なし（冪等）。CloudWatch に PII 出力なし。
+  - **未反映**: 審査担当者向け説明サイト（GitHub Pages `aor.changescout.jp`）の STEP21 文言更新は `deploy-pages.yml`
+    実行待ち（`gh` CLI 未導入）。メールが実際にリンクする CloudFront 側は反映済み。
 
 #### blastengine `list_unsubscribe` の仕様分離（Phase48 STEP7〜8）
 
@@ -146,8 +152,9 @@ Provider（blastengine／Amazon SES）を問わず、送信前に以下のSuppre
 | **実APIで観測した事実**（2026-08-28、実疎通検証。書面回答ではない） | (a) `list_unsubscribe.mailto`にbare email address（例: `aor-report@changescout.jp`）を渡すとHTTP 400 `{"error_messages":{"list_unsubscribe":{"mailto":["{validation.pattern.error}"]}}}`。`mailto:`スキーム付きURI（`mailto:aor-report@changescout.jp`）が必須。(b) `url`のみ、または`mailto:`付きなら200が返り`delivery_id`を採番。(c) エラーレスポンスはPhase45時点で想定していた`error_messages.main`配列だけでなく、`error_messages.<field>.<subfield>: string[]`のネストしたオブジェクト形式でも返る |
 | **PJ2側の設計判断**（コード実装） | `blastengine-client.js`に`normalizeMailto()`を追加し、呼び出し側がbare emailを渡しても送信前に`mailto:`を付与して正規化する（呼び出し側`send-initial-report.js`は変更不要）。エラー抽出は`flattenErrorMessages()`でネストした`error_messages`を再帰的に平坦化し、フィールドパス付きメッセージ（`list_unsubscribe.mailto: ...`）を得る。APIキー・Authorization・Bearerトークン・リクエストボディ・PIIはエラーメッセージへ含めない |
 
-Weekly AOR側の `List-Unsubscribe` ヘッダー・本文リンクは Phase49 STEP5 で実装済み（上記4節参照）。
-残るのは配信停止HTTPエンドポイントのデプロイ・配線（Initial/Weekly共通の残課題）。
+Weekly AOR側の `List-Unsubscribe` ヘッダー・本文リンクは Phase49 STEP5 で実装、STEP11 で Weekly Lambda へ
+デプロイ済み（上記4節参照）。配信停止HTTPエンドポイント（Initial/Weekly共通）も Phase49 STEP10–11 で
+`pj2-aor-lead-api` Lambda + Function URL として本番構築し、テスト Lead 1件で E2E 確認済み。
 
 ### 5. ドメインウォームアップ仕様
 
