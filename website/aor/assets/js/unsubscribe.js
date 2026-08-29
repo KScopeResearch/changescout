@@ -1,16 +1,15 @@
 /*
- * PJ2 AOR Phase46 STEP3 - unsubscribe.html（配信停止画面）
+ * unsubscribe.html（配信停止画面）のスクリプト。
  *
- * 【設計方針】email-capture.jsのPhase4-A/B送信パターン（submitPhase4Action()）を踏襲する。
- * ?lead=<lead_id>&?token=<report_token>をURLから読み取り（common.jsのgetLeadParam()/
- * getReportTokenParam()を再利用、新しいパース処理は追加しない）、確認ボタンが明示的に
- * クリックされた場合のみ POST /api/leads/unsubscribe（body: {lead_id, token}）を送信する。
+ * URLの ?lead=<lead_id>&token=<token> を common.js の getLeadParam() /
+ * getReportTokenParam() で読み取り、確認ボタンが明示的にクリックされた場合のみ
+ * POST /api/leads/unsubscribe（body: {lead_id, token}）を送信する。
  *
  * 【重要】ページ読み込み時（DOMContentLoaded）には確認UIの表示のみを行い、一切の
  * fetch/POSTを行わない。GETでのアクセス（メールセキュリティスキャナ・リンクプレビュー等）
- * だけでは配信停止が発生しないようにするための必須要件（server.js側のPOST限定実装と対）。
+ * だけでは配信停止が発生しないようにするための必須要件。
  *
- * lead_id/report_tokenはconsole.error等のログにも一切出力しない（漏洩防止）。
+ * lead_id/token は console.error 等のログにも一切出力しない（漏洩防止）。
  */
 
 const STATE_IDS = ["state-loading", "state-error", "page"];

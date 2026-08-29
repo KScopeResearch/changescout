@@ -1,11 +1,8 @@
 /*
- * AOR Phase5.1 - 共通ユーティリティ / 共通コンポーネント
- * 対応スキーマ: docs/mock_data (schema_version 2.4)
+ * AOR - 共通ユーティリティ / 共通コンポーネント
  * 3画面（report-preview / email-capture / paid-preview）から共有する。
- * 旧スキーマ（opportunities_open, opportunities_locked(旧構造), paid_preview_opportunity,
- * registration_bonus, priority_matrix.items）には一切対応しない。
  *
- * データの正規化方針（v2.4）:
+ * データの正規化方針:
  *   - 出典情報（source_type/source_role/evidence_strength/label/url）の唯一の正は source_pages。
  *     free_opportunity.evidence は { source_id, quote } のみを持ち、resolveEvidence() で結合する。
  *   - Opportunity情報の唯一の正は paid_analysis.additional_opportunities。
@@ -14,14 +11,10 @@
 
 const OPERATOR_EMAIL = "support@aor.example.jp";
 
-// PJ2 第2実装: website/aor-lead-api/（メール回収API）のベースURL。
-// website/aorはビルドステップを持たない純粋な静的サイトのため、OPERATOR_EMAILと同じ
-// 「配置ごとにこの定数を書き換える」という既存方針を踏襲する。
-// PJ2 AOR Phase49 STEP10: aor-lead-api を Lambda + Function URL（pj2-aor-lead-api、
-// AuthType=NONE、公開ルートは unsubscribe / weekly-report-consent / paid-report-request のみ）
-// として本番構築したため、本番の Function URL を設定する。末尾スラッシュは付けない
-// （unsubscribe.js 等が `${LEAD_API_BASE_URL}/api/leads/...` と連結するため）。
-// ローカル動作確認時は `http://localhost:4700` へ一時的に戻すこと。
+// メール回収APIのベースURL。このサイトはビルドステップを持たない静的サイトのため、
+// OPERATOR_EMAILと同じく「配置ごとにこの定数を書き換える」方針。末尾スラッシュは
+// 付けない（呼び出し側が `${LEAD_API_BASE_URL}/api/leads/...` と連結するため）。
+// ローカル動作確認時は `http://localhost:4700` へ一時的に戻す。
 const LEAD_API_BASE_URL = "https://6nvmhes7wgy6h3keiiqqsoij4y0wegss.lambda-url.ap-northeast-1.on.aws";
 
 const SOURCE_TYPE_LABELS = {
@@ -59,12 +52,10 @@ function getCompanyParam() {
 }
 
 /**
- * URLクエリ文字列から ?lead=<lead_id> を取り出す（PJ2 Phase3前段: メールURL・
- * report_token連携）。company=単体の既存URL（デモ閲覧等）との後方互換のため必須とはせず、
- * 指定が無い場合は null を返す。lead_idはPhase4-A/B（詳細レポート希望/週次配信同意）への
- * 引き渡し用の低リスクな追跡識別子であり、この値単体でレポート内容の取得には使わない
- * （report_generated済みLeadのcompany_slugはメール本文側で別途company=として渡す想定。
- * 詳細はdocs/email-capture-design.md参照）。
+ * URLクエリ文字列から ?lead=<lead_id> を取り出す。?company= のみの既存URL
+ * （デモ閲覧等）との後方互換のため必須とはせず、指定が無い場合は null を返す。
+ * この値は状態変更用リクエストへの引き渡しに使う識別子であり、値単体で
+ * レポート内容の取得には使わない。
  * @returns {string|null}
  */
 function getLeadParam() {
@@ -74,9 +65,8 @@ function getLeadParam() {
 }
 
 /**
- * URLクエリ文字列から ?token=<report_token> を取り出す（PJ2 Phase3前段）。
- * report_tokenはPhase4-A/B（状態変更API、POST /api/leads/:lead_id/paid-report-request等）
- * にのみ必要な値。report-preview.html・paid-preview.html自身はこの値を検証・消費せず、
+ * URLクエリ文字列から ?token=<token> を取り出す。状態変更用リクエストでのみ必要な値。
+ * report-preview.html・paid-preview.html自身はこの値を検証・消費せず、
  * email-capture.htmlへの遷移リンクを組み立てる際に素通りさせるだけにとどめる。
  * @returns {string|null}
  */
