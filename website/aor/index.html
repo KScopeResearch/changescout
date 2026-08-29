@@ -58,14 +58,14 @@
         updates from us.
       </p>
       <p>
-        Every email includes sender identification and instructions to reply
-        directly to request removal from future emails; reply-based opt-out requests
-        are reviewed by our operations team and applied to the recipient's record,
-        and our system's delivery gate independently enforces this exclusion for all
-        future emails. We also monitor bounce and complaint notifications from
-        Amazon SES and automatically suppress further sending to any recipient who
-        bounces or complains. See our <a href="privacy.html">Privacy Policy</a> for
-        details.
+        Every email includes sender identification and two ways to stop future
+        emails: an unsubscribe link (with a <code>List-Unsubscribe</code> header)
+        and a reply-to-unsubscribe option. An opt-out is applied to the recipient's
+        record, and our system's delivery gate independently enforces this
+        exclusion for all future emails. We also monitor bounce and complaint
+        notifications from Amazon SES and automatically suppress further sending to
+        any recipient who bounces or complains. See our
+        <a href="privacy.html">Privacy Policy</a> for details.
       </p>
     </section>
 
@@ -135,7 +135,7 @@
       <h2 class="section-title">メール配信について</h2>
       <p>
         メールは <strong>aor-report@changescout.jp</strong> から送信します。
-        各メールには送信者情報を明記し、配信停止をご希望の場合の連絡方法（返信）を
+        各メールには送信者情報を明記し、配信停止の方法（メール内のリンク、およびメールへの返信）を
         必ず記載しています。
       </p>
     </section>
@@ -143,10 +143,11 @@
     <section class="section">
       <h2 class="section-title">配信停止について</h2>
       <p>
-        配信停止をご希望の場合は、受信されたメールに直接ご返信ください。運営チームが
-        返信内容を確認したうえで、対象の記録を配信停止（unsubscribed）の状態へ変更します。
-        自動で即時反映される仕組みではなく、運営チームの確認を経て反映される点にご留意
-        ください。反映後は、初回レポート・週次レポートいずれの送信対象からも除外されます。
+        配信停止は2つの方法でお手続きいただけます。(1) 受信されたメール内の配信停止リンク
+        （対応するメールソフトのヘッダー経由の配信停止表示を含む）から確認画面へ進み、確認ボタンを
+        押す。(2) 受信されたメールへの直接のご返信。(1) は即時に反映され、(2) は運営チームの確認を
+        経て反映されます。いずれの場合も、対象の記録が配信停止（unsubscribed）の状態へ変更され、
+        以後は初回レポート・週次レポートいずれの送信対象からも除外されます。
         また、Amazon SESから通知されるBounce（配信不能）およびComplaint（苦情）についても監視しており、
         該当する受信者は以後の送信対象から除外されます。
       </p>
