@@ -42,21 +42,20 @@
         recipient has already opted in.
       </p>
       <p>
-        <strong>Amazon SES is the sending infrastructure we use for our continued
-        (weekly) report delivery.</strong> After a recipient has received an initial
-        AI Opportunity Report, we send further, updated weekly reports via Amazon SES
-        only if that recipient has taken an explicit action to request continued
-        delivery. Recipients who have not registered this continuation request never
-        receive weekly emails.
+        <strong>Amazon SES is used only for our continued (weekly) report
+        delivery.</strong> After a recipient has received an initial AI Opportunity
+        Report, we send further, updated weekly reports via Amazon SES only if that
+        recipient has taken an explicit action to request continued delivery.
+        Recipients who have not registered this continuation request never receive
+        weekly emails.
       </p>
       <p>
-        The sending mechanism for the very first (initial) AI Opportunity Report is
-        still being finalized on our side, and we are designing it to be managed
-        separately from the Amazon SES usage policy described on this page. Depending
-        on how this is finalized, initial reports may in the future be sent via
-        Amazon SES after we have obtained separate, explicit permission from the
-        recipient for that purpose, or they may be sent through a different email
-        delivery mechanism entirely.
+        The very first (initial) AI Opportunity Report &mdash; the first message a
+        recipient receives from us, before any request on their part &mdash; is
+        <strong>not</strong> sent through Amazon SES. It is sent through a separate
+        third-party email delivery service (blastengine). So Amazon SES only ever
+        carries mail to recipients who have explicitly opted in to keep receiving
+        updates from us.
       </p>
       <p>
         Every email includes sender identification and instructions to reply
@@ -91,7 +90,7 @@
         ↓<br>
         承認済みリスト（Approved List）<br>
         ↓<br>
-        初回AOR（Initial AOR）<br>
+        初回AOR（Initial AOR） via blastengine（Amazon SESは使用しません）<br>
         ↓<br>
         受信者ご本人による継続希望の登録<br>
         ↓<br>
@@ -113,10 +112,10 @@
     <section class="section">
       <h2 class="section-title">初回AORについて</h2>
       <p>
-        初回のAI Opportunity Report（Initial AOR）の送信方式については、現在社内で設計を整理している
-        段階です。初回AORの送信基盤は、本ページで説明するAmazon SES利用方針とは区別して管理する方針としており、
-        今後の整理の結果によっては、(a) 受信者ご本人から別途明示的な許可をいただいたうえでAmazon SESを
-        利用する、または (b) Amazon SES以外の送信基盤を利用する、のいずれの可能性も残しています。
+        初回のAI Opportunity Report（Initial AOR）は、<strong>Amazon SESではなく、別のメール配信
+        サービス（blastengine）を利用して送信します。</strong>受信者が当社から最初に受け取るメール
+        （受信者側の何らかのご依頼より前に送られるもの）は、Amazon SESからは送信しません。
+        Amazon SESは、下記の週次AOR（継続受信をご本人が明示的にご希望された方のみ）専用の送信基盤です。
       </p>
     </section>
 
