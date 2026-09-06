@@ -85,6 +85,15 @@ test("createLeadFromEmail: company_urlを事前入力せず、emailだけからL
   assert.equal(result.lead.status, "validated");
 });
 
+test("PJ2 AOR: Candidate/Approved分離仕様 — email起点で作成されたLeadはdelivery_approval_status:pendingのまま（自動承認されない）", async (t) => {
+  withMockSearchProvider(t);
+  const email = "create-lead-from-email-pending-approval-test@example-test-corp.invalid";
+  const result = await createLeadFromEmail(email, { fetchCompany: fakeFetchOk });
+  t.after(() => cleanupLead(result.lead && result.lead.lead_id));
+
+  assert.equal(result.lead.delivery_approval_status, "pending", "email起点の企業推定（Candidate生成）だけではApprovedにならないはず");
+});
+
 test("createLeadFromEmail: 保存されたLeadを読み直しても同じcompany_url由来情報が残っている", async (t) => {
   withMockSearchProvider(t);
   const email = "create-lead-from-email-persist-test@example-test-corp2.invalid";

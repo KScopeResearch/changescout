@@ -77,6 +77,19 @@ test("正常な新規Lead作成: created・validatedがともに1件、statusは
   assert.equal(lead.email, email);
 });
 
+test("PJ2 AOR: Candidate/Approved分離仕様 — CSV取り込みで作成されたLeadはdelivery_approval_status:pendingのまま（自動承認されない）", async (t) => {
+  const email = "import-test-pending-approval@example.invalid";
+  const csv = `${HEADER}\n${email},公式サイト,public_website,2026-08-01T00:00:00Z,https://example.com,,,,`;
+  const { dir, file } = writeTempCsv(csv);
+  t.after(() => cleanupTempDir(dir));
+
+  const result = await importLeadsFromCsv(file);
+  t.after(() => cleanupLeadsFromResult(result));
+
+  const lead = await readLead(result.rows[0].lead_id);
+  assert.equal(lead.delivery_approval_status, "pending", "CSV取り込み経由（Candidate生成）だけではApprovedにならないはず");
+});
+
 // ---------------------------------------------------------------------------
 // 2. 必須項目不足
 // ---------------------------------------------------------------------------
