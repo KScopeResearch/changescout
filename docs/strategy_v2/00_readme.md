@@ -42,6 +42,7 @@ Phase2機能の分離）について、詳細は [CHANGELOG.md](CHANGELOG.md) �
 | 14 | [14_risk.md](14_risk.md) | 法的・倫理的リスク |
 | 15 | [15_roadmap.md](15_roadmap.md) | 段階的ロードマップ |
 | 16 | [16_validation_plan.md](16_validation_plan.md) | 検証すべき仮説・最重要まとめ |
+| 17 | [17_aws_production_access.md](17_aws_production_access.md) | AWS SES Production Access再申請用資料（英文提出文・日本語訳・技術的根拠） |
 
 ## 参照した外部調査（要約）
 

@@ -14,6 +14,15 @@
   （[03_lead_generation.md](03_lead_generation.md)）
 - 全メールに送信者情報・オプトアウト方法を明記する
 - オプトイン/オプトアウト記録を台帳管理する（[12_operations.md](12_operations.md)）
+- **システム上の構造的な担保（Candidate/Approved分離）**: 収集しただけの連絡先
+  （Candidate）は`delivery_approval_status: "pending"`のまま初回送信対象にならない。
+  運営者が管理画面（`website/aor-admin`のLeads画面、認証必須）で運用基準
+  （[03_lead_generation.md](03_lead_generation.md)「Approved判定」）を目視確認し、
+  明示的に`"approved"`へ変更したLeadだけが送信ゲート（`send-initial-report.js`の
+  `isDeliveryApproved()`チェック）を通過する設計にすることで、「収集さえできれば
+  誰にでも送れてしまう」実装上の抜け穴を無くしている。この承認操作を経由しない
+  自動昇格の経路はコード上存在しない。ただし基準の当てはめ自体は自動化しておらず、
+  引き続き人間の判断に依存する（誰が承認したかはLeadのhistoryに記録され事後追跡できる）
 
 ## 2. 個人情報保護法
 

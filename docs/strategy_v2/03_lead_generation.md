@@ -71,6 +71,37 @@ MVPでは、スケールよりも「同意の明確さ」と「初速の出し�
 オプトイン記録の保管義務（特定電子メール法）を踏まえ、取得経路・同意日時・同意内容を
 台帳として記録する運用を初期段階から組み込む（[12_operations.md](12_operations.md)）。
 
+## Candidate / Approved分離とApproved判定（システム実装）
+
+上記の取得方法で集めた連絡先は、システム上まず**Candidate**（収集されただけの状態）
+として扱われる。Candidateはそのままでは初回AOR送信の対象にならない。送信対象になるには、
+以下の運用基準に基づく**Approved判定**を経る必要がある（`lead-store.js`の
+`delivery_approval_status`フィールド、既定値`"pending"`。判定結果は`"approved"`または
+`"rejected"`として記録する）。
+
+**MVPフェーズのApproved判定基準（対象を日本国内・日本語法人に限定）**:
+
+1. 送信先が「ホームページ等で公表している法人・団体・営業を営む個人のメールアドレス」
+   （特定電子メール法のオプトイン規制適用除外に該当する経路で取得したもの）であること
+2. 掲載元ページに「営業メールお断り」「セールスのご連絡はご遠慮ください」等の
+   受信拒否の明示的な記載が無いことを確認済みであること
+3. 運用対象を日本国内法人・日本語対応可能な相手に限定していること
+
+Candidate→Approvedの判定・実行手順は、`website/aor-admin`（Review Dashboard）の
+Leads画面（`/leads.html`、`GET /api/leads`・`POST /api/leads/:lead_id/delivery-approval`）
+から行う。運営者がAdmin UI上でCandidateのemail・company_url等を目視確認し、上記1〜3の
+基準を満たすと判断した場合にのみ「Approve」ボタンで`delivery_approval_status`を
+`"approved"`へ手動更新する（満たさない場合は「Reject」で`"rejected"`にする）。認証済み
+セッションのユーザー名が判定者（reviewer）としてLeadのhistoryへ自動的に記録され、
+「誰が・いつ・どの理由で承認したか」が事後追跡できる。
+
+送信処理（`send-initial-report.js`）側は、`delivery_approval_status === "approved"`
+であることを機械的に確認するのみで、上記基準そのものの自動判定（ページ内の受信拒否文言の
+自動検出等）は行わない——**基準の適用は引き続き人間の判断を必須とする**（[14_risk.md](14_risk.md)
+「Human in the Loop」原則と同じ考え方）。Candidateとして生成されたLeadは、
+`delivery_approval_status: "pending"`が既定値であり、Admin UIでの承認操作を経ない限り
+`"approved"`になることはない（自動昇格させる経路はコード上存在しない）。
+
 ---
 
 ## 出典

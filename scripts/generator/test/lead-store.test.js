@@ -24,6 +24,7 @@ const path = require("path");
 const {
   VALID_STATUSES,
   VALID_DELIVERY_STATUSES,
+  VALID_DELIVERY_APPROVAL_STATUSES,
   LEADS_DIR,
   createLead,
   readLead,
@@ -32,7 +33,9 @@ const {
   listLeads,
   findLeadByEmail,
   findLeadByEmailAndCompanyUrl,
+  findLeadByInitialSendMessageId,
   isDeliveryBlocked,
+  isDeliveryApproved,
 } = require("../leads/lead-store");
 
 /** @param {string} leadId */
@@ -77,6 +80,7 @@ test("createLead: 初期値が仕様どおりになっている", async (t) => {
   assert.equal(lead.weekly_report_consent, false);
   assert.equal(lead.weekly_report_consent_at, null);
   assert.equal(lead.delivery_status, "active");
+  assert.equal(lead.delivery_approval_status, "pending", "新規Leadは自動承認されず、常にpendingから始まるはず");
   assert.equal(lead.history.length, 1);
   assert.equal(lead.history[0].event, "collected");
   assert.ok(lead.history[0].at);
@@ -166,6 +170,56 @@ test("updateLead: 不正なdelivery_statusは拒否される（保存されな�
 });
 
 // ---------------------------------------------------------------------------
+// delivery_approval_status（PJ2 AOR: Candidate/Approved分離仕様で追加）
+// ---------------------------------------------------------------------------
+
+test("updateLead: delivery_approval_statusを変更できる", async (t) => {
+  const created = await createLead(sampleParams());
+  t.after(() => cleanupLead(created.lead_id));
+
+  const approved = await updateLead(created.lead_id, { delivery_approval_status: "approved" });
+  assert.equal(approved.delivery_approval_status, "approved");
+
+  const rejected = await updateLead(created.lead_id, { delivery_approval_status: "rejected" });
+  assert.equal(rejected.delivery_approval_status, "rejected");
+});
+
+test("updateLead: 不正なdelivery_approval_statusは拒否される（保存されない）", async (t) => {
+  const created = await createLead(sampleParams());
+  t.after(() => cleanupLead(created.lead_id));
+
+  await assert.rejects(() => updateLead(created.lead_id, { delivery_approval_status: "no-such-status" }));
+  assert.equal(
+    (await readLead(created.lead_id)).delivery_approval_status,
+    "pending",
+    "拒否された更新は反映されていないはず"
+  );
+});
+
+test("isDeliveryApproved: delivery_approval_status:approvedのLeadのみtrueを返す", async (t) => {
+  const created = await createLead(sampleParams());
+  t.after(() => cleanupLead(created.lead_id));
+
+  assert.equal(isDeliveryApproved(created), false, "既定値pendingではfalseのはず");
+
+  const rejected = await updateLead(created.lead_id, { delivery_approval_status: "rejected" });
+  assert.equal(isDeliveryApproved(rejected), false);
+
+  const approved = await updateLead(created.lead_id, { delivery_approval_status: "approved" });
+  assert.equal(isDeliveryApproved(approved), true);
+});
+
+test("isDeliveryApproved: delivery_approval_statusフィールド自体が無い（旧データ相当）場合はfalseを返す", () => {
+  const legacyLead = { email: "legacy@example.invalid" }; // delivery_approval_statusキー無し
+  assert.equal(isDeliveryApproved(legacyLead), false, "未承認扱いへ安全側にフォールバックするはず");
+});
+
+test("isDeliveryApproved: leadがnull/undefinedの場合はfalseを返す", () => {
+  assert.equal(isDeliveryApproved(null), false);
+  assert.equal(isDeliveryApproved(undefined), false);
+});
+
+// ---------------------------------------------------------------------------
 // appendHistory
 // ---------------------------------------------------------------------------
 
@@ -201,6 +255,19 @@ test('appendHistory: "initial_report_failed"を記録できる（PJ2 Phase3で�
 
   const updated = await appendHistory(created.lead_id, "initial_report_failed", { error: "dummy" });
   assert.deepEqual(updated.history[1].metadata, { error: "dummy" });
+});
+
+test('appendHistory: "delivery_approved"/"delivery_rejected"を記録できる（PJ2 AOR: Candidate/Approved分離仕様で追加）', async (t) => {
+  const created = await createLead(sampleParams());
+  t.after(() => cleanupLead(created.lead_id));
+
+  const approved = await appendHistory(created.lead_id, "delivery_approved", { basis: "public_website_address" });
+  assert.equal(approved.history[1].event, "delivery_approved");
+  assert.deepEqual(approved.history[1].metadata, { basis: "public_website_address" });
+
+  const rejected = await appendHistory(created.lead_id, "delivery_rejected", { reason: "opt_out_notice_found" });
+  assert.equal(rejected.history[2].event, "delivery_rejected");
+  assert.deepEqual(rejected.history[2].metadata, { reason: "opt_out_notice_found" });
 });
 
 test("appendHistory: 未知のイベント名は拒否される", async (t) => {
@@ -388,6 +455,48 @@ test("findLeadByEmailAndCompanyUrl: 存在しない組み合わせはnullを返�
 });
 
 // ---------------------------------------------------------------------------
+// findLeadByInitialSendMessageId（PJ2 AOR Phase47 STEP2: blastengine Webhookが
+// mailaddressに基づく推測なしでLeadを一意に特定するための検索）
+// ---------------------------------------------------------------------------
+
+test("findLeadByInitialSendMessageId: initial_report_sentのmetadata.message_idが一致するLeadを取得できる", async (t) => {
+  const created = await createLead(sampleParams({ email: "message-id-lookup@example.invalid" }));
+  t.after(() => cleanupLead(created.lead_id));
+  await appendHistory(created.lead_id, "initial_report_sent", { message_id: "provider-message-id-123" });
+
+  const found = await findLeadByInitialSendMessageId("provider-message-id-123");
+  assert.ok(found);
+  assert.equal(found.lead_id, created.lead_id);
+});
+
+test("findLeadByInitialSendMessageId: 同一emailで複数Leadが存在しても、message_idが一致する1件だけを返す", async (t) => {
+  const email = "message-id-lookup-multi@example.invalid";
+  const leadA = await createLead(sampleParams({ email, company_url: "https://company-a-msgid.example" }));
+  const leadB = await createLead(sampleParams({ email, company_url: "https://company-b-msgid.example" }));
+  t.after(() => {
+    cleanupLead(leadA.lead_id);
+    cleanupLead(leadB.lead_id);
+  });
+  await appendHistory(leadA.lead_id, "initial_report_sent", { message_id: "msgid-a" });
+  await appendHistory(leadB.lead_id, "initial_report_sent", { message_id: "msgid-b" });
+
+  const foundA = await findLeadByInitialSendMessageId("msgid-a");
+  const foundB = await findLeadByInitialSendMessageId("msgid-b");
+  assert.equal(foundA.lead_id, leadA.lead_id);
+  assert.equal(foundB.lead_id, leadB.lead_id);
+});
+
+test("findLeadByInitialSendMessageId: 一致するmessage_idが存在しない場合はnullを返す", async () => {
+  const found = await findLeadByInitialSendMessageId("no-such-message-id");
+  assert.equal(found, null);
+});
+
+test("findLeadByInitialSendMessageId: 不正な入力（空文字/未指定）はnullを返す", async () => {
+  assert.equal(await findLeadByInitialSendMessageId(""), null);
+  assert.equal(await findLeadByInitialSendMessageId(undefined), null);
+});
+
+// ---------------------------------------------------------------------------
 // rejected再利用
 // ---------------------------------------------------------------------------
 
@@ -439,7 +548,7 @@ test("rejected再利用: delivery_statusがunsubscribed/bounced/suppressedの場
 // 定数のエクスポート確認（仕様どおりの値であることの回帰確認）
 // ---------------------------------------------------------------------------
 
-test("VALID_STATUSES / VALID_DELIVERY_STATUSES が仕様どおりである", () => {
+test("VALID_STATUSES / VALID_DELIVERY_STATUSES / VALID_DELIVERY_APPROVAL_STATUSES が仕様どおりである", () => {
   assert.deepEqual(VALID_STATUSES, [
     "collected",
     "validated",
@@ -450,6 +559,7 @@ test("VALID_STATUSES / VALID_DELIVERY_STATUSES が仕様どおりである", () 
     "initial_report_failed",
   ]);
   assert.deepEqual(VALID_DELIVERY_STATUSES, ["active", "unsubscribed", "bounced", "suppressed"]);
+  assert.deepEqual(VALID_DELIVERY_APPROVAL_STATUSES, ["pending", "approved", "rejected"]);
 });
 
 test("listLeads: 作成したLeadが一覧に含まれる", async (t) => {
