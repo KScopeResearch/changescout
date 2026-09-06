@@ -485,7 +485,12 @@ async function main() {
       "テストを乖離させないため、あえて行っていない。",
     "search/tavily-provider.js・search/bing-provider.js・llm/openai-provider.js・deepseek-provider.js・" +
       "qwen-provider.jsは、実APIキーを設定していないため実際の外部API呼び出しを伴うテストは実施していない" +
-      "（isConfigured()がfalseになることのみ確認）。",
+      "（isConfigured()がfalseになることのみ確認）。CI環境ではこれらのAPIキーを設定していないため" +
+      "この前提が自然に成立するが、search.test.jsは元々search()呼び出し時にproviderIdを省略しており、" +
+      "ローカル開発環境でSEARCH_PROVIDER=tavily・TAVILY_API_KEYが実際に設定されている場合（実レポート" +
+      "生成用）には意図せず実Tavily APIを呼び出してしまう構造上の問題があった。PJ2 AOR Phase47 STEP4で" +
+      "search.test.jsの該当3テストへproviderId: \"mock\"を明示し、実行環境のSEARCH_PROVIDER/" +
+      "TAVILY_API_KEY設定に関わらずhermeticに実行されるよう修正した。",
     "website/aor-admin/public/配下のフロントエンドJS（list.js/detail.js/jobs.js等）は、ブラウザDOM APIに" +
       "依存するためnode:testでは直接テストしていない。動作確認はClaude Browserでの実ブラウザ確認に依っている。",
   ];

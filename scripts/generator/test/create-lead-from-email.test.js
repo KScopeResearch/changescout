@@ -38,7 +38,41 @@ const fakeFetchOk = async (url) => ({
   error: null,
 });
 
+/**
+ * 【PJ2 AOR Phase47 STEP4】createLeadFromEmail()はfetchCompanyのDIフックしか持たず
+ * （create-lead-from-email.js参照）、内部で呼ぶinferCompanyFromEmail()の検索処理には
+ * DIフックを渡していない。そのため本ファイルの各テストは、company-inference.jsを
+ * 経由して実際にsearch/search-client.jsのsearch()を呼び出しており、providerIdを
+ * 指定しないためSEARCH_PROVIDER環境変数に従う。ローカル開発環境でSEARCH_PROVIDER=tavily・
+ * TAVILY_API_KEYが実際に設定されている場合（実レポート生成用）、本ファイルの全テストが
+ * 意図せず実Tavily APIを呼び出してしまっていた（実際に確認された事象）。
+ * search()側やcreateLeadFromEmail()側への新規DIフック追加は今回のスコープ外とし
+ * （不要な変更を避ける）、既存のgenerator.test.jsと同じ最小の対処として、本ファイルの
+ * 各テストの実行中のみSEARCH_PROVIDER=mockへ固定する。
+ *
+ * 【多層防御: TAVILY_API_KEYも削除する】SEARCH_PROVIDER=mock固定に加え、TAVILY_API_KEY自体も
+ * 削除する（search-client.jsのsearch()は`provider.requiresApiKey && !provider.isConfigured()`
+ * の場合に必ずmockへフォールバックするため、SEARCH_PROVIDERの値に関わらず働く独立した防御層
+ * になる。generator.test.js側で発見した経緯の詳細は同ファイルのコメント参照）。本ファイルの
+ * テストにはgenerator.test.jsのような明示的timeoutが無いため、t.after()による復元自体は
+ * 安全だが、念のため同じ二重の対処を統一して適用する。
+ * @param {import('node:test').TestContext} t
+ */
+function withMockSearchProvider(t) {
+  const originalProvider = process.env.SEARCH_PROVIDER;
+  const originalApiKey = process.env.TAVILY_API_KEY;
+  process.env.SEARCH_PROVIDER = "mock";
+  delete process.env.TAVILY_API_KEY;
+  t.after(() => {
+    if (originalProvider === undefined) delete process.env.SEARCH_PROVIDER;
+    else process.env.SEARCH_PROVIDER = originalProvider;
+    if (originalApiKey === undefined) delete process.env.TAVILY_API_KEY;
+    else process.env.TAVILY_API_KEY = originalApiKey;
+  });
+}
+
 test("createLeadFromEmail: company_urlを事前入力せず、emailだけからLeadを作成できる", async (t) => {
+  withMockSearchProvider(t);
   const email = "create-lead-from-email-test@example-test-corp.invalid";
   const result = await createLeadFromEmail(email, { fetchCompany: fakeFetchOk });
   t.after(() => cleanupLead(result.lead && result.lead.lead_id));
@@ -52,6 +86,7 @@ test("createLeadFromEmail: company_urlを事前入力せず、emailだけからL
 });
 
 test("createLeadFromEmail: 保存されたLeadを読み直しても同じcompany_url由来情報が残っている", async (t) => {
+  withMockSearchProvider(t);
   const email = "create-lead-from-email-persist-test@example-test-corp2.invalid";
   const result = await createLeadFromEmail(email, { fetchCompany: fakeFetchOk });
   t.after(() => cleanupLead(result.lead && result.lead.lead_id));
@@ -77,6 +112,7 @@ test("createLeadFromEmail: フリーメールドメインの場合はLeadを作�
 // ---------------------------------------------------------------------------
 
 test("createLeadFromEmail: 同一email×同一companyの再投入は新規Leadを作らず、resubmitted historyのみ記録される（重複エラーにしない）", async (t) => {
+  withMockSearchProvider(t);
   const email = "create-lead-from-email-resubmit-test@example-test-corp3.invalid";
   const first = await createLeadFromEmail(email, { fetchCompany: fakeFetchOk });
   t.after(() => cleanupLead(first.lead && first.lead.lead_id));
@@ -107,6 +143,7 @@ test("createLeadFromEmail: 同一email×同一companyの再投入は新規Lead�
 });
 
 test("createLeadFromEmail: 同一emailでもcompany_urlが異なる既存Leadがある場合は別Leadとして新規作成される", async (t) => {
+  withMockSearchProvider(t);
   const email = "create-lead-from-email-diffcompany-test@example-test-corp5.invalid";
   // company-inference.jsはemailドメインからcompany_urlを決定的に導出するため、
   // createLeadFromEmail()だけでは同一emailに対して異なるcompany_urlを再現できない。
@@ -130,6 +167,7 @@ test("createLeadFromEmail: 同一emailでもcompany_urlが異なる既存Leadが
 });
 
 test("createLeadFromEmail: 別email・同一company（同一ドメイン）は別々の新規Leadとして作成される", async (t) => {
+  withMockSearchProvider(t);
   const emailA = "create-lead-from-email-diffemail-a@example-test-corp6.invalid";
   const emailB = "create-lead-from-email-diffemail-b@example-test-corp6.invalid";
 
@@ -149,6 +187,7 @@ test("createLeadFromEmail: 別email・同一company（同一ドメイン）は�
 // ---------------------------------------------------------------------------
 
 test("createLeadFromEmail: 既存Leadのdelivery_statusがブロック済み（unsubscribed等）の場合は対象外として扱われ、既存Leadは変更されない", async (t) => {
+  withMockSearchProvider(t);
   const email = "create-lead-from-email-blocked-test@example-test-corp7.invalid";
   const first = await createLeadFromEmail(email, { fetchCompany: fakeFetchOk });
   t.after(() => cleanupLead(first.lead && first.lead.lead_id));

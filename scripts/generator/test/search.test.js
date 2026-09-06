@@ -28,7 +28,19 @@ test("query-builder: buildQueriesForCategoryでカテゴリ別に絞り込める
 });
 
 test("search: mock providerで検索結果が正しいsource_typeで返る", async () => {
-  const result = await search("テスト企業 補助金", { sourceType: "government", sourceRole: "market_change" });
+  // 【PJ2 AOR Phase47 STEP4】providerIdを明示的に"mock"へ固定する。省略するとresolveProviderId()が
+  // 環境変数SEARCH_PROVIDERに依存してしまい、開発者のローカルシェルでSEARCH_PROVIDER=tavily・
+  // TAVILY_API_KEYが実際に設定されている場合（実レポート生成用）に、このテストが意図せず
+  // 実Tavily APIを呼び出してしまう（CI環境ではSEARCH_PROVIDER未設定のため問題が顕在化せず、
+  // run-all-tests.jsのコメントも「実APIキー未設定のため実API呼び出しテストは無い」という
+  // CI環境限定の前提のまま書かれていた）。mock providerの挙動だけを検証する意図を明示するため、
+  // 常にproviderId: "mock"を指定し、実行環境のSEARCH_PROVIDER/TAVILY_API_KEY設定に左右されない
+  // hermeticなテストにする。
+  const result = await search("テスト企業 補助金", {
+    sourceType: "government",
+    sourceRole: "market_change",
+    providerId: "mock",
+  });
   assert.equal(result.provider, "mock");
   assert.ok(result.results.length > 0);
   result.results.forEach((r) => {
@@ -62,8 +74,19 @@ test("search: timeout処理（providerがハングしてもtimeoutMsで確定す
   const original = mock.searchRaw;
   mock.searchRaw = () => new Promise(() => {}); // 永久に解決しない
   try {
+    // 【PJ2 AOR Phase47 STEP4】providerId: "mock"を明示。省略するとSEARCH_PROVIDER環境変数に
+    // 依存し、ローカル開発環境でSEARCH_PROVIDER=tavily・TAVILY_API_KEY設定時に上記で
+    // モック化したmock.searchRaw()が使われず、実Tavily APIを呼び出してしまう
+    // （このテスト自体はtimeoutMs超過で偶然PASSしうるが、実API呼び出し自体は発生してしまう）。
     await assert.rejects(
-      () => search("timeout test", { sourceType: "news", sourceRole: "evidence", timeoutMs: 200, maxRetries: 0 }),
+      () =>
+        search("timeout test", {
+          sourceType: "news",
+          sourceRole: "evidence",
+          timeoutMs: 200,
+          maxRetries: 0,
+          providerId: "mock",
+        }),
       /タイムアウト/
     );
   } finally {
@@ -76,8 +99,16 @@ test("search: 不正な戻り値（results欠如）はエラーになる", async
   const original = mock.searchRaw;
   mock.searchRaw = async () => ({ notResults: [] });
   try {
+    // 【PJ2 AOR Phase47 STEP4】providerId: "mock"を明示（理由は上記2テストと同じ）。
     await assert.rejects(
-      () => search("bad shape", { sourceType: "news", sourceRole: "evidence", timeoutMs: 2000, maxRetries: 0 }),
+      () =>
+        search("bad shape", {
+          sourceType: "news",
+          sourceRole: "evidence",
+          timeoutMs: 2000,
+          maxRetries: 0,
+          providerId: "mock",
+        }),
       /results配列がありません/
     );
   } finally {

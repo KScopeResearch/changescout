@@ -12,9 +12,15 @@
  * 未設定の場合、search-client.jsが自動的にmock providerへフォールバックする
  * （llm-client.jsとは異なり、検索はエラー停止ではなくフォールバックする設計。Task12 Task2）。
  *
- * エンドポイント・リクエスト形式は2026年8月時点でTavily公式ドキュメントに記載の
- * 一般的な形（POST + JSONボディ + api_keyフィールド）を踏襲しているが、実際に呼び出して
- * いないため、使用前に公式ドキュメントで最新の形式を確認すること。
+ * エンドポイント・リクエスト形式は2026年8月時点でTavily公式ドキュメント
+ * （docs.tavily.com）で確認した形（POST + `Authorization: Bearer <API_KEY>`ヘッダー）を
+ * 踏襲している。実際に呼び出してはいないため、使用前に公式ドキュメントで最新の形式を
+ * 再確認すること。
+ *
+ * 【認証方式についての修正履歴】公式ドキュメント上、認証はリクエストボディの`api_key`
+ * フィールドではなく`Authorization: Bearer <API_KEY>`ヘッダーで行う方式に統一されている
+ * ことを確認したため、ヘッダー方式に修正した（ボディの`api_key`フィールドは公式の
+ * request bodyスキーマに含まれていないため削除）。
  */
 
 const ENDPOINT = "https://api.tavily.com/search";
@@ -38,9 +44,11 @@ async function searchRaw(query, options = {}) {
 
   const response = await fetch(ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      api_key: apiKey,
       query,
       max_results: MAX_RESULTS,
       include_answer: false,

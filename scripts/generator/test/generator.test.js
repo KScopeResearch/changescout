@@ -24,6 +24,64 @@ const { REPORT_FIXTURES_DIR } = require("../shared/paths");
 const { NETWORK_TEST_NAME } = require("./network-test-names");
 
 test(NETWORK_TEST_NAME, { timeout: 30000 }, async () => {
+  // 【PJ2 AOR Phase47 STEP4】generateCompanyReport()は内部でfetch-government.js等（company-inference.js
+  // 経由ではなく直接）を通じてsearch/search-client.jsのsearch()を呼ぶが、これらの呼び出しは
+  // providerIdを指定していないため、実行環境のSEARCH_PROVIDER環境変数に従う（search-client.jsの
+  // 既存設計、未設定時は"mock"）。本テストの目的はhttps://example.comへの実HTTP取得を含む
+  // エンドツーエンド生成フローの検証であり、Tavily検索結果の内容自体を検証する意図はない
+  // （Tavily providerの実装自体はtavily-provider.test.jsが別途、実ネットワーク接続なしで検証済み）。
+  // ローカル開発環境でSEARCH_PROVIDER=tavily・TAVILY_API_KEYが実際に設定されている場合（実レポート
+  // 生成用）に本テストが意図せず実Tavily APIを複数回呼び出してしまう（費用・レート制限・
+  // このテスト自体の30秒タイムアウトを圧迫する要因になりうる）ことを防ぐため、本テストの
+  // 実行中のみSEARCH_PROVIDER=mockへ固定する。
+  //
+  // 【重要: t.after()で元に戻さない理由（実際に検証・確認した事象）】node:testはファイル単位で
+  // 別プロセスに分離される（実験で確認済み: 同一node --test実行でも各test fileは異なるpidを
+  // 持ち、process.envは共有されない）ため、他ファイルへの影響は無い。一方、このテスト自身が
+  // {timeout: 30000}に達した場合、node:testはタイムアウト時点でt.after()フックを実行するが、
+  // generateCompanyReport()のPromiseチェイン自体はキャンセルされず、そのままバックグラウンドで
+  // 実行が続く。もしt.after()でSEARCH_PROVIDERを元の値（開発者のシェルで実際に設定されている
+  // 場合は"tavily"）へ戻していると、タイムアウト後もなお実行中のgenerateCompanyReport()内部の
+  // search()呼び出しが、その「元に戻った」値を読み取ってしまい、結果的に実Tavily APIを呼び出す
+  // という事象が実際に発生することを確認した（重い並行実行下でこのテスト自体がタイムアウトした
+  // 際に、search-usage.jsonlに実際のtavily呼び出しが記録された）。このファイルには他に
+  // env非依存のテストしか無いため、SEARCH_PROVIDER=mockを本ファイルのプロセス終了まで
+  // 元に戻さないままにしても副作用は無い。
+  //
+  // 【多層防御: TAVILY_API_KEYも削除する】上記のSEARCH_PROVIDER=mock固定に加え、
+  // TAVILY_API_KEY自体も削除する。search-client.jsのsearch()は
+  // 「provider.requiresApiKey && !provider.isConfigured()」の場合に必ずmockへフォールバック
+  // する設計であり（tavily-provider.jsのisConfigured()は`!!process.env.TAVILY_API_KEY`のみを
+  // 見る）、これはSEARCH_PROVIDERの値に関わらず働く独立した防御層である。これにより、たとえ
+  // 何らかの理由でSEARCH_PROVIDERが"tavily"を指す状態でsearch()が呼ばれたとしても、
+  // isConfigured()がfalseとなり必ずmockへフォールバックするため、実Tavily API呼び出しは
+  // 構造的に不可能になる。
+  process.env.SEARCH_PROVIDER = "mock";
+  delete process.env.TAVILY_API_KEY;
+
+  // 【PJ2 AOR Phase47 STEP5: LLM（DeepSeek）側にも全く同じ問題が存在することを確認・修正】
+  // buildReport()（generate-company-report.js）は`generateAnalysis(context)`をproviderId省略で
+  // 呼んでおり、llm-client.jsのresolveProviderId()経由でLLM_PROVIDER環境変数に従う
+  // （search-client.jsと同じ設計）。ローカル開発環境でLLM_PROVIDER=deepseek・
+  // DEEPSEEK_API_KEYが実際に設定されている場合、本テストは実DeepSeek APIを呼び出す。
+  // 【実際に確認した事象】TAVILY_API_KEYを外部から明示的にunsetした状態で本テストを実行した
+  // ところ、Tavily呼び出しは発生しなかった（search-usage.jsonl増加なし）一方、
+  // llm-usage.jsonl相当のログに"deepseek 呼び出し失敗（1/3回目): タイムアウト（30000ms） —
+  // 500ms後に再試行"という実DeepSeek呼び出しのリトライログが、本テスト自身の
+  // {timeout: 30000}到達後（テストがFAILとして記録された後）のタイムスタンプで記録された。
+  // これは上記のTAVILY_API_KEY欄で理論として説明した「タイムアウト後もgenerateCompanyReport()の
+  // Promiseチェインがバックグラウンドで実行を継続し、その時点のprocess.env値を読む」という
+  // 機序を、DeepSeek側で実証的に確認できたことを意味する（Tavily側でも同一の機序が働いている
+  // 可能性が高いことの裏付けにもなる）。llm-client.jsの設計はsearch-client.jsと異なり
+  // API未設定時に自動フォールバックせず明確なエラーで停止する（llm-client.jsヘッダコメント
+  // 参照）が、それでも「実際にHTTPリクエストを送ってから30秒待ってタイムアウトする」という
+  // 実接続自体は発生してしまうため、TAVILY_API_KEYと同様にDEEPSEEK_API_KEYも削除しておく
+  // （こちらは「未設定なら自動フォールバック」ではなく「未設定なら即エラー」という違いはあるが、
+  // どちらにしても実HTTP接続自体を発生させない点で有効な防御になる）。この対処もSEARCH_PROVIDER
+  // と同じ理由でt.after()による復元は行わない（本ファイルの他のテストはLLM_PROVIDERに依存しない）。
+  process.env.LLM_PROVIDER = "mock";
+  delete process.env.DEEPSEEK_API_KEY;
+
   const { report, evaluation, validation, slug, paths } = await generateCompanyReport("https://example.com");
 
   assert.equal(slug, "example.com");
