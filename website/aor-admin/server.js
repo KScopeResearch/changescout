@@ -42,6 +42,7 @@ const { unpublishReport } = require("../../scripts/generator/unpublish-report");
 const { validateSlug, isWithinDir } = require("../../scripts/generator/shared/path-safety"); // Task25
 const { listCompanySlugs } = require("../../scripts/generator/company-index"); // PJ2 AOR: company_slug一覧backend接続PoC
 const reportStore = require("../../scripts/generator/report-store"); // PJ2 AOR: report backend接続（Phase B-5）
+const leadStore = require("../../scripts/generator/leads/lead-store"); // PJ2 AOR: Candidate/Approved分離仕様のAdmin UI承認機能
 
 const logger = createLogger("aor-admin-server");
 const { JOB_TYPES } = require("../../scripts/generator/jobs/job-engine");
@@ -162,6 +163,106 @@ async function listCompanySummaries() {
   // .map(toSummary)の結果もPromiseの配列になり、2段階目のPromise.all()でまとめてawaitする。
   const companies = await Promise.all(slugs.map((slug) => loadCompany(slug)));
   return Promise.all(companies.filter(Boolean).map(toSummary));
+}
+
+// ---------------------------------------------------------------------------
+// Leads API（PJ2 AOR: Candidate/Approved分離仕様のAdmin UI承認機能）
+//
+// 「PJ2 AOR — ベータ版システム完成（管理画面からの承認機能実装）指示書」に基づく追加。
+// 収集されただけのLead（Candidate、delivery_approval_status:"pending"）を、認証済み
+// 管理者がAdmin UIから目視確認のうえ"approved"/"rejected"へ変更できるようにする。
+//
+// 【なぜwebsite/aor-lead-api/ではなくこちら（aor-admin）に置くか】aor-lead-api/server.jsは
+// 匿名・認証なしの公開エンドポイント（受信者向けフォーム・Phase4-A/B用）であり、
+// 「誰でも叩けてよい」設計を前提にしている。一方、送信承認は「収集された連絡先へ実際に
+// メールを送ってよいか」を判断する権限操作であり、認証・CSRF保護・監査ログが既に
+// 整っているaor-admin側に置くのが自然（review承認（approve/reject）が既にこの設計を
+// 踏襲していることと同じ理由）。
+//
+// 【emailを一覧・詳細に含める判断について】aor-lead-api/server.jsは構造的にemailを
+// ログへ一切出力しない設計（匿名公開エンドポイントのため、生ログ非出力を最重要事項として
+// いる）だが、ここは話が別: Approved判定そのものが「このemailは適法な送信対象か
+// （公式サイト公開アドレスか、営業お断りの記載が無いか等）」を人間が目視確認するための
+// 画面であるため、emailを表示しないと機能が成立しない。認証済み管理者のみがアクセス
+// できるページであることが前提。
+// ---------------------------------------------------------------------------
+
+/**
+ * Lead一覧・詳細のAPIレスポンスから、report_tokenを取り除いたものを返す。
+ * report_tokenは受信者向け匿名APIの認証に使う秘密情報であり、管理画面の操作に
+ * 必要ないため、ブラウザへ返すレスポンスには含めない（多層防御。lead_idは
+ * Admin UIの操作対象を特定するために必要なため含める）。
+ * @param {Object} lead
+ * @returns {Object}
+ */
+function toLeadSummary(lead) {
+  const { report_token, ...rest } = lead;
+  return rest;
+}
+
+/**
+ * 全Leadを一覧用に整形して返す（新しく収集されたものが先頭に来るよう、collected_atの
+ * 降順で並べる）。
+ * @returns {Promise<Object[]>}
+ */
+async function listLeadSummaries() {
+  const leads = await leadStore.listLeads();
+  return leads
+    .slice()
+    .sort((a, b) => (b.collected_at || "").localeCompare(a.collected_at || ""))
+    .map(toLeadSummary);
+}
+
+// 管理画面から受け付ける遷移先（この2値のみ）。"pending"は指示書のスコープ外
+// （承認/却下ボタンのみが要件のため、pendingへ戻す操作は今回追加しない）。
+const LEAD_DELIVERY_APPROVAL_ACTIONS = {
+  approved: "delivery_approved",
+  rejected: "delivery_rejected",
+};
+
+/**
+ * POST /api/leads/:lead_id/delivery-approval 本体。
+ * body: {status: "approved"|"rejected", comment?: string}
+ * @param {http.ServerResponse} res
+ * @param {string} leadId
+ * @param {Object} body
+ * @param {{username:string}} session
+ * @param {string} ip
+ */
+async function handleLeadDeliveryApproval(res, leadId, body, session, ip) {
+  const status = body && body.status;
+  if (!Object.prototype.hasOwnProperty.call(LEAD_DELIVERY_APPROVAL_ACTIONS, status)) {
+    sendJson(res, 400, { error: `statusは"approved"または"rejected"である必要があります（実際: ${JSON.stringify(status)}）` });
+    return;
+  }
+
+  let lead;
+  try {
+    lead = await leadStore.readLead(leadId);
+  } catch (err) {
+    lead = null; // 不正な形式のlead_id（validateSlug()失敗）も実在しないIDと区別せず404にする
+  }
+  if (!lead) {
+    auth.logAudit({ user: session.username, ip, action: "delivery_approval", target: leadId, success: false, detail: "lead not found" });
+    sendJson(res, 404, { error: `lead not found: ${leadId}` });
+    return;
+  }
+
+  // べき等: 既に同じstatusであれば、重複した書き込み・history追記を行わずそのまま返す
+  // （website/aor-lead-api/server.jsのPhase4-A/B APIと同じ、二重クリック対策の考え方）。
+  if (lead.delivery_approval_status === status) {
+    sendJson(res, 200, { ok: true, lead: toLeadSummary(lead) });
+    return;
+  }
+
+  const updated = await leadStore.updateLead(leadId, { delivery_approval_status: status });
+  const withHistory = await leadStore.appendHistory(leadId, LEAD_DELIVERY_APPROVAL_ACTIONS[status], {
+    reviewer: session.username,
+    comment: (body && body.comment) || null,
+  });
+
+  auth.logAudit({ user: session.username, ip, action: "delivery_approval", target: leadId, success: true, detail: status });
+  sendJson(res, 200, { ok: true, lead: toLeadSummary(withHistory || updated) });
 }
 
 // ---------------------------------------------------------------------------
@@ -520,6 +621,27 @@ async function handleApi(req, res, url, session, ip) {
     });
     sendJson(res, 200, { ok: true, slug, published: false, already_unpublished: !!result.alreadyUnpublished });
     broadcastReportsUpdate(); // 一覧のpublished表示をSSEで即座に反映する
+    return true;
+  }
+
+  // --- Leads API（PJ2 AOR: Candidate/Approved分離仕様のAdmin UI承認機能） ---
+  // ロジックはすべてscripts/generator/leads/lead-store.jsに委譲する（重複実装しない）。
+
+  if (pathname === "/api/leads" && req.method === "GET") {
+    sendJson(res, 200, await listLeadSummaries());
+    return true;
+  }
+
+  if ((m = pathname.match(/^\/api\/leads\/([^/]+)\/delivery-approval$/)) && req.method === "POST") {
+    const leadId = m[1];
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch (err) {
+      sendJson(res, 400, { error: err.message });
+      return true;
+    }
+    await handleLeadDeliveryApproval(res, leadId, body, session, ip);
     return true;
   }
 

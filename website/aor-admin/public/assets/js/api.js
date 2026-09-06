@@ -80,5 +80,10 @@ const AdminApi = (() => {
       };
       return source;
     },
+
+    // --- Leads（PJ2 AOR: Candidate/Approved分離仕様のAdmin UI承認機能） ---
+    listLeads: () => getJson("/api/leads"),
+    setLeadDeliveryApproval: (leadId, status, comment) =>
+      postJson(`/api/leads/${encodeURIComponent(leadId)}/delivery-approval`, { status, comment }),
   };
 })();

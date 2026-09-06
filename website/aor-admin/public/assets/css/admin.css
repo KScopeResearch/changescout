@@ -64,6 +64,10 @@ main {
 .status-approved { color: var(--ok); border-color: var(--ok); }
 .status-needs_revision { color: var(--warn); border-color: var(--warn); }
 .status-rejected { color: var(--bad); border-color: var(--bad); }
+/* PJ2 AOR: Candidate/Approved分離仕様。Leadのdelivery_approval_status:"pending"用
+   （review.status:"pending_review"と同じ「未着手」の見た目に合わせる）。"approved"/"rejected"は
+   上記のreview用クラスをそのまま再利用する（値の意味は異なるが、見た目の色分けは同じでよい）。 */
+.status-pending { color: var(--text-dim); }
 
 .status-PASS { color: var(--ok); border-color: var(--ok); }
 .status-REVIEW { color: var(--warn); border-color: var(--warn); }
