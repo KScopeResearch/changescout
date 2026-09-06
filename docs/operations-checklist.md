@@ -121,6 +121,32 @@ AORパイプライン（`scripts/generator/`）とReview Dashboard（`website/ao
 - [ ] `node scripts/generator/backup.js`を定期的に（例: 日次）実行し、`backup/`配下に
       新しいタイムスタンプディレクトリが増えていることを確認する
 
+## 受信者からの配信停止(Unsubscribe)依頼への対応（Phase 42で追加）
+
+**現時点では、受信者からの返信メールを自動処理する仕組み（SES Receipt Rule等）は
+導入していない。** 返信を受けたら自動的に配信停止になるわけではなく、**運営者が
+返信内容を確認した上で、以下のCLIを手動実行して初めて配信停止状態へ変更される**。
+
+1. 受信者から「今後のメール配信を停止してほしい」という趣旨の返信を受け取る
+2. 返信元のメールアドレスを確認する
+3. 対象のLeadを確認する（`node scripts/generator/leads/unsubscribe-lead.js <email>`を
+   実行すると、変更前に対象Leadのlead_id・company_slug・status・delivery_statusが
+   表示されるので、返信元と一致するか目視確認する）
+4. `node scripts/generator/leads/unsubscribe-lead.js <対象email>` を実行する
+5. コンソール出力で成功結果（`delivery_statusを"unsubscribed"へ変更しました`）を確認する
+   - 該当Leadが見つからない場合、または同一emailで複数Leadが存在し一意に特定できない
+     場合は、何も変更せずエラー終了する（誤って別のLeadを変更することはない）。
+     複数Lead該当時は、表示された候補一覧を確認した上で個別に判断すること
+   - 既に配信停止済みの場合は「既に...です（変更していません）」と表示され、
+     安全に再実行できる（冪等）
+6. 必要であれば、`delivery_status`が`"unsubscribed"`になったことを再確認する
+   （`node scripts/generator/leads/unsubscribe-lead.js <同じemail>`を再実行すると、
+   既に停止済みである旨が表示される）
+7. 以後、そのLeadは初回レポート送信（`send-initial-report.js`）・週次レポート送信
+   （`send-weekly-report.js`）のいずれからも自動的に除外される（既存の
+   `isDeliveryBlocked()`判定が`delivery_status:"unsubscribed"`のLeadを送信対象外とする
+   ため、この手順以外に追加の対応は不要）
+
 ## 障害発生時の一般的な対応フロー（Task23で追加）
 
 データの復元（バックアップからのリストア）が必要になる前に、まず以下の順で切り分ける。

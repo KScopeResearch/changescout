@@ -1,9 +1,9 @@
 name: Deploy AOR Web
 
-# PJ2 AOP Step3次工程: website/aor/ への変更をpushしたら、公開用S3
+# PJ2 AOR Step3次工程: website/aor/ への変更をpushしたら、公開用S3
 # （changescout-pj2-aor-web-179127602551）+ CloudFront（E1TGUCT9CYALRK）へ自動反映する。
 #
-# 【PJ2 AOP Step③-C時点の状態】
+# 【PJ2 AOR Step③-C時点の状態】
 # GitHub Actions専用のOIDC Provider（token.actions.githubusercontent.com）と
 # 専用IAM Role（PJ2AorWebDeployRole、mainブランチからのOIDCのみ信頼、
 # 公開用バケットへのs3:PutObjectとこのCloudFrontへのcloudfront:CreateInvalidation

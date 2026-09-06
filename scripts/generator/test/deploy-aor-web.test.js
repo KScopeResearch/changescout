@@ -1,7 +1,7 @@
 /**
  * deploy-aor-web.test.js — scripts/generator/deploy-aor-web.js の自動テスト。
  *
- * 【変更点（PJ2 AOP Step③-A）】deploy-aor-web.jsはdry-runがデフォルトになった
+ * 【変更点（PJ2 AOR Step③-A）】deploy-aor-web.jsはdry-runがデフォルトになった
  * （IAM/OIDCが未整備のため、実書き込みはconfig.execute===trueを明示した場合のみ）。
  * そのため、旧来の「実書き込み相当」のテストは全てconfig.execute:trueを明示する形に
  * 更新した（既存の検証内容自体は変えていない。DIで疑似S3Client/CloudFrontClientに
@@ -166,7 +166,7 @@ test("deployAorWeb: セーフティチェックに失敗した場合はdry-run/e
 test("deployAorWeb: execute:true時、listDeployableFiles()後にファイルが消失（ENOENT）してもデプロイ全体を失敗させず、そのファイルだけskippedに計上する", async (t) => {
   // 実運用でも起こりうる「列挙時点と読み込み時点のわずかなタイムラグの間に、別プロセスが
   // website/aor/を書き換えた」状況を、fs.readFileSyncを一時的にモック化して再現する
-  // （PJ2 AOP Step③-Aレビューで発覚: 他のテストファイルがwebsite/aor/data/へ実際に
+  // （PJ2 AOR Step③-Aレビューで発覚: 他のテストファイルがwebsite/aor/data/へ実際に
   // 一時ファイルを書き込み・削除するため、node --testの並行実行時にこのレースが
   // 実際に発生し、デプロイ全体がENOENTで失敗することを確認した）。
   // checkPublicDataSafety()が事前に全ファイルを読むため、対象ファイルへの1回目の

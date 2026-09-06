@@ -8,7 +8,7 @@
  * 別工程になっている。本ファイルはその反映を行う実体であり、`publish-report.js`
  * 自体は変更しない（責務を分離したまま、反映だけを担当する新しいCLIとして追加する）。
  *
- * 【PJ2 AOP Step③-A時点の方針: dry-runがデフォルト】
+ * 【PJ2 AOR Step③-A時点の方針: dry-runがデフォルト】
  * GitHub Actions用のOIDC Provider / IAM Roleがまだ存在せず、既存のPersona A
  * （pj2-aop-dev-sso）にもこの公開用バケット・CloudFrontへの権限が一切ないことを
  * 確認済み（IAM変更は別途の承認が必要、今回は行わない）。そのため本CLIは

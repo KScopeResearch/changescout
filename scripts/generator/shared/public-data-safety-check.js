@@ -2,7 +2,7 @@
  * public-data-safety-check.js — website/aor/ を公開デプロイする前に、Leadの個人情報・
  * AWS認証情報・秘密情報が混入していないかを機械的に検査する。
  *
- * 【背景】PJ2 AOPの公開用S3+CloudFrontデプロイ自動化にあたり、「website/aorだから安全」
+ * 【背景】PJ2 AORの公開用S3+CloudFrontデプロイ自動化にあたり、「website/aorだから安全」
  * と決め打ちせず、実際にアップロード対象となるファイルの中身を毎回検査する
  * （shared/path-safety.jsが「パスは信用せず毎回検証する」という方針を貫いているのと
  * 同じ考え方）。この検査でNGが出た場合、呼び出し元（deploy-aor-web.js）はデプロイを

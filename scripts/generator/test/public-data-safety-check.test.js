@@ -191,7 +191,7 @@ test("checkJsonStructure: 不正なJSON文字列に対しては例外を投げ�
 
 test("checkPublicDataSafety: 列挙後に内容を読む前にファイルが消失（ENOENT）していても検査全体を失敗させず、skippedFilesに計上する", (t) => {
   // deploy-aor-web.jsの実行と、他のテストが同じディレクトリを同時に読み書きする際に
-  // 実際に発生することを確認したレース（PJ2 AOP Step③-Aレビューで発覚）。
+  // 実際に発生することを確認したレース（PJ2 AOR Step③-Aレビューで発覚）。
   // fs.readFileSyncを一時的にモック化して再現する。
   const dir = makeTempDir();
   t.after(() => cleanupTempDir(dir));

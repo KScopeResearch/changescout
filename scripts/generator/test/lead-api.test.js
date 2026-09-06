@@ -1024,3 +1024,192 @@ test('Phase4-A/B: status:"rejected"のLeadに対しても、statusを勝手にva
   assert.equal(updated.status, "rejected", "statusはrejectedのまま変わらないはず");
   assert.equal(updated.weekly_report_consent, true, "Phase4-B自体は成功するはず");
 });
+
+// ---------------------------------------------------------------------------
+// POST /api/leads/unsubscribe（PJ2 AOR Phase46 STEP3、今回追加）:
+//
+// unsubscribeLeadByToken()（scripts/generator/leads/unsubscribe-lead.js）への薄い委譲であり、
+// 状態変更ロジック自体はunsubscribe-lead.test.jsで検証済みのためここでは重複させない。
+// 本テストはHTTPエンドポイントとしての契約（メソッド制限・入力検証・lead_id列挙対策・
+// 冪等性・GETでの非破壊・PII非漏洩・CORS）にのみ焦点を当てる。
+// 既存テストとのポート衝突を避けるため4750番台を使用する。
+// ---------------------------------------------------------------------------
+
+test("POST /api/leads/unsubscribe: 正しいlead_id/tokenで200になり、delivery_statusがunsubscribedへ変わる", async (t) => {
+  const port = 4750;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  assert.equal(lead.delivery_status, "active");
+
+  const res = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(JSON.parse(res.body), { ok: true });
+
+  const updated = await readLead(lead.lead_id);
+  assert.equal(updated.delivery_status, "unsubscribed");
+  assert.equal(updated.history.filter((h) => h.event === "unsubscribed").length, 1);
+});
+
+test("POST /api/leads/unsubscribe: tokenが不正な場合、lead_id不明の場合と同一の400 invalid_requestになり、Leadは変更されない（lead_id列挙対策）", async (t) => {
+  const port = 4751;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const wrongTokenRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: "wrong-token" }),
+  });
+  const unknownLeadRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: "0".repeat(64), token: "irrelevant" }),
+  });
+
+  assert.equal(wrongTokenRes.status, 400);
+  assert.equal(unknownLeadRes.status, 400);
+  assert.deepEqual(JSON.parse(wrongTokenRes.body), JSON.parse(unknownLeadRes.body), "token不一致とlead_id不明を外部から区別できてはならない");
+  assert.deepEqual(JSON.parse(wrongTokenRes.body), { ok: false, error: "invalid_request" });
+
+  const unchanged = await readLead(lead.lead_id);
+  assert.equal(unchanged.delivery_status, "active", "token不一致ではLeadを変更してはならない");
+});
+
+test("GET /api/leads/unsubscribe: 405になり、副作用（delivery_statusの変更）は発生しない", async (t) => {
+  const port = 4752;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const res = await httpRequest({
+    path: `/api/leads/unsubscribe?lead=${lead.lead_id}&token=${lead.report_token}`,
+    method: "GET",
+    port,
+  });
+  assert.equal(res.status, 405, "GETはRFC8058の要件どおり必ず405で拒否し、状態変更を試みてはならない");
+
+  const unchanged = await readLead(lead.lead_id);
+  assert.equal(unchanged.delivery_status, "active", "GETアクセスだけでは配信停止されてはならない（スキャナ・リンクプレビュー対策）");
+});
+
+test("POST /api/leads/unsubscribe: 冪等性 - 既にunsubscribed済みへの再POSTも200 {ok:true}になり、historyは重複記録されない", async (t) => {
+  const port = 4753;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const first = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.equal(first.status, 200);
+
+  const second = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.equal(second.status, 200, "2回目も200 {ok:true}を返すはず（冪等）");
+  assert.deepEqual(JSON.parse(second.body), { ok: true });
+
+  const updated = await readLead(lead.lead_id);
+  assert.equal(updated.delivery_status, "unsubscribed");
+  assert.equal(updated.history.filter((h) => h.event === "unsubscribed").length, 1, "2回目はhistoryへ追記されないはず");
+});
+
+test("POST /api/leads/unsubscribe: レスポンスにlead_id・tokenが一切含まれない（成功・失敗いずれも）", async (t) => {
+  const port = 4754;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const successRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.ok(!successRes.body.includes(lead.lead_id));
+  assert.ok(!successRes.body.includes(lead.report_token));
+
+  const lead2 = await createTestLead();
+  t.after(() => cleanupLead(lead2.lead_id));
+  const failRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead2.lead_id, token: "wrong" }),
+  });
+  assert.ok(!failRes.body.includes(lead2.lead_id));
+  assert.ok(!failRes.body.includes(lead2.report_token));
+});
+
+test("POST /api/leads/unsubscribe: 許可リストに含まれるOriginにはAccess-Control-Allow-Originが返る（既存CORS設計の再確認、変更不要）", async (t) => {
+  const port = 4755;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const res = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    headers: { Origin: "http://localhost:8123" },
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.equal(res.headers["access-control-allow-origin"], "http://localhost:8123");
+});
+
+test("POST /api/leads/unsubscribe: 不正なJSONボディ・lead_id/token欠落は400 invalid_requestになる", async (t) => {
+  const port = 4756;
+  await startTestServer(port, t);
+
+  const invalidJsonRes = await httpRequest({ path: "/api/leads/unsubscribe", method: "POST", port, body: "{not valid json" });
+  assert.equal(invalidJsonRes.status, 400);
+
+  const missingBothRes = await httpRequest({ path: "/api/leads/unsubscribe", method: "POST", port, body: JSON.stringify({}) });
+  assert.equal(missingBothRes.status, 400);
+
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const missingTokenRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id }),
+  });
+  assert.equal(missingTokenRes.status, 400);
+
+  const missingLeadIdRes = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ token: lead.report_token }),
+  });
+  assert.equal(missingLeadIdRes.status, 400);
+
+  const unchanged = await readLead(lead.lead_id);
+  assert.equal(unchanged.delivery_status, "active");
+});
+
+test("PUT /api/leads/unsubscribe: 未対応メソッドは405になり、Allowヘッダーが返る", async (t) => {
+  const port = 4757;
+  await startTestServer(port, t);
+
+  const res = await httpRequest({ path: "/api/leads/unsubscribe", method: "PUT", port, body: JSON.stringify({}) });
+  assert.equal(res.status, 405);
+  assert.equal(res.headers["allow"], "POST, OPTIONS");
+});
