@@ -43,7 +43,28 @@ test("mock provider: requiresApiKey=false、isConfigured()は常にtrue", () => 
   assert.equal(mock.isConfigured(), true);
 });
 
-test("generateAnalysis: mock providerでschema通りのfree_opportunity/locked_opportunities/paid_analysisを返す", async () => {
+test("generateAnalysis: mock providerでschema通りのfree_opportunity/locked_opportunities/paid_analysisを返す", async (t) => {
+  // 【PJ2 AOR Phase47 STEP4】buildCompanyContext()は内部でfetch-government.js等を通じて
+  // search/search-client.jsのsearch()を呼ぶが、providerIdを指定していないためSEARCH_PROVIDER
+  // 環境変数に従う。このテスト自体はLLM（generateAnalysis）のmock providerの戻り値形状のみを
+  // 検証する意図であり、検索結果の内容には依存しないが、ローカル開発環境でSEARCH_PROVIDER=tavily・
+  // TAVILY_API_KEYが実際に設定されている場合（実レポート生成用）、本テストはこれまで検出されずに
+  // 意図せず実Tavily APIを呼び出していた（アサーション対象がLLM側の戻り値のみのため、検索が
+  // 実Tavilyを使っていてもテスト自体は成功してしまい、これまで発覚していなかった）。
+  // generator.test.js・create-lead-from-email.test.jsと同じ二重の対処（SEARCH_PROVIDER=mock固定 +
+  // TAVILY_API_KEY削除）を適用する。本テストには明示的timeoutが無く、orphaned Promiseによる
+  // 遅延実行のリスクが無いため、t.after()による復元で問題ない。
+  const originalProvider = process.env.SEARCH_PROVIDER;
+  const originalApiKey = process.env.TAVILY_API_KEY;
+  process.env.SEARCH_PROVIDER = "mock";
+  delete process.env.TAVILY_API_KEY;
+  t.after(() => {
+    if (originalProvider === undefined) delete process.env.SEARCH_PROVIDER;
+    else process.env.SEARCH_PROVIDER = originalProvider;
+    if (originalApiKey === undefined) delete process.env.TAVILY_API_KEY;
+    else process.env.TAVILY_API_KEY = originalApiKey;
+  });
+
   const context = await buildCompanyContext("https://example.com");
   const result = await generateAnalysis(context, { providerId: "mock" });
 
