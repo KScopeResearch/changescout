@@ -261,3 +261,200 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .status-pill-mini.status-bad { color: var(--bad); border-color: var(--bad); }
 
 .status-checked { color: var(--text-dim); margin-left: auto; }
+
+/* ===== Dashboard v2（Phase52 STEP4）。既存クラス（.card / .field-row / .field / status 色）を再利用しつつ、
+   Dashboard 専用のメトリクスグリッド・テーブル・アラートのみ追加する。 ===== */
+.dash-refresh-btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 3px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dash-refresh-btn:hover { border-color: var(--accent); }
+.dash-refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
+.dash-overview { margin-bottom: 14px; }
+.dash-updated { color: var(--text-dim); font-size: 12px; }
+
+.dash-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.dash-metric {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.dash-metric-value { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.dash-metric-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 4px;
+}
+.dash-metric.tone-ok .dash-metric-value { color: var(--ok); }
+.dash-metric.tone-warn .dash-metric-value { color: var(--warn); }
+.dash-metric.tone-bad .dash-metric-value { color: var(--bad); }
+.dash-metric.tone-dim .dash-metric-value { color: var(--text-dim); }
+
+.value.tone-ok, .dash-bool.tone-ok { color: var(--ok); }
+.value.tone-warn { color: var(--warn); }
+.value.tone-bad, .dash-bool.tone-bad, .tone-bad { color: var(--bad); }
+.value.tone-dim { color: var(--text-dim); }
+.dash-bool { font-size: 13px; }
+
+.dash-table-wrap { overflow-x: auto; }
+.dash-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+.dash-table th, .dash-table td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.dash-table th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+
+.dash-alert {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--warn);
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  font-size: 13px;
+}
+.dash-alert.tone-warn { border-color: var(--warn); }
+.dash-alert ul { margin: 6px 0 0; }
+
+.dash-section-error {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--bad);
+  background: color-mix(in srgb, var(--bad) 10%, transparent);
+  color: var(--bad);
+  font-size: 13px;
+}
+.dash-section-error .dash-error-msg { display: block; color: var(--text-dim); font-size: 11px; margin-top: 4px; }
+.dash-inline-err, .dash-inline-err code { color: var(--bad); font-size: 11px; }
+.dash-note { color: var(--text-dim); font-size: 11px; margin-top: 8px; }
+
+@media (max-width: 768px) {
+  main { padding: 16px; }
+  .dash-metrics { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .dash-metric-value { font-size: 19px; }
+  header.app-header { flex-wrap: wrap; gap: 6px; }
+}
+
+/* ===== Leads v2（Phase52 STEP5）。既存クラス（.card / .field-row / .status-pill / .history-entry /
+   .dash-table-wrap / .empty-state / button.secondary）を再利用し、検索欄・フィルタ行・詳細カード
+   まわりの最小限のみ追加する。 ===== */
+.leads-controls { margin-bottom: 14px; }
+.leads-search-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.leads-search-row input[type="text"] { flex: 1 1 260px; width: auto; }
+.leads-count { color: var(--text-dim); font-size: 12px; }
+.leads-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.leads-filter-label {
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  min-width: 40px;
+}
+.leads-filter-row button { padding: 4px 12px; font-size: 12px; }
+
+.lead-detail-row td { background: var(--bg); padding: 0; }
+.lead-detail { margin: 12px; }
+.lead-detail .field { min-width: 200px; }
+.lead-detail .value .meta { color: var(--text-dim); font-size: 12px; }
+.lead-history { margin-top: 8px; max-height: 320px; overflow-y: auto; }
+
+/* ===== Deliveries v2（Phase52 STEP6）。レイアウトは .leads-controls / .leads-search-row /
+   .leads-filter-row（STEP5）を再利用し、Provider バッジと詳細まわりのみ追加する。 ===== */
+.delivery-provider {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+}
+.provider-ses { color: var(--accent); border-color: var(--accent); }        /* SES = blue */
+.provider-blastengine { color: var(--warn); border-color: var(--warn); }    /* blastengine = orange */
+.provider-user { color: var(--ok); border-color: var(--ok); }               /* Unsubscribe = 受信者操作 */
+.provider-manual { color: var(--text-dim); }
+.provider-unknown { color: var(--text-dim); }
+
+.delivery-detail-row td { background: var(--bg); padding: 0; }
+.delivery-detail { margin: 12px; }
+.delivery-detail .field { min-width: 200px; }
+.delivery-metadata { margin-top: 6px; }
+.delivery-metadata .dash-table td:first-child { color: var(--text-dim); white-space: nowrap; }
+.delivery-timeline { margin-top: 8px; max-height: 320px; overflow-y: auto; }
+
+/* ===== Suppression v2（Phase52 STEP7）。Provider バッジ・.leads-controls・card / table /
+   status-pill を再利用し、詳細まわりのみ追加。 ===== */
+.suppression-detail-row td { background: var(--bg); padding: 0; }
+.suppression-detail { margin: 12px; }
+.suppression-detail .field { min-width: 200px; }
+.suppression-metadata { margin-top: 6px; }
+.suppression-metadata .dash-table td:first-child { color: var(--text-dim); white-space: nowrap; }
+.suppression-timeline { margin-top: 8px; max-height: 320px; overflow-y: auto; }
+
+/* ===== Reports v2（Phase52 STEP8）。card / table / status-pill / dash-metrics /
+   .leads-controls を再利用し、詳細まわりのみ追加。 ===== */
+.report-detail-row td { background: var(--bg); padding: 0; }
+.report-detail { margin: 12px; }
+.report-detail .field { min-width: 200px; }
+.report-detail .value .meta { color: var(--text-dim); font-size: 12px; }
+.report-eval-list { margin: 6px 0; }
+.report-eval-list .label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; }
+.report-history { margin-top: 8px; max-height: 240px; overflow-y: auto; }
+.dash-note.tone-warn { color: var(--warn); }
+
+/* ===== Operations v2（Phase52 STEP10）。確認ダイアログ（modal）のみ新規。
+   一覧・ボタン・note は既存クラスを再利用。 ===== */
+.ops-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.ops-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  max-width: 520px;
+  width: 100%;
+}
+.ops-modal h3 { margin: 0 0 12px; font-size: 15px; }
+.ops-modal-effect {
+  color: var(--warn);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--warn) 12%, transparent);
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin: 12px 0 16px;
+}
+.ops-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }

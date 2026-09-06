@@ -3,24 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Review Dashboard | AOR Admin</title>
+  <title>System | AOR Admin</title>
   <link rel="stylesheet" href="/assets/css/admin.css" />
 </head>
 <body>
   <header class="app-header">
-    <h1>Review Dashboard</h1>
+    <h1>AOR System</h1>
     <div class="sub">
-      <span id="live-indicator" class="live-dot off"></span><span id="live-label">接続中…</span>
-      ・<span id="user-label">-</span> ・ <a href="/dashboard.html">Dashboard</a> ・ <a href="/leads.html">Leads</a> ・ <a href="/deliveries.html">Deliveries</a> ・ <a href="/reports.html">Reports</a> ・ <a href="/suppressions.html">Suppression</a> ・ <a href="/jobs.html">Jobs</a> ・ <a href="/system.html">System</a> ・ <a href="/operations.html">Operations</a> ・ <a href="/logout">ログアウト</a>
+      <span id="user-label">-</span>
+      ・ <a href="/dashboard.html">Dashboard</a>
+      ・ <a href="/index.html">Reviews</a>
+      ・ <a href="/leads.html">Leads</a>
+      ・ <a href="/deliveries.html">Deliveries</a>
+      ・ <a href="/reports.html">Reports</a>
+      ・ <a href="/suppressions.html">Suppression</a>
+      ・ <a href="/jobs.html">Jobs</a>
+      ・ <a href="/system.html">System</a>
+      ・ <a href="/operations.html">Operations</a>
+      ・ <a href="/logout">ログアウト</a>
     </div>
   </header>
   <div class="system-status-bar">
     <span id="status-server" class="status-pill-mini">Server: -</span>
     <span id="status-jobs" class="status-pill-mini">Job Runner: -</span>
+    <button id="system-refresh" class="dash-refresh-btn" type="button">Refresh</button>
     <span id="status-checked" class="status-checked">最終確認: -</span>
   </div>
   <main>
-    <div id="list-container">
+    <div id="system-container" aria-busy="true">
       <div class="empty-state">読み込み中…</div>
     </div>
   </main>
@@ -28,6 +38,6 @@
 
   <script src="/assets/js/api.js"></script>
   <script src="/assets/js/status.js"></script>
-  <script src="/assets/js/list.js"></script>
+  <script src="/assets/js/system.js"></script>
 </body>
 </html>

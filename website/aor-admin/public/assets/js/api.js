@@ -34,13 +34,35 @@ const AdminApi = (() => {
       body: JSON.stringify(body || {}),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `${path} が失敗しました（HTTP ${res.status}）`);
+    if (!res.ok) {
+      // Phase52 STEP10: 呼び出し側が 400/401/403/404/409/429/500 を区別できるよう
+      // HTTP status を Error へ添える（既存 catch は err.message しか見ないため後方互換）。
+      const err = new Error(data.error || `${path} が失敗しました（HTTP ${res.status}）`);
+      err.status = res.status;
+      err.data = data;
+      throw err;
+    }
     return data;
   }
 
   return {
     getSession: ensureSession,
     listReports: () => getJson("/api/reports"),
+
+    // --- Dashboard v2（Phase52 STEP3 API。すべて read-only GET） ---
+    getDashboard: () => getJson("/api/dashboard"),
+    getDashboardHealth: () => getJson("/api/dashboard/health"),
+    getDashboardReports: () => getJson("/api/dashboard/reports"),
+
+    // --- Delivery UI（Phase52 STEP6 API。read-only GET） ---
+    getDeliveries: () => getJson("/api/deliveries"),
+
+    // --- Suppression UI（Phase52 STEP7 API。read-only GET） ---
+    getSuppressions: () => getJson("/api/suppressions"),
+
+    // --- System UI（Phase52 STEP9。既存 read-only GET のみ。新 endpoint なし） ---
+    getHealth: () => getJson("/api/health"),
+
     getReport: (id) => getJson(`/api/report/${encodeURIComponent(id)}`),
     getStatus: (id) => getJson(`/api/status/${encodeURIComponent(id)}`),
     approve: (id, body) => postJson(`/api/approve/${encodeURIComponent(id)}`, body),

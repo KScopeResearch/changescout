@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Leads | AOR Admin</title>
+  <link rel="stylesheet" href="/assets/css/admin.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1><a href="/index.html" style="color:inherit;text-decoration:none;">Review Dashboard</a> ／ Leads</h1>
+    <div class="sub">
+      <span id="user-label">-</span> ・ <a href="/dashboard.html">Dashboard</a> ・ <a href="/deliveries.html">Deliveries</a> ・ <a href="/reports.html">Reports</a> ・ <a href="/suppressions.html">Suppression</a> ・ <a href="/jobs.html">Jobs</a> ・ <a href="/system.html">System</a> ・ <a href="/operations.html">Operations</a> ・ <a href="/logout">ログアウト</a> ・ <a href="/index.html">← 一覧に戻る</a>
+    </div>
+  </header>
+  <div class="system-status-bar">
+    <span id="status-server" class="status-pill-mini">Server: -</span>
+    <span id="status-jobs" class="status-pill-mini">Job Runner: -</span>
+    <span id="status-checked" class="status-checked">最終確認: -</span>
+  </div>
+  <main>
+    <div class="card" style="margin-bottom:18px;">
+      <h2>Approved判定について</h2>
+      <p style="color:var(--text-dim);margin:0;">
+        収集されただけのLead（Candidate）は<code>delivery_approval_status: pending</code>のまま
+        初回AOR送信の対象になりません。以下の基準を満たすことを目視確認したうえで「Approve」
+        してください（詳細は<code>docs/strategy_v2/03_lead_generation.md</code>「Approved判定」参照）。
+        (1) ホームページ等で公表している法人・団体・営業を営む個人のメールアドレスであること
+        (2) 掲載元ページに「営業メールお断り」等の受信拒否の明示的な記載が無いこと
+        (3) 日本国内法人・日本語対応可能な相手であること。
+      </p>
+    </div>
+    <div id="leads-container">
+      <div class="empty-state">読み込み中…</div>
+    </div>
+  </main>
+  <div id="toast" class="toast"></div>
+
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/status.js"></script>
+  <script src="/assets/js/leads.js"></script>
+</body>
+</html>

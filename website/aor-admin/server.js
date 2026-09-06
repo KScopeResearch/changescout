@@ -43,6 +43,10 @@ const { validateSlug, isWithinDir } = require("../../scripts/generator/shared/pa
 const { listCompanySlugs } = require("../../scripts/generator/company-index"); // PJ2 AOR: company_slug一覧backend接続PoC
 const reportStore = require("../../scripts/generator/report-store"); // PJ2 AOR: report backend接続（Phase B-5）
 const leadStore = require("../../scripts/generator/leads/lead-store"); // PJ2 AOR: Candidate/Approved分離仕様のAdmin UI承認機能
+const dashboardAggregates = require("../../scripts/generator/shared/dashboard-aggregates"); // Phase52 STEP3: Dashboard 集計（read-only）
+const awsStatus = require("../../scripts/generator/shared/aws-status"); // Phase52 STEP3: AWS/Provider 状態（read-only）
+const deliveryLog = require("../../scripts/generator/shared/delivery-log"); // Phase52 STEP6: 配信イベント抽出（read-only）
+const suppressionLog = require("../../scripts/generator/shared/suppression-log"); // Phase52 STEP7: 送信停止対象抽出（read-only）
 
 const logger = createLogger("aor-admin-server");
 const { JOB_TYPES } = require("../../scripts/generator/jobs/job-engine");
@@ -710,7 +714,160 @@ async function handleApi(req, res, url, session, ip) {
     return true;
   }
 
+  // --- Dashboard API（Phase52 STEP3。すべて GET / read-only。Lead / AWS の集計のみ） ---
+  // 各セクションは Promise.allSettled で受け、1つが失敗しても他は返す（Admin 全体を止めない）。
+
+  if (pathname === "/api/dashboard" && req.method === "GET") {
+    await handleDashboardSummary(res);
+    return true;
+  }
+
+  if (pathname === "/api/dashboard/health" && req.method === "GET") {
+    await handleDashboardHealth(res);
+    return true;
+  }
+
+  if (pathname === "/api/dashboard/reports" && req.method === "GET") {
+    await handleDashboardReports(res);
+    return true;
+  }
+
+  // --- Delivery API（Phase52 STEP6。GET / read-only。Lead.history から配信イベントを抽出） ---
+  if (pathname === "/api/deliveries" && req.method === "GET") {
+    await handleDeliveries(res);
+    return true;
+  }
+
+  // --- Suppression API（Phase52 STEP7。GET / read-only。isDeliveryBlocked な Lead を理由別に抽出） ---
+  if (pathname === "/api/suppressions" && req.method === "GET") {
+    await handleSuppressions(res);
+    return true;
+  }
+
   return false;
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard API 本体（Phase52 STEP3）
+// ---------------------------------------------------------------------------
+
+/**
+ * Promise を握り、失敗時は {status:"error", message} へ丸める。
+ * @template T
+ * @param {Promise<T>} p
+ * @returns {Promise<T|{status:"error", message:string}>}
+ */
+async function settleSection(p) {
+  try {
+    return await p;
+  } catch (err) {
+    return { status: "error", message: err && err.message ? String(err.message) : String(err) };
+  }
+}
+
+/** GET /api/dashboard — Lead / Delivery / Report / Suppression の集計。 */
+async function handleDashboardSummary(res) {
+  const [lead_summary, delivery_summary, suppression_summary] = await Promise.all([
+    settleSection(dashboardAggregates.collectLeadSummary()),
+    settleSection(dashboardAggregates.collectDeliverySummary()),
+    settleSection(dashboardAggregates.collectSuppressionSummary()),
+  ]);
+
+  // report_summary は reportsCache（既に構築済み）+ S3 slug 一覧（差集合で deploy_pending）。
+  const report_summary = await settleSection(buildReportSummarySection());
+
+  sendJson(res, 200, {
+    generated_at: new Date().toISOString(),
+    lead_summary,
+    delivery_summary,
+    report_summary,
+    suppression_summary,
+  });
+}
+
+/** GET /api/dashboard/health — SES / Lambda / CloudFront / blastengine の状態。 */
+async function handleDashboardHealth(res) {
+  const [ses, lambda, cloudfront, blastengine] = await Promise.all([
+    settleSection(awsStatus.getSesStatus()),
+    settleSection(awsStatus.getLambdaStatus()),
+    settleSection(awsStatus.getCloudFrontStatus()),
+    settleSection(awsStatus.getBlastengineConfigStatus()),
+  ]);
+  sendJson(res, 200, { generated_at: new Date().toISOString(), ses, lambda, cloudfront, blastengine });
+}
+
+/** GET /api/dashboard/reports — Report 公開状態（backend / web の差集合で deploy_pending）。 */
+async function handleDashboardReports(res) {
+  const summary = await settleSection(buildReportSummarySection());
+  sendJson(res, 200, { generated_at: new Date().toISOString(), ...summary });
+}
+
+/**
+ * GET /api/deliveries — Lead.history 由来の配信イベント一覧 + 集計。
+ * deliveries は「1行=1配信イベント」（delivery-log.js）、summary は Dashboard と共通の
+ * 集計値（dashboard-aggregates.collectDeliverySummary）。UI 側で再集計しないための構成。
+ */
+async function handleDeliveries(res) {
+  const [deliveries, summary] = await Promise.all([
+    settleSection(deliveryLog.collectDeliveries()),
+    settleSection(dashboardAggregates.collectDeliverySummary()),
+  ]);
+  sendJson(res, 200, { generated_at: new Date().toISOString(), summary, deliveries });
+}
+
+/**
+ * GET /api/suppressions — 送信停止対象 Lead の一覧 + 集計。
+ * suppressions は「1行=1Lead」（suppression-log.js）、summary は Dashboard と共通の
+ * 集計値（dashboard-aggregates.collectSuppressionSummary）に total を足したもの。
+ * 分類ロジックは classifySuppression 一本なので両者は必ず一致する。
+ */
+async function handleSuppressions(res) {
+  const [suppressions, reasonCounts] = await Promise.all([
+    settleSection(suppressionLog.collectSuppressions()),
+    settleSection(dashboardAggregates.collectSuppressionSummary()),
+  ]);
+
+  let summary = reasonCounts;
+  if (reasonCounts && reasonCounts.status !== "error") {
+    summary = {
+      total: Array.isArray(suppressions) ? suppressions.length : null,
+      ...reasonCounts,
+    };
+  }
+  sendJson(res, 200, { generated_at: new Date().toISOString(), summary, suppressions });
+}
+
+/**
+ * report_summary セクションを組み立てる（/api/dashboard と /api/dashboard/reports で共用）。
+ * @returns {Promise<{generated:number, approved:number, published_backend:number,
+ *   web_deployed:(number|null), deploy_pending:(number|null), pending_slugs:string[]}>}
+ */
+async function buildReportSummarySection() {
+  // Web バケット名は CloudFront origin から導出（失敗時は AOR_WEB_S3_BUCKET へフォールバック）。
+  // 成功時の戻り値にも .status（Distribution の状態 "Deployed" 等）があるため、
+  // エラー形状の判定は .status === "error" で行う（真偽判定だと衝突する）。
+  const cf = await awsStatus.getCloudFrontStatus();
+  const webBucket = cf && cf.status !== "error" && cf.web_bucket ? cf.web_bucket : null;
+
+  const [publishedResult, webResult] = await Promise.all([
+    awsStatus.listPublishedBackendSlugs(),
+    awsStatus.listWebDeployedSlugs(webBucket),
+  ]);
+
+  const publishedBackendSlugs = Array.isArray(publishedResult) ? publishedResult : null;
+  const webDeployedSlugs = Array.isArray(webResult) ? webResult : null;
+
+  const summary = dashboardAggregates.collectReportSummary({
+    reportsCache,
+    publishedBackendSlugs,
+    webDeployedSlugs,
+  });
+
+  // slug 一覧の取得に失敗したセクションは、その旨を添える（数値は代替値のまま返す）。
+  if (!publishedBackendSlugs) summary.published_backend_source = "reportsCache (S3 published/ 一覧取得失敗)";
+  if (!webDeployedSlugs) summary.web_deployed_note = webResult && webResult.message ? webResult.message : "取得失敗";
+
+  return summary;
 }
 
 // ---------------------------------------------------------------------------

@@ -184,7 +184,113 @@ async function checkDashboardSmoke() {
       return { ok: false, detail: `/api/jobsが200にならなかった（実際: ${jobsResp.status}）` };
     }
 
-    return { ok: true, detail: "未認証401・認証済み200・/api/reports・/api/jobsの応答を確認しました" };
+    // Phase52 STEP4: Dashboard v2（画面 + read-only 集計 API）の疎通。
+    // /api/dashboard は各セクションを Promise.allSettled で受けるため、AWS 認証が無い
+    // 環境でも 200（セクションが {status:"error"} になるだけ）を返す。
+    const dashPage = await httpGet("localhost", port, "/dashboard.html", { auth: `${adminUser}:${adminPassword}` });
+    if (dashPage.status !== 200 || !dashPage.body.includes("dashboard-container")) {
+      return { ok: false, detail: `/dashboard.html が期待どおりではない（status: ${dashPage.status}）` };
+    }
+    const dashApi = await httpGet("localhost", port, "/api/dashboard", { auth: `${adminUser}:${adminPassword}` });
+    if (dashApi.status !== 200 || !dashApi.body.includes("lead_summary")) {
+      return { ok: false, detail: `/api/dashboard が期待どおりではない（status: ${dashApi.status}）` };
+    }
+    const dashUnauth = await httpGet("localhost", port, "/api/dashboard");
+    if (dashUnauth.status !== 401) {
+      return { ok: false, detail: `/api/dashboard の未認証アクセスが401にならなかった（実際: ${dashUnauth.status}）` };
+    }
+
+    // Phase52 STEP5: Leads v2（画面 + 既存 /api/leads）の疎通。
+    const leadsPage = await httpGet("localhost", port, "/leads.html", { auth: `${adminUser}:${adminPassword}` });
+    if (leadsPage.status !== 200 || !leadsPage.body.includes("leads-container")) {
+      return { ok: false, detail: `/leads.html が期待どおりではない（status: ${leadsPage.status}）` };
+    }
+    const leadsApi = await httpGet("localhost", port, "/api/leads", { auth: `${adminUser}:${adminPassword}` });
+    if (leadsApi.status !== 200 || leadsApi.body.trim()[0] !== "[") {
+      return { ok: false, detail: `/api/leads が JSON 配列を返さなかった（status: ${leadsApi.status}）` };
+    }
+    const leadsUnauth = await httpGet("localhost", port, "/api/leads");
+    if (leadsUnauth.status !== 401) {
+      return { ok: false, detail: `/api/leads の未認証アクセスが401にならなかった（実際: ${leadsUnauth.status}）` };
+    }
+
+    // Phase52 STEP6: Delivery UI（画面 + /api/deliveries）の疎通。
+    const delivPage = await httpGet("localhost", port, "/deliveries.html", { auth: `${adminUser}:${adminPassword}` });
+    if (delivPage.status !== 200 || !delivPage.body.includes("deliveries-container")) {
+      return { ok: false, detail: `/deliveries.html が期待どおりではない（status: ${delivPage.status}）` };
+    }
+    const delivApi = await httpGet("localhost", port, "/api/deliveries", { auth: `${adminUser}:${adminPassword}` });
+    if (delivApi.status !== 200 || !delivApi.body.includes("deliveries")) {
+      return { ok: false, detail: `/api/deliveries が期待どおりではない（status: ${delivApi.status}）` };
+    }
+    const delivUnauth = await httpGet("localhost", port, "/api/deliveries");
+    if (delivUnauth.status !== 401) {
+      return { ok: false, detail: `/api/deliveries の未認証アクセスが401にならなかった（実際: ${delivUnauth.status}）` };
+    }
+
+    // Phase52 STEP7: Suppression UI（画面 + /api/suppressions）の疎通。
+    const suppPage = await httpGet("localhost", port, "/suppressions.html", { auth: `${adminUser}:${adminPassword}` });
+    if (suppPage.status !== 200 || !suppPage.body.includes("suppressions-container")) {
+      return { ok: false, detail: `/suppressions.html が期待どおりではない（status: ${suppPage.status}）` };
+    }
+    const suppApi = await httpGet("localhost", port, "/api/suppressions", { auth: `${adminUser}:${adminPassword}` });
+    if (suppApi.status !== 200 || !suppApi.body.includes("suppressions")) {
+      return { ok: false, detail: `/api/suppressions が期待どおりではない（status: ${suppApi.status}）` };
+    }
+    const suppUnauth = await httpGet("localhost", port, "/api/suppressions");
+    if (suppUnauth.status !== 401) {
+      return { ok: false, detail: `/api/suppressions の未認証アクセスが401にならなかった（実際: ${suppUnauth.status}）` };
+    }
+
+    // Phase52 STEP8: Reports UI（画面 + 既存 /api/reports・/api/dashboard/reports の再利用）の疎通。
+    const reportsPage = await httpGet("localhost", port, "/reports.html", { auth: `${adminUser}:${adminPassword}` });
+    if (reportsPage.status !== 200 || !reportsPage.body.includes("reports-container")) {
+      return { ok: false, detail: `/reports.html が期待どおりではない（status: ${reportsPage.status}）` };
+    }
+    const reportStatusJs = await httpGet("localhost", port, "/assets/js/report-status.js", { auth: `${adminUser}:${adminPassword}` });
+    if (reportStatusJs.status !== 200) {
+      return { ok: false, detail: `/assets/js/report-status.js が配信されない（status: ${reportStatusJs.status}）` };
+    }
+    const dashReportsApi = await httpGet("localhost", port, "/api/dashboard/reports", { auth: `${adminUser}:${adminPassword}` });
+    if (dashReportsApi.status !== 200 || !dashReportsApi.body.includes("deploy_pending")) {
+      return { ok: false, detail: `/api/dashboard/reports が期待どおりではない（status: ${dashReportsApi.status}）` };
+    }
+
+    // Phase52 STEP9: System UI（画面 + 既存 /api/health・/api/dashboard/health の再利用）の疎通。
+    const systemPage = await httpGet("localhost", port, "/system.html", { auth: `${adminUser}:${adminPassword}` });
+    if (systemPage.status !== 200 || !systemPage.body.includes("system-container")) {
+      return { ok: false, detail: `/system.html が期待どおりではない（status: ${systemPage.status}）` };
+    }
+    const systemJs = await httpGet("localhost", port, "/assets/js/system.js", { auth: `${adminUser}:${adminPassword}` });
+    if (systemJs.status !== 200) {
+      return { ok: false, detail: `/assets/js/system.js が配信されない（status: ${systemJs.status}）` };
+    }
+    const healthApi = await httpGet("localhost", port, "/api/health");
+    if (healthApi.status !== 200 || !healthApi.body.includes("checks")) {
+      return { ok: false, detail: `/api/health が期待どおりではない（status: ${healthApi.status}）` };
+    }
+
+    // Phase52 STEP10: Operations UI（画面のみ。mutation は既存 /api/publish・/api/unpublish の再利用、
+    // ここでは実行しない — GET read-only smoke のみ）。
+    const opsPage = await httpGet("localhost", port, "/operations.html", { auth: `${adminUser}:${adminPassword}` });
+    if (opsPage.status !== 200 || !opsPage.body.includes("operations-container")) {
+      return { ok: false, detail: `/operations.html が期待どおりではない（status: ${opsPage.status}）` };
+    }
+    const opsJs = await httpGet("localhost", port, "/assets/js/operations.js", { auth: `${adminUser}:${adminPassword}` });
+    if (opsJs.status !== 200) {
+      return { ok: false, detail: `/assets/js/operations.js が配信されない（status: ${opsJs.status}）` };
+    }
+    // publish は POST。GET では 404 相当（ルート未マッチ）になることだけ確認（mutation は実行しない）。
+    const publishGet = await httpGet("localhost", port, "/api/publish/__smoke__", { auth: `${adminUser}:${adminPassword}` });
+    if (publishGet.status === 200) {
+      return { ok: false, detail: `/api/publish が GET で 200 を返した（POST 専用のはず）` };
+    }
+
+    return {
+      ok: true,
+      detail:
+        "未認証401・認証済み200・/api/reports・/api/jobs・/dashboard.html・/api/dashboard・/leads.html・/api/leads・/deliveries.html・/api/deliveries・/suppressions.html・/api/suppressions・/reports.html・/api/dashboard/reports・/system.html・/api/health・/operations.htmlの応答を確認しました",
+    };
   } catch (err) {
     return { ok: false, detail: `Dashboard確認中にエラー: ${err.message}` };
   } finally {
