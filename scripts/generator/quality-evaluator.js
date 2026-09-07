@@ -20,21 +20,31 @@
  * report.free_opportunity.evidence（実際に引用された根拠の質）、
  * report.human_review.status（人間レビューの進捗）の3系統。
  *
- * 12項目の配点（合計100点。根拠のない数値を避けるため、内訳はbreakdownとして
+ * 13項目の配点（合計100点。根拠のない数値を避けるため、内訳はbreakdownとして
  * evaluation生成時に常に残す）:
- *   1. 情報源数              8点
- *   2. 情報源バランス（種類数） 8点
- *   3. 政府情報有無           6点
+ *   1. 情報源数              5点
+ *   2. 情報源バランス（種類数） 5点
+ *   3. 政府情報有無           4点
  *   4. 企業情報有無           6点
- *   5. 業界情報有無           6点
+ *   5. 業界情報有無           4点
  *   6. ニュース非偏重         8点
  *   7. 引用の質（quote充実度） 8点
- *   8. 情報源スコア平均       15点
- *   9. source_type偏り       8点
- *  10. source_role偏り       8点
- *  11. evidence数            8点
+ *   8. 情報源スコア平均       13点
+ *   9. source_type偏り       7点
+ *  10. source_role偏り       7点
+ *  11. evidence数            7点
  *  12. human_review状態      11点
+ *  13. 情報源の関連性         15点
  *   合計                    100点
+ *
+ * 【Phase53 STEP10.13】P2-4 修正。旧実装は「情報源が多い」「government source が
+ * 存在する」だけで加点し、その情報源が対象企業に本当に関連しているかを見ていなかった
+ * （STEP10.10 で illegame.com=90/A > ab-i.jp=84/B と、実際の関連性と逆転した）。
+ *   - 「情報源数」「種類数」「政府情報有無」「業界情報有無」の配点を引き下げ、
+ *   - source_type だけでなく「関連性が低い（D）と判定された情報源では presence 加点しない」ようにし、
+ *   - 新たに「情報源の関連性」軸（A/B/C/D 分布・関連比率・ノイズ比率）を15点で追加した。
+ *   関連性の判定は STEP10.12 の relevance guard が書き込んだ score / evidence_strength を
+ *   共通入力として使う（Evaluator 側で同じ heuristic を再実装しない）。
  *
  * grade（A〜D）と status（PASS/REVIEW/FAIL）は同じscoreから別々の基準で導出する
  * （ユーザー指定はstatusの5段階しきい値のみのため、gradeは一般的な10点刻みの
@@ -45,6 +55,53 @@
 
 const GOV_OR_STATS_TYPES = ["government", "statistics"];
 const INDUSTRY_TYPES = ["industry_association", "technology"];
+
+// Phase53 STEP10.13: 関連性が低いと判断された情報源の目安。STEP10.12 の relevance guard
+// （search/relevance-guard.js の FLAGGED_SCORE_CAP）および validate-report.js の
+// LOW_RELEVANCE_SCORE と揃える。片方を変えたら他方も見直すこと。
+const LOW_RELEVANCE_SCORE = 30;
+const WEAK_REFERENCE_SCORE = 45;
+const RELEVANT_SCORE = 70;
+
+/**
+ * 1件の source_page を関連性で A/B/C/D に分類する（Phase53 STEP10.13）。
+ * 対象企業との関連判定は STEP10.12 の relevance guard が既に score / evidence_strength に
+ * 反映しているため、ここではその共通メタデータのみを使う（重い heuristic の再実装はしない）。
+ *   A: 企業自身の一次情報（source_type: "company"）
+ *   D: 関連性が低いと判定された情報源（guard で降格＝ score<=30、または reference かつ低score）
+ *   B: 関連性が高いと見なせる情報源（score>=70）
+ *   C: 中間（それ以外）／score が無い旧データ
+ * @param {{source_type?:string, score?:number, evidence_strength?:string}} s
+ * @returns {"A"|"B"|"C"|"D"}
+ */
+function classifySourceRelevance(s) {
+  if (!s || typeof s !== "object") return "C";
+  if (s.source_type === "company") return "A";
+  const hasScore = typeof s.score === "number";
+  if (hasScore && s.score <= LOW_RELEVANCE_SCORE) return "D";
+  if (s.evidence_strength === "reference" && hasScore && s.score <= WEAK_REFERENCE_SCORE) return "D";
+  if (hasScore && s.score >= RELEVANT_SCORE) return "B";
+  return "C";
+}
+
+/**
+ * source_pages 全体の関連性分布を集計する。
+ * @param {Array<Object>} sourcePages
+ * @returns {{counts:{A:number,B:number,C:number,D:number}, total:number, scoredCount:number,
+ *   relevantRatio:number|null, noiseRatio:number|null}}
+ */
+function summarizeRelevance(sourcePages) {
+  const counts = { A: 0, B: 0, C: 0, D: 0 };
+  let scoredCount = 0;
+  (sourcePages || []).forEach((s) => {
+    counts[classifySourceRelevance(s)] += 1;
+    if (s && typeof s.score === "number") scoredCount += 1;
+  });
+  const total = (sourcePages || []).length;
+  const relevantRatio = total > 0 ? (counts.A + counts.B) / total : null;
+  const noiseRatio = total > 0 ? counts.D / total : null;
+  return { counts, total, scoredCount, relevantRatio, noiseRatio };
+}
 
 /**
  * 0〜maxの範囲でスコアをクランプする。
@@ -63,12 +120,12 @@ function clamp(value, max) {
  */
 function scoreSourceCount(sourcePages) {
   const count = sourcePages.length;
-  const max = 8;
+  const max = 5; // Phase53 STEP10.13: 情報源が多いこと自体を過大評価しない（8→5）
   let points;
   if (count === 0) points = 0;
-  else if (count <= 2) points = 3;
-  else if (count <= 4) points = 6;
-  else points = 8;
+  else if (count <= 2) points = 2;
+  else if (count <= 4) points = 4;
+  else points = 5;
   return { points, max, detail: `情報源数: ${count}件` };
 }
 
@@ -78,14 +135,18 @@ function scoreSourceCount(sourcePages) {
  * @returns {{points:number,max:number,detail:string,distinctTypes:number}}
  */
 function scoreTypeBalance(sourcePages) {
-  const max = 8;
-  const distinctTypes = new Set(sourcePages.map((s) => s.source_type)).size;
+  const max = 5; // Phase53 STEP10.13: ノイズ由来の種類数の多さを過大評価しない（8→5）。
+  // 関連性が D の情報源は種類数のカウントから除く（ノイズで種類数を稼がせない）。
+  const relevantTypes = new Set(
+    sourcePages.filter((s) => classifySourceRelevance(s) !== "D").map((s) => s.source_type)
+  );
+  const distinctTypes = relevantTypes.size;
   let points;
-  if (distinctTypes <= 1) points = 2;
-  else if (distinctTypes === 2) points = 5;
-  else if (distinctTypes === 3) points = 7;
-  else points = 8;
-  return { points, max, detail: `情報源の種類数: ${distinctTypes}種類`, distinctTypes };
+  if (distinctTypes <= 1) points = 1;
+  else if (distinctTypes === 2) points = 3;
+  else if (distinctTypes === 3) points = 4;
+  else points = 5;
+  return { points, max, detail: `情報源の種類数（関連のみ）: ${distinctTypes}種類`, distinctTypes };
 }
 
 /**
@@ -97,13 +158,19 @@ function scoreTypeBalance(sourcePages) {
  * @returns {{points:number,max:number,detail:string,present:boolean}}
  */
 function scorePresence(sourcePages, types, max, label) {
-  const present = sourcePages.some((s) => types.includes(s.source_type));
-  return {
-    points: present ? max : 0,
-    max,
-    detail: present ? `${label}: あり` : `${label}: なし`,
-    present,
-  };
+  // Phase53 STEP10.13: source_type が一致するだけでなく、関連性が D でない
+  // （＝対象企業に関連すると見なせる）情報源が存在する場合にのみ加点する。
+  // 「government という type である」ことと「対象企業に関連する政府情報である」ことを分離する。
+  const present = sourcePages.some(
+    (s) => types.includes(s.source_type) && classifySourceRelevance(s) !== "D"
+  );
+  const typeExistsButNoise =
+    !present && sourcePages.some((s) => types.includes(s.source_type));
+  let detail;
+  if (present) detail = `${label}: あり（関連あり）`;
+  else if (typeExistsButNoise) detail = `${label}: 種類は存在するが関連性が低い`;
+  else detail = `${label}: なし`;
+  return { points: present ? max : 0, max, detail, present };
 }
 
 /**
@@ -148,7 +215,7 @@ function scoreCitationQuality(evidence) {
  * @returns {{points:number,max:number,detail:string,average:number}}
  */
 function scoreAverageSourceScore(sourcePages) {
-  const max = 15;
+  const max = 13; // Phase53 STEP10.13: 15→13（関連性軸へ再配分）
   const valid = sourcePages.filter((s) => typeof s.score === "number");
   if (valid.length === 0) return { points: 0, max, detail: "score平均: 算出不可（0件）", average: 0 };
   const average = Math.round((valid.reduce((sum, s) => sum + s.score, 0) / valid.length) * 10) / 10;
@@ -187,14 +254,51 @@ function scoreDistributionSkew(sourcePages, key, max, label) {
  * @returns {{points:number,max:number,detail:string}}
  */
 function scoreEvidenceCount(evidence) {
-  const max = 8;
+  const max = 7; // Phase53 STEP10.13: 8→7（関連性軸へ再配分）
   const count = evidence.length;
   let points;
   if (count === 0) points = 0;
-  else if (count === 1) points = 4;
-  else if (count <= 3) points = 6;
-  else points = 8;
+  else if (count === 1) points = 3;
+  else if (count <= 3) points = 5;
+  else points = 7;
   return { points, max, detail: `evidence件数: ${count}件` };
+}
+
+/**
+ * source_pages 全体の関連性（対象企業への関連度）を採点する（Phase53 STEP10.13）。
+ * A/B（関連）比率で加点し、D（ノイズ）比率で減点する。
+ * @param {Array<Object>} sourcePages
+ * @returns {{points:number,max:number,detail:string,counts:Object,relevantRatio:number|null,noiseRatio:number|null}}
+ */
+function scoreSourceRelevance(sourcePages) {
+  const max = 15;
+  const { counts, total, scoredCount, relevantRatio, noiseRatio } = summarizeRelevance(sourcePages);
+  if (total === 0) {
+    return { points: 0, max, detail: "情報源が0件のため関連性を判定不可", counts, relevantRatio: null, noiseRatio: null };
+  }
+  // 後方互換（STEP16）: score を持つ情報源が1件も無い旧形式は関連性を判定できないため中立点。
+  if (scoredCount === 0) {
+    return {
+      points: Math.round(max * 0.6),
+      max,
+      detail: "情報源に score が無く関連性を判定できません（中立評価）",
+      counts,
+      relevantRatio: null,
+      noiseRatio: null,
+    };
+  }
+  const raw = relevantRatio * 12 - noiseRatio * 6;
+  const points = Math.round(clamp(raw, max));
+  return {
+    points,
+    max,
+    detail:
+      `関連性 A:${counts.A} B:${counts.B} C:${counts.C} D:${counts.D}` +
+      `（関連${Math.round(relevantRatio * 100)}% / ノイズ${Math.round(noiseRatio * 100)}%）`,
+    counts,
+    relevantRatio,
+    noiseRatio,
+  };
 }
 
 /**
@@ -246,16 +350,17 @@ function evaluateReportQuality(report) {
   const breakdown = {
     source_count: scoreSourceCount(sourcePages),
     type_balance: scoreTypeBalance(sourcePages),
-    government_presence: scorePresence(sourcePages, GOV_OR_STATS_TYPES, 6, "政府/統計情報"),
+    government_presence: scorePresence(sourcePages, GOV_OR_STATS_TYPES, 4, "政府/統計情報"),
     company_presence: scorePresence(sourcePages, ["company"], 6, "企業情報"),
-    industry_presence: scorePresence(sourcePages, INDUSTRY_TYPES, 6, "業界情報"),
+    industry_presence: scorePresence(sourcePages, INDUSTRY_TYPES, 4, "業界情報"),
     news_overreliance: scoreNewsOverreliance(sourcePages),
     citation_quality: scoreCitationQuality(evidence),
     average_source_score: scoreAverageSourceScore(sourcePages),
-    type_skew: scoreDistributionSkew(sourcePages, "source_type", 8, "source_type偏り"),
-    role_skew: scoreDistributionSkew(sourcePages, "source_role", 8, "source_role偏り"),
+    type_skew: scoreDistributionSkew(sourcePages, "source_type", 7, "source_type偏り"),
+    role_skew: scoreDistributionSkew(sourcePages, "source_role", 7, "source_role偏り"),
     evidence_count: scoreEvidenceCount(evidence),
     human_review_status: scoreHumanReview(humanReviewStatus),
+    source_relevance: scoreSourceRelevance(sourcePages),
   };
 
   const score = clamp(
@@ -276,13 +381,39 @@ function evaluateReportQuality(report) {
     }
   });
 
-  if (!breakdown.government_presence.present) {
+  const rel = breakdown.source_relevance;
+  if (rel.noiseRatio !== null && rel.noiseRatio >= 0.3) {
+    warnings.push(
+      `情報源の${Math.round(rel.noiseRatio * 100)}%が対象企業と関連性が低い（D）と判定されています` +
+        `（${rel.detail}）。対象企業に関連する情報源の比率を高めてください`
+    );
+    improvements.push(
+      "対象企業と無関係な情報源（別地域の制度・同名の別企業・名前衝突等）が多く含まれています。" +
+        "検索クエリの精度向上と関連性ガードの見直しで、企業に関連する情報源の比率を上げてください"
+    );
+  }
+  if (rel.relevantRatio !== null && rel.relevantRatio < 0.5) {
+    improvements.push(
+      "企業・業界に直接関連する情報源（A/B）が半数未満です。この状態で生成したOpportunityは" +
+        "企業実態から乖離しやすいため、情報源の関連性を確認してください"
+    );
+  }
+  if (breakdown.government_presence.detail.includes("関連性が低い")) {
+    improvements.push(
+      "政府/統計の情報源はありますが、対象企業との関連性が低いと判定されています。" +
+        "対象企業の所在地・業種・利用可能な制度に関連する一次情報を追加してください"
+    );
+  } else if (!breakdown.government_presence.present) {
     improvements.push("政府・統計情報源を追加してください（信頼性の高い一次情報の裏付けが不足しています）");
   }
-  if (!breakdown.company_presence.present) {
+  if (breakdown.company_presence.detail.includes("関連性が低い")) {
+    improvements.push("企業自身の情報源はありますが関連性が低いと判定されています。公式サイト等の一次情報を確認してください");
+  } else if (!breakdown.company_presence.present) {
     improvements.push("企業自身の情報源（公式サイト・IR等）を追加してください");
   }
-  if (!breakdown.industry_presence.present) {
+  if (breakdown.industry_presence.detail.includes("関連性が低い")) {
+    improvements.push("業界情報源はありますが対象企業の業界との関連性が低いと判定されています");
+  } else if (!breakdown.industry_presence.present) {
     improvements.push("業界団体・技術団体の情報源を追加してください");
   }
   if (breakdown.news_overreliance.newsRatio > 0.5) {
@@ -423,4 +554,11 @@ if (require.main === module) {
   runCli(async () => main());
 }
 
-module.exports = { evaluateReportQuality, renderEvaluationMarkdown, gradeFromScore, statusFromScore };
+module.exports = {
+  evaluateReportQuality,
+  renderEvaluationMarkdown,
+  gradeFromScore,
+  statusFromScore,
+  classifySourceRelevance,
+  summarizeRelevance,
+};
