@@ -247,6 +247,7 @@ function validateReport(report) {
   // --- AI出力の内容品質チェック（Task11で追加、いずれも警告） ---
   checkSpeculationPhrases(report, warnings);
   checkEmptyAnalysisContent(report, warnings);
+  checkOpportunityEvidenceQuality(report, warnings); // Phase53 STEP10.12
 
   // --- 旧スキーマ残存チェック ---
   if ("opportunities_open" in report) errors.push("旧フィールド opportunities_open が残っています");
@@ -310,6 +311,104 @@ function checkEmptyAnalysisContent(report, warnings) {
   (((report.paid_analysis || {}).additional_opportunities) || []).forEach((opp, i) => {
     if (!opp.summary || !String(opp.summary).trim()) {
       warnings.push(`paid_analysis.additional_opportunities[${i}]（id: ${opp.id || "不明"}）.summary が空です`);
+    }
+  });
+}
+
+// Phase53 STEP10.12: 関連性が低いと判断されたsource（関連性ガードで降格されたもの）の目安。
+// relevance-guard.js の FLAGGED_SCORE_CAP と揃える（このモジュールは relevance-guard を
+// requireしないため、値を直接持つ。片方を変えたらもう片方も見直すこと）。
+const LOW_RELEVANCE_SCORE = 30;
+
+/**
+ * Opportunity（free_opportunity）のevidenceが、対象企業と関連の薄いsourceに依存して
+ * いないかを警告する（Phase53 STEP10.12。P1-3 / P1-4 対応）。
+ *
+ * すべて警告（error ではない）。スキーマ違反ではなく「営業として送る前に人間が
+ * 確認すべき関連性・会社適合の問題」を可視化するのが目的。機械的に reject すると
+ * false positive で正当なレポートまで止めてしまうため。
+ * @param {Object} report
+ * @param {string[]} warnings
+ */
+function checkOpportunityEvidenceQuality(report, warnings) {
+  const freeOpp = report.free_opportunity || {};
+  const evidence = Array.isArray(freeOpp.evidence) ? freeOpp.evidence : [];
+  if (evidence.length === 0) return;
+
+  const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
+  const evidenceSources = evidence.map((ev) => sourceById.get(ev.source_id)).filter(Boolean);
+  if (evidenceSources.length === 0) return; // source_id 不整合は別チェック（errors）が扱う
+
+  const hasCompanySource = evidenceSources.some((s) => s.source_type === "company");
+  if (!hasCompanySource) {
+    warnings.push(
+      "free_opportunity.evidence に source_type:\"company\"（会社自身の一次情報）が含まれていません" +
+        "（quality-rules.md 必須条件1。why_company の会社固有の主張が裏付けられているか要確認）"
+    );
+  }
+
+  checkGovernmentSubjectConfusion(freeOpp, warnings);
+
+  const lowRelevanceOnly =
+    evidenceSources.length > 0 &&
+    evidenceSources.every(
+      (s) => s.evidence_strength === "reference" || (typeof s.score === "number" && s.score <= LOW_RELEVANCE_SCORE)
+    );
+  if (lowRelevanceOnly) {
+    warnings.push(
+      "free_opportunity.evidence が、関連性が低いと判断された source" +
+        `（evidence_strength:"reference" もしくは score<=${LOW_RELEVANCE_SCORE}）のみに依存しています` +
+        "（対象企業と無関係な情報を根拠にしている可能性。要確認）"
+    );
+  } else {
+    evidenceSources.forEach((s) => {
+      if (s.evidence_strength === "reference" || (typeof s.score === "number" && s.score <= LOW_RELEVANCE_SCORE)) {
+        warnings.push(
+          `free_opportunity.evidence が関連性の低い source（${s.id}、score=${s.score}、` +
+            `evidence_strength=${s.evidence_strength}）を根拠に含めています（関連性を要確認）`
+        );
+      }
+    });
+  }
+}
+
+// Phase53 STEP10.12: 日本の公的施策を「中国政府の施策」と取り違えていないかの最小ヒューリスティック。
+// ab-i.jp のレポートで「中国政府系助成金」「中国政府がクールジャパン戦略を公表」という
+// 主体の取り違えが発生した。JLOX+・クールジャパン戦略・JETRO は日本の施策・機関。
+const JP_PROGRAM_TERMS = ["クールジャパン", "JLOX", "ＪＬＯＸ", "JETRO", "ジェトロ"];
+
+/**
+ * @param {Object} freeOpp - report.free_opportunity
+ * @param {string[]} warnings
+ */
+function checkGovernmentSubjectConfusion(freeOpp, warnings) {
+  const fields = ["title", "why_now", "why_company", "market_change"];
+  const allText = fields.map((f) => (typeof freeOpp[f] === "string" ? freeOpp[f] : "")).join("\n");
+  const mentionsJpProgram = JP_PROGRAM_TERMS.some((t) => allText.includes(t));
+
+  fields.forEach((field) => {
+    const text = freeOpp[field];
+    if (typeof text !== "string" || !text) return;
+
+    JP_PROGRAM_TERMS.forEach((term) => {
+      const idx = text.indexOf(term);
+      if (idx === -1) return;
+      const window = text.slice(Math.max(0, idx - 60), idx + term.length + 60);
+      if (/中国政府|中国の公的|中国政府系|中国当局/.test(window)) {
+        warnings.push(
+          `free_opportunity.${field}: 日本の施策「${term}」を中国政府の施策として記述している疑いがあります` +
+            "（quality-rules.md: 施策の主体〈どの国の政府か〉を source と一致させること）"
+        );
+      }
+    });
+
+    // 「中国政府系助成金/補助金/支援」— 同じ free_opportunity 内で日本の施策名（JLOX+/クールジャパン等）に
+    // 言及しているのに、助成金の主体を「中国政府系」としている場合は取り違えの疑い。
+    if (mentionsJpProgram && /中国政府系(助成金|補助金|支援金|ファンド)/.test(text)) {
+      warnings.push(
+        `free_opportunity.${field}: 「中国政府系助成金」等と記述されていますが、同じ Opportunity 内で` +
+          "日本の施策（JLOX+・クールジャパン等）に言及しています。助成金の主体（日本／中国）を確認してください"
+      );
     }
   });
 }

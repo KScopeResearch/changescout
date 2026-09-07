@@ -293,27 +293,133 @@ function looksLikeDifferentCompanyDespiteSameName(targetProfile, candidateText) 
 }
 
 /**
- * 検索由来source1件が、対象企業とは無関係な別企業を主体的に説明している可能性が
- * 高いかを判定する。
- * @param {{title?:string|null, content?:string|null, organization?:string|null, summary?:string|null}} item
- * @param {string[]} companyIdentityTokens - 対象企業を指す既知の文字列
- *   （推定会社名・自社ページのtitle/organization等）
- * @param {{address:{prefecture:string|null,cityWard:string|null}, industryGroups:Set<string>}} [targetProfile]
- *   - buildTargetProfile()の戻り値（省略時は住所・業種による完全同名企業の識別は行わない）
- * @returns {boolean} trueなら「無関係な別企業を指している可能性が高い」
+ * URLから登録可能ドメイン（おおよそ eTLD+1）を粗く取り出す。完全なPublic Suffix List
+ * は持たず、日本の co.jp / or.jp / ne.jp / go.jp / lg.jp / ac.jp 等の2階層TLDと
+ * 一般的な .com/.jp 等を扱う軽量ヒューリスティック。
+ * @param {string} url
+ * @returns {string|null}
  */
-function looksLikeUnrelatedCompany(item, companyIdentityTokens, targetProfile) {
-  const haystack = `${item.title || ""} ${item.content || item.summary || ""} ${item.organization || ""}`;
+function registrableDomain(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch (e) {
+    return null;
+  }
+  host = host.replace(/^www\./, "");
+  const parts = host.split(".");
+  if (parts.length <= 2) return host;
+  const twoLevelTld = /^(co|or|ne|go|lg|ac|ed|gr|ad)\.jp$/;
+  const lastTwo = parts.slice(-2).join(".");
+  if (twoLevelTld.test(lastTwo)) return parts.slice(-3).join(".");
+  return lastTwo;
+}
+
+/** @param {string} a @param {string} b @returns {boolean} */
+function sameRegistrableDomain(a, b) {
+  const da = registrableDomain(a);
+  const db = registrableDomain(b);
+  return !!da && !!db && da === db;
+}
+
+// 「この source は別法人の自社公式ページである」ことを示す、コーポレートタグライン型
+// タイトル（例:「株式会社ABI｜世の中の笑顔をつくる…」）。導入事例・インタビュー・
+// ユーザーレポート等の第三者コンテンツを誤検出しないよう、それらを示す語は除外する。
+const SELF_BRANDED_TITLE_MARKERS_EXCLUDE = /(様|導入事例|インタビュー|ユーザ[ーレ]|事例紹介|お客様の声|評判|口コミ|ニュース|プレスリリース)/;
+// 名前トークン: ひらがな・空白・区切りを含まない1語（"株式会社ABIが新アニメ発表 |" のような
+// 文章タイトルを弾くため、助詞になりうるひらがなを名前部分に許さない）。
+const SELF_BRANDED_TITLE_PATTERN =
+  /^\s*(?:株式会社|有限会社|合同会社|一般社団法人)?[A-Za-z0-9ァ-ヶー一-龠・･]{1,16}(?:株式会社|有限会社|合同会社)?\s*[｜|]/;
+
+// ローカル自治体の移住・定住・空き家系プログラムページを示すパターン（市区町村名 + 制度キーワード）。
+const LOCAL_MUNICIPAL_TITLE_PATTERN = /[一-龠ぁ-んァ-ヶー]{1,6}(?:市|区|町|村)/;
+const LOCAL_MUNICIPAL_PROGRAM_KEYWORDS = /移住|定住|空き家|住宅取得助成|地域おこし協力隊|田舎暮らし/;
+
+/**
+ * source が「別ドメインの企業が、対象企業と同名を自社ブランドとして名乗っている公式ページ」
+ * に見えるか判定する（Phase53 STEP10.12。例: ab-i.jp に対する abi-inc.co.jp）。
+ * @param {{title?:string|null, url?:string|null}} item
+ * @param {string} targetUrl - 対象企業のURL
+ * @returns {boolean}
+ */
+function looksLikeDifferentCompanySameName(item, targetUrl) {
+  if (!item || !item.url || !targetUrl) return false;
+  if (sameRegistrableDomain(item.url, targetUrl)) return false;
+  const title = item.title || "";
+  if (SELF_BRANDED_TITLE_MARKERS_EXCLUDE.test(title)) return false;
+
+  const selfBrandedTitle = SELF_BRANDED_TITLE_PATTERN.test(title);
+  let rootish = false;
+  try {
+    rootish = new URL(item.url).pathname.replace(/\/+$/, "").length <= 1;
+  } catch (e) {
+    rootish = false;
+  }
+  return selfBrandedTitle || rootish;
+}
+
+/**
+ * 検索由来source1件が、対象企業とは無関係な別企業／別地域の情報を主体的に説明して
+ * いる可能性が高いかを判定する。
+ * @param {{title?:string|null, content?:string|null, organization?:string|null, summary?:string|null, url?:string|null, source_type?:string|null}} item
+ * @param {string[]} companyIdentityTokens - 対象企業を指す既知の文字列
+ * @param {{address:{prefecture:string|null,cityWard:string|null}, industryGroups:Set<string>}} [targetProfile]
+ * @param {{targetUrl?:string}} [options]
+ * @returns {boolean} trueなら「無関係な別企業／別地域を指している可能性が高い」
+ */
+function looksLikeUnrelatedCompany(item, companyIdentityTokens, targetProfile, options = {}) {
+  const title = item.title || "";
+  const haystack = `${title} ${item.content || item.summary || ""} ${item.organization || ""}`;
+  const tokens = (companyIdentityTokens || []).filter(Boolean);
+  const cores = tokens.map((t) => coreName(t)).filter((c) => c.length >= 2);
+  const haystackLower = haystack.toLowerCase();
+  const titleLower = title.toLowerCase();
+  const mentionsTargetName = cores.some((c) => haystackLower.includes(c));
+  const titleMentionsTargetName = cores.some((c) => c.length >= 3 && titleLower.includes(c));
+
+  // --- (1) 別ドメインで対象企業と同名を自社ブランドとして名乗る別法人の公式ページ ---
+  // （Phase53 STEP10.12。ENTITY_MENTION_PATTERN は "株式会社ABI" のような英字前株名を
+  //  検出できないため、法人名パターンより前に、ドメイン + 自社ブランド型タイトルで判定する。）
+  if (
+    options.targetUrl &&
+    titleMentionsTargetName &&
+    looksLikeDifferentCompanySameName(item, options.targetUrl)
+  ) {
+    return true;
+  }
+
+  // --- (2) ローカル自治体プログラムのミスマッチ（Phase53 STEP10.12・STEP8）---
+  // 特定の市区町村の移住・定住・空き家系プログラムページで、対象企業名にも触れていない場合、
+  // 「政府情報だから」という理由だけで company evidence 級に扱わない（reference へ降格）。
+  if (
+    !mentionsTargetName &&
+    LOCAL_MUNICIPAL_TITLE_PATTERN.test(title) &&
+    LOCAL_MUNICIPAL_PROGRAM_KEYWORDS.test(haystack)
+  ) {
+    return true;
+  }
+
+  // --- (3) 対象企業の所在都道府県（ground truth）と異なる地域の補助金・移住系情報 ---
+  if (
+    targetProfile &&
+    targetProfile.address.prefecture &&
+    !mentionsTargetName &&
+    /補助金|助成金|移住|定住|空き家|地域おこし|ふるさと/.test(haystack)
+  ) {
+    const cand = extractAddressHint(haystack);
+    if (cand.prefecture && cand.prefecture !== targetProfile.address.prefecture) return true;
+  }
+
+  // --- (4) 本文中に主体として言及される法人名が、対象企業と一致しない ---
   const mentions = [...haystack.matchAll(ENTITY_MENTION_PATTERN)].map((m) => m[0]);
-  if (mentions.length === 0) return false; // 法人名の明示的な言及がない一般情報は対象外（排除しない）
+  if (mentions.length === 0) return false; // 法人名の明示的な言及がない一般情報は対象外
 
   const matchesTarget = mentions.some((mention) =>
-    companyIdentityTokens.some((token) => isSameCompanyName(mention, token))
+    tokens.some((token) => isSameCompanyName(mention, token))
   );
-  if (!matchesTarget) return true; // 対象企業名と重ならない法人名が本文中に主体として言及されている
+  if (!matchesTarget) return true;
 
-  // 会社名は一致しているが、完全同名の別企業である可能性を住所・業種から確認する
-  // （PJ2 AOR追加。例: 東京の「株式会社タカハシ」と大阪の「株式会社タカハシ」）。
+  // 会社名は一致しているが、住所・業種の矛盾から完全同名の別企業と判断できるか。
   if (targetProfile) {
     return looksLikeDifferentCompanyDespiteSameName(targetProfile, haystack);
   }
@@ -329,9 +435,11 @@ function looksLikeUnrelatedCompany(item, companyIdentityTokens, targetProfile) {
  * @param {string[]} companyIdentityTokens
  * @param {string} [targetProfileText] - 対象企業自身を説明するテキスト（省略可。
  *   渡した場合のみ、完全同名の別企業を住所・業種から識別する追加チェックが働く）
+ * @param {{targetUrl?:string}} [options] - targetUrl を渡すと、別ドメインで同名を名乗る
+ *   別法人の公式ページ（例: ab-i.jp に対する abi-inc.co.jp）を降格する（Phase53 STEP10.12）
  * @returns {Array<Object>} 同じ形の配列（evidence_strength/scoreのみ変わりうる）
  */
-function applyRelevanceGuard(items, companyIdentityTokens, targetProfileText) {
+function applyRelevanceGuard(items, companyIdentityTokens, targetProfileText, options = {}) {
   const tokens = (companyIdentityTokens || []).filter(Boolean);
   if (tokens.length === 0) return items || []; // 対象企業を特定できない場合はガードを適用しない（安全側）
 
@@ -343,7 +451,7 @@ function applyRelevanceGuard(items, companyIdentityTokens, targetProfileText) {
 
   return (items || []).map((item) => {
     if (item.source_type === "company") return item; // 自社ページはガード対象外
-    if (!looksLikeUnrelatedCompany(item, tokens, targetProfile)) return item;
+    if (!looksLikeUnrelatedCompany(item, tokens, targetProfile, options)) return item;
     return {
       ...item,
       evidence_strength: "reference",
@@ -355,6 +463,9 @@ function applyRelevanceGuard(items, companyIdentityTokens, targetProfileText) {
 module.exports = {
   applyRelevanceGuard,
   looksLikeUnrelatedCompany,
+  looksLikeDifferentCompanySameName,
+  registrableDomain,
+  sameRegistrableDomain,
   isSameCompanyName,
   extractCoreIdentity,
   extractAddressHint,

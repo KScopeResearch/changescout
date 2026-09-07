@@ -104,6 +104,72 @@ test("validateReport: fact区分に推測表現があれば警告する（エラ
   assert.ok(result.warnings.some((w) => w.includes("推測表現")));
 });
 
+// ---------------------------------------------------------------------------
+// Phase53 STEP10.12 — Opportunity Evidence Gate（すべて警告、okはtrueのまま）
+// ---------------------------------------------------------------------------
+
+test("STEP10.12 Test E: evidence が全て低スコア/reference の source のみなら警告する", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.source_pages.forEach((s) => {
+    s.score = 20;
+    s.evidence_strength = "reference";
+  });
+  const result = validateReport(report);
+  assert.equal(result.ok, true, "関連性の問題は警告のみ");
+  assert.ok(
+    result.warnings.some((w) => w.includes("関連性が低いと判断された source")),
+    `期待した警告がない: ${JSON.stringify(result.warnings)}`
+  );
+});
+
+test("STEP10.12 Test F: evidence に source_type:\"company\" が無ければ警告する（未確認の会社主張への注意）", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  // company source(src-1) を evidence から外す
+  report.free_opportunity.evidence = report.free_opportunity.evidence.filter((e) => e.source_id !== "src-1");
+  const result = validateReport(report);
+  assert.equal(result.ok, true);
+  assert.ok(result.warnings.some((w) => w.includes('source_type:"company"')));
+});
+
+test("STEP10.12 Test G: 会社source + 通常スコアの健全な evidence では関連性の警告を出さない（false positive 防止）", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  const result = validateReport(report);
+  assert.equal(result.ok, true);
+  assert.ok(!result.warnings.some((w) => w.includes("関連性")), `不要な関連性警告: ${JSON.stringify(result.warnings)}`);
+  assert.ok(!result.warnings.some((w) => w.includes('source_type:"company"')));
+});
+
+test("STEP10.12 Test H: 日本の施策（クールジャパン/JLOX）を中国政府の施策として記述したら警告する", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.why_now =
+    "中国政府は2024年に「新たなクールジャパン戦略」を公表し、コンテンツ輸出を後押ししています。";
+  const bad = validateReport(report);
+  assert.equal(bad.ok, true);
+  assert.ok(bad.warnings.some((w) => w.includes("中国政府の施策として記述")), JSON.stringify(bad.warnings));
+
+  // 正しい主体（日本政府）なら警告は出ない
+  const report2 = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report2.free_opportunity.why_now =
+    "日本政府は2024年に「新たなクールジャパン戦略」を公表し、コンテンツ輸出を後押ししています。";
+  const good = validateReport(report2);
+  assert.ok(!good.warnings.some((w) => w.includes("中国政府の施策として記述")));
+});
+
+test("STEP10.12 Test H2: 「中国政府系助成金」と日本の施策名が同一 Opportunity に併存したら警告する", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.title = "中国政府系助成金を活用したアニメ配信支援";
+  report.free_opportunity.why_now = "JLOX+の海外展開支援（最大4,000万円）を活用できます。";
+  const result = validateReport(report);
+  assert.ok(result.warnings.some((w) => w.includes("助成金の主体（日本／中国）を確認")), JSON.stringify(result.warnings));
+});
+
+test("validateReport: STEP10.12 の追加チェックは good.json の ok/errors を変えない", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  const result = validateReport(report);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.errors, []);
+});
+
 test("validateReview: 4種類のfixtureすべてがPASSする", () => {
   ["pending.json", "approved.json", "needs_revision.json", "rejected.json"].forEach((name) => {
     const review = readJson(path.join(REVIEW_FIXTURES_DIR, name));

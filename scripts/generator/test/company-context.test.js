@@ -20,6 +20,9 @@ const {
 const {
   applyRelevanceGuard,
   looksLikeUnrelatedCompany,
+  looksLikeDifferentCompanySameName,
+  registrableDomain,
+  sameRegistrableDomain,
   isSameCompanyName,
   extractCoreIdentity,
   extractAddressHint,
@@ -674,5 +677,167 @@ test("Test H: 対象企業自身の複数source（東京都・ゴム加工／東
     },
   ];
   const result = applyRelevanceGuard(items, ["株式会社タカハシ"], targetProfileText);
+  assert.deepEqual(result, items);
+});
+
+// ---------------------------------------------------------------------------
+// Phase53 STEP10.12 — Source Relevance / name-collision / geographic guard
+// ---------------------------------------------------------------------------
+
+test("registrableDomain / sameRegistrableDomain: co.jp 等の2階層TLDを考慮する", () => {
+  assert.equal(registrableDomain("https://www.ab-i.jp/company"), "ab-i.jp");
+  assert.equal(registrableDomain("https://abi-inc.co.jp/"), "abi-inc.co.jp");
+  assert.equal(sameRegistrableDomain("https://ab-i.jp", "https://www.ab-i.jp/x"), true);
+  assert.equal(sameRegistrableDomain("https://ab-i.jp", "https://abi-inc.co.jp"), false);
+});
+
+test("STEP10.12 Test A: company source は targetUrl を渡してもガード対象外（STEP10.11 preservation 回帰）", () => {
+  const items = [
+    {
+      source_type: "company",
+      title: "株式会社ABI｜アニメ制作から日中配信まで",
+      summary: "株式会社ABIは日中のコンテンツ事業を展開しています。",
+      url: "https://www.ab-i.jp",
+      score: 93,
+      evidence_strength: "primary",
+    },
+  ];
+  const result = applyRelevanceGuard(items, ["株式会社ABI"], "株式会社ABIは日中のアニメ事業を営む。", {
+    targetUrl: "https://ab-i.jp",
+  });
+  assert.deepEqual(result[0], items[0]);
+});
+
+test("STEP10.12 Test B: 別ドメインで対象企業と同名を名乗る別法人の公式ページは reference / score<=30 へ降格（abi-inc.co.jp）", () => {
+  const items = [
+    {
+      source_type: "technology",
+      title: "株式会社ABI｜世の中の笑顔をつくるコネクト上流カンパニー",
+      content: "富山市主催の官民共創交流会に弊社代表が登壇。イベント企画運営を行っています。",
+      url: "https://abi-inc.co.jp",
+      score: 87,
+      evidence_strength: "secondary",
+    },
+  ];
+  const [result] = applyRelevanceGuard(items, ["株式会社ABI"], "株式会社ABIは日中のアニメ制作・配信事業を営む。", {
+    targetUrl: "https://ab-i.jp",
+  });
+  assert.equal(result.evidence_strength, "reference");
+  assert.ok(result.score <= 30, `score should be capped, got ${result.score}`);
+});
+
+test("STEP10.12 Test B2: 同名でも第三者コンテンツ（導入事例・別ドメイン）は誤って降格しない", () => {
+  const items = [
+    {
+      source_type: "industry_association",
+      title: "株式会社ヨシズミプレス様 | ソディックユーザレポート",
+      content: "株式会社ヨシズミプレス様に導入の経緯についてインタビューしました。",
+      url: "https://www.sodick.co.jp/case/yoshizumi",
+      score: 90,
+      evidence_strength: "secondary",
+    },
+  ];
+  const [result] = applyRelevanceGuard(items, ["株式会社ヨシズミプレス"], "株式会社ヨシズミプレスは東京都墨田区のプレス加工会社。", {
+    targetUrl: "https://yoshizumi-press.co.jp",
+  });
+  assert.deepEqual(result, items[0]);
+});
+
+test("STEP10.12 Test C: 別地域の自治体の移住・定住プログラムページは company evidence 級に扱わない（reference へ降格）", () => {
+  const items = [
+    {
+      source_type: "government",
+      title: "きりゅう暮らし応援事業（移住者住宅取得助成）補助金 - 桐生市",
+      content: "桐生市への移住者に住宅取得費用を助成します。",
+      url: "https://www.city.kiryu.lg.jp/kurashi/1001137.html",
+      score: 100,
+      evidence_strength: "primary",
+    },
+    {
+      source_type: "government",
+      title: "日高市移住・定住促進事業／日高市ホームページ",
+      content: "日高市では移住・定住を促進しています。",
+      url: "https://www.city.hidaka.lg.jp/22838.html",
+      score: 100,
+      evidence_strength: "primary",
+    },
+  ];
+  // 対象企業は事業開発コンサル（移住・住宅とは無関係、所在地はページから不明）
+  const result = applyRelevanceGuard(items, ["イル・レガメ"], "イル・レガメは事業開発コンサルティングを行う。", {
+    targetUrl: "https://illegame.com",
+  });
+  result.forEach((r) => {
+    assert.equal(r.evidence_strength, "reference");
+    assert.ok(r.score <= 30);
+  });
+});
+
+test("STEP10.12 Test C2: 市区町村名を含んでも移住・定住系キーワードが無い一般情報は降格しない（過剰排除防止）", () => {
+  const items = [
+    {
+      source_type: "government",
+      title: "東京都 中小企業向けDX推進補助金のご案内",
+      content: "都内の中小企業のデジタル化を支援します。",
+      url: "https://www.tokyo.example/dx",
+      score: 100,
+      evidence_strength: "primary",
+    },
+  ];
+  const result = applyRelevanceGuard(items, ["イル・レガメ"], "イル・レガメは事業開発コンサル。", {
+    targetUrl: "https://illegame.com",
+  });
+  assert.deepEqual(result, items);
+});
+
+test("STEP10.12 Test D: 対象企業の所在都道府県が判明していれば、別都道府県の補助金情報を降格する", () => {
+  const items = [
+    {
+      source_type: "government",
+      title: "新潟県 空き家改修補助金",
+      content: "新潟県内の空き家改修に補助金を交付します。",
+      url: "https://www.pref.niigata.example/akiya",
+      score: 100,
+      evidence_strength: "primary",
+    },
+  ];
+  const [result] = applyRelevanceGuard(
+    items,
+    ["株式会社サンプル"],
+    "株式会社サンプルは東京都渋谷区のIT企業です。",
+    { targetUrl: "https://sample.example" }
+  );
+  assert.equal(result.evidence_strength, "reference");
+  assert.ok(result.score <= 30);
+});
+
+test("STEP10.12 Test I: 弘和印刷回帰（既存の別企業降格は STEP10.12 変更後も維持される）", () => {
+  const items = [
+    {
+      source_type: "statistics",
+      title: "興和 - Wikipedia",
+      content: "興和株式会社は、愛知県名古屋市中区に本社を置く大手総合商社である。",
+      score: 95,
+      evidence_strength: "secondary",
+    },
+  ];
+  const [result] = applyRelevanceGuard(items, ["弘和印刷株式会社"], "弘和印刷株式会社は東京都足立区の印刷会社。");
+  assert.equal(result.evidence_strength, "reference");
+  assert.ok(result.score <= 30);
+});
+
+test("STEP10.12 Test J: 一般的な市場・業界情報（企業名・地域プログラムの言及なし）は従来どおり不変", () => {
+  const items = [
+    {
+      source_type: "statistics",
+      title: "アニメ産業市場、初の2兆円突破",
+      content: "アニメ産業の市場規模が拡大し、海外売上が成長を牽引している。",
+      url: "https://japan-forward.example/anime",
+      score: 95,
+      evidence_strength: "secondary",
+    },
+  ];
+  const result = applyRelevanceGuard(items, ["株式会社ABI"], "株式会社ABIは日中アニメ事業を営む。", {
+    targetUrl: "https://ab-i.jp",
+  });
   assert.deepEqual(result, items);
 });

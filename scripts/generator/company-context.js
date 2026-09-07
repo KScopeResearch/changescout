@@ -119,16 +119,20 @@ function guessCompanyName(companyResult, companyUrl) {
     const bracketed = bracketMatches.map((m) => m[1].trim()).find(containsLegalEntityKeyword);
     if (bracketed) return bracketed;
 
-    const segments = label
+    // 2. セグメントの中に法人格キーワードを含むものがあれば採用
+    const segmentsRaw = label
       .split(/[|\-―｜]/)
       .map((s) => s.trim())
       .filter(Boolean);
-
-    // 2. セグメントの中に法人格キーワードを含むものがあれば採用
-    const withLegalEntity = segments.find(containsLegalEntityKeyword);
+    const withLegalEntity = segmentsRaw.find(containsLegalEntityKeyword);
     if (withLegalEntity) return withLegalEntity;
 
-    // 3. 該当なしの場合、最も長いセグメントを採用
+    // 3. 該当なしの場合、サイトの定型句（"公式サイト" "ホームページへようこそ" 等）を
+    //    除去した上で最も長いセグメントを採用する。
+    //    【Phase53 STEP10.12】旧実装は "イル・レガメのホームページへようこそ" のような
+    //    <title> をそのまま検索クエリ用の会社名にしてしまい、"…ようこそ 補助金" のような
+    //    無意味なクエリで無関係な検索結果（移住補助金等）を大量に引き込んでいた。
+    const segments = segmentsRaw.map((s) => stripSiteTitleNoise(s).trim()).filter(Boolean);
     const longest = segments.reduce((best, cur) => (cur.length > best.length ? cur : best), "");
 
     // 4. 曖昧すぎる候補は採用しない
@@ -288,9 +292,12 @@ async function buildCompanyContext(companyUrl) {
   // 住所・業種抽出の元データとして渡す。渡さない場合は従来どおり会社名のみでの判定に留まる
   // （applyRelevanceGuard側で後方互換に設計済み）。
   const targetProfileText = `${companyResult.label || ""} ${companyResult.content || ""}`;
-  const guarded = applyRelevanceGuard(scored, companyIdentityTokens, targetProfileText).sort(
-    (a, b) => b.score - a.score
-  );
+  // 【Phase53 STEP10.12】対象企業のURL（登録可能ドメイン）も渡す。同名の別法人が
+  // 自社ブランドとして名乗っている別ドメインのページ（例: ab-i.jp に対する abi-inc.co.jp）を
+  // 降格するために使う。
+  const guarded = applyRelevanceGuard(scored, companyIdentityTokens, targetProfileText, {
+    targetUrl: companyUrl,
+  }).sort((a, b) => b.score - a.score);
 
   // --- URL完全一致の最終一意化 ---
   // deduplicateSources() の fuzzy 判定をすり抜けて同一URLが複数残った場合の保険。
