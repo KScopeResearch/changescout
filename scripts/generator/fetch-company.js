@@ -72,18 +72,104 @@ function extractTitle(html) {
   return m ? m[1].trim() : null;
 }
 
-/** @param {string} html @returns {string|null} meta descriptionまたは本文冒頭の簡易要約 */
-function extractSummary(html) {
-  const metaMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i);
-  if (metaMatch) return metaMatch[1].trim();
+// 【Phase54 STEP1】HTMLエンティティのデコード表。company_profile.business_summary に
+// "&#8211;" のような未デコード文字列が出ていた（kscope.co.jp）ため、summary抽出時に解く。
+const NAMED_ENTITIES = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", "#39": "'",
+  mdash: "—", ndash: "–", hellip: "…", laquo: "«", raquo: "»",
+  ldquo: "“", rdquo: "”", lsquo: "‘", rsquo: "’",
+  copy: "©", reg: "®", trade: "™", middot: "·", bull: "・", yen: "¥",
+};
 
-  const bodyText = html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+/** @param {string} text @returns {string} HTMLエンティティ（数値・名前付き）をデコードする */
+function decodeHtmlEntities(text) {
+  return (text || "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => safeFromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => safeFromCodePoint(parseInt(d, 10)))
+    .replace(/&([a-z]+\d*);/gi, (m, name) => {
+      const key = name.toLowerCase();
+      return Object.prototype.hasOwnProperty.call(NAMED_ENTITIES, key) ? NAMED_ENTITIES[key] : m;
+    });
+}
+
+/** @param {number} cp @returns {string} */
+function safeFromCodePoint(cp) {
+  try {
+    return Number.isFinite(cp) && cp > 0 && cp <= 0x10ffff ? String.fromCodePoint(cp) : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+// メニュー・スキップリンク・フッター等の定型ナビ文言（summaryの本文ではない）。
+const NAV_NOISE_PATTERNS = [
+  /コンテンツへ(スキップ|移動)/g,
+  /skip to (main )?content/gi,
+  /メニュー(を開く|を閉じる)?/g,
+  /(ページ)?トップへ(戻る)?/g,
+  /©[^。]*?all rights reserved\.?/gi,
+  /copyright\s*©?[^。]*?\d{4}[^。]*/gi,
+  /メールで(すぐに)?(お)?問い?合(わ)?せ/g,
+  /\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, // メールアドレス
+  /(TEL|FAX|電話)[：:\s]*[\d(){}+\- ]{8,}/gi, // 電話番号
+];
+
+// ヘッダ/フッタのメニュー項目（空白で区切られた単独トークンとして現れる場合のみ除去する）。
+const MENU_TOKENS =
+  /(?:^|\s)(ホーム|トップ(ページ)?|会社概要|企業情報|会社案内|事業内容|事業案内|サービス(案内)?|製品情報|実績(紹介)?|導入事例|お客様の声|よくある質問|FAQ|ブログ|コラム|お知らせ|新着情報|ニュース|プレスリリース|IR情報|採用情報|採用|リクルート|お問い?合(わ)?せ|お問合せ|アクセス|地図|プライバシー(ポリシー)?|個人情報保護方針|サイトマップ|利用規約|運営会社|MENU|HOME|TOP|ABOUT( US)?|COMPANY|SERVICES?|PRODUCTS?|WORKS|CASE|NEWS|BLOG|CONTACT( US)?|RECRUIT|CAREERS?|ACCESS|SITEMAP|PRIVACY)(?=\s|$)/gi;
+
+/**
+ * HTMLから会社ページの説明文（2〜3文相当）を抽出する。
+ * 優先順位: <meta name="description"> → <meta property="og:description"> →
+ *          <nav>/<header>/<footer>/aside 等を除いた本文の最初のまとまった段落。
+ * いずれもHTMLエンティティをデコードし、ナビ定型文を除去する（Phase54 STEP1）。
+ * @param {string} html
+ * @returns {string|null}
+ */
+function extractSummary(html) {
+  const src = html || "";
+
+  const metaDesc =
+    src.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']*)["']/i) ||
+    src.match(/<meta[^>]+content=["']([^"']*)["'][^>]+name=["']description["']/i);
+  if (metaDesc && metaDesc[1].trim()) return cleanSummaryText(metaDesc[1]);
+
+  const ogDesc =
+    src.match(/<meta[^>]+property=["']og:description["'][^>]+content=["']([^"']*)["']/i) ||
+    src.match(/<meta[^>]+content=["']([^"']*)["'][^>]+property=["']og:description["']/i);
+  if (ogDesc && ogDesc[1].trim()) return cleanSummaryText(ogDesc[1]);
+
+  // 本文: script/style/nav/header/footer/aside/form を落としてからタグ除去
+  const bodyText = src
+    .replace(/<(script|style|nav|header|footer|aside|form|noscript|svg)[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return bodyText ? bodyText.slice(0, 300) : null;
+  if (!bodyText) return null;
+
+  return cleanSummaryText(bodyText, { fallbackSlice: 600 });
 }
 
-module.exports = { fetchCompany };
+/**
+ * 抽出テキストを表示可能な会社説明へ整える（entity decode → ナビ除去 → 空白正規化）。
+ * @param {string} text
+ * @param {{fallbackSlice?:number}} [options]
+ * @returns {string}
+ */
+function cleanSummaryText(text, options = {}) {
+  let out = decodeHtmlEntities(text || "");
+  NAV_NOISE_PATTERNS.forEach((re) => (out = out.replace(re, " ")));
+  // メニュー項目の連続を畳む（2回適用で「ホーム 会社概要 事業内容」のような連なりも落とす）。
+  out = out.replace(MENU_TOKENS, " ").replace(MENU_TOKENS, " ");
+  out = out
+    .replace(/\s+[|｜»]\s+/g, " ") // 「A ｜ B」型のメニュー区切りだけを畳む（・/等の社名内文字は触らない）
+    .replace(/(\S{4,})(?:\s+\1)+/g, "$1") // ロゴ/見出しで連続する同一トークンの繰り返しを1つに
+    .replace(/\s+/g, " ")
+    .trim();
+  if (options.fallbackSlice && out.length > options.fallbackSlice) {
+    out = out.slice(0, options.fallbackSlice).trim();
+  }
+  return out;
+}
+
+module.exports = { fetchCompany, extractSummary, decodeHtmlEntities, cleanSummaryText };

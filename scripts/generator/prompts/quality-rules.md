@@ -82,6 +82,48 @@
    ような主体の取り違えをしてはならない。sourceに書かれている主体とOpportunity内の主体を
    一致させること。
 
+## Opportunity と Market Change の質（Phase54 STEP1で追加）
+
+実データ生成で、Opportunityが「対象企業が既にやっている事業の言い換え」に、Market Changeが
+「対象企業自身の説明」になってしまう事故が確認された（IL LEGAME・カレイドスコープ）。以下を守ること。
+
+### Opportunity（`free_opportunity` / `locked_opportunities` / `paid_analysis`）
+
+1. **既存事業の説明をOpportunityにしない**: `free_opportunity.title` および `locked_opportunities[].title`
+   は、`company_profile.business_summary` や会社ページに書かれている「現在の事業内容」の言い換え・
+   増強（「〜の強化」「〜の拡販」だけ）であってはならない。Opportunityとは、対象企業が**まだ
+   やっていない/踏み込めていない前向きな一手**である。
+2. **優先する方向性**: 次のいずれかに寄せること —
+   (a) **AI/生成AIの活用・導入**（自社業務の変革、または顧客への提供）、
+   (b) **新規事業・新サービスの立ち上げ／既存ノウハウの商品化・サービス化**、
+   (c) **新しい市場・顧客セグメント・地域への拡張**、
+   (d) **業務プロセスの変革・効率化**、
+   (e) **制度変更・市場変化を捉えた新しい打ち手**。
+   会社の強み（`source_type:"company"`で確認できる事実）を土台に、上記の方向へ**発展**させる。
+3. **evidenceは2件以上、うち1件以上は非companyの関連source**: `free_opportunity.evidence` は
+   最低2件。少なくとも1件は `source_type` が `government`/`statistics`/`industry_association`/
+   `technology` で、かつ `evidence_strength: "reference"` でも `score <= 30` でもない
+   （＝関連性が低いと判断されていない）source を含めること。company sourceだけ、
+   または降格sourceだけを根拠にOpportunityを組み立ててはならない。
+4. **`why_company`は土台、`why_now`は変化**: `why_company` は company/一次情報で会社の強み・
+   立ち位置を述べる。`why_now` は「なぜ今か」を**外部の変化**（市場・制度・技術・競合・需要）で
+   説明する。`why_now` が会社の説明だけで終わってはならない。
+
+### Market Change（`free_opportunity.market_change`）
+
+5. **市場変化は外部の変化であり、会社の説明ではない**: `market_change` には、対象企業の外で
+   起きている変化（市場規模・成長率の統計、制度・補助金・規制の変更、AI/技術トレンド、
+   競合や顧客行動の変化）を、**それを示すsourceのsource_idを添えて**書くこと。
+6. **最低1件は外部市場source**: `market_change` は、`source_type` が `government`/`statistics`/
+   `industry_association`/`technology` の source を最低1件引用する。`source_type:"company"` の
+   source **だけ**で `market_change` を構成してはならない。外部の市場source が sources に
+   無い場合は、`market_change` にその旨（「公開情報からは対象企業の市場に関する外部データを
+   十分に取得できなかった」）を正直に書く。
+7. **同名・別住所の企業を「同業他社」「競合」として扱わない**: sources に対象企業と同じ社名の
+   別法人（所在地〔市区町村〕・事業内容が異なる）が含まれていても、それを対象企業の競合・
+   同業他社として `market_change` に書いてはならない（例: 目黒区の声優事務所、渋谷区のWeb制作会社を
+   千代田区のコンサル会社の同業他社としない）。
+
 ## 参照
 
 - [system-analysis.md](system-analysis.md): システムプロンプト全体の構成

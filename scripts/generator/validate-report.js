@@ -330,10 +330,25 @@ const LOW_RELEVANCE_SCORE = 30;
  * @param {Object} report
  * @param {string[]} warnings
  */
+// Phase54 STEP1: 外部の市場変化を示す source_type。
+const EXTERNAL_MARKET_TYPES = ["government", "statistics", "industry_association", "technology"];
+
 function checkOpportunityEvidenceQuality(report, warnings) {
   const freeOpp = report.free_opportunity || {};
   const evidence = Array.isArray(freeOpp.evidence) ? freeOpp.evidence : [];
+
+  checkGovernmentSubjectConfusion(freeOpp, warnings);
+  checkOpportunityIsNotExistingBusiness(report, warnings); // Phase54 STEP1
+  checkMarketChangeExternality(report, warnings); // Phase54 STEP1
+
   if (evidence.length === 0) return;
+
+  // Phase54 STEP1: evidence 最低2件・うち1件以上は非companyの関連source
+  if (evidence.length < 2) {
+    warnings.push(
+      `free_opportunity.evidence が${evidence.length}件しかありません（quality-rules.md Phase54ルール3: 最低2件）`
+    );
+  }
 
   const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
   const evidenceSources = evidence.map((ev) => sourceById.get(ev.source_id)).filter(Boolean);
@@ -347,7 +362,19 @@ function checkOpportunityEvidenceQuality(report, warnings) {
     );
   }
 
-  checkGovernmentSubjectConfusion(freeOpp, warnings);
+  const hasRelevantExternal = evidenceSources.some(
+    (s) =>
+      EXTERNAL_MARKET_TYPES.includes(s.source_type) &&
+      s.evidence_strength !== "reference" &&
+      !(typeof s.score === "number" && s.score <= LOW_RELEVANCE_SCORE)
+  );
+  if (!hasRelevantExternal) {
+    warnings.push(
+      "free_opportunity.evidence に、関連性のある外部市場 source（government/statistics/" +
+        "industry_association/technology で reference/低score でないもの）が1件も含まれていません" +
+        "（quality-rules.md Phase54ルール3。既存事業の言い換えになっていないか要確認）"
+    );
+  }
 
   const lowRelevanceOnly =
     evidenceSources.length > 0 &&
@@ -411,6 +438,79 @@ function checkGovernmentSubjectConfusion(freeOpp, warnings) {
       );
     }
   });
+}
+
+// Phase54 STEP1: 2文字以上の連続する漢字/カタカナ列（事業内容の「特徴語」）を取り出す。
+function keyPhrases(text) {
+  return new Set((text || "").match(/[一-龠々]{2,}|[ァ-ヶ]{3,}/g) || []);
+}
+
+/**
+ * 【Phase54 STEP1】free_opportunity.title が「既存事業の言い換え」になっていないかを警告する。
+ * business_summary の特徴語と title の特徴語の重なりが高く、かつ title が
+ * 「〜の強化/拡大/拡販/推進」だけで前向きな新方向（AI・新規事業・新市場・変革）を示していない場合。
+ * @param {Object} report
+ * @param {string[]} warnings
+ */
+// 前向きな新方向を示すマーカー。ただし「その語が business_summary にも出てくる」場合は
+// その企業が既にやっていることなので新方向とはみなさない（Phase54 STEP1）。
+const FORWARD_MARKERS =
+  /生成AI|AI活用|AI導入|AI|DX|新規事業|新サービス|新商品|商品化|サービス化|新市場|海外展開|新規顧客|自動化|内製化|プラットフォーム|SaaS|データ活用|新たな|新規参入|参入|立ち上げ|変革|効率化/gi;
+
+function checkOpportunityIsNotExistingBusiness(report, warnings) {
+  const title = (report.free_opportunity || {}).title;
+  const summary = (report.company_profile || {}).business_summary;
+  if (typeof title !== "string" || !title || typeof summary !== "string" || !summary) return;
+  if (summary.startsWith("（")) return; // プレースホルダは対象外
+
+  const markers = (title.match(FORWARD_MARKERS) || []).map((m) => m);
+  // title の前向きマーカーのうち、business_summary に出てこないもの（＝新しい方向性）が1つでもあれば許容
+  if (markers.some((m) => !summary.includes(m))) return;
+
+  const tp = keyPhrases(title);
+  const sp = keyPhrases(summary);
+  if (tp.size === 0) return;
+  const overlap = [...tp].filter((w) => sp.has(w)).length / tp.size;
+
+  if (overlap >= 0.5 && /(強化|拡大|拡販|推進|向上|充実|継続)/.test(title)) {
+    warnings.push(
+      "free_opportunity.title が business_summary の既存事業内容と大きく重複し、" +
+        "「〜の強化/拡大」型になっています（quality-rules.md Phase54ルール1: 既存事業の言い換えを" +
+        "Opportunity にしない。AI活用・新規事業・市場拡張・業務変革 のいずれかへ寄せる）"
+    );
+  }
+}
+
+/**
+ * 【Phase54 STEP1】free_opportunity.market_change が「外部の変化」ではなく
+ * 「会社の説明」になっていないかを警告する。market_change 内で引用している source_id が
+ * 全て company の場合、または source_id を1件も引用していない場合。
+ * @param {Object} report
+ * @param {string[]} warnings
+ */
+function checkMarketChangeExternality(report, warnings) {
+  const mc = (report.free_opportunity || {}).market_change;
+  if (typeof mc !== "string" || !mc) return;
+  if (/公開情報からは.*(取得できなかった|確認できな|不足)/.test(mc)) return; // 情報不足を正直に書いている場合は許容
+
+  const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
+  const cited = [...new Set(mc.match(/src-\d+/g) || [])].map((id) => sourceById.get(id)).filter(Boolean);
+
+  if (cited.length === 0) {
+    warnings.push(
+      "free_opportunity.market_change が source_id を1件も引用していません" +
+        "（quality-rules.md Phase54ルール5: 市場変化はそれを示す source を添えて書く）"
+    );
+    return;
+  }
+  const hasExternal = cited.some((s) => EXTERNAL_MARKET_TYPES.includes(s.source_type));
+  if (!hasExternal) {
+    warnings.push(
+      "free_opportunity.market_change が company source のみを引用しています" +
+        "（quality-rules.md Phase54ルール6: 市場変化は外部の変化。government/statistics/" +
+        "industry_association/technology の source を最低1件引用する。会社の説明にしない）"
+    );
+  }
 }
 
 /**

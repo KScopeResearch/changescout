@@ -8,13 +8,15 @@
 ## `free_opportunity`
 
 最も関連性の高い1件を深掘りしたOpportunity。
+**Opportunityは「対象企業がまだやっていない前向きな一手」**であり、既存事業の言い換えではない
+（詳細は [quality-rules.md](quality-rules.md)「Opportunity と Market Change の質」）。
 
 ```json
 {
-  "title": "Opportunityのタイトル（一文）",
-  "why_now": "なぜ今この機会なのか（fact区分: company_contextの事実に基づく記述）",
-  "why_company": "なぜこの会社なのか（fact区分: 対象企業固有の事実と結びつける）",
-  "market_change": "根拠となる市場変化そのものの説明（fact区分）",
+  "title": "Opportunityのタイトル（一文）。既存事業の言い換え・「〜の強化/拡販」だけは不可。AI活用・新規事業/商品化・市場拡張・業務変革・制度変化を捉えた一手のいずれかへ寄せる",
+  "why_now": "なぜ今か（fact区分: 外部の変化＝市場・制度・技術・競合・需要 で説明する。会社の説明だけで終わらせない）",
+  "why_company": "なぜこの会社なのか（fact区分: source_type:\"company\"/一次情報で会社の強み・立ち位置を述べ、それをtitleの方向へ発展させられる根拠を示す）",
+  "market_change": "対象企業の外で起きている変化（市場規模・成長率の統計、制度・補助金・規制の変更、AI/技術トレンド、競合・顧客行動の変化）を、それを示すsource_idを添えて書く。会社の説明にしない。同名・別住所の別法人を『同業他社』にしない",
   "evidence": [
     { "source_id": "src-N", "quote": "根拠となる引用文（sources[].summaryやquoteから抜粋・要約）" }
   ],
@@ -30,9 +32,11 @@
 }
 ```
 
-**`evidence`のルール**（[quality-rules.md](quality-rules.md)必須条件1〜5）:
-- 最低4件を目安に、`company`・`government`または`statistics`・`industry_association`または
-  `technology`の`source_type`を持つ`source_id`を組み合わせること（`news`単独は不可）
+**`evidence`のルール**（[quality-rules.md](quality-rules.md)必須条件1〜5・Phase54ルール3）:
+- **最低2件。うち1件以上は非companyの関連source**（`source_type`が`government`/`statistics`/
+  `industry_association`/`technology`で、`evidence_strength:"reference"`でも`score<=30`でもないもの）
+- 目安は4件で、`company`・`government`または`statistics`・`industry_association`または
+  `technology`の`source_type`を組み合わせること（`news`単独は不可、company sourceだけも不可）
 - `source_id`は必ず`company_context.sources[].id`に実在するものを使うこと
 
 ## `locked_opportunities`

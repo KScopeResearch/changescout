@@ -50,8 +50,12 @@ async function init() {
  */
 function render(data, slug) {
   const sourceMap = getSourceMap(data.source_pages);
+  // Phase54 STEP1: 表示は上位ソースのみ（あれば）。evidence 結合には全 source_pages を使う。
   renderHeader(data);
-  renderSourcePages(data.source_pages);
+  renderSourcePages(
+    Array.isArray(data.top_sources) && data.top_sources.length ? data.top_sources : data.source_pages,
+    typeof data.hidden_sources_count === "number" ? data.hidden_sources_count : 0
+  );
   renderMainOpportunity(data.free_opportunity, sourceMap);
   renderLockedThemes(data.locked_opportunities);
   wireCtas(slug);
@@ -130,8 +134,11 @@ function renderCorrectionLink() {
 
 /* ---------- 参照元の開示 ---------- */
 
-/** @param {Array<Object>} sourcePages - data.source_pages */
-function renderSourcePages(sourcePages) {
+/**
+ * @param {Array<Object>} sourcePages - data.top_sources（あれば）または data.source_pages
+ * @param {number} [hiddenCount] - 一覧に出していない残りの情報源数（Phase54 STEP1）
+ */
+function renderSourcePages(sourcePages, hiddenCount) {
   const el = document.getElementById("source-pages");
   el.innerHTML = "";
 
@@ -153,6 +160,13 @@ function renderSourcePages(sourcePages) {
     list.appendChild(li);
   });
   el.appendChild(list);
+
+  if (typeof hiddenCount === "number" && hiddenCount > 0) {
+    const more = document.createElement("p");
+    more.className = "source-pages__more";
+    more.textContent = "ほか " + hiddenCount + " 件の情報源を参照しています";
+    el.appendChild(more);
+  }
 }
 
 /* ---------- 無料版Opportunity（1件のみ） ---------- */

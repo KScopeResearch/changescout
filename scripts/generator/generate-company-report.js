@@ -33,6 +33,7 @@ const fs = require("fs");
 const path = require("path");
 
 const { buildCompanyContext, normalizeCompanyName } = require("./company-context");
+const { cleanSummaryText } = require("./fetch-company"); // Phase54 STEP1: business_summary の後段クレンジング
 const { saveCompanyContext } = require("./company-context-store"); // PJ2 AOR: company_context backend接続PoC
 const { saveReport } = require("./report-store"); // PJ2 AOR: report backend接続（Phase B-3）
 const { buildSourcePages } = require("./simulate-ai-analysis");
@@ -71,6 +72,51 @@ function hostnameOf(context) {
 }
 
 /**
+ * 【Phase54 STEP1】会社ページ本文を company_profile.business_summary 用に 2〜3文へ要約する。
+ * fetch-company.js の extractSummary が entity デコード・ナビ除去まで担うが、ここでは
+ * さらに「文単位で先頭N文・最大M字」に切り詰める（ホームページ全文が summary になる問題の是正）。
+ * @param {string} text
+ * @param {{maxChars?:number, maxSentences?:number}} [options]
+ * @returns {string}
+ */
+function summarizeBusinessText(text, options = {}) {
+  const maxChars = options.maxChars || 400;
+  const maxSentences = options.maxSentences || 3;
+  const t = (text || "").replace(/\s+/g, " ").trim();
+  if (!t) return t;
+  const sentences = t
+    .split(/(?<=[。．！？!?])/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  let out = sentences.slice(0, maxSentences).join("");
+  if (!out) out = t;
+  if (out.length > maxChars) {
+    out = out.slice(0, maxChars).replace(/\s+\S*$/, "").trim();
+  }
+  return out;
+}
+
+/**
+ * 【Phase54 STEP1】source_pages から「表示用の上位ソース」と「隠れ件数」を作る（P2-1）。
+ * 既存の source_pages は保持したまま、preview が上位のみ出せるよう report へ足す。
+ * 並び: 会社ページ（source_type:"company"）→ 関連性が高い（reference/低score でない）→ score 降順。
+ * @param {Array<Object>} sourcePages
+ * @param {number} [n]
+ * @returns {{top_sources:Array<Object>, hidden_sources_count:number}}
+ */
+function buildTopSources(sourcePages, n = 5) {
+  const all = Array.isArray(sourcePages) ? [...sourcePages] : [];
+  const isNoisy = (s) =>
+    s.evidence_strength === "reference" || (typeof s.score === "number" && s.score <= 30);
+  const rank = (s) => (isNoisy(s) ? 0 : 1000) + (typeof s.score === "number" ? s.score : 0);
+  const company = all.filter((s) => s.source_type === "company");
+  const rest = all.filter((s) => s.source_type !== "company").sort((a, b) => rank(b) - rank(a));
+  const ordered = [...company, ...rest];
+  const top = ordered.slice(0, n);
+  return { top_sources: top, hidden_sources_count: Math.max(0, all.length - top.length) };
+}
+
+/**
  * company_context から最小限の company_profile を組み立てる（シミュレーション）。
  * 本来はAI分析（Task11）が担う役割だが、Task8/Task9時点ではreport.jsonの構造を
  * 満たすための最小限の値を機械的に生成する。
@@ -96,7 +142,12 @@ function buildCompanyProfile(context) {
       normalizeCompanyName(companySource.title, { bodyText: companySource.summary }) ||
       companySource.title ||
       `（会社名を特定できませんでした: ${hostname}）`;
-    businessSummary = companySource.summary || "（会社ページから事業概要を抽出できませんでした）";
+    // 【Phase54 STEP1】ホームページ全文がそのまま summary になっていた問題の是正:
+    // fetch-company.js の cleanSummaryText（entity デコード・ナビ/メニュー/連絡先除去）を
+    // 後段でもう一度かけ、2〜3文・最大400字へ切り詰める。
+    businessSummary =
+      summarizeBusinessText(cleanSummaryText(companySource.summary)) ||
+      "（会社ページから事業概要を抽出できませんでした）";
   } else {
     name = ok ? `（会社名を特定できませんでした: ${hostname}）` : `（会社名未取得: ${hostname}）`;
     businessSummary = ok
@@ -129,6 +180,7 @@ function buildCompanyProfile(context) {
 async function buildReport(context) {
   const analysis = await generateAnalysis(context);
   const sourcePages = buildSourcePages(context.sources);
+  const { top_sources, hidden_sources_count } = buildTopSources(sourcePages); // Phase54 STEP1
   const hostname = hostnameOf(context);
   const providerId = analysis.provider.id;
 
@@ -148,6 +200,9 @@ async function buildReport(context) {
     },
     company_profile: buildCompanyProfile(context),
     source_pages: sourcePages,
+    // 【Phase54 STEP1】表示用（preview は上位のみ出す）。source_pages は全件保持（schema互換）。
+    top_sources,
+    hidden_sources_count,
     ai_pipeline: {
       note: "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
       company_context_generated_at: context.generated_at,
@@ -350,4 +405,11 @@ if (require.main === module) {
   runCli(main);
 }
 
-module.exports = { generateCompanyReport, slugFromUrl, buildReport, buildCompanyProfile };
+module.exports = {
+  generateCompanyReport,
+  slugFromUrl,
+  buildReport,
+  buildCompanyProfile,
+  summarizeBusinessText,
+  buildTopSources,
+};

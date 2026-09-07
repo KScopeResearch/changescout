@@ -170,6 +170,106 @@ test("validateReport: STEP10.12 の追加チェックは good.json の ok/errors
   assert.deepEqual(result.errors, []);
 });
 
+// ---------------------------------------------------------------------------
+// Phase54 STEP1 — Opportunity / Market Change の品質警告（すべて警告、ok は true のまま）
+// ---------------------------------------------------------------------------
+
+/** good.json をベースに free_opportunity / company_profile を差し替えた report を作る。 */
+function reportWith(overrides) {
+  const r = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  if (overrides.company_profile) Object.assign(r.company_profile, overrides.company_profile);
+  if (overrides.free_opportunity) Object.assign(r.free_opportunity, overrides.free_opportunity);
+  if (overrides.source_pages) r.source_pages = overrides.source_pages;
+  return r;
+}
+
+test("STEP1 RC-2: 既存事業の言い換え（〜の強化 + business_summary と高重複）は警告する", () => {
+  const r = reportWith({
+    company_profile: { business_summary: "当社は新規事業立ち上げ支援と企業再生支援を行うコンサルティング会社です。" },
+    free_opportunity: { title: "新規事業立ち上げ支援サービスの強化" },
+  });
+  const v = validateReport(r);
+  assert.equal(v.ok, true);
+  assert.ok(v.warnings.some((w) => w.includes("既存事業の言い換え")), JSON.stringify(v.warnings));
+});
+
+test("STEP1 RC-2: 前向きな新方向（AI活用 等）が title にあれば既存事業警告を出さない", () => {
+  const r = reportWith({
+    company_profile: { business_summary: "当社は新規事業立ち上げ支援と企業再生支援を行うコンサルティング会社です。" },
+    free_opportunity: { title: "生成AIを活用した中小企業向け新規事業診断サービスの立ち上げ" },
+  });
+  const v = validateReport(r);
+  assert.ok(!v.warnings.some((w) => w.includes("既存事業の言い換え")), JSON.stringify(v.warnings));
+});
+
+test("STEP1 RC-2: evidence が1件なら警告 / 2件以上なら evidence-count 警告なし", () => {
+  const one = reportWith({ free_opportunity: { evidence: [{ source_id: "src-1", quote: "q" }] } });
+  assert.ok(validateReport(one).warnings.some((w) => w.includes("evidence が1件")));
+
+  const two = reportWith({
+    free_opportunity: {
+      evidence: [
+        { source_id: "src-1", quote: "q" },
+        { source_id: "src-2", quote: "q" },
+      ],
+    },
+  });
+  assert.ok(!validateReport(two).warnings.some((w) => w.includes("evidence が") && w.includes("件しか")));
+});
+
+test("STEP1 RC-2: evidence に関連性のある外部市場 source が無いと警告する", () => {
+  const sp = [
+    { id: "src-1", source_type: "company", source_role: "company_fact", label: "自社", url: "https://a", score: 90, evidence_strength: "primary" },
+    { id: "src-2", source_type: "government", source_role: "market_change", label: "無関係補助金", url: "https://b", score: 30, evidence_strength: "reference" },
+  ];
+  const r = reportWith({
+    source_pages: sp,
+    free_opportunity: {
+      evidence: [
+        { source_id: "src-1", quote: "q" },
+        { source_id: "src-2", quote: "q" },
+      ],
+    },
+  });
+  const v = validateReport(r);
+  assert.ok(v.warnings.some((w) => w.includes("関連性のある外部市場 source")), JSON.stringify(v.warnings));
+});
+
+test("STEP1 RC-2: 関連性のある government/statistics 等が evidence にあれば外部市場警告は出ない", () => {
+  const v = validateReport(readJson(path.join(REPORT_FIXTURES_DIR, "good.json")));
+  assert.ok(!v.warnings.some((w) => w.includes("関連性のある外部市場 source")), JSON.stringify(v.warnings));
+});
+
+test("STEP1 RC-3 Case A/B: market_change が company source のみ → 警告 / external あり → 警告なし", () => {
+  const sp = [
+    { id: "src-1", source_type: "company", source_role: "company_fact", label: "自社", url: "https://a", score: 90, evidence_strength: "primary" },
+    { id: "src-2", source_type: "government", source_role: "market_change", label: "統計", url: "https://b", score: 95, evidence_strength: "primary" },
+  ];
+  const companyOnly = reportWith({ source_pages: sp, free_opportunity: { market_change: "当社は昔からこの事業をやっています（src-1）。" } });
+  assert.ok(validateReport(companyOnly).warnings.some((w) => w.includes("market_change が company source のみ")));
+
+  const withExternal = reportWith({ source_pages: sp, free_opportunity: { market_change: "市場は年10%成長しています（src-2）。当社の事業（src-1）に追い風です。" } });
+  assert.ok(!validateReport(withExternal).warnings.some((w) => w.includes("market_change が company source のみ")));
+});
+
+test("STEP1 RC-3 Case C: market_change が source_id を1件も引用していない → 警告", () => {
+  const r = reportWith({ free_opportunity: { market_change: "なんとなく市場が伸びている気がします。" } });
+  assert.ok(validateReport(r).warnings.some((w) => w.includes("source_id を1件も引用していません")));
+});
+
+test("STEP1 RC-3: market_change が情報不足を正直に書いている場合は警告しない", () => {
+  const r = reportWith({
+    free_opportunity: { market_change: "公開情報からは対象企業の市場に関する外部データを十分に取得できなかった。" },
+  });
+  assert.ok(!validateReport(r).warnings.some((w) => w.includes("market_change")));
+});
+
+test("STEP1: 追加チェックは good.json の ok/errors を変えない", () => {
+  const v = validateReport(readJson(path.join(REPORT_FIXTURES_DIR, "good.json")));
+  assert.equal(v.ok, true);
+  assert.deepEqual(v.errors, []);
+});
+
 test("validateReview: 4種類のfixtureすべてがPASSする", () => {
   ["pending.json", "approved.json", "needs_revision.json", "rejected.json"].forEach((name) => {
     const review = readJson(path.join(REVIEW_FIXTURES_DIR, name));

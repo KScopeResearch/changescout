@@ -17,7 +17,13 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 
-const { generateCompanyReport, slugFromUrl, buildCompanyProfile } = require("../generate-company-report");
+const {
+  generateCompanyReport,
+  slugFromUrl,
+  buildCompanyProfile,
+  summarizeBusinessText,
+  buildTopSources,
+} = require("../generate-company-report");
 const { validateReport } = require("../validate-report");
 const { readJson } = require("../shared/json-file");
 const { REPORT_FIXTURES_DIR } = require("../shared/paths");
@@ -114,6 +120,105 @@ test("validateReport: fixtures/good.jsonがPASSする（ネットワーク不要
 // buildCompanyProfile — 会社ページ保持 + 社名正規化 + placeholder 出し分け
 // （Phase53 STEP10.11、ネットワーク不要）
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP1 — summarizeBusinessText / buildTopSources（ネットワーク不要）
+// ---------------------------------------------------------------------------
+
+test("summarizeBusinessText: 最大3文・最大400字に切り詰める", () => {
+  const long = Array.from({ length: 10 }, (_, i) => `これは${i + 1}番目の文です。`).join("");
+  const out = summarizeBusinessText(long);
+  assert.equal(out, "これは1番目の文です。これは2番目の文です。これは3番目の文です。");
+  const wall = "あ".repeat(1000) + "。";
+  assert.ok(summarizeBusinessText(wall).length <= 400);
+});
+
+test("summarizeBusinessText: 空文字・null でクラッシュしない / 既存の短い summary は維持", () => {
+  assert.equal(summarizeBusinessText(""), "");
+  assert.equal(summarizeBusinessText(null), "");
+  assert.equal(
+    summarizeBusinessText("日本と中国のアニメ番組や実写番組の企画・制作・プロデュース。ABI"),
+    "日本と中国のアニメ番組や実写番組の企画・制作・プロデュース。ABI"
+  );
+});
+
+test("summarizeBusinessText: 文途中で不自然に壊さない（句点で区切る）", () => {
+  const out = summarizeBusinessText("当社は建設業を営みます。 地域密着で施工します。 安全第一です。 品質にこだわります。");
+  assert.ok(out.endsWith("。"), out);
+  assert.ok(!out.includes("品質にこだわります"), "4文目は含めない");
+});
+
+test("buildTopSources Case A/C: company source が先頭・最大5件・hidden_sources_count", () => {
+  const sourcePages = [
+    { id: "src-1", source_type: "government", score: 100, evidence_strength: "primary" },
+    { id: "src-2", source_type: "company", score: 90, evidence_strength: "primary" },
+    { id: "src-3", source_type: "statistics", score: 95, evidence_strength: "secondary" },
+    { id: "src-4", source_type: "industry_association", score: 88, evidence_strength: "secondary" },
+    { id: "src-5", source_type: "technology", score: 85, evidence_strength: "secondary" },
+    { id: "src-6", source_type: "news", score: 30, evidence_strength: "reference" },
+    { id: "src-7", source_type: "news", score: 25, evidence_strength: "reference" },
+    { id: "src-8", source_type: "government", score: 30, evidence_strength: "reference" },
+    { id: "src-9", source_type: "technology", score: 30, evidence_strength: "reference" },
+    { id: "src-10", source_type: "industry_association", score: 30, evidence_strength: "reference" },
+  ];
+  const { top_sources, hidden_sources_count } = buildTopSources(sourcePages);
+  assert.equal(top_sources.length, 5);
+  assert.equal(hidden_sources_count, 5);
+  assert.equal(top_sources[0].source_type, "company", "company source が先頭");
+});
+
+test("buildTopSources Case B: source が5件以下なら hidden_sources_count = 0", () => {
+  const { top_sources, hidden_sources_count } = buildTopSources([
+    { id: "src-1", source_type: "company", score: 90 },
+    { id: "src-2", source_type: "government", score: 100 },
+  ]);
+  assert.equal(top_sources.length, 2);
+  assert.equal(hidden_sources_count, 0);
+});
+
+test("buildTopSources Case D: 低関連 source（reference/score<=30）を上位に入れない", () => {
+  const sourcePages = [
+    { id: "noise-1", source_type: "government", score: 30, evidence_strength: "reference" },
+    { id: "noise-2", source_type: "news", score: 25, evidence_strength: "reference" },
+    { id: "good-1", source_type: "statistics", score: 95, evidence_strength: "secondary" },
+    { id: "good-2", source_type: "industry_association", score: 90, evidence_strength: "secondary" },
+  ];
+  const { top_sources } = buildTopSources(sourcePages, 2);
+  assert.deepEqual(
+    top_sources.map((s) => s.id),
+    ["good-1", "good-2"]
+  );
+});
+
+test("buildTopSources Case E: source_pages が空 / undefined でもクラッシュしない", () => {
+  assert.deepEqual(buildTopSources([]), { top_sources: [], hidden_sources_count: 0 });
+  assert.deepEqual(buildTopSources(undefined), { top_sources: [], hidden_sources_count: 0 });
+});
+
+test("buildCompanyProfile: Phase54 — business_summary は 2〜3文・最大400字に整形される", () => {
+  const context = {
+    input_url: "https://ex.example",
+    company_fetch_ok: true,
+    industry_hint: "中小企業",
+    sources: [
+      {
+        id: "src-1",
+        source_type: "company",
+        title: "株式会社サンプル",
+        summary:
+          "コンテンツへスキップ ホーム 会社概要 お問い合わせ info@ex.example " +
+          "当社はソフトウェア開発を行います。 工場向けのIoTシステムを提供します。 " +
+          "全国に導入実績があります。 サポートも充実しています。 採用も積極的です。",
+        url: "https://ex.example",
+      },
+    ],
+  };
+  const profile = buildCompanyProfile(context);
+  assert.ok(!profile.business_summary.includes("info@ex.example"), profile.business_summary);
+  assert.ok(!profile.business_summary.includes("コンテンツへスキップ"), profile.business_summary);
+  assert.ok(profile.business_summary.length <= 400);
+  assert.ok(profile.business_summary.includes("ソフトウェア開発"), profile.business_summary);
+});
 
 test("buildCompanyProfile: company source があれば <title> を正規化して name にする（Test C 相当・E2E）", () => {
   const context = {
