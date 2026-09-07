@@ -183,7 +183,7 @@ test("buildTopSources Case D: 低関連 source（reference/score<=30）を上位
     { id: "good-1", source_type: "statistics", score: 95, evidence_strength: "secondary" },
     { id: "good-2", source_type: "industry_association", score: 90, evidence_strength: "secondary" },
   ];
-  const { top_sources } = buildTopSources(sourcePages, 2);
+  const { top_sources } = buildTopSources(sourcePages, { n: 2 });
   assert.deepEqual(
     top_sources.map((s) => s.id),
     ["good-1", "good-2"]
@@ -193,6 +193,59 @@ test("buildTopSources Case D: 低関連 source（reference/score<=30）を上位
 test("buildTopSources Case E: source_pages が空 / undefined でもクラッシュしない", () => {
   assert.deepEqual(buildTopSources([]), { top_sources: [], hidden_sources_count: 0 });
   assert.deepEqual(buildTopSources(undefined), { top_sources: [], hidden_sources_count: 0 });
+});
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP8 — top_sources を「引用 source + 語が重なる source」優先へ
+// STEP7 で illegame.com の top_sources に EV補助金・浦安市補助金・同名のバー（score 95-100）が
+// 混入していた回帰の固定。
+// ---------------------------------------------------------------------------
+
+test("STEP8: 引用されず語も重ならない高スコア source は top_sources に入らない（illegame ノイズ回帰）", () => {
+  const sourcePages = [
+    { id: "src-1", source_type: "government", score: 100, evidence_strength: "primary", label: "銘柄ごとの補助金交付額【電気自動車】" },
+    { id: "src-2", source_type: "government", score: 100, evidence_strength: "primary", label: "浦安市 補助金一覧表 市内各種団体への補助" },
+    { id: "src-3", source_type: "government", score: 100, evidence_strength: "primary", label: "スマートレジ導入支援 デジタル化・AI導入補助金2026" },
+    { id: "src-4", source_type: "statistics", score: 95, evidence_strength: "secondary", label: "ILLegame(神保町/バー) - Retty" },
+    { id: "src-8", source_type: "company", score: 93, evidence_strength: "primary", label: "イル・レガメのホームページ" },
+  ];
+  const { top_sources } = buildTopSources(sourcePages, {
+    evidenceIds: ["src-3", "src-8"],
+    relevanceHints: "イル・レガメ 美容室・飲食店向け AI活用デジタル経営支援パッケージの立ち上げ",
+  });
+  const ids = top_sources.map((s) => s.id);
+  assert.equal(ids[0], "src-8", "company source が先頭");
+  assert.ok(ids.includes("src-3"), "引用された関連 source は含む");
+  assert.ok(!ids.includes("src-1"), "EV補助金交付額（引用なし・語の重なりなし）は top に入らない");
+  assert.ok(!ids.includes("src-2"), "浦安市補助金一覧（引用なし・語の重なりなし）は top に入らない");
+  assert.ok(!ids.includes("src-4"), '同名のバー（引用なし・語の重なりなし）は top に入らない');
+});
+
+test("STEP8: 引用された低スコア source は最後尾で top_sources に含める（透明性）", () => {
+  const sourcePages = [
+    { id: "src-8", source_type: "company", score: 93, label: "自社サイト" },
+    { id: "src-3", source_type: "government", score: 100, label: "AI導入補助金" },
+    { id: "src-12", source_type: "government", score: 30, evidence_strength: "reference", label: "事業再構築補助金の解説" },
+  ];
+  const { top_sources } = buildTopSources(sourcePages, {
+    evidenceIds: ["src-3", "src-8", "src-12"],
+    relevanceHints: "AI 補助金 デジタル",
+  });
+  assert.deepEqual(
+    top_sources.map((s) => s.id),
+    ["src-8", "src-3", "src-12"],
+    "引用された低スコア source（src-12）は含めるが最後"
+  );
+});
+
+test("STEP8: relevanceHints が空なら従来どおり（全 source を topical 扱い）", () => {
+  const sourcePages = [
+    { id: "src-1", source_type: "government", score: 100 },
+    { id: "src-2", source_type: "company", score: 90 },
+  ];
+  const { top_sources } = buildTopSources(sourcePages, {});
+  assert.equal(top_sources.length, 2);
+  assert.equal(top_sources[0].source_type, "company");
 });
 
 test("buildCompanyProfile: Phase54 — business_summary は 2〜3文・最大400字に整形される", () => {

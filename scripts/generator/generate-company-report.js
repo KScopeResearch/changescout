@@ -96,22 +96,59 @@ function summarizeBusinessText(text, options = {}) {
   return out;
 }
 
+/** @param {string} text @returns {string[]} 2文字以上の漢字列/3文字以上のカナ・英字列（照合トークン） */
+function relevanceTokens(text) {
+  return [...new Set((text || "").match(/[一-龠々]{2,}|[ァ-ヶー]{3,}|[A-Za-z]{3,}/g) || [])].map((t) =>
+    t.toLowerCase()
+  );
+}
+
 /**
- * 【Phase54 STEP1】source_pages から「表示用の上位ソース」と「隠れ件数」を作る（P2-1）。
+ * 【Phase54 STEP1 / STEP8】source_pages から「表示用の上位ソース」と「隠れ件数」を作る（P2-1）。
  * 既存の source_pages は保持したまま、preview が上位のみ出せるよう report へ足す。
- * 並び: 会社ページ（source_type:"company"）→ 関連性が高い（reference/低score でない）→ score 降順。
+ *
+ * 【STEP8 で並び基準を score → 関連性へ変更】STEP7 で illegame.com の top_sources に
+ * EV自動車補助金・浦安市補助金一覧・同名のバー（Retty）が score 95-100 で混入していた。
+ * これらは government/statistics の基礎スコアが高いだけで、対象企業とは無関係。
+ * 新しい並び:
+ *   1. 会社ページ（source_type:"company"）
+ *   2. 分析が実際に引用した source（evidence の source_id）— 関連性が高いもの優先
+ *   3. 引用されていないが、会社名・Opportunity・事業概要と語が重なる source（score 降順）
+ *   4. 上記で 5 件に満たない場合のみ、引用済みの低スコア source で埋める
+ * 「引用もされず、語も重ならない高スコア source」は top に入れない（＝ EV補助金等を除外）。
+ *
  * @param {Array<Object>} sourcePages
- * @param {number} [n]
+ * @param {{evidenceIds?:string[], relevanceHints?:string, n?:number}} [options]
  * @returns {{top_sources:Array<Object>, hidden_sources_count:number}}
  */
-function buildTopSources(sourcePages, n = 5) {
+function buildTopSources(sourcePages, options = {}) {
+  const n = options.n || 5;
+  const evidenceIds = new Set(options.evidenceIds || []);
+  const hints = relevanceTokens(options.relevanceHints || "");
   const all = Array.isArray(sourcePages) ? [...sourcePages] : [];
+
   const isNoisy = (s) =>
     s.evidence_strength === "reference" || (typeof s.score === "number" && s.score <= 30);
-  const rank = (s) => (isNoisy(s) ? 0 : 1000) + (typeof s.score === "number" ? s.score : 0);
+  const isTopical = (s) => {
+    const label = (s.label || s.title || "").toLowerCase();
+    return hints.length === 0 ? true : hints.some((t) => label.includes(t));
+  };
+  const byScoreDesc = (a, b) => (b.score || 0) - (a.score || 0);
+
   const company = all.filter((s) => s.source_type === "company");
-  const rest = all.filter((s) => s.source_type !== "company").sort((a, b) => rank(b) - rank(a));
-  const ordered = [...company, ...rest];
+  const nonCompany = all.filter((s) => s.source_type !== "company");
+  const citedRelevant = nonCompany.filter((s) => evidenceIds.has(s.id) && !isNoisy(s)).sort(byScoreDesc);
+  const otherRelevant = nonCompany
+    .filter((s) => !evidenceIds.has(s.id) && !isNoisy(s) && isTopical(s))
+    .sort(byScoreDesc);
+  const citedNoisy = nonCompany.filter((s) => evidenceIds.has(s.id) && isNoisy(s)).sort(byScoreDesc);
+
+  const seen = new Set();
+  const ordered = [...company, ...citedRelevant, ...otherRelevant, ...citedNoisy].filter((s) => {
+    if (seen.has(s.id)) return false;
+    seen.add(s.id);
+    return true;
+  });
   const top = ordered.slice(0, n);
   return { top_sources: top, hidden_sources_count: Math.max(0, all.length - top.length) };
 }
@@ -180,7 +217,19 @@ function buildCompanyProfile(context) {
 async function buildReport(context) {
   const analysis = await generateAnalysis(context);
   const sourcePages = buildSourcePages(context.sources);
-  const { top_sources, hidden_sources_count } = buildTopSources(sourcePages); // Phase54 STEP1
+  const companyProfile = buildCompanyProfile(context);
+  // 【Phase54 STEP8】top_sources は「分析が引用した source + 会社名/Opportunity と語が重なる source」を優先。
+  const fo = analysis.free_opportunity || {};
+  const evidenceIds = (fo.evidence || []).map((e) => e && e.source_id).filter(Boolean);
+  const relevanceHints = [
+    companyProfile.name,
+    companyProfile.business_summary,
+    fo.title,
+    ...(analysis.locked_opportunities || []).map((o) => o && o.title),
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const { top_sources, hidden_sources_count } = buildTopSources(sourcePages, { evidenceIds, relevanceHints });
   const hostname = hostnameOf(context);
   const providerId = analysis.provider.id;
 
@@ -198,7 +247,7 @@ async function buildReport(context) {
         "引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位" +
         `${context.pipeline_stats.max_sources_for_ai}件に絞り込み済み。`,
     },
-    company_profile: buildCompanyProfile(context),
+    company_profile: companyProfile,
     source_pages: sourcePages,
     // 【Phase54 STEP1】表示用（preview は上位のみ出す）。source_pages は全件保持（schema互換）。
     top_sources,

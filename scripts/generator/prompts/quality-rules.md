@@ -128,6 +128,25 @@
    同業他社として `market_change` に書いてはならない（例: 目黒区の声優事務所、渋谷区のWeb制作会社を
    千代田区のコンサル会社の同業他社としない）。
 
+### Phase54 STEP8で追加した3ルール
+
+8. **他社の製品名・サービス名をそのまま Opportunity のタイトルにしない**: sources に別の会社の
+   具体的な商品名・サービス名（例: 「AI導入の立て直し」）が出てきても、それを対象企業が
+   立ち上げるべき Opportunity の `title` にそのまま流用してはならない。Opportunity は対象企業
+   固有の一手として、一般的な機能・価値で記述する（例: 「AI導入定着支援サービスの立ち上げ」）。
+9. **market_change / why_now を、score が低い1件の source だけで組み立てない**:
+   `evidence_strength: "reference"` や `score <= 30` の source は関連性が低いと判断されている。
+   `market_change` と `why_now` の主軸は、`government`/`statistics`/`industry_association`/
+   `technology` で reference/低score でない source に置くこと。低score source を「唯一の根拠」に
+   しない。相応の外部 source が sources に無い場合は、その旨（市場変化に関する十分な外部データを
+   取得できなかった）を正直に書く。
+10. **中国の動画配信プラットフォームを「政府系」「国営」と記述しない**: bilibili（哔哩哔哩）、
+    愛奇芸（iQIYI）、騰訊視頻（Tencent Video）、優酷（Youku）、芒果TV 等は**商業サービス**である。
+    「中国政府系プラットフォーム」「中国国営プラットフォーム」等と記述してはならない。
+    「中国の動画配信プラットフォーム」「中国のネット配信サービス」等と記述する。
+    （規制・配信許可は国家広電総局が所管するが、それはプラットフォームが政府系であることを
+    意味しない。規制の主体〈広電総局〉とプラットフォームの運営主体〈民間企業〉を混同しない。）
+
 ## 参照
 
 - [system-analysis.md](system-analysis.md): システムプロンプト全体の構成

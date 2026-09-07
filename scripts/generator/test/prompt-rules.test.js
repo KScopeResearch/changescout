@@ -58,6 +58,22 @@ test("opportunity-generation.md: free_opportunity の各フィールド定義に
   assert.match(oppGen, /最低2件.*非companyの関連source/s);
 });
 
+test("Phase54 STEP8: 他社の製品名を Opportunity title にしないルールが存在する", () => {
+  assert.match(qualityRules, /他社の製品名・サービス名をそのまま Opportunity のタイトルにしない/);
+});
+
+test("Phase54 STEP8: market_change を低score 1件で組み立てないルールが存在する", () => {
+  assert.match(qualityRules, /score が低い1件の source だけで組み立てない/);
+  assert.match(qualityRules, /低score source を「唯一の根拠」に[\s\S]{0,10}しない/);
+});
+
+test("Phase54 STEP8: 中国の動画配信プラットフォームを「政府系」と書かないルールが存在する", () => {
+  assert.match(qualityRules, /中国の動画配信プラットフォームを「政府系」「国営」と記述しない/);
+  assert.match(qualityRules, /bilibili/);
+  assert.match(qualityRules, /愛奇芸/);
+  assert.match(qualityRules, /騰訊視頻/);
+});
+
 test("Phase54 STEP5: priority_matrix の内部参照整合性ルールが存在する（free-1 を作らない）", () => {
   assert.match(oppGen, /存在しないidを作らない/);
   assert.match(oppGen, /free-1/);

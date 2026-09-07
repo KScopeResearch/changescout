@@ -165,12 +165,26 @@ test("STEP5 Test 5（空配列）: additional_opportunities が空でも priorit
   );
 });
 
-test("STEP5: STEP4 の ab-i.jp 生成物（存在する場合）は priority_matrix の不明id を検出する", () => {
+test("STEP5: ローカル ab-i.jp 生成物の priority_matrix — free-* 参照があれば検出、なければ整合", () => {
   const p = path.join(__dirname, "..", "output", "www.ab-i.jp", "report.json");
-  if (!fs.existsSync(p)) return; // STEP4 の生成物が消えていてもテストは落とさない
-  const v = validateReport(readJson(p));
-  assert.equal(v.ok, false);
-  assert.ok(v.errors.some((e) => /priority_matrix.*不明なid.*free-1/.test(e)), JSON.stringify(v.errors));
+  if (!fs.existsSync(p)) return; // 生成物が無くてもテストは落とさない
+  const r = readJson(p);
+  const refIds = [];
+  const quad = (((r.paid_analysis || {}).priority_matrix || {}).quadrants) || {};
+  Object.values(quad).forEach((q) => (q.opportunity_ids || []).forEach((id) => refIds.push(id)));
+  const v = validateReport(r);
+  if (refIds.some((id) => /^free-\d+$/.test(id))) {
+    // 旧バグ版が残っている場合 → validator が検出すること
+    assert.equal(v.ok, false);
+    assert.ok(v.errors.some((e) => /priority_matrix.*不明なid.*free-/.test(e)), JSON.stringify(v.errors));
+  } else {
+    // STEP6 で修正済みの版 → priority_matrix 系エラーは無いこと
+    assert.equal(
+      v.errors.some((e) => e.includes("priority_matrix")),
+      false,
+      JSON.stringify(v.errors.filter((e) => e.includes("priority_matrix")))
+    );
+  }
 });
 
 test("validateReport: evaluationフィールドの不正値を検出する", () => {
