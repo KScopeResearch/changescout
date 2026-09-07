@@ -9,7 +9,7 @@ const assert = require("node:assert/strict");
 
 const { search, getProvider } = require("../search/search-client");
 const { buildQueries, buildQueriesForCategory } = require("../search/query-builder");
-const { isDuplicate } = require("../deduplicate-sources");
+const { isDuplicate, dedupeSourcesByExactUrl } = require("../deduplicate-sources");
 
 test("query-builder: 会社名から最低5件のクエリを生成する", () => {
   const queries = buildQueries("テスト株式会社");
@@ -138,4 +138,89 @@ test("同一記事（タイトル完全一致）は引き続き重複として�
   const a = { title: "全く同じタイトルの記事", url: "https://source.example.com/a" };
   const b = { title: "全く同じタイトルの記事", url: "https://source.example.com/a/" };
   assert.equal(isDuplicate(a, b), true, "URL末尾スラッシュ違いは重複のはず");
+});
+
+// ---------------------------------------------------------------------------
+// dedupeSourcesByExactUrl — URL完全一致の最終一意化（Phase53 STEP10.8.1）
+// 実バグ: kouda@ab-i.jp のレポート生成で、会社ページ https://www.ab-i.jp が
+// government / technology の検索結果として2件 source_pages に残り、
+// validate-report.js の source_pages[].url 一意性チェックで reject された。
+// ---------------------------------------------------------------------------
+
+test("dedupeSourcesByExactUrl: 完全同一URLは1件に統合される", () => {
+  const { deduplicated, removedCount } = dedupeSourcesByExactUrl([
+    { id: "a", url: "https://www.ab-i.jp", title: "T1", score: 100 },
+    { id: "b", url: "https://www.ab-i.jp", title: "T2", score: 87 },
+  ]);
+  assert.equal(deduplicated.length, 1);
+  assert.equal(removedCount, 1);
+  assert.equal(deduplicated[0].url, "https://www.ab-i.jp");
+});
+
+test("dedupeSourcesByExactUrl: 同一URL・異なるsource_type/roleでも1件（scoreが高い方を残す）", () => {
+  const { deduplicated } = dedupeSourcesByExactUrl([
+    { id: "gov", url: "https://www.ab-i.jp", source_type: "government", source_role: "market_change", score: 100 },
+    { id: "tech", url: "https://www.ab-i.jp", source_type: "technology", source_role: "industry_trend", score: 87 },
+  ]);
+  assert.equal(deduplicated.length, 1);
+  assert.equal(deduplicated[0].id, "gov", "scoreが高い方を残す");
+});
+
+test("dedupeSourcesByExactUrl: 同一URLに会社ページ(source_type:company)が含まれる場合は会社ページを最優先で残す", () => {
+  const { deduplicated } = dedupeSourcesByExactUrl([
+    { id: "gov", url: "https://www.ab-i.jp", source_type: "government", score: 100 },
+    { id: "company", url: "https://www.ab-i.jp", source_type: "company", score: 50, title: "株式会社ABI" },
+  ]);
+  assert.equal(deduplicated.length, 1);
+  assert.equal(deduplicated[0].id, "company", "scoreが低くても会社ページを残す（company_profile.name のため）");
+});
+
+test("dedupeSourcesByExactUrl: 異なるURLは全件保持され、並び順も維持される", () => {
+  const input = [
+    { id: "1", url: "https://www.ab-i.jp", score: 100 },
+    { id: "2", url: "https://example.com", score: 90 },
+    { id: "3", url: "https://other.example", score: 80 },
+  ];
+  const { deduplicated, removedCount } = dedupeSourcesByExactUrl(input);
+  assert.deepEqual(
+    deduplicated.map((s) => s.id),
+    ["1", "2", "3"]
+  );
+  assert.equal(removedCount, 0);
+});
+
+test("dedupeSourcesByExactUrl: URLが空/nullの要素はそのまま残す（対象外）", () => {
+  const { deduplicated } = dedupeSourcesByExactUrl([
+    { id: "a", url: null },
+    { id: "b", url: "" },
+    { id: "c", url: "https://x.example" },
+    { id: "d", url: "https://x.example" },
+  ]);
+  assert.deepEqual(
+    deduplicated.map((s) => s.id),
+    ["a", "b", "c"]
+  );
+});
+
+test("dedupeSourcesByExactUrl: 空配列 / undefined を安全に扱う", () => {
+  assert.deepEqual(dedupeSourcesByExactUrl([]), { deduplicated: [], removedCount: 0 });
+  assert.deepEqual(dedupeSourcesByExactUrl(undefined), { deduplicated: [], removedCount: 0 });
+});
+
+test("dedupeSourcesByExactUrl: STEP10.8再現 — 15件中2件が同一URLでも、最終的にurl一意になる", () => {
+  const sources = [];
+  // STEP10.8 と同じ: [0] government と [9] technology が同じ https://www.ab-i.jp
+  sources.push({ id: "s1", url: "https://www.ab-i.jp", source_type: "government", source_role: "market_change", score: 100 });
+  for (let i = 2; i <= 9; i += 1) {
+    sources.push({ id: `s${i}`, url: `https://src${i}.example/p`, source_type: "government", source_role: "market_change", score: 90 });
+  }
+  sources.push({ id: "s10", url: "https://www.ab-i.jp", source_type: "technology", source_role: "industry_trend", score: 87 });
+  for (let i = 11; i <= 15; i += 1) {
+    sources.push({ id: `s${i}`, url: `https://src${i}.example/p`, source_type: "technology", source_role: "industry_trend", score: 80 });
+  }
+
+  const { deduplicated } = dedupeSourcesByExactUrl(sources);
+  const urls = deduplicated.map((s) => s.url);
+  assert.equal(new Set(urls).size, urls.length, "重複URLが残っていないこと（validate-report.js の一意性チェックが通る）");
+  assert.equal(deduplicated.length, 14, "同一URL 2件が1件に統合される");
 });

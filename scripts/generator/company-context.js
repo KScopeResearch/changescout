@@ -26,7 +26,7 @@ const { fetchNews } = require("./fetch-news");
 const { fetchStatistics } = require("./fetch-statistics");
 const { mergeSources } = require("./merge-sources");
 const { normalizeSources } = require("./normalize-sources");
-const { deduplicateSources } = require("./deduplicate-sources");
+const { deduplicateSources, dedupeSourcesByExactUrl } = require("./deduplicate-sources");
 const { scoreSources } = require("./score-sources");
 const { applyRelevanceGuard } = require("./search/relevance-guard");
 
@@ -199,8 +199,14 @@ async function buildCompanyContext(companyUrl) {
     (a, b) => b.score - a.score
   );
 
+  // --- URL完全一致の最終一意化 ---
+  // deduplicateSources() の fuzzy 判定をすり抜けて同一URLが複数残った場合の保険。
+  // score付与・関連性ガード・ソート後、URLが最終形になったこの段階で通すことで、
+  // validate-report.js が要求する source_pages[].url の完全一意性を保証する。
+  const { deduplicated: uniqueByUrl, removedCount: exactUrlRemovedCount } = dedupeSourcesByExactUrl(guarded);
+
   // --- 上位20件に絞り込み、最終idを確定させる ---
-  const topSources = guarded.slice(0, MAX_SOURCES_FOR_AI).map((item, index) => ({
+  const topSources = uniqueByUrl.slice(0, MAX_SOURCES_FOR_AI).map((item, index) => ({
     ...item,
     id: `src-${index + 1}`,
   }));
@@ -216,6 +222,7 @@ async function buildCompanyContext(companyUrl) {
       normalized_total: normalized.length,
       duplicates_removed: removedCount,
       after_dedupe: deduplicated.length,
+      exact_url_duplicates_removed: exactUrlRemovedCount,
       selected_for_ai: topSources.length,
       max_sources_for_ai: MAX_SOURCES_FOR_AI,
     },

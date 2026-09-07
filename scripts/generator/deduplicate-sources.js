@@ -123,4 +123,71 @@ function deduplicateSources(items) {
   return { deduplicated, removedCount };
 }
 
-module.exports = { deduplicateSources, isDuplicate, normalizeUrlForComparison, normalizeTitleForComparison, richnessScore };
+/**
+ * 2件（同一URL）のうち、最終的な source_pages に残すべき方を返す。
+ * @param {Object} a
+ * @param {Object} b
+ * @returns {Object}
+ */
+function preferForExactUrl(a, b) {
+  // 1. 会社自身のページ（source_type: "company"）は最優先で保持する。
+  //    同一URLが検索カテゴリ違いで複数回現れると、会社ページが government/technology 等へ
+  //    再分類された版に置き換わり、buildCompanyProfile() が source_type === "company" を
+  //    見つけられなくなる副作用があるため。
+  if (a.source_type === "company" && b.source_type !== "company") return a;
+  if (b.source_type === "company" && a.source_type !== "company") return b;
+  // 2. score（scoreSources() 付与後は数値）が高い方。
+  const sa = typeof a.score === "number" ? a.score : null;
+  const sb = typeof b.score === "number" ? b.score : null;
+  if (sa !== null && sb !== null && sa !== sb) return sa > sb ? a : b;
+  // 3. 情報量（richnessScore）が多い方。同点なら先着（a）を維持。
+  return richnessScore(a) >= richnessScore(b) ? a : b;
+}
+
+/**
+ * source配列を「URL完全一致」で最終的に一意化する。
+ *
+ * deduplicateSources() は正規化URL・タイトル近似での fuzzy 判定を行うが、
+ *   - dedup 実行時点ではURLの表記ゆれ（www有無・スキーム違い等）で別物と判定され、
+ *     後段（fetch のリダイレクト解決・正規化）で同一URLに揃う
+ *   - タイトルが検索プロバイダ側の truncation で微妙に異なる
+ * といったケースで、同一URLの source が複数残ることがある。
+ * validate-report.js は source_pages[].url の完全一意性を要求するため、
+ * score付与・関連性ガードを経てURLが最終形になった段階でこの関数を通し、
+ * 「同一URLは1件だけ」を保証する（deduplicateSources() の思想どおり、
+ * グループ内では最も残すべき1件〈会社ページ→score→richness〉のみ残す）。
+ *
+ * URLが falsy な要素は対象外（そのまま残す）。元の並び順は保持する。
+ * @param {Array<Object>} sources
+ * @returns {{ deduplicated: Array<Object>, removedCount: number }}
+ */
+function dedupeSourcesByExactUrl(sources) {
+  const indexByUrl = new Map(); // url -> result配列内のindex
+  const result = [];
+
+  (sources || []).forEach((item) => {
+    const url = item && item.url;
+    if (!url) {
+      result.push(item);
+      return;
+    }
+    if (!indexByUrl.has(url)) {
+      indexByUrl.set(url, result.length);
+      result.push(item);
+      return;
+    }
+    const idx = indexByUrl.get(url);
+    result[idx] = preferForExactUrl(result[idx], item);
+  });
+
+  return { deduplicated: result, removedCount: (sources || []).length - result.length };
+}
+
+module.exports = {
+  deduplicateSources,
+  dedupeSourcesByExactUrl,
+  isDuplicate,
+  normalizeUrlForComparison,
+  normalizeTitleForComparison,
+  richnessScore,
+};
