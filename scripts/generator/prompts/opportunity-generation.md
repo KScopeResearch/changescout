@@ -98,10 +98,15 @@
 必ず含め（内容は`locked_opportunities`のタイトルを引き継いだ詳細版）、それに加えて
 `locked_opportunities`にはない新規テーマを1件以上（`add-3`、`add-4`…の連番id）追加すること。
 
-**`priority_matrix`のidルール**: `opportunity_ids`に登場する全てのidは、必ず
-`additional_opportunities[].id`に実在すること。1つのidを複数の象限に重複して割り当てないこと。
-4つの象限（`high_impact_low_effort`/`high_impact_high_effort`/`low_impact_low_effort`/
-`low_impact_high_effort`）を全て出力すること（該当なしの象限は`opportunity_ids: []`でよい）。
+**`priority_matrix`のidルール（内部参照整合性・厳守）**:
+- `opportunity_ids`に書けるのは**`additional_opportunities[].id`（＝`locked-1`/`locked-2`/`add-3`…）だけ**。
+- **存在しないidを作らないこと。** 特に `free-1` / `free-N` のような「無料版Opportunity（`free_opportunity`）」を
+  指すidは**使わない**。`free_opportunity` は単一の項目であり、`priority_matrix` の対象外である。
+- `priority_matrix` に何かを載せたい場合は、まずそのテーマを `additional_opportunities` に
+  （`add-4` 等の連番idで）追加し、そのidを `opportunity_ids` に書くこと。
+- 1つのidを複数の象限に重複して割り当てないこと（同一象限内でも重複させない）。
+- 4つの象限（`high_impact_low_effort`/`high_impact_high_effort`/`low_impact_low_effort`/
+  `low_impact_high_effort`）を全て出力すること（該当なしの象限は`opportunity_ids: []`でよい）。
 
 ## 出力例
 

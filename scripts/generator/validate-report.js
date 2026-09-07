@@ -227,8 +227,11 @@ function validateReport(report) {
     }
     ids.forEach((id) => {
       if (!additionalIdSet.has(id)) {
+        // Phase54 STEP5: LLM が free-1 のような存在しない id を priority_matrix に書く事例あり。
+        // 検出はそのまま（error）。有効な id 一覧をメッセージに含めて是正しやすくする。
         errors.push(
-          `paid_analysis.priority_matrix.quadrants.${key}.opportunity_ids の "${id}" が additional_opportunities に存在しません`
+          `paid_analysis.priority_matrix.quadrants.${key}.opportunity_ids の不明なid "${id}"` +
+            `（additional_opportunities に存在しません。有効: ${additionalIds.join(", ") || "（なし）"}）`
         );
       }
       if (!idToQuadrants.has(id)) idToQuadrants.set(id, []);

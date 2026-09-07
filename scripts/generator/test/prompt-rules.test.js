@@ -57,3 +57,11 @@ test("opportunity-generation.md: free_opportunity の各フィールド定義に
   assert.match(oppGen, /market_change.*会社の説明にしない/s);
   assert.match(oppGen, /最低2件.*非companyの関連source/s);
 });
+
+test("Phase54 STEP5: priority_matrix の内部参照整合性ルールが存在する（free-1 を作らない）", () => {
+  assert.match(oppGen, /存在しないidを作らない/);
+  assert.match(oppGen, /free-1/);
+  assert.match(oppGen, /free-N/);
+  assert.match(oppGen, /priority_matrix.{0,40}対象外/s);
+  assert.match(qualityRules, /priority_matrix.{0,60}存在しないidを書いてはならない/s);
+});

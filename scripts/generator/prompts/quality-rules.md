@@ -49,6 +49,10 @@
   出典が特定できない主張を事実として書いてはならない
 - 実在しない事例・企業名を「事例」として創作すること（個社名までは特定できない場合は
   正直にその旨を書く。`case_examples`フィールドの既存の書き方を踏襲する）
+- **`paid_analysis.priority_matrix` に存在しないidを書いてはならない**（Phase54 STEP5追加）:
+  `priority_matrix.quadrants.*.opportunity_ids` に書けるのは `additional_opportunities[].id`
+  （`locked-*` / `add-*`）だけ。`free-1` のような無料版Opportunity（`free_opportunity`）を指すidや、
+  どこにも定義していないidを作らない。詳細は [opportunity-generation.md](opportunity-generation.md)
 - **`evidence_strength: "reference"`のsourceのみを根拠に、対象企業固有の事実を断定してはならない**
   （PJ2 AOR追加。`source_type: news`単独を根拠にしないルールと同じ考え方を、
   `evidence_strength`にも適用したもの。検索結果には対象企業とは無関係な別企業の情報が

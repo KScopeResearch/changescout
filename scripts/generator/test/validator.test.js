@@ -6,6 +6,7 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
+const fs = require("fs");
 
 const { validateReport, validateReview } = require("../validate-report");
 const { readJson } = require("../shared/json-file");
@@ -86,6 +87,90 @@ test("validateReport: priority_matrixで同一idが複数象限に重複割り�
   const result = validateReport(report);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.includes("重複して割り当てられています")));
+});
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP5 — paid_analysis priority_matrix の内部参照整合性
+// STEP4 の ab-i.jp 再生成で、LLM が priority_matrix に "free-1"（additional_opportunities に
+// 存在しない id）を出力し validateReport が FAIL したケースの回帰固定。
+// ---------------------------------------------------------------------------
+
+/** good.json をベースに paid_analysis を 3 opportunity（locked-1/locked-2/add-3）構成へ整える。 */
+function paidReport(quadrants) {
+  const r = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  r.locked_opportunities = [
+    { id: "locked-1", title: "テーマ1" },
+    { id: "locked-2", title: "テーマ2" },
+  ];
+  r.paid_analysis.additional_opportunities = [
+    { id: "locked-1", title: "テーマ1", summary: "s", expected_effect: "e", relevance: "中" },
+    { id: "locked-2", title: "テーマ2", summary: "s", expected_effect: "e", relevance: "中" },
+    { id: "add-3", title: "新規テーマ", summary: "s", expected_effect: "e", relevance: "高" },
+  ];
+  r.paid_analysis.priority_matrix.quadrants = {
+    high_impact_low_effort: { label: "L", opportunity_ids: quadrants.hl || [] },
+    high_impact_high_effort: { label: "H", opportunity_ids: quadrants.hh || [] },
+    low_impact_low_effort: { label: "LL", opportunity_ids: quadrants.ll || [] },
+    low_impact_high_effort: { label: "LH", opportunity_ids: quadrants.lh || [] },
+  };
+  return r;
+}
+
+test("STEP5 Test 1（正常系）: priority_matrix が既存 opportunity id のみを参照 → PASS", () => {
+  const r = paidReport({ hl: ["locked-1"], hh: ["add-3"], ll: ["locked-2"], lh: [] });
+  const v = validateReport(r);
+  assert.equal(v.ok, true, JSON.stringify(v.errors));
+});
+
+test("STEP5 Test 2（異常系・free-1 再現）: 存在しない id を参照 → FAIL", () => {
+  const r = paidReport({ hl: ["locked-1"], hh: ["free-1", "add-3"], ll: ["locked-2"], lh: [] });
+  const v = validateReport(r);
+  assert.equal(v.ok, false);
+  assert.ok(
+    v.errors.some((e) => e.includes('"free-1"') && e.includes("additional_opportunities")),
+    JSON.stringify(v.errors)
+  );
+  // 有効な id 一覧が是正のヒントとしてメッセージに含まれる
+  assert.ok(v.errors.some((e) => e.includes("有効: ") && e.includes("add-3")));
+});
+
+test("STEP5 Test 3（複数参照）: locked-1/locked-2/add-3 を全て正しく参照 → PASS", () => {
+  const r = paidReport({ hl: ["locked-1"], hh: ["locked-2"], ll: ["add-3"], lh: [] });
+  assert.equal(validateReport(r).ok, true);
+});
+
+test("STEP5 Test 4（重複参照）: 同一 id を同一象限内で2回参照 → FAIL（既存仕様の確認）", () => {
+  const r = paidReport({ hl: ["locked-1", "locked-1"], hh: [], ll: [], lh: [] });
+  const v = validateReport(r);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("重複して割り当てられています")));
+});
+
+test("STEP5 Test 5（空配列）: additional_opportunities が空でも priority_matrix が全て空なら PASS", () => {
+  const r = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  r.locked_opportunities = [];
+  r.paid_analysis.additional_opportunities = [];
+  r.paid_analysis.priority_matrix.quadrants = {
+    high_impact_low_effort: { label: "L", opportunity_ids: [] },
+    high_impact_high_effort: { label: "H", opportunity_ids: [] },
+    low_impact_low_effort: { label: "LL", opportunity_ids: [] },
+    low_impact_high_effort: { label: "LH", opportunity_ids: [] },
+  };
+  // free_opportunity.evidence の source_id は good.json の既存 source_pages を参照しているため触らない
+  const v = validateReport(r);
+  assert.equal(
+    v.errors.some((e) => e.includes("priority_matrix")),
+    false,
+    JSON.stringify(v.errors.filter((e) => e.includes("priority_matrix")))
+  );
+});
+
+test("STEP5: STEP4 の ab-i.jp 生成物（存在する場合）は priority_matrix の不明id を検出する", () => {
+  const p = path.join(__dirname, "..", "output", "www.ab-i.jp", "report.json");
+  if (!fs.existsSync(p)) return; // STEP4 の生成物が消えていてもテストは落とさない
+  const v = validateReport(readJson(p));
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => /priority_matrix.*不明なid.*free-1/.test(e)), JSON.stringify(v.errors));
 });
 
 test("validateReport: evaluationフィールドの不正値を検出する", () => {
