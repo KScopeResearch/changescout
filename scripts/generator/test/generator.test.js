@@ -17,7 +17,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 
-const { generateCompanyReport, slugFromUrl } = require("../generate-company-report");
+const { generateCompanyReport, slugFromUrl, buildCompanyProfile } = require("../generate-company-report");
 const { validateReport } = require("../validate-report");
 const { readJson } = require("../shared/json-file");
 const { REPORT_FIXTURES_DIR } = require("../shared/paths");
@@ -108,4 +108,75 @@ test("validateReport: fixtures/good.jsonがPASSする（ネットワーク不要
   const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
   const result = validateReport(report);
   assert.equal(result.ok, true);
+});
+
+// ---------------------------------------------------------------------------
+// buildCompanyProfile — 会社ページ保持 + 社名正規化 + placeholder 出し分け
+// （Phase53 STEP10.11、ネットワーク不要）
+// ---------------------------------------------------------------------------
+
+test("buildCompanyProfile: company source があれば <title> を正規化して name にする（Test C 相当・E2E）", () => {
+  const context = {
+    input_url: "https://illegame.com",
+    company_fetch_ok: true,
+    industry_hint: "中小企業",
+    sources: [
+      {
+        id: "src-5",
+        source_type: "company",
+        title: "イル・レガメのホームページへようこそ",
+        summary: "イル・レガメのホームページへようこそ IL LEGAME 私たちについて サービス 実績",
+        url: "https://illegame.com",
+      },
+    ],
+  };
+  const profile = buildCompanyProfile(context);
+  assert.equal(profile.name, "イル・レガメ");
+  assert.notEqual(profile.name, "イル・レガメのホームページへようこそ");
+  assert.ok(profile.business_summary && !profile.business_summary.startsWith("（"));
+});
+
+test("buildCompanyProfile: company source（法人格つき）は name に法人名を採用する（ab-i.jp 相当）", () => {
+  const context = {
+    input_url: "https://ab-i.jp",
+    company_fetch_ok: true,
+    industry_hint: "中小企業",
+    sources: [
+      {
+        id: "src-1",
+        source_type: "company",
+        title: "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+        summary: "本文の開始 # 株式会社ABI 日本国内と中国での映像コンテンツの配信からライブ・コンサート展開まで。",
+        url: "https://www.ab-i.jp",
+      },
+    ],
+  };
+  const profile = buildCompanyProfile(context);
+  assert.equal(profile.name, "株式会社ABI");
+  assert.notEqual(profile.name, "（会社名未取得: ab-i.jp）");
+  assert.notEqual(profile.business_summary, "（会社ページの取得に失敗したため未取得）");
+});
+
+test("buildCompanyProfile: company source が無く company_fetch_ok=true のとき「取得に失敗」placeholder を出さない（Test E）", () => {
+  const context = {
+    input_url: "https://foo.example",
+    company_fetch_ok: true,
+    industry_hint: "中小企業",
+    sources: [{ id: "src-1", source_type: "government", title: "一般的な補助金情報", url: "https://gov.example" }],
+  };
+  const profile = buildCompanyProfile(context);
+  assert.ok(profile.name, "name は空でない");
+  assert.notEqual(profile.business_summary, "（会社ページの取得に失敗したため未取得）");
+});
+
+test("buildCompanyProfile: company_fetch_ok=false は従来どおり未取得 placeholder（Test F 相当・回帰）", () => {
+  const context = {
+    input_url: "https://down.example",
+    company_fetch_ok: false,
+    industry_hint: "中小企業",
+    sources: [],
+  };
+  const profile = buildCompanyProfile(context);
+  assert.equal(profile.name, "（会社名未取得: down.example）");
+  assert.equal(profile.business_summary, "（会社ページの取得に失敗したため未取得）");
 });

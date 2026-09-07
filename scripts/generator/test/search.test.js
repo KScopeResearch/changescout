@@ -9,7 +9,7 @@ const assert = require("node:assert/strict");
 
 const { search, getProvider } = require("../search/search-client");
 const { buildQueries, buildQueriesForCategory } = require("../search/query-builder");
-const { isDuplicate, dedupeSourcesByExactUrl } = require("../deduplicate-sources");
+const { isDuplicate, dedupeSourcesByExactUrl, deduplicateSources } = require("../deduplicate-sources");
 
 test("query-builder: 会社名から最低5件のクエリを生成する", () => {
   const queries = buildQueries("テスト株式会社");
@@ -223,4 +223,69 @@ test("dedupeSourcesByExactUrl: STEP10.8再現 — 15件中2件が同一URLでも
   const urls = deduplicated.map((s) => s.url);
   assert.equal(new Set(urls).size, urls.length, "重複URLが残っていないこと（validate-report.js の一意性チェックが通る）");
   assert.equal(deduplicated.length, 14, "同一URL 2件が1件に統合される");
+});
+
+// ---------------------------------------------------------------------------
+// deduplicateSources — 重複グループ内で会社ページ(source_type:"company")を優先保持
+// （Phase53 STEP10.11）
+// 実バグ: ab-i.jp のレポートで、会社トップページが「市場変化」検索でも government として
+// ヒットし、fuzzy 重複グループにまとめられた際に richnessScore だけの比較で government 版が
+// 勝ち、company 版が context から脱落 → buildCompanyProfile() が会社名・事業概要を
+// placeholder に落とした。
+// ---------------------------------------------------------------------------
+
+test("deduplicateSources: 同一URLの company と generic が重複グループになったら company を残す（STEP10.11 Test A）", () => {
+  const company = {
+    title: "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+    url: "https://www.ab-i.jp",
+    organization: "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+    summary: "本文の開始 # 株式会社ABI 日本国内と中国での映像コンテンツの配信からライブ・コンサート展開まで。",
+    quote: "x".repeat(300),
+    source_type: "company",
+    source_role: "company_fact",
+  };
+  const gov = {
+    title: "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+    url: "https://www.ab-i.jp",
+    organization: null,
+    published_at: "2026-01-01T00:00:00.000Z", // richnessScore を company より高くしておく
+    summary: "本文の開始 # 株式会社ABI 日本国内と中国での映像コンテンツの配信からライブ・コンサート展開まで。".repeat(3),
+    quote: "y".repeat(600),
+    source_type: "government",
+    source_role: "market_change",
+  };
+
+  const { deduplicated, removedCount } = deduplicateSources([company, gov]);
+  assert.equal(deduplicated.length, 1, "同一URL・同一タイトルなので1件に統合される");
+  assert.equal(removedCount, 1);
+  assert.equal(
+    deduplicated[0].source_type,
+    "company",
+    "richnessScore が低くても company を残す（buildCompanyProfile が会社名を取れるように）"
+  );
+});
+
+test("deduplicateSources: company が絡まない重複グループは従来どおり richnessScore で選ぶ（STEP10.11 回帰）", () => {
+  const a = { title: "同じ記事", url: "https://a.example", summary: "短い", quote: null, source_type: "news", source_role: "evidence" };
+  const b = {
+    title: "同じ記事",
+    url: "https://b.example",
+    organization: "X社",
+    published_at: "2026-01-01T00:00:00.000Z",
+    summary: "こちらの方がずっと詳しい本文がある".repeat(5),
+    quote: "q",
+    source_type: "news",
+    source_role: "evidence",
+  };
+  const { deduplicated } = deduplicateSources([a, b]);
+  assert.equal(deduplicated.length, 1);
+  assert.equal(deduplicated[0].url, "https://b.example", "情報量が多い方（richnessScore 高）を残す");
+});
+
+test("deduplicateSources: 重複がなければ company も generic も全件そのまま残る（STEP10.11 回帰）", () => {
+  const company = { title: "株式会社ABI", url: "https://ab-i.jp", summary: "会社概要", source_type: "company", source_role: "company_fact" };
+  const gov = { title: "アニメ産業の補助金", url: "https://gov.example/anime", summary: "補助金の説明", source_type: "government", source_role: "market_change" };
+  const { deduplicated, removedCount } = deduplicateSources([company, gov]);
+  assert.equal(deduplicated.length, 2);
+  assert.equal(removedCount, 0);
 });

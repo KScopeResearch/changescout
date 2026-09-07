@@ -32,7 +32,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const { buildCompanyContext } = require("./company-context");
+const { buildCompanyContext, normalizeCompanyName } = require("./company-context");
 const { saveCompanyContext } = require("./company-context-store"); // PJ2 AOR: company_context backend接続PoC
 const { saveReport } = require("./report-store"); // PJ2 AOR: report backend接続（Phase B-3）
 const { buildSourcePages } = require("./simulate-ai-analysis");
@@ -82,14 +82,35 @@ function buildCompanyProfile(context) {
   const ok = context.company_fetch_ok;
   const hostname = hostnameOf(context);
 
+  // 【Phase53 STEP10.11】
+  // - name: 会社ページ（source_type: "company"）の <title> 生値をそのまま使わず、
+  //   normalizeCompanyName() で表示用に整える（"…へようこそ" 等の挨拶文・"公式サイト" の除去、
+  //   法人格付き社名の抽出）。整えられない場合のみ生 title へフォールバックする。
+  // - company source が context に無い場合の placeholder は company_fetch_ok の値で出し分ける
+  //   （取得成功時に「取得に失敗」と誤表示しない）。company source の保持自体は
+  //   deduplicate-sources.js（preferWithinGroup）側で対応済み。
+  let name;
+  let businessSummary;
+  if (companySource) {
+    name =
+      normalizeCompanyName(companySource.title, { bodyText: companySource.summary }) ||
+      companySource.title ||
+      `（会社名を特定できませんでした: ${hostname}）`;
+    businessSummary = companySource.summary || "（会社ページから事業概要を抽出できませんでした）";
+  } else {
+    name = ok ? `（会社名を特定できませんでした: ${hostname}）` : `（会社名未取得: ${hostname}）`;
+    businessSummary = ok
+      ? "（会社ページは取得できましたが本文を抽出できませんでした）"
+      : "（会社ページの取得に失敗したため未取得）";
+  }
+
   return {
-    name: ok && companySource ? companySource.title : `（会社名未取得: ${hostname}）`,
+    name,
     name_is_ai_estimated: true,
     domain: hostname,
     industry_label: context.industry_hint,
     industry_is_ai_estimated: true,
-    business_summary:
-      ok && companySource ? companySource.summary || "（取得内容なし）" : "（会社ページの取得に失敗したため未取得）",
+    business_summary: businessSummary,
     business_summary_is_ai_estimated: true,
     location: "不明（Task9時点では未取得）",
     founded_year: null,

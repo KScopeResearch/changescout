@@ -12,6 +12,8 @@ const assert = require("node:assert/strict");
 
 const {
   guessCompanyName,
+  normalizeCompanyName,
+  extractLegalEntityName,
   containsLegalEntityKeyword,
   isTooAmbiguousAsCompanyName,
 } = require("../company-context");
@@ -75,6 +77,54 @@ test("isTooAmbiguousAsCompanyName: 短い/英数字のみの候補を曖昧と�
   assert.equal(isTooAmbiguousAsCompanyName("ABC123"), true);
   assert.equal(isTooAmbiguousAsCompanyName("弘和印刷株式会社"), false);
   assert.equal(isTooAmbiguousAsCompanyName("アナログ製版は村山プロセス"), false);
+});
+
+// ---------------------------------------------------------------------------
+// normalizeCompanyName() — company_profile.name 表示用の社名正規化（Phase53 STEP10.11）
+// 実バグ: illegame.com のレポートで company_profile.name が <title> 生値
+// 「イル・レガメのホームページへようこそ」になっていた（会社名は "IL LEGAME" / "イル・レガメ"）。
+// ---------------------------------------------------------------------------
+
+test("normalizeCompanyName: 挨拶文つき<title>から挨拶文を除いた社名候補を返す（Test C — illegame.com 実ケース）", () => {
+  const result = normalizeCompanyName("イル・レガメのホームページへようこそ", {
+    bodyText: "イル・レガメのホームページへようこそ IL LEGAME 私たちについて サービス 実績",
+  });
+  assert.notEqual(result, "イル・レガメのホームページへようこそ", "<title> 生値をそのまま返さない");
+  assert.equal(result, "イル・レガメ");
+});
+
+test("normalizeCompanyName: 文中に法人格つき社名があれば抽出する（ab-i.jp 実ケース：full title / 検索スニペットの truncated title）", () => {
+  assert.equal(
+    normalizeCompanyName("アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI"),
+    "株式会社ABI"
+  );
+  // 検索スニペット由来で <title> が途中で切れていても、会社ページ本文から拾える
+  assert.equal(
+    normalizeCompanyName("アニメ制作から日本や中国での放映・コンテンツ配信なら株式 ...", {
+      bodyText: "本文の開始\n\n# 株式会社ABI\n\n日本国内と中国での映像コンテンツの配信",
+    }),
+    "株式会社ABI"
+  );
+});
+
+test("normalizeCompanyName: 正規の社名を含む<title>は過剰に削らない（Test D）", () => {
+  assert.equal(normalizeCompanyName("KOWA-１色・2色印刷専門の「弘和印刷株式会社」"), "弘和印刷株式会社");
+  assert.equal(normalizeCompanyName("ABC｜株式会社サンプル"), "株式会社サンプル");
+  assert.equal(normalizeCompanyName("有限会社さくら不動産"), "有限会社さくら不動産");
+  assert.equal(normalizeCompanyName("○○工務店 公式サイト"), "○○工務店");
+});
+
+test("normalizeCompanyName: 社名候補が得られない<title>は null を返す（呼び出し元がフォールバック）", () => {
+  assert.equal(normalizeCompanyName("Example Domain", { bodyText: "This domain is for use in illustrative examples." }), null);
+  assert.equal(normalizeCompanyName("Welcome to Acme Corp"), null);
+  assert.equal(normalizeCompanyName(""), null);
+  assert.equal(normalizeCompanyName(null), null);
+});
+
+test("extractLegalEntityName: 前株・後株どちらの法人名も1件抽出でき、助詞を巻き込まない", () => {
+  assert.equal(extractLegalEntityName("株式会社ABIを設立しました"), "株式会社ABI");
+  assert.equal(extractLegalEntityName("…専門の弘和印刷株式会社です"), "弘和印刷株式会社");
+  assert.equal(extractLegalEntityName("法人格の言及がない一般的な文章"), null);
 });
 
 // ---------------------------------------------------------------------------

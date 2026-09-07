@@ -98,7 +98,29 @@ function richnessScore(item) {
 }
 
 /**
- * 正規化済み配列から重複を除去する。重複グループの中では情報量が最も多いものを残す。
+ * 重複グループ内で最終的に残す1件を選ぶ。
+ *
+ * 【Phase53 STEP10.11】会社自身のページ（source_type: "company"）は、対象URLから
+ * 直接取得した一次情報（ground truth）である。同じページが検索結果としても返ってくると
+ * （例: 会社トップページが「市場変化」検索で government 扱いでヒットする）、重複グループに
+ * まとめられた際に richnessScore だけの比較では検索結果版が勝ち、company 版が脱落する。
+ * すると後段の buildCompanyProfile() が source_type === "company" を見つけられず、
+ * 会社名・事業概要が placeholder に落ちる（ab-i.jp で実際に発生）。
+ * そのため、グループ内に company が1件でもあれば最優先で残す。
+ * company が無い（または複数ある）場合は従来どおり情報量（richnessScore）で選ぶ。
+ * @param {Object} best - 現在の暫定勝者
+ * @param {Object} current - 比較対象
+ * @returns {Object}
+ */
+function preferWithinGroup(best, current) {
+  if (best.source_type === "company" && current.source_type !== "company") return best;
+  if (current.source_type === "company" && best.source_type !== "company") return current;
+  return richnessScore(current) > richnessScore(best) ? current : best;
+}
+
+/**
+ * 正規化済み配列から重複を除去する。重複グループの中では
+ * 会社自身のページ（source_type: "company"）→ 情報量が最も多いもの、の順で残す。
  * @param {Array<Object>} items - normalizeSources() の出力
  * @returns {{ deduplicated: Array<Object>, removedCount: number }}
  */
@@ -116,7 +138,7 @@ function deduplicateSources(items) {
 
   const deduplicated = groups.map((group) => {
     if (group.length === 1) return group[0];
-    return group.reduce((best, current) => (richnessScore(current) > richnessScore(best) ? current : best));
+    return group.reduce((best, current) => preferWithinGroup(best, current));
   });
 
   const removedCount = (items || []).length - deduplicated.length;
@@ -186,6 +208,7 @@ function dedupeSourcesByExactUrl(sources) {
 module.exports = {
   deduplicateSources,
   dedupeSourcesByExactUrl,
+  preferWithinGroup,
   isDuplicate,
   normalizeUrlForComparison,
   normalizeTitleForComparison,

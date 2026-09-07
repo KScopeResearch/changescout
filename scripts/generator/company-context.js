@@ -143,6 +143,99 @@ function guessCompanyName(companyResult, companyUrl) {
   }
 }
 
+// サイトの<title>によく付く定型句（会社名の一部ではない表示上のノイズ）。
+// company_profile.name に <title> の生値をそのまま使うと「イル・レガメのホームページへ
+// ようこそ」のような挨拶文が会社名欄に出るため、これらを除去する。
+const SITE_TITLE_NOISE_PATTERNS = [
+  /(の)?公式(ホームページ|サイト|ウェブサイト|Webサイト|ウェブページ)/gi,
+  /(の)?オフィシャル(ホームページ|サイト|ウェブサイト)/gi,
+  /(の)?ホームページ(へ)?/g,
+  /(へ)?ようこそ[、。!！]?/g,
+  /トップページ/g,
+  /^\s*welcome\s+to\s+/gi,
+  /\bofficial\s+(web\s*)?site\b/gi,
+  /\bhome\s*page\b/gi,
+];
+
+/** @param {string} text @returns {string} */
+function stripSiteTitleNoise(text) {
+  let out = text || "";
+  for (const re of SITE_TITLE_NOISE_PATTERNS) out = out.replace(re, "");
+  return out;
+}
+
+// 法人格（前株・後株）付きの社名を1件だけ抜き出すための文字クラス・接尾辞。
+// relevance-guard.js の ENTITY_MENTION_PATTERN と同種だが、こちらは「会社自身の
+// ページ（ground truth）から表示用の社名を取り出す」用途に絞った軽量版。
+// ひらがなを名前部分に含めない（"株式会社を設立" の "を" 等、助詞の巻き込みを避ける）。
+const LEGAL_ENTITY_SUFFIX_FOR_NAME = "(?:株式会社|有限会社|合同会社|一般社団法人|一般財団法人)";
+const LEGAL_ENTITY_NAME_CHARS = "一-龠ァ-ヶーA-Za-z0-9・･";
+
+/**
+ * テキストから「前株（株式会社○○）」または「後株（○○株式会社）」形式の法人名を
+ * 1件抽出する。会社自身のページの<title>・本文に対して使う想定。
+ * @param {string} text
+ * @returns {string|null}
+ */
+function extractLegalEntityName(text) {
+  if (!text || typeof text !== "string") return null;
+  const maegabu = new RegExp(`${LEGAL_ENTITY_SUFFIX_FOR_NAME}\\s?([${LEGAL_ENTITY_NAME_CHARS}]{1,20})`);
+  const atogabu = new RegExp(`([${LEGAL_ENTITY_NAME_CHARS}]{1,16})(${LEGAL_ENTITY_SUFFIX_FOR_NAME})`);
+  let m = text.match(maegabu);
+  if (m) {
+    const cand = m[0].replace(/\s+/g, "").replace(/[・･]+$/, "");
+    if (!isTooAmbiguousAsCompanyName(cand)) return cand;
+  }
+  m = text.match(atogabu);
+  if (m) {
+    const cand = `${m[1]}${m[2]}`.replace(/\s+/g, "");
+    if (!isTooAmbiguousAsCompanyName(cand)) return cand;
+  }
+  return null;
+}
+
+/**
+ * 会社自身のページから取得した <title>（fetchCompany() の label 生値）を、
+ * company_profile.name として表示できる社名候補へ整える。
+ * 外部API・追加のWeb取得は一切行わない（既に手元にある title と本文のみを使う）。
+ *
+ *   1. <title> 内に法人格付きの社名があれば最優先で抽出する
+ *      （例: "…なら株式会社ABI" → "株式会社ABI"、"「弘和印刷株式会社」" → "弘和印刷株式会社"）
+ *   2. なければ、区切り文字で分割し定型句（"公式サイト" "ホームページへようこそ" 等）を
+ *      除去したセグメントのうち、法人格を含むもの → 会社ページ本文中の法人名 →
+ *      最長セグメント の順に採用する
+ *   3. いずれも曖昧（短すぎる/英数字のみ）なら null を返す（呼び出し元がフォールバック）
+ *
+ * @param {string} rawTitle - fetchCompany() の label（<title> 生値）
+ * @param {{ bodyText?: string }} [options] - bodyText は会社ページ本文（company source の summary）
+ * @returns {string|null} 正規化済みの社名候補。得られない場合は null。
+ */
+function normalizeCompanyName(rawTitle, options = {}) {
+  const bodyText = options.bodyText || "";
+
+  const fromTitleEntity = extractLegalEntityName(rawTitle);
+  if (fromTitleEntity) return fromTitleEntity;
+
+  if (rawTitle && typeof rawTitle === "string") {
+    const segments = rawTitle
+      .split(/[|｜/／]|[-―–—]{2,}|\s[-―–—]\s/)
+      .map((s) => stripSiteTitleNoise(s).trim())
+      .filter(Boolean);
+
+    const withLegalEntity = segments.find(containsLegalEntityKeyword);
+    if (withLegalEntity && !isTooAmbiguousAsCompanyName(withLegalEntity)) return withLegalEntity;
+
+    const fromBodyEntity = extractLegalEntityName(bodyText);
+    if (fromBodyEntity) return fromBodyEntity;
+
+    const longest = segments.reduce((best, cur) => (cur.length > best.length ? cur : best), "");
+    if (longest && !isTooAmbiguousAsCompanyName(longest)) return longest;
+    return null;
+  }
+
+  return extractLegalEntityName(bodyText);
+}
+
 /**
  * 会社URLを起点に company_context を構築する。
  * 内部で fetch → merge → normalize → deduplicate → score の順に処理する。
@@ -234,6 +327,9 @@ module.exports = {
   buildCompanyContext,
   guessIndustryHint,
   guessCompanyName,
+  normalizeCompanyName,
+  extractLegalEntityName,
+  stripSiteTitleNoise,
   containsLegalEntityKeyword,
   isTooAmbiguousAsCompanyName,
 };
