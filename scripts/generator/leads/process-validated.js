@@ -31,6 +31,12 @@
  * 使い方:
  *   node scripts/generator/leads/process-validated.js
  *   （status:"validated"の全Leadを対象に一括処理する）
+ *
+ *   node scripts/generator/leads/process-validated.js --lead-id <LEAD_ID>
+ *   （指定した1件のvalidated Leadだけを処理する。Controlled E2E等、対象を隔離して
+ *   進めたいケース向け。内部処理はbatchと共通のprocessValidatedLead()を呼ぶだけで、
+ *   ロジックは分岐しない。--lead-idモードでは他のvalidated Leadを一切読み込まない
+ *   （listLeads()による全件走査を行わず、readLead(leadId)で対象1件のみを取得する）。）
  */
 
 const { generateCompanyReport } = require("../generate-company-report");
@@ -48,6 +54,10 @@ const { readLead, updateLead, appendHistory, listLeads } = require("./lead-store
  */
 async function processValidatedLead(leadId, options = {}) {
   const generateReport = options.generateReport || generateCompanyReport;
+
+  if (typeof leadId !== "string" || !leadId) {
+    return { ok: false, leadId, error: "leadId（文字列）が必須です" };
+  }
 
   const lead = await readLead(leadId);
   if (!lead) {
@@ -137,7 +147,35 @@ function printSummary(result) {
   }
 }
 
+/**
+ * CLI引数から --lead-id の値を取り出す（`--lead-id X` と `--lead-id=X` の両形式に対応）。
+ * @param {string[]} argv - process.argv.slice(2) 相当
+ * @returns {string|null}
+ */
+function parseLeadIdArg(argv) {
+  for (let i = 0; i < argv.length; i += 1) {
+    const eq = argv[i].match(/^--lead-id=(.+)$/s);
+    if (eq) return eq[1];
+    if (argv[i] === "--lead-id") return argv[i + 1] || null;
+  }
+  return null;
+}
+
 async function main() {
+  const leadId = parseLeadIdArg(process.argv.slice(2));
+
+  if (leadId !== null) {
+    // 単一Leadモード: 対象1件だけを処理する。listLeads()（全件走査）は使わない。
+    const single = await processValidatedLead(leadId);
+    const result = {
+      summary: { total: 1, succeeded: single.ok ? 1 : 0, failed: single.ok ? 0 : 1 },
+      results: [single],
+    };
+    printSummary(result);
+    if (!single.ok) process.exitCode = 1;
+    return;
+  }
+
   const result = await processAllValidatedLeads();
   printSummary(result);
   if (result.summary.failed > 0) process.exitCode = 1;
@@ -147,4 +185,4 @@ if (require.main === module) {
   runCli(main);
 }
 
-module.exports = { processValidatedLead, processAllValidatedLeads };
+module.exports = { processValidatedLead, processAllValidatedLeads, parseLeadIdArg };

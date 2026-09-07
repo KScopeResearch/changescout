@@ -19,7 +19,7 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 
-const { processValidatedLead, processAllValidatedLeads } = require("../leads/process-validated");
+const { processValidatedLead, processAllValidatedLeads, parseLeadIdArg } = require("../leads/process-validated");
 const { createLead, readLead, updateLead, appendHistory, LEADS_DIR } = require("../leads/lead-store");
 
 /** @param {string} leadId */
@@ -239,4 +239,56 @@ test("processAllValidatedLeads: validatedなLeadだけを対象にする", async
   assert.ok(!processedIds.includes(collectedLead.lead_id), "collectedのLeadは対象に含まれないはず");
   assert.equal((await readLead(validatedLead.lead_id)).status, "report_generated");
   assert.equal((await readLead(collectedLead.lead_id)).status, "collected", "触れられていないはず");
+});
+
+// ---------------------------------------------------------------------------
+// 単一Lead指定（--lead-id）: P6対策
+// ---------------------------------------------------------------------------
+
+test("parseLeadIdArg: --lead-id X / --lead-id=X / 未指定 を正しく解釈する", () => {
+  assert.equal(parseLeadIdArg(["--lead-id", "abc123"]), "abc123");
+  assert.equal(parseLeadIdArg(["--lead-id=abc123"]), "abc123");
+  assert.equal(parseLeadIdArg(["--other", "x", "--lead-id", "L1"]), "L1");
+  assert.equal(parseLeadIdArg([]), null);
+  assert.equal(parseLeadIdArg(["--lead-id"]), null, "値が続かない場合はnull");
+});
+
+test("processValidatedLead: leadIdが未指定/空文字なら、Leadを読まずにエラーを返す", async () => {
+  const r1 = await processValidatedLead(undefined);
+  assert.equal(r1.ok, false);
+  assert.match(r1.error, /leadId（文字列）が必須/);
+
+  const r2 = await processValidatedLead("");
+  assert.equal(r2.ok, false);
+  assert.match(r2.error, /leadId（文字列）が必須/);
+});
+
+test("単一Lead処理: 指定した1件だけがreport_generatedになり、他のvalidated Leadは一切触られない", async (t) => {
+  const target = await createLead(sampleParams({ email: "single-target@example.invalid" }));
+  t.after(() => cleanupLead(target.lead_id));
+  await markValidated(target.lead_id);
+
+  // 「巻き込んではいけない」もう1件のvalidated Lead（fc2ffcac / example.invalid 相当）
+  const bystander = await createLead(
+    sampleParams({ email: "single-bystander@example.invalid", company_url: "https://example.invalid" })
+  );
+  t.after(() => cleanupLead(bystander.lead_id));
+  await markValidated(bystander.lead_id);
+
+  const gen = fakeGenerator({ slug: "single-target.example" });
+  const result = await processValidatedLead(target.lead_id, { generateReport: gen.fn });
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(gen.calls, [target.company_url], "対象Leadのcompany_urlだけが生成へ渡るはず");
+
+  assert.equal((await readLead(target.lead_id)).status, "report_generated");
+
+  const bystanderAfter = await readLead(bystander.lead_id);
+  assert.equal(bystanderAfter.status, "validated", "指定していないvalidated Leadは触られないはず");
+  assert.equal(bystanderAfter.company_slug, null);
+  assert.deepEqual(
+    bystanderAfter.history.map((h) => h.event),
+    ["collected", "validated"],
+    "bystanderのhistoryにreport_generatedは追加されないはず"
+  );
 });
