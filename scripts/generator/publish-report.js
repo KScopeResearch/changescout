@@ -112,6 +112,47 @@ function usesNonFilesystemPublishedBackend() {
 }
 
 /**
+ * 【Phase53 STEP10.14】publish 時に、Review 状態の canonical source（review store）の状態を
+ * 公開用 report の埋め込み `human_review` へ反映する（P2-1 修正）。
+ *
+ * 背景: report.json の `human_review.status` はレポート生成時のスナップショット
+ * （常に `pending_review`）であり、review store で approve されても自動更新されない
+ * （review-schema.md「Task14: 同期しない」の決定）。その結果、review store は `approved`
+ * なのに report-preview.html が「⚠ レビュー中」と表示していた。
+ *
+ * 方針:
+ * - report.json / review.json 自体は一切書き換えない（読み取り専用の既存契約を維持）。
+ *   canonical な状態を載せるのは「公開される派生成果物」
+ *   （website/aor/data/<slug>.json / published/<slug>.json）だけ。
+ * - review store と埋め込み status が既に一致している場合は `human_review` を触らない
+ *   （不整合が無い限り「公開物 = report.json のコピー」という既存の前提を保つ）。
+ * - status のほか reviewer / reviewed_at も canonical 側へ寄せる。checklist / notes /
+ *   review_history 等の既存フィールドは保持する。schema_version は変更しない。
+ * - review.json の status は4値だが、publishReport() は isPublishable()
+ *   （`review.status === "approved"` が条件）を通った時しか書き込まないため、
+ *   実際にここで載る canonical 値は `approved` のみ。
+ *
+ * @param {Object} report - loadReport() の戻り値
+ * @param {Object} review - reviewStore.loadReview() の戻り値（Review 状態の canonical）
+ * @returns {Object} report（不整合時のみ `human_review` が差し替わる新オブジェクト。入力は変更しない）
+ */
+function syncPublishedHumanReview(report, review) {
+  const canonicalStatus = (review && review.status) || "pending_review";
+  const embedded = (report && report.human_review) || {};
+  if (embedded.status === canonicalStatus) return report; // 不整合なし → そのまま
+
+  return {
+    ...report,
+    human_review: {
+      ...embedded,
+      status: canonicalStatus,
+      reviewer: (review && review.reviewer) || embedded.reviewer || null,
+      reviewed_at: (review && review.reviewed_at) || embedded.reviewed_at || null,
+    },
+  };
+}
+
+/**
  * 承認済み（isPublishable()===true）のレポートをwebsite/aor/data/<slug>.jsonへ公開する。
  * report.json・review.jsonはいずれも読み取りのみで、一切変更しない。
  *
@@ -181,6 +222,10 @@ async function publishReport(slug, options = {}) {
   const review = await reviewStore.loadReview(slug, report.id);
   const { publishable, reasons } = engine.isPublishable(review, report.evaluation || null, report);
 
+  // 【Phase53 STEP10.14】公開用コピーには review store（canonical）の状態を反映する。
+  // report.json / review.json は書き換えない。
+  const reportToPublish = syncPublishedHumanReview(report, review);
+
   if (!publishable) {
     return {
       ok: false,
@@ -204,8 +249,9 @@ async function publishReport(slug, options = {}) {
   }
 
   // 既存のローカル公開経路（deploy-aor-web.jsの同期元）はPUBLISHED_STORE_BACKENDの値に
-  // 関わらず常に維持する。内容は変換・加工せずそのまま書き込む。
-  await publishedFsBackend.writePublished(slug, report);
+  // 関わらず常に維持する。内容は変換・加工しない（STEP10.14 の human_review 同期のみ、
+  // review store との不整合がある場合に限り適用される）。
+  await publishedFsBackend.writePublished(slug, reportToPublish);
   logger.info(`公開しました（filesystem）: ${slug} → ${publishedPath}`);
 
   // PJ2 AOR Phase 3-D-1: Lambda側の公開判定に使うcanonical stateはpublished store。
@@ -214,7 +260,7 @@ async function publishReport(slug, options = {}) {
   let publishedStoreSyncError;
   if (usesNonFilesystemPublishedBackend()) {
     try {
-      await publishedStore.savePublished(slug, report, options);
+      await publishedStore.savePublished(slug, reportToPublish, options);
       logger.info(`公開しました（published store / ${process.env.PUBLISHED_STORE_BACKEND}）: ${slug}`);
     } catch (err) {
       // Phase 11: ローカル公開は既に成功しているため、ここでは例外を投げてpublishReport()
@@ -258,4 +304,11 @@ if (require.main === module) {
   runCli(main);
 }
 
-module.exports = { publishReport, isPublished, publishedPathFor, validateSlug, AOR_DATA_DIR };
+module.exports = {
+  publishReport,
+  isPublished,
+  publishedPathFor,
+  validateSlug,
+  AOR_DATA_DIR,
+  syncPublishedHumanReview,
+};

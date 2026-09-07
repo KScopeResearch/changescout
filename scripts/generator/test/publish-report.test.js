@@ -13,10 +13,18 @@ const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 
-const { publishReport, isPublished, publishedPathFor, validateSlug, AOR_DATA_DIR } = require("../publish-report");
+const {
+  publishReport,
+  isPublished,
+  publishedPathFor,
+  validateSlug,
+  AOR_DATA_DIR,
+  syncPublishedHumanReview,
+} = require("../publish-report");
 const { readJson, writeJson } = require("../shared/json-file");
 const { OUTPUT_DIR } = require("../shared/paths");
 const engine = require("../review/review-engine");
+const { validateReport } = require("../validate-report");
 const reportStore = require("../report-store"); // PJ2 AOR: report backend接続（Phase B-4）のテストで使用
 
 const FIXTURE_REPORT = readJson(path.join(__dirname, "..", "fixtures", "good.json"));
@@ -115,6 +123,144 @@ test("publishReport: report.json・review.jsonを一切書き換えない", asyn
   } finally {
     cleanupCompany(slug);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Phase53 STEP10.14 — Review Status Sync（Review Store が canonical、publish 時に公開物へ反映）
+// ---------------------------------------------------------------------------
+
+/** 埋め込み human_review.status が pending_review の report を作る（生成直後スナップショット相当）。 */
+function pendingReviewReport(slug) {
+  return {
+    ...FIXTURE_REPORT,
+    id: slug,
+    human_review: { ...FIXTURE_REPORT.human_review, status: "pending_review", reviewer: null, reviewed_at: null },
+  };
+}
+
+test("STEP10.14 Test A: review store が approved なら、公開された report の human_review.status も approved になる", async () => {
+  const slug = "test-sync-approved";
+  cleanupCompany(slug);
+  const dir = path.join(OUTPUT_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  const report = pendingReviewReport(slug);
+  writeJson(path.join(dir, "report.json"), report);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "Takenori Kouda" });
+  writeJson(path.join(dir, "review.json"), review);
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, true);
+    const published = readJson(result.publishedPath);
+    assert.equal(published.human_review.status, "approved", "公開物は canonical（review store）の状態を反映するはず");
+    assert.equal(published.human_review.reviewer, "Takenori Kouda");
+    assert.ok(published.human_review.reviewed_at);
+    // report.json 本体（source: OUTPUT_DIR/<slug>/report.json）は書き換えない
+    assert.equal(readJson(path.join(dir, "report.json")).human_review.status, "pending_review");
+    // human_review 以外は変換しない
+    assert.deepEqual({ ...published, human_review: 0 }, { ...report, human_review: 0 });
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+test("STEP10.14 Test B: syncPublishedHumanReview は review rejected を rejected として反映する（publishReport は isPublishable で弾くため helper 単体で確認）", () => {
+  const report = { human_review: { status: "pending_review", checklist: { a: null }, notes: "n" } };
+  const review = { status: "rejected", reviewer: "r", reviewed_at: "2026-09-07T00:00:00.000Z" };
+  const out = syncPublishedHumanReview(report, review);
+  assert.equal(out.human_review.status, "rejected");
+  assert.equal(out.human_review.reviewer, "r");
+  assert.deepEqual(out.human_review.checklist, { a: null }, "既存フィールドは保持");
+  assert.equal(out.human_review.notes, "n");
+});
+
+test("STEP10.14 Test C: review store 未存在（pending_review 相当）なら human_review は pending_review のまま安全に扱う", () => {
+  const report = { human_review: { status: "pending_review" } };
+  const out = syncPublishedHumanReview(report, engine.createEmptyReview("id"));
+  assert.equal(out.human_review.status, "pending_review");
+  assert.equal(out, report, "不整合なし → 同一オブジェクトを返す（触らない）");
+  // review が undefined でもクラッシュしない
+  assert.equal(syncPublishedHumanReview(report, undefined).human_review.status, "pending_review");
+});
+
+test("STEP10.14 Test D: publish の human_review 同期は delivery_approval_status に一切触れない（Review approval と Delivery Approval は独立）", async () => {
+  const slug = "test-sync-delivery-independent";
+  cleanupCompany(slug);
+  const dir = path.join(OUTPUT_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  const report = { ...pendingReviewReport(slug), delivery_approval_status: "pending" }; // report にこのフィールドは通常無いが、あっても触らないことを確認
+  writeJson(path.join(dir, "report.json"), report);
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(dir, "review.json"), review);
+
+  try {
+    const published = readJson((await publishReport(slug)).publishedPath);
+    assert.equal(published.human_review.status, "approved");
+    assert.equal(published.delivery_approval_status, "pending", "delivery_approval_status は変更されない");
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+test("STEP10.14 Test E: review pending → human_review.status は pending_review（既に一致なら触らない）", () => {
+  const report = { human_review: { status: "pending_review", reviewer: null } };
+  const out = syncPublishedHumanReview(report, { status: "pending_review" });
+  assert.equal(out, report);
+});
+
+test("STEP10.14 Test F: 同期後の report は validateReport を PASS し、schema_version も不変", () => {
+  const report = pendingReviewReport("test-sync-schema");
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  const synced = syncPublishedHumanReview(report, review);
+  assert.equal(synced.meta.schema_version, report.meta.schema_version);
+  assert.equal(synced.meta.schema_version, "2.4");
+  const v = validateReport(synced);
+  assert.equal(v.ok, true, `validateReport errors: ${JSON.stringify(v.errors)}`);
+});
+
+test("STEP10.14 Test G/H: illegame.com / ab-i.jp 型（埋め込み pending_review + canonical approved）で公開物が approved になる", () => {
+  ["illegame.com", "ab-i.jp"].forEach((slug) => {
+    const report = pendingReviewReport(slug);
+    const review = { status: "approved", reviewer: "Takenori Kouda", reviewed_at: "2026-09-07T09:41:42.016Z" };
+    const synced = syncPublishedHumanReview(report, review);
+    assert.equal(synced.human_review.status, "approved");
+    assert.equal(synced.human_review.reviewer, "Takenori Kouda");
+    // preview の renderReviewStatus 相当（status === "approved" で「確認済み」表示）
+    assert.equal(synced.human_review.status === "approved", true);
+  });
+});
+
+test("STEP10.14 Test I: 埋め込み status が既に canonical と一致していれば公開物は report と完全一致（既存挙動 regression）", async () => {
+  const slug = "test-sync-no-mismatch-identity";
+  cleanupCompany(slug);
+  const { report } = setupCompany(slug); // good.json（human_review.status = "approved"）
+  let review = engine.createEmptyReview(report.id);
+  review = engine.approve(review, { reviewer: "tester" });
+  writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+
+  try {
+    const result = await publishReport(slug);
+    assert.equal(result.ok, true);
+    assert.deepEqual(readJson(result.publishedPath), report, "不整合が無ければ従来どおりバイト一致コピー");
+  } finally {
+    cleanupCompany(slug);
+  }
+});
+
+test("STEP10.14 Test J: 公開物の human_review.status は必ず canonical(review store) の status と一致する", () => {
+  const cases = [
+    ["pending_review", "approved", "approved"],
+    ["approved", "approved", "approved"],
+    ["pending_review", "pending_review", "pending_review"],
+    ["approved", "rejected", "rejected"],
+  ];
+  cases.forEach(([embedded, canonical, expected]) => {
+    const out = syncPublishedHumanReview({ human_review: { status: embedded } }, { status: canonical });
+    assert.equal(out.human_review.status, expected, `${embedded} + ${canonical} → ${expected}`);
+  });
 });
 
 test("publishReport: evaluation.status===FAILの場合はreview.statusがapprovedでも公開を拒否する", async () => {
