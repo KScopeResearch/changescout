@@ -55,7 +55,7 @@ test("quality-rules.md: 主体取り違え（日本政府 vs 中国政府）を�
 test("opportunity-generation.md: free_opportunity の各フィールド定義に Phase54 の要点が反映されている", () => {
   assert.match(oppGen, /既存事業の言い換え.*不可/);
   assert.match(oppGen, /market_change.*会社の説明にしない/s);
-  assert.match(oppGen, /最低2件.*非companyの関連source/s);
+  assert.match(oppGen, /最低4件.*非companyの関連source/s);
 });
 
 test("Phase54 STEP8: 他社の製品名を Opportunity title にしないルールが存在する", () => {

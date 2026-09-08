@@ -572,10 +572,19 @@ function checkMarketChangeEvidenceGate(report, errors) {
   );
   if (!hasStrongExternal) {
     const kinds = cited.map((s) => `${s.id}:${s.source_type}/${s.score}`).join(", ");
+    // 是正のヒント: プールに score>=70 の外部市場 source があれば示す。
+    const available = (report.source_pages || [])
+      .filter((s) => MARKET_CHANGE_OK_TYPES.includes(s.source_type) && !isReferenceGradeSource(s) && (s.score || 0) >= 70)
+      .map((s) => `${s.id}(${s.source_type}/${s.score})`);
     errors.push(
-      "free_opportunity.market_change が外部市場 source（government/statistics/industry_association/" +
-        `technology・news可、score>=70・非 reference）を引用していません（引用: ${kinds}）` +
-        "（Phase54 STEP8A.1 STEP5 / STEP8A.2 Gate-3: directory/review・reference のみ・company のみで市場変化を書かない）"
+      "Market Change must cite at least one external market source with relevance score >= 70 " +
+        "（market_change が外部市場 source を引用していません: government/statistics/industry_association、" +
+        "または score>=70 の news/technology。" +
+        `reference・score<=30 は不可）。現在の引用: ${kinds}。` +
+        (available.length
+          ? `引用可能な候補: ${available.join(", ")}`
+          : "該当 source が sources に無い場合は market_change に「公開情報では十分な市場変化を確認できませんでした。」と明記すること") +
+        "（Phase54 STEP8A.4 Rule16 / Gate-3）"
     );
   }
 }

@@ -16,7 +16,7 @@
   "title": "Opportunityのタイトル（一文）。既存事業の言い換え・「〜の強化/拡販」だけは不可。AI活用・新規事業/商品化・市場拡張・業務変革・制度変化を捉えた一手のいずれかへ寄せる",
   "why_now": "なぜ今か（fact区分: 外部の変化＝市場・制度・技術・競合・需要 で説明する。会社の説明だけで終わらせない）",
   "why_company": "なぜこの会社なのか（fact区分: source_type:\"company\"/一次情報で会社の強み・立ち位置を述べ、それをtitleの方向へ発展させられる根拠を示す）",
-  "market_change": "対象企業の外で起きている変化（市場規模・成長率の統計、制度・補助金・規制の変更、AI/技術トレンド、競合・顧客行動の変化）を、それを示すsource_idを添えて書く。会社の説明にしない。同名・別住所の別法人を『同業他社』にしない",
+  "market_change": "対象企業の外で起きている変化（市場規模・成長率の統計、制度・補助金・規制の変更、AI/技術トレンド、競合・顧客行動の変化）を、それを示すsource_idを添えて書く。会社の説明にしない。同名・別住所の別法人を『同業他社』にしない。【Rule16】score>=70 の外部市場source（government/statistics/industry_association、または score>=70 の news/technology）を最低1件、market_change の本文中に『（src-N）』の形で必ず明記する（evidence 配列に入れるだけでは不可）。【Rule17】補助金まとめ記事・補助金一覧記事だけで構成しない（市場・統計・政策・業界データを含める）。【Rule18】score>=70 の外部市場source が sources に無ければ『公開情報では十分な市場変化を確認できませんでした。』と書く（推測禁止）",
   "evidence": [
     { "source_id": "src-N", "quote": "根拠となる引用文（sources[].summaryやquoteから抜粋・要約）" }
   ],
@@ -32,11 +32,12 @@
 }
 ```
 
-**`evidence`のルール**（[quality-rules.md](quality-rules.md)必須条件1〜5・Phase54ルール3）:
-- **最低2件。うち1件以上は非companyの関連source**（`source_type`が`government`/`statistics`/
+**`evidence`のルール**（[quality-rules.md](quality-rules.md)必須条件1〜5・Phase54ルール3・STEP8A.4）:
+- **最低4件**（company 1件以上 + government/statistics/industry_association/news のうち score>=70・
+  非reference のものを 2件以上 + score<=30 は最大1件）
+- うち1件以上は非companyの関連source（`source_type`が`government`/`statistics`/
   `industry_association`/`technology`で、`evidence_strength:"reference"`でも`score<=30`でもないもの）
-- 目安は4件で、`company`・`government`または`statistics`・`industry_association`または
-  `technology`の`source_type`を組み合わせること（`news`単独は不可、company sourceだけも不可）
+- `news`単独は不可、company sourceだけも不可
 - `source_id`は必ず`company_context.sources[].id`に実在するものを使うこと
 
 ## `locked_opportunities`

@@ -23,6 +23,7 @@ const {
   buildCompanyProfile,
   summarizeBusinessText,
   buildTopSources,
+  relevanceTokens,
 } = require("../generate-company-report");
 const { validateReport } = require("../validate-report");
 const { readJson } = require("../shared/json-file");
@@ -246,6 +247,54 @@ test("STEP8: relevanceHints が空なら従来どおり（全 source を topical
   const { top_sources } = buildTopSources(sourcePages, {});
   assert.equal(top_sources.length, 2);
   assert.equal(top_sources[0].source_type, "company");
+});
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP8A.4 — relevanceTokens の n-gram 化
+// 複合語（「飲食店向け補助金申請支援」）が別表記（「飲食ビジネス」）と部分一致しない
+// 問題（src-2 news/80 が top_sources に入らない）の修正。
+// ---------------------------------------------------------------------------
+
+test("STEP8A.4 relevanceTokens: 漢字複合語を n-gram に分解する", () => {
+  const tokens = relevanceTokens("飲食店向け補助金申請支援");
+  for (const t of ["飲食", "飲食店", "補助金", "補助金申請", "支援"]) {
+    assert.ok(tokens.includes(t), `${t} が無い: ${JSON.stringify(tokens)}`);
+  }
+});
+
+test("STEP8A.4 relevanceTokens: 「飲食店向け」と「飲食ビジネス」が bigram「飲食」で一致する", () => {
+  const hints = relevanceTokens("飲食店向け経営支援サービスの立ち上げ");
+  const label = "飲食ビジネスのトレンドとは？2026年の注目動向";
+  assert.ok(hints.some((t) => label.includes(t)), JSON.stringify(hints.filter((t) => label.includes(t))));
+});
+
+test("STEP8A.4 relevanceTokens: カタカナ4字以上を 3-gram に分解する", () => {
+  const tokens = relevanceTokens("コンサルティング");
+  assert.ok(tokens.includes("コンサ"), JSON.stringify(tokens));
+  assert.ok(tokens.includes("コンサルティング"));
+});
+
+test("STEP8A.4 relevanceTokens: 美容室DX が「美容」「DX」で一致する", () => {
+  const hints = relevanceTokens("美容室向けDX支援");
+  assert.ok(hints.includes("美容"));
+  assert.ok(hints.includes("dx"));
+});
+
+test("STEP8A.4 relevanceTokens: 英字3字以上はそのまま小文字トークン", () => {
+  const tokens = relevanceTokens("AI導入支援 IoT SaaS");
+  assert.ok(tokens.includes("iot"));
+  assert.ok(tokens.includes("saas"));
+});
+
+test("STEP8A.4 relevanceTokens: 空文字・null で空配列", () => {
+  assert.deepEqual(relevanceTokens(""), []);
+  assert.deepEqual(relevanceTokens(null), []);
+});
+
+test("STEP8A.4 relevanceTokens: 2字の漢字語は分解せずそのまま（過剰分割しない）", () => {
+  const tokens = relevanceTokens("美容 飲食");
+  assert.ok(tokens.includes("美容"));
+  assert.ok(tokens.includes("飲食"));
 });
 
 test("buildCompanyProfile: Phase54 — business_summary は 2〜3文・最大400字に整形される", () => {

@@ -177,6 +177,23 @@ validate-report.js がこれらの違反の一部を機械検出して **error�
 - **RULE-F（Evidence 不足時は推測で埋めない）**: 対象企業に関連する外部 relevant source が
   0件なら、`why_now` / `why_company` を推測で埋めず、確認できた事実だけを書く。
 
+### Phase54 STEP8A.4 で追加した Market Change ソース要件
+
+- **RULE-16（外部市場ソースの必須引用）**: `market_change` は、`sources` の中で
+  `source_type` が `government` / `statistics` / `industry_association`、または
+  `score >= 70` の `news` / `technology` である source を**最低1件、`market_change` の
+  本文中に `（src-N）` の形で必ず明記する**（`evidence` 配列に入れるだけでは不十分。
+  本文の該当文の直後に `（src-2）` のように書く）。
+  `evidence_strength: "reference"` や `score <= 30` の source を市場変化の根拠にしない。
+  同じ source は `evidence` 配列にも必ず含めること。
+- **RULE-17（補助金まとめ記事だけで構成しない）**: `market_change` を、補助金まとめ記事・
+  補助金一覧記事・制度解説記事**だけ**で構成してはならない。市場規模・統計・政策・業界動向の
+  データを最低1つ含めること。
+- **RULE-18（外部市場ソースが無い場合）**: 上記 RULE-16 を満たす source が `sources` に
+  存在しない場合、`market_change` に「公開情報では十分な市場変化を確認できませんでした。」と
+  明記する。推測で市場変化を作らない（[opportunity-generation.md](opportunity-generation.md) の
+  `market_change` フィールド定義も参照）。
+
 ## 参照
 
 - [system-analysis.md](system-analysis.md): システムプロンプト全体の構成

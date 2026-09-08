@@ -96,11 +96,32 @@ function summarizeBusinessText(text, options = {}) {
   return out;
 }
 
-/** @param {string} text @returns {string[]} 2文字以上の漢字列/3文字以上のカナ・英字列（照合トークン） */
+/**
+ * 照合トークンを作る（Phase54 STEP8A.4 で n-gram 化）。
+ * 漢字/カナ/英字の連続語をそのまま1トークンにすると「飲食店向」「補助金申請支援」のような
+ * 複合語になり、「飲食ビジネス」のような別表記と部分一致しない。連続語に加えて、
+ * 漢字は 2〜3-gram、カタカナは 3-gram の部分列も出す。
+ * @param {string} text
+ * @returns {string[]}
+ */
 function relevanceTokens(text) {
-  return [...new Set((text || "").match(/[一-龠々]{2,}|[ァ-ヶー]{3,}|[A-Za-z]{3,}/g) || [])].map((t) =>
-    t.toLowerCase()
-  );
+  const runs = (text || "").match(/[一-龠々]{2,}|[ァ-ヶー]{3,}|[A-Za-z]{2,}/g) || [];
+  const out = new Set();
+  for (const run of runs) {
+    out.add(run.toLowerCase());
+    if (/^[一-龠々]+$/.test(run) && run.length >= 3) {
+      // 内部一致用の 2〜3-gram（例: 「飲食店向」→ 飲食 / 食店 / 店向 / 飲食店 …）
+      for (let n = 2; n <= 3; n++) {
+        for (let i = 0; i + n <= run.length; i++) out.add(run.slice(i, i + n));
+      }
+      // 先頭からの前方一致 2〜6-gram（例:「補助金申請支援」→ 補助金 / 補助金申請 …）
+      for (let n = 2; n <= Math.min(run.length, 6); n++) out.add(run.slice(0, n));
+    } else if (/^[ァ-ヶー]+$/.test(run) && run.length >= 4) {
+      for (let i = 0; i + 3 <= run.length; i++) out.add(run.slice(i, i + 3).toLowerCase());
+      for (let n = 3; n <= Math.min(run.length, 8); n++) out.add(run.slice(0, n).toLowerCase());
+    }
+  }
+  return [...out];
 }
 
 /**
@@ -495,4 +516,5 @@ module.exports = {
   buildCompanyProfile,
   summarizeBusinessText,
   buildTopSources,
+  relevanceTokens,
 };
