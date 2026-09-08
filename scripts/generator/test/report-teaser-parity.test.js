@@ -10,7 +10,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const fs = require("fs");
 
 const WEB = path.join(__dirname, "..", "..", "..", "website", "aor", "assets", "js");
 const SH = path.join(__dirname, "..", "shared");
@@ -20,12 +19,8 @@ const shStats = require(path.join(SH, "market-numbers.js"));
 const webUI = require(path.join(WEB, "preview-ui.js"));
 const shTeaser = require(path.join(SH, "report-teaser.js"));
 
-const DATA = path.join(__dirname, "..", "..", "..", "website", "aor", "data");
-const SLUGS = ["kscope.co.jp", "ab-i.jp", "illegame.com", "example.com"];
-const loadIf = (s) => {
-  const p = path.join(DATA, s + ".json");
-  return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf-8")) : null;
-};
+const { loadReport, SLUGS } = require("./fixtures/aor-reports");
+const loadIf = (s) => loadReport(s);
 
 const CASES = [
   "アニメ市場全体は2024年に3兆8,407億円と過去最高を記録し、海外売上は前年比26%増と2桁成長が続いています（src-20）。",

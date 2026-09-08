@@ -6,12 +6,11 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const fs = require("fs");
 
 const JS = path.join(__dirname, "..", "..", "..", "website", "aor", "assets", "js");
 const P = require(path.join(JS, "preview-ui.js"));
 const I = require(path.join(JS, "illustrations.js"));
-const load = (s) => JSON.parse(fs.readFileSync(path.join(JS, "..", "..", "data", s + ".json"), "utf-8"));
+const { loadReport: load } = require("./fixtures/aor-reports");
 
 test("pickVisualTheme が返す全テーマに illustrations のグリフが存在する", () => {
   P.KNOWN_THEMES.forEach((theme) => {

@@ -7,11 +7,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const fs = require("fs");
 
 const P = require(path.join(__dirname, "..", "..", "..", "website", "aor", "assets", "js", "preview-ui.js"));
-const DATA_DIR = path.join(__dirname, "..", "..", "..", "website", "aor", "data");
-const load = (slug) => JSON.parse(fs.readFileSync(path.join(DATA_DIR, slug + ".json"), "utf-8"));
+const { loadReport: load } = require("./fixtures/aor-reports");
 
 /* ---------- pickHeroVariant ---------- */
 

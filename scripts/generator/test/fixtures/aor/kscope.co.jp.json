@@ -1,0 +1,584 @@
+{
+  "id": "generated-kscope.co.jp",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-09-08T02:26:16.034Z",
+    "pipeline_version": "phase1-generator-v0.3-llm",
+    "industry_category": "新規事業・事業開発支援",
+    "note": "scripts/generator/generate-company-report.js により自動生成。Task11でAI分析をllm-client.js経由の実LLM接続に対応（今回はLLM_PROVIDER=deepseekで生成）。fetch-government/fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位20件に絞り込み済み。"
+  },
+  "company_profile": {
+    "name": "株式会社カレイドスコープ",
+    "name_is_ai_estimated": true,
+    "domain": "kscope.co.jp",
+    "industry_label": "新規事業・事業開発支援",
+    "industry_is_ai_estimated": true,
+    "business_summary": "株式会社カレイドスコープ – インキュベーションパートナー：カレイドスコープ 新しいものを作っていく やりたい！と思ったときが始めるとき 「いつか新しいことをやりたい」と思っていても何も始まりません。始めること、その第一歩を踏み出すことが、新規事業成功への最初の極意です。",
+    "business_summary_is_ai_estimated": true,
+    "location": "不明（Task9時点では未取得）",
+    "founded_year": null,
+    "employee_range": "不明（Task9時点では未取得）",
+    "business_type": "不明",
+    "listed_status": "不明"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発の取り組みに関する実態調査2025年 | PwC Japanグループ",
+      "url": "https://www.pwc.com/jp/ja/knowledge/thoughtleadership/new-business-development-survey-2025.html",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-2",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発の支援～市場調査・仮説検証・初期フェーズ ...",
+      "url": "https://sairu.co.jp/service/consulting/newbusiness",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-3",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "株式会社カレイドスコープ &#8211; インキュベーションパートナー：カレイドスコープ",
+      "url": "https://kscope.co.jp",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-4",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "会社概要 – 株式会社カレイドスコープ",
+      "url": "https://kscope.co.jp/company",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-5",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "新規事業で6,000万円もらえる補助金・助成金｜各種制度の概要や注意点を解説 - Sun* / サンアスタリスク",
+      "url": "https://sun-asterisk.com/service/development/topics/new-bizdev/2834",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "【2026年版】スタートアップ向け国の補助金11選＆知って ...",
+      "url": "https://universe.globalbrains.com/posts/startup-subsidies-regulatory-reform-2026",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-7",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "【2026年版】法人の新規事業、成功の鍵は？低リスク高収益ビジネス10選と実現戦略 - 株式会社Remind",
+      "url": "https://remind-gr.co.jp/article/%E3%80%902026%E5%B9%B4%E7%89%88%E3%80%91%E6%B3%95%E4%BA%BA%E3%81%AE%E6%96%B0%E8%A6%8F%E4%BA%8B%E6%A5%AD%E3%80%81%E6%88%90%E5%8A%9F%E3%81%AE%E9%8D%B5%E3%81%AF%EF%BC%9F%E4%BD%8E%E3%83%AA%E3%82%B9",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-8",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業の成功率は何%？ 調査データが示す現実と、成功確率を高める実践アプローチ | 株式会社Relic",
+      "url": "https://relic.co.jp/column/1032",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-9",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発とは？意味・定義と進め方5ステップの流れを解説 | Incubation Base",
+      "url": "https://incubation-base.com/column/new-business-development",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-10",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業の狙い目とは？ 大企業が成功確率を高める領域選定の判断軸と実践フレームワーク | 株式会社Relic",
+      "url": "https://relic.co.jp/column/1047",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-11",
+      "source_type": "news",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "アプリ企画開発| 株式会社カレイドスコープ",
+      "url": "https://www.kaleido-inc.co.jp",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-12",
+      "source_type": "news",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "kaleidosxope Inc. | 株式会社カレイドスコープ",
+      "url": "http://www.kaleidosxope.jp",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-13",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "【2026年最新版】スタートアップ向けおすすめ補助金4選！物件契約前に知るべき申請のタイミングも紹介 | 小規模オフィス探すなら、ちいきぼオフィス",
+      "url": "https://www.chiikibo.com/blog/1691p",
+      "published_at": null,
+      "score": 45
+    },
+    {
+      "id": "src-14",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発を成功させるプロセス5つ・成功事例・大企業特有の課題と対処法・AI時代の取り組み方を紹介｜Goodpatch Blog グッドパッチブログ",
+      "url": "https://goodpatch.com/blog/new-business-development",
+      "published_at": null,
+      "score": 45
+    },
+    {
+      "id": "src-15",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "2026新規事業実態調査、10年の変化を見る | 日経クロステック（xTECH）",
+      "url": "https://xtech.nikkei.com/atcl/nxt/column/18/03629",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-16",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "reference",
+      "label": "創業・新事業の補助金・助成金・給付金【2026年最新】 | 補助金エージェント",
+      "url": "https://hojokin-agent.jp/purpose/new-business",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-17",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "reference",
+      "label": "【2026年最新】新規事業で使える補助金を比較！制度・申請条件・注意点を解説",
+      "url": "https://vs-group.jp/startup/joseikin/25066.html",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-18",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "イチから分かる新規事業のすべて　ソニーの事例も紹介 | Sony Acceleration Platform 新規事業・事業開発の基礎知識 | 【Sony Acceleration Platform】新規事業の創出と事業開発を支援するプラットフォーム",
+      "url": "https://sony-acceleration-platform.com/article448.html",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-19",
+      "source_type": "news",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "フィギュア・コレクターズトイの株式会社カレイドスコープ",
+      "url": "https://www.kaleido-scope.co.jp",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-20",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "【2026最新版】新規事業の支援会社10選を新規事業で70億売り上げたプロが解説！ | 株式会社Venture Ocean | D2Cマーケティングなら",
+      "url": "https://venture-ocean.com/blog/new-business_support",
+      "published_at": null,
+      "score": 30
+    }
+  ],
+  "top_sources": [
+    {
+      "id": "src-3",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "株式会社カレイドスコープ &#8211; インキュベーションパートナー：カレイドスコープ",
+      "url": "https://kscope.co.jp",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-4",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "会社概要 – 株式会社カレイドスコープ",
+      "url": "https://kscope.co.jp/company",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-1",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発の取り組みに関する実態調査2025年 | PwC Japanグループ",
+      "url": "https://www.pwc.com/jp/ja/knowledge/thoughtleadership/new-business-development-survey-2025.html",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-2",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "新規事業開発の支援～市場調査・仮説検証・初期フェーズ ...",
+      "url": "https://sairu.co.jp/service/consulting/newbusiness",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-5",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "新規事業で6,000万円もらえる補助金・助成金｜各種制度の概要や注意点を解説 - Sun* / サンアスタリスク",
+      "url": "https://sun-asterisk.com/service/development/topics/new-bizdev/2834",
+      "published_at": null,
+      "score": 55
+    }
+  ],
+  "hidden_sources_count": 15,
+  "ai_pipeline": {
+    "note": "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
+    "company_context_generated_at": "2026-09-08T02:26:16.034Z",
+    "pipeline_stats": {
+      "fetched_total": 31,
+      "normalized_total": 31,
+      "duplicates_removed": 6,
+      "after_dedupe": 25,
+      "exact_url_duplicates_removed": 0,
+      "selected_for_ai": 20,
+      "max_sources_for_ai": 20
+    },
+    "llm": {
+      "provider": "deepseek",
+      "display_name": "DeepSeek",
+      "model": "deepseek-v4-flash",
+      "usage": {
+        "input_tokens": 40911,
+        "output_tokens": 2337,
+        "estimated_cost": 0.006382
+      }
+    }
+  },
+  "free_opportunity": {
+    "title": "AI活用型・新規事業開発支援サービスの立ち上げ",
+    "why_now": "PwCの調査（src-1）によると、投資回収まで至った新規事業案件を持つ「成功企業」は全体の2割程度で、8割の企業が成功に至っておらず、0→1、1→10、10→100の各フェーズに課題があります。また、多くの企業が3年で新規事業の成否を判断しており、短期間での成果が求められています。このような中、AI技術の進展により、市場調査や仮説検証の効率化が可能となっており、新規事業開発の成功率を高める新たな支援手法が求められています。",
+    "why_company": "株式会社カレイドスコープは、企業戦略の立案・実行支援、新規事業立ち上げ支援、企業再生支援、M&A支援を事業内容とし（src-4）、「失敗を味方に」「失敗をコントロールする」という独自の伴走型支援を掲げています（src-3）。この経験とノウハウを活かし、AIを活用した新規事業開発支援サービスを提供することで、より多くの企業の新規事業成功を支援できます。",
+    "market_change": "PwCの調査（src-1）では、新規事業の成功企業は2割程度にとどまり、多くの企業が0→1、1→10、10→100の各フェーズで課題を抱えています。また、3年で成果が求められる傾向が明らかになっています。さらに、国や自治体による新規事業向け補助金・助成金制度が拡充されており（src-5、src-13）、新規事業に挑戦する企業への支援環境が整いつつあります。",
+    "evidence": [
+      {
+        "source_id": "src-1",
+        "quote": "8割の企業が新規事業の「成功」に至っていない...成功企業は全体の2割程度...3年で新規事業の成果が求められる"
+      },
+      {
+        "source_id": "src-3",
+        "quote": "失敗を味方に...失敗をコントロール...当社はその手助けができます"
+      },
+      {
+        "source_id": "src-4",
+        "quote": "事業内容: 企業戦略に関する立案・実行支援、新規事業立ち上げ支援(事業開発支援)、企業再生支援、M&A支援"
+      },
+      {
+        "source_id": "src-5",
+        "quote": "新規事業の立ち上げには、国や自治体が実施する補助金・助成金を利用できる場合があります。なかには6,000万円という高額な金額を支給する制度もあり"
+      }
+    ],
+    "first_action": "新規事業開発支援サービスにAIを活用するための具体的な企画書を作成し、既存顧客へのヒアリングを通じてニーズを検証する。",
+    "extended_analysis": {
+      "market_size": "PwCの調査（src-1）によると、国内企業の多くが新規事業に課題を抱えており、支援ニーズは大きいと考えられます。また、補助金・助成金制度の拡充（src-5）により、新規事業に取り組む企業が増加する可能性があります。",
+      "competition": "新規事業支援会社は多数存在しますが（src-20）、AIを活用した支援サービスはまだ十分に普及していない可能性があります。カレイドスコープの「失敗をコントロールする」という独自のアプローチ（src-3）は差別化要因となり得ます。",
+      "risks": "AI活用による支援サービスの品質保証が課題となる可能性があります。また、競合他社も同様のサービスを開始する可能性があり、差別化が難しくなるリスクがあります。",
+      "priority": "新規事業開発支援はカレイドスコープの既存事業であり、そのノウハウを活かしてAIを活用した新サービスを提供することは、比較的早期に実現可能で、市場のニーズも高いと考えられます。",
+      "case_examples": "公開情報からは、AIを活用した新規事業開発支援サービスの具体的な成功事例を特定することはできませんでした。",
+      "confidence_note": "本分析は、PwCの統計調査（src-1）、カレイドスコープの公式情報（src-3、src-4）、および補助金に関するニュース（src-5）に基づいています。市場規模や競合状況については、追加調査が必要です。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "補助金申請支援サービスの立ち上げ"
+    },
+    {
+      "id": "locked-2",
+      "title": "AIを活用した事業再生支援サービスの開発"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "AIを活用した新規事業開発支援サービスを立ち上げ、既存のコンサルティングノウハウと組み合わせて提供する。",
+      "recommended_timing": "早急に着手すべき。市場調査とサービス設計を並行して進め、6ヶ月以内にパイロット版をリリースすることを推奨。",
+      "expected_impact": "新規事業開発の成功率向上に貢献し、コンサルティングサービスの差別化と売上拡大が期待できる。",
+      "investment_level": "中程度（AIツールの開発・導入、人材育成などに初期投資が必要）",
+      "reason": [
+        "新規事業開発の成功率が低く、支援ニーズが高い（src-1）",
+        "カレイドスコープは新規事業開発支援の実績とノウハウを有する（src-4）",
+        "AI活用により、従来の支援サービスを高度化できる可能性がある"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "補助金申請支援サービスの立ち上げ",
+        "summary": "新規事業向けの補助金・助成金制度が多数存在し（src-5、src-13）、申請には専門知識が必要です。カレイドスコープが企業に代わって補助金申請を支援するサービスを提供することで、新規事業に挑戦する企業の負担を軽減できます。",
+        "expected_effect": "補助金申請の成功報酬やコンサルティングフィーによる収益獲得。",
+        "relevance": "高"
+      },
+      {
+        "id": "locked-2",
+        "title": "AIを活用した事業再生支援サービスの開発",
+        "summary": "カレイドスコープは企業再生支援も事業内容に含みます（src-4）。AIを活用して財務分析や事業計画策定を効率化することで、より多くの企業の再生を支援できる可能性があります。",
+        "expected_effect": "事業再生支援の効率化と成功率向上。",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "新規事業開発のためのオンライン教育プログラムの提供",
+        "summary": "新規事業開発の方法論やフレームワークに関するオンラインコースを提供し、企業の社内人材育成を支援します。カレイドスコープのノウハウを体系化し、スケーラブルな収益源とします。",
+        "expected_effect": "教育プログラムの販売による安定的な収益と、コンサルティングサービスの顧客獲得につながる。",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "市場調査と競合分析を実施",
+          "AI活用の具体的なユースケースを定義",
+          "既存顧客へのヒアリングを開始"
+        ],
+        "expected_outcome": "AI活用型支援サービスの企画書が完成"
+      },
+      "day_60": {
+        "actions": [
+          "パイロット版の開発に着手",
+          "補助金申請支援サービスの詳細設計",
+          "オンライン教育プログラムのコンテンツ作成開始"
+        ],
+        "expected_outcome": "パイロット版のテスト準備が整う"
+      },
+      "day_90": {
+        "actions": [
+          "パイロット版を一部顧客に提供",
+          "フィードバックを収集し、サービスを改善",
+          "本格展開のための体制を整備"
+        ],
+        "expected_outcome": "サービスの有効性を検証し、本格展開の判断材料を得る"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "AIを活用した新規事業開発支援の具体的な成功事例や、競合他社のサービス内容について追加調査が必要です。"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "補助金・助成金制度の変更や新設を定期的にモニタリングし、サービス内容に反映する。"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@kscope.co.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。"
+  },
+  "human_review": {
+    "status": "approved",
+    "reviewer": "Takenori Kouda",
+    "reviewed_at": "2026-09-08T06:32:11.541Z",
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "AI生成直後の状態。人間によるレビュー・承認が完了するまで配信不可。",
+    "review_history": [
+      {
+        "at": "2026-09-08T02:26:16.034Z",
+        "actor": "generate-company-report.js",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 54,
+    "grade": "D",
+    "status": "REVIEW",
+    "reasons": [
+      "情報源数: 20件（5/5点）",
+      "政府/統計情報: あり（関連あり）（4/4点）",
+      "企業情報: あり（関連あり）（6/6点）",
+      "有効な引用文: 4件（8/8点）",
+      "evidence件数: 4件（7/7点）"
+    ],
+    "warnings": [
+      "業界情報: なし（0/4点、要改善）",
+      "ニュース比率: 75%（0/8点、要改善）",
+      "source_type偏り: 最大偏り75%（2/7点、要改善）",
+      "関連性 A:2 B:2 C:10 D:6（関連20% / ノイズ30%）（1/15点、要改善）",
+      "情報源の30%が対象企業と関連性が低い（D）と判定されています（関連性 A:2 B:2 C:10 D:6（関連20% / ノイズ30%））。対象企業に関連する情報源の比率を高めてください"
+    ],
+    "improvements": [
+      "対象企業と無関係な情報源（別地域の制度・同名の別企業・名前衝突等）が多く含まれています。検索クエリの精度向上と関連性ガードの見直しで、企業に関連する情報源の比率を上げてください",
+      "企業・業界に直接関連する情報源（A/B）が半数未満です。この状態で生成したOpportunityは企業実態から乖離しやすいため、情報源の関連性を確認してください",
+      "業界団体・技術団体の情報源を追加してください",
+      "ニュース情報源への依存度が高すぎます。一次情報・統計等の比率を高めてください",
+      "情報源全体のscore平均が低めです。より信頼度の高い情報源への差し替えを検討してください",
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 5,
+        "max": 5,
+        "detail": "情報源数: 20件"
+      },
+      "type_balance": {
+        "points": 4,
+        "max": 5,
+        "detail": "情報源の種類数（関連のみ）: 3種類",
+        "distinctTypes": 3
+      },
+      "government_presence": {
+        "points": 4,
+        "max": 4,
+        "detail": "政府/統計情報: あり（関連あり）",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり（関連あり）",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 0,
+        "max": 4,
+        "detail": "業界情報: なし",
+        "present": false
+      },
+      "news_overreliance": {
+        "points": 0,
+        "max": 8,
+        "detail": "ニュース比率: 75%",
+        "newsRatio": 0.75
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 7,
+        "max": 13,
+        "detail": "情報源scoreの平均: 54.3点",
+        "average": 54.3
+      },
+      "type_skew": {
+        "points": 2,
+        "max": 7,
+        "detail": "source_type偏り: 最大偏り75%",
+        "maxShare": 0.75
+      },
+      "role_skew": {
+        "points": 4,
+        "max": 7,
+        "detail": "source_role偏り: 最大偏り50%",
+        "maxShare": 0.5
+      },
+      "evidence_count": {
+        "points": 7,
+        "max": 7,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      },
+      "source_relevance": {
+        "points": 1,
+        "max": 15,
+        "detail": "関連性 A:2 B:2 C:10 D:6（関連20% / ノイズ30%）",
+        "counts": {
+          "A": 2,
+          "B": 2,
+          "C": 10,
+          "D": 6
+        },
+        "relevantRatio": 0.2,
+        "noiseRatio": 0.3
+      }
+    }
+  }
+}

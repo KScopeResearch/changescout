@@ -1,0 +1,598 @@
+{
+  "id": "generated-illegame.com",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-09-08T05:20:39.143Z",
+    "pipeline_version": "phase1-generator-v0.3-llm",
+    "industry_category": "中小企業",
+    "note": "scripts/generator/generate-company-report.js により自動生成。Task11でAI分析をllm-client.js経由の実LLM接続に対応（今回はLLM_PROVIDER=deepseekで生成）。fetch-government/fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位20件に絞り込み済み。"
+  },
+  "company_profile": {
+    "name": "株式会社イル・レガメ",
+    "name_is_ai_estimated": true,
+    "domain": "illegame.com",
+    "industry_label": "中小企業",
+    "industry_is_ai_estimated": true,
+    "business_summary": "## | --- | 会社名 株式会社イル・レガメ Illegame Inc. | 代表者 代表取締役 サンプル 太郎 | 所在地 東京都サンプル区0-0-0 | E-Mail | 資本金 100万円 | 主な事業内容 1. １．経営コンサルティング（事業開発） 2. ２．ITサービスの企画・開発等 3. ３．",
+    "business_summary_is_ai_estimated": true,
+    "location": "不明（Task9時点では未取得）",
+    "founded_year": null,
+    "employee_range": "不明（Task9時点では未取得）",
+    "business_type": "不明",
+    "listed_status": "不明"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "government",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "[PDF] 2026年版 中小企業白書・小規模企業白書の概要 （案）",
+      "url": "https://www.chusho.meti.go.jp/koukai/shingikai/soukai/044/dl/001_2.pdf",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "中小企業白書 | 中小企業庁",
+      "url": "https://www.chusho.meti.go.jp/pamflet/hakusyo/index.html",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "サービス市場 | 市場規模 業界シェア 市場分析 成長性 2026年",
+      "url": "https://www.gii.co.jp/report/tbrc1989299-services-global-market-report.html",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-4",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "情報通信 | マーケットレポート | 市場規模 - 矢野経済研究所",
+      "url": "https://www.yano.co.jp/market_reports/listMr.php?class_code=10",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-5",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "株式会社イル・レガメ",
+      "url": "https://illegame.com",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "2026年度中小企業向け“補助金”ガイド | 中小企業×DX",
+      "url": "https://chusho-dx.bcnretail.com/dx_actualize/detail/20260702_178716.html",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-7",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "中小企業が2026年に勝ち残るための成長戦略10選｜人材・DX・資金調達の最新動向｜JSaaSストア",
+      "url": "https://jsaas.jp/store/information/detail/537",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-8",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "中小企業の経営課題とは？10の課題と2026年に向けた解決策",
+      "url": "https://futures-literacy.jp/2026/03/management-issues-smallcompany",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-9",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "中小企業向けビジネスキーワード認知度調査",
+      "url": "https://www.asakonet.co.jp/column/detail-1840/chusho-workers-hot-business-keywords",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-10",
+      "source_type": "news",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "COMPANY 会社案内･ スタッフ紹介 - 株式会社LeGAME",
+      "url": "https://legame-gaming.com/company",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-11",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "中小企業のデジタルマーケティング完全ガイド｜始め方・施策・成功事例を解説【2026年版】 | セールスフォース・ジャパン",
+      "url": "https://www.salesforce.com/jp/small-business/marketing/digital-marketing-smb-guide",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-12",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "【2026年最新】市場規模 比較｜業界別ランキングと調べ方を解説 – CREXコンサルティング｜戦略 × AI/DX × BPOで事業を実装まで伴走",
+      "url": "https://crex-consulting.com/column/research/market-size-comparison-by-industry",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-13",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "2026年、中小企業の経営環境はこう変わる！押さえておきたい7つのトレンド | アトラボブログ",
+      "url": "https://attlabo.com/blog/efficiency/business_environment_trends_for_2026_2025dec",
+      "published_at": null,
+      "score": 45
+    },
+    {
+      "id": "src-14",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "【中堅・中小企業調査】3300人の声をもとにしたビジネストレンドTop5",
+      "url": "https://www.salesforce.com/jp/blog/small-business-trends-2024",
+      "published_at": null,
+      "score": 45
+    },
+    {
+      "id": "src-15",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "【2026年版】中小企業白書の重要ポイントを分かりやすく解説 - 経営資源プラットフォーム Biz Rize",
+      "url": "https://qasso.org/expert-blog/policy-guide/3059",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-16",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "日本の日本市場（2026年～2034年）、市場規模（ソフトウェア、サービス、ソフトウェア、サービス）・分析レポートを発表 | 株式会社マーケットリサーチセンター",
+      "url": "https://www.atpress.ne.jp/news/1216844",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-17",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "reference",
+      "label": "2026年度 補助金・助成金一覧｜中小企業向け主要制度を比較【公募中あり】 | 行政書士潮海事務所",
+      "url": "https://shiomi-gyosei.com/%E8%A3%9C%E5%8A%A9%E9%87%91%E3%83%BB%E5%8A%A9%E6%88%90%E9%87%91%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6/subsidy2026-2",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-18",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "reference",
+      "label": "中小企業向け補助金・助成金・給付金まとめ【2026年最新】 | 補助金エージェント",
+      "url": "https://hojokin-agent.jp/audience/sme",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-19",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "reference",
+      "label": "【詳細版】2026年最新版！ 中小企業むけ補助金・助成金一覧",
+      "url": "https://baie-amalfi.com/2026%E5%B9%B4%E7%89%88%EF%BC%81%E4%B8%AD%E5%B0%8F%E4%BC%81%E6%A5%AD%E5%90%91%E3%81%91%E8%A3%9C%E5%8A%A9%E9%87%91%E4%B8%80%E8%A6%A7",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-20",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "中堅・中小企業市場のリサーチ、コンサルティングなら株式会社ノークリサーチへ",
+      "url": "https://www.norkresearch.co.jp/result/release.html",
+      "published_at": null,
+      "score": 30
+    }
+  ],
+  "top_sources": [
+    {
+      "id": "src-5",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "株式会社イル・レガメ",
+      "url": "https://illegame.com",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-1",
+      "source_type": "government",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "[PDF] 2026年版 中小企業白書・小規模企業白書の概要 （案）",
+      "url": "https://www.chusho.meti.go.jp/koukai/shingikai/soukai/044/dl/001_2.pdf",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "サービス市場 | 市場規模 業界シェア 市場分析 成長性 2026年",
+      "url": "https://www.gii.co.jp/report/tbrc1989299-services-global-market-report.html",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-6",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "2026年度中小企業向け“補助金”ガイド | 中小企業×DX",
+      "url": "https://chusho-dx.bcnretail.com/dx_actualize/detail/20260702_178716.html",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-7",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "中小企業が2026年に勝ち残るための成長戦略10選｜人材・DX・資金調達の最新動向｜JSaaSストア",
+      "url": "https://jsaas.jp/store/information/detail/537",
+      "published_at": null,
+      "score": 55
+    }
+  ],
+  "hidden_sources_count": 15,
+  "ai_pipeline": {
+    "note": "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
+    "company_context_generated_at": "2026-09-08T05:20:39.143Z",
+    "pipeline_stats": {
+      "fetched_total": 31,
+      "normalized_total": 30,
+      "duplicates_removed": 4,
+      "after_dedupe": 26,
+      "exact_url_duplicates_removed": 0,
+      "selected_for_ai": 20,
+      "max_sources_for_ai": 20
+    },
+    "llm": {
+      "provider": "deepseek",
+      "display_name": "DeepSeek",
+      "model": "deepseek-v4-flash",
+      "usage": {
+        "input_tokens": 43517,
+        "output_tokens": 3333,
+        "estimated_cost": 0.007026
+      }
+    }
+  },
+  "free_opportunity": {
+    "title": "中小企業向けAI活用型・業務効率化コンサルティングサービスの立ち上げ",
+    "why_now": "中小企業庁の2026年版白書は、労働供給制約社会の到来と人手不足の深刻化を指摘し、「現状維持は最大のリスク」と警告しています（src-1）。中小企業の雇用者数は2040年には2018年比で8割半ばまで減少する可能性があり、人手不足はさらに深刻化すると見込まれています（src-1）。こうした中、中小企業の時間当たり労働生産性は上昇傾向にあるものの、一人当たりでは横ばいであり、生産性向上の取り組みが引き続き重要です（src-1）。また、サービス市場は2025年の17兆3,777億9,000万米ドルから2026年には18兆7,758億5,000万米ドルへとCAGR8.0%で成長し、サービス需要は拡大しています（src-3）。人手不足とサービス需要拡大のギャップを埋めるため、AIを活用した業務効率化支援へのニーズが高まっています。",
+    "why_company": "株式会社イル・レガメは、経営コンサルティング（事業開発）、ITサービスの企画・開発、事業運営支援サービスを主事業とし、美容室・飲食店の店舗経営や大手企業のWEB新規事業運営の実践経験を持ちます（src-5）。特に「現場で培った知見と、システム開発から運営人材の手配まで」を一貫して提供できる点が強みであり、美容サロンの顧客管理・シフト一元化で管理工数33%削減を実現した実績があります（src-5）。このように、コンサルティングとIT開発の両方を自社で持つ同社は、中小企業のAI活用による業務効率化を、現場目線で伴走支援できる立場にあります。",
+    "market_change": "中小企業庁の2026年版白書は、労働供給制約社会の到来を指摘し、人手不足がさらに深刻化すると警告しています（src-1）。中小企業の雇用者数は2040年には2018年比で8割半ばまで減少する可能性があり、特に「建設業」「運輸業・郵便業」「情報通信業」で人手不足感が強いとされています（src-1）。一方、サービス市場は2025年の17兆3,777億9,000万米ドルから2026年には18兆7,758億5,000万米ドルへと成長し、CAGR8.0%で拡大しています（src-3）。人手不足とサービス需要拡大のギャップを背景に、中小企業のAI活用による業務効率化への関心が高まっています。実際、中小企業の約3割がAI活用に取り組んだとされ、バックオフィス部門や営業・販売・顧客対応部門での活用が報告されています（src-11）。",
+    "evidence": [
+      {
+        "source_id": "src-5",
+        "quote": "主な事業内容: 1. 経営コンサルティング（事業開発） 2. ITサービスの企画・開発等 3. 事業運営支援サービス ... 美容サロンの顧客管理＆シフト一元化 管理工数33%削減・スタッフ定着率向上"
+      },
+      {
+        "source_id": "src-1",
+        "quote": "中小企業における雇用者数は2040年には2018年比で８割半ばまで落ち込む可能性。中小企業において、人手不足が更に深刻化することが見込まれる。"
+      },
+      {
+        "source_id": "src-3",
+        "quote": "サービス市場の規模は、近年著しく拡大しています。2025年の17兆3,777億9,000万米ドルから、2026年には18兆7,758億5,000万米ドルへと、CAGR8.0％で成長すると見込まれています。"
+      },
+      {
+        "source_id": "src-11",
+        "quote": "経済産業省「2026年版中小企業白書」では、約3割の中小企業がAI活用に取り組んだとされており、バックオフィス部門や営業・販売・顧客対応部門での活用が報告されています"
+      }
+    ],
+    "first_action": "美容・飲食業界の中小企業を対象に、AIツール（チャットボット、議事録自動作成、顧客データ分析など）を活用した業務効率化のパイロット支援メニューを設計し、既存顧客2〜3社に無償トライアルを提案する。",
+    "extended_analysis": {
+      "market_size": "サービス市場は2025年の17兆3,777億9,000万米ドルから2026年には18兆7,758億5,000万米ドルへと成長し、2030年には25兆9,671億5,000万米ドルに達すると予測されています（src-3）。中小企業のAI活用は約3割に達し、市場は拡大基調にあります（src-11）。",
+      "competition": "中小企業向けのAI導入支援は、ITベンダーやコンサルティング会社が参入していますが、イル・レガメのように美容・飲食の現場経験とシステム開発の両方を持つ事業者は限定的です。同社の実践的ノウハウが差別化要因となり得ます（src-5）。",
+      "risks": "AI導入支援は、顧客企業のデジタル人材不足やコスト課題が障壁となる可能性があります（src-6）。また、補助金に依存した提案は持続性に欠けるため、補助金活用は初期導入の後押しに留め、長期的な価値提供を設計する必要があります（src-13）。",
+      "priority": "人手不足とサービス需要拡大という外部環境の変化が明確であり、同社の既存の強み（コンサル×IT開発）を直接活かせるため、最優先テーマとしました。他のテーマ（新規事業立ち上げ支援の拡大など）は、この基盤があってこそ効果を発揮します。",
+      "case_examples": "公開情報からは、同社と同様の支援を提供する具体的な企業名を特定できませんでした。ただし、中小企業白書では、AI活用で労働時間削減や業務平準化を実現した事例が紹介されており、参考にできます（src-15）。",
+      "confidence_note": "本分析は、中小企業庁の白書（src-1）、市場調査レポート（src-3）、同社の公式サイト（src-5）、およびSalesforceの記事（src-11）を組み合わせて作成しました。市場規模やAI活用率は調査機関により異なる可能性があり、最新の情報を確認することを推奨します。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "美容・飲食業界に特化したAI活用型店舗運営支援サービスの開発"
+    },
+    {
+      "id": "locked-2",
+      "title": "補助金申請をワンストップで支援する「DX補助金活用コンサルティング」の提供"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "中小企業向けAI活用型・業務効率化コンサルティングサービスを立ち上げ、まずは美容・飲食業界の既存顧客に無償トライアルを提供する。",
+      "recommended_timing": "2026年度中にサービスを開始し、2027年度の補助金申請シーズン（春〜夏）に合わせて本格展開する。",
+      "expected_impact": "既存顧客の業務効率化を実証し、成功事例を創出することで、新規顧客の獲得と売上拡大が期待できる。また、同社のコンサルティングとIT開発の強みを掛け合わせた高付加価値サービスとして、競合との差別化を図れる。",
+      "investment_level": "中（初期のサービス開発・人材育成に投資が必要だが、既存のノウハウを活用できるため、大規模な設備投資は不要）",
+      "reason": [
+        "人手不足とサービス需要拡大という明確な市場ニーズがある（src-1, src-3）",
+        "同社の既存の強み（コンサル×IT開発）を直接活かせる（src-5）",
+        "中小企業のAI活用は約3割に達し、市場は拡大基調にある（src-11）",
+        "補助金を活用することで、顧客の導入コストを軽減できる（src-6）"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "美容・飲食業界に特化したAI活用型店舗運営支援サービスの開発",
+        "summary": "同社の美容・飲食店舗経営の実践経験を活かし、顧客管理、シフト管理、売上予測などをAIで自動化する支援サービスを開発する。既に美容サロン向けに管理工数33%削減の実績があり、これをAIでさらに高度化する。",
+        "expected_effect": "既存顧客の業務効率化をさらに進め、顧客単価の向上と長期的なリピート受注が期待できる。",
+        "relevance": "高"
+      },
+      {
+        "id": "locked-2",
+        "title": "補助金申請をワンストップで支援する「DX補助金活用コンサルティング」の提供",
+        "summary": "中小企業向けのDX補助金（デジタル化・AI導入補助金、ものづくり補助金など）は多数存在するが、申請は複雑で、中小企業にとってハードルが高い。同社がコンサルティングとIT導入支援を組み合わせ、補助金申請から導入までをワンストップで支援する。",
+        "expected_effect": "補助金を活用した顧客のIT導入を促進し、同社のコンサルティング売上を拡大できる。",
+        "relevance": "高"
+      },
+      {
+        "id": "add-3",
+        "title": "中小企業向けAI人材育成研修プログラムの提供",
+        "summary": "中小企業ではAI活用が進む一方で、デジタル人材不足が課題となっている。同社の現場ノウハウを活かし、経営者や従業員向けにAI活用の基礎研修や実践ワークショップを提供する。",
+        "expected_effect": "AI活用の裾野を広げ、将来的なコンサルティング案件の創出につなげる。",
+        "relevance": "中"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "既存顧客（美容・飲食）へのヒアリングを実施し、AI活用による業務効率化のニーズを具体化する",
+          "競合他社のAI導入支援サービスを調査し、差別化ポイントを明確にする"
+        ],
+        "expected_outcome": "パイロット支援の対象顧客と支援内容が具体化する"
+      },
+      "day_60": {
+        "actions": [
+          "パイロット支援メニュー（AIツール選定、導入支援、効果測定）を設計する",
+          "既存顧客2〜3社に無償トライアルを提案し、実施する"
+        ],
+        "expected_outcome": "パイロット支援の実績と成功事例が創出される"
+      },
+      "day_90": {
+        "actions": [
+          "パイロット支援の効果を検証し、サービス内容と価格を策定する",
+          "Webサイトやセミナーでサービスを告知し、新規顧客を獲得する"
+        ],
+        "expected_outcome": "有償サービスとして正式にローンチし、初期顧客を獲得する"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "中小企業のAI導入に関する最新の市場規模や成功事例の調査、競合他社のサービス内容の詳細分析"
+      },
+      {
+        "label": "サービス設計支援",
+        "description": "パイロット支援メニューの設計、価格設定、契約書類の作成支援"
+      },
+      {
+        "label": "マーケティング支援",
+        "description": "Webサイトの制作、セミナー開催、業界団体への営業支援"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "AI関連の法規制や補助金制度の変更（デジタル化・AI導入補助金の拡充・縮小など）を定期的に確認する"
+      },
+      {
+        "theme": "市場動向",
+        "description": "中小企業のAI活用率やサービス市場の成長率を、年次で公表される白書や市場レポートで追跡する"
+      },
+      {
+        "theme": "競合動向",
+        "description": "大手ITベンダーやコンサルティング会社の中小企業向けAI支援サービスの動向を監視する"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@illegame.com",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。"
+  },
+  "human_review": {
+    "status": "approved",
+    "reviewer": "Takenori Kouda",
+    "reviewed_at": "2026-09-08T06:32:12.395Z",
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "AI生成直後の状態。人間によるレビュー・承認が完了するまで配信不可。",
+    "review_history": [
+      {
+        "at": "2026-09-08T05:20:39.143Z",
+        "actor": "generate-company-report.js",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 57,
+    "grade": "D",
+    "status": "REVIEW",
+    "reasons": [
+      "情報源数: 20件（5/5点）",
+      "情報源の種類数（関連のみ）: 4種類（5/5点）",
+      "政府/統計情報: あり（関連あり）（4/4点）",
+      "企業情報: あり（関連あり）（6/6点）",
+      "有効な引用文: 4件（8/8点）",
+      "evidence件数: 4件（7/7点）"
+    ],
+    "warnings": [
+      "業界情報: なし（0/4点、要改善）",
+      "ニュース比率: 65%（0/8点、要改善）",
+      "関連性 A:1 B:4 C:9 D:6（関連25% / ノイズ30%）（1/15点、要改善）",
+      "情報源の30%が対象企業と関連性が低い（D）と判定されています（関連性 A:1 B:4 C:9 D:6（関連25% / ノイズ30%））。対象企業に関連する情報源の比率を高めてください"
+    ],
+    "improvements": [
+      "対象企業と無関係な情報源（別地域の制度・同名の別企業・名前衝突等）が多く含まれています。検索クエリの精度向上と関連性ガードの見直しで、企業に関連する情報源の比率を上げてください",
+      "企業・業界に直接関連する情報源（A/B）が半数未満です。この状態で生成したOpportunityは企業実態から乖離しやすいため、情報源の関連性を確認してください",
+      "業界団体・技術団体の情報源を追加してください",
+      "ニュース情報源への依存度が高すぎます。一次情報・統計等の比率を高めてください",
+      "情報源全体のscore平均が低めです。より信頼度の高い情報源への差し替えを検討してください",
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 5,
+        "max": 5,
+        "detail": "情報源数: 20件"
+      },
+      "type_balance": {
+        "points": 5,
+        "max": 5,
+        "detail": "情報源の種類数（関連のみ）: 4種類",
+        "distinctTypes": 4
+      },
+      "government_presence": {
+        "points": 4,
+        "max": 4,
+        "detail": "政府/統計情報: あり（関連あり）",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり（関連あり）",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 0,
+        "max": 4,
+        "detail": "業界情報: なし",
+        "present": false
+      },
+      "news_overreliance": {
+        "points": 0,
+        "max": 8,
+        "detail": "ニュース比率: 65%",
+        "newsRatio": 0.65
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 7,
+        "max": 13,
+        "detail": "情報源scoreの平均: 56.9点",
+        "average": 56.9
+      },
+      "type_skew": {
+        "points": 4,
+        "max": 7,
+        "detail": "source_type偏り: 最大偏り65%",
+        "maxShare": 0.65
+      },
+      "role_skew": {
+        "points": 4,
+        "max": 7,
+        "detail": "source_role偏り: 最大偏り60%",
+        "maxShare": 0.6
+      },
+      "evidence_count": {
+        "points": 7,
+        "max": 7,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      },
+      "source_relevance": {
+        "points": 1,
+        "max": 15,
+        "detail": "関連性 A:1 B:4 C:9 D:6（関連25% / ノイズ30%）",
+        "counts": {
+          "A": 1,
+          "B": 4,
+          "C": 9,
+          "D": 6
+        },
+        "relevantRatio": 0.25,
+        "noiseRatio": 0.3
+      }
+    }
+  }
+}

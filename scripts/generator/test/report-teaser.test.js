@@ -7,11 +7,9 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const fs = require("fs");
 
 const T = require(path.join(__dirname, "..", "shared", "report-teaser"));
-const DATA = path.join(__dirname, "..", "..", "..", "website", "aor", "data");
-const load = (s) => JSON.parse(fs.readFileSync(path.join(DATA, s + ".json"), "utf-8"));
+const { loadReport: load } = require("./fixtures/aor-reports");
 
 /* ---------- buildTeaser: 3社 ---------- */
 

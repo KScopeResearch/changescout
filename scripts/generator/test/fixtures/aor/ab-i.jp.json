@@ -1,0 +1,585 @@
+{
+  "id": "generated-www.ab-i.jp",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-09-08T02:26:41.941Z",
+    "pipeline_version": "phase1-generator-v0.3-llm",
+    "industry_category": "コンテンツ・アニメ産業",
+    "note": "scripts/generator/generate-company-report.js により自動生成。Task11でAI分析をllm-client.js経由の実LLM接続に対応（今回はLLM_PROVIDER=deepseekで生成）。fetch-government/fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位20件に絞り込み済み。"
+  },
+  "company_profile": {
+    "name": "株式会社ABI",
+    "name_is_ai_estimated": true,
+    "domain": "www.ab-i.jp",
+    "industry_label": "コンテンツ・アニメ産業",
+    "industry_is_ai_estimated": true,
+    "business_summary": "日本と中国のアニメ番組や実写番組の企画・制作・プロデュース。ABI",
+    "business_summary_is_ai_estimated": true,
+    "location": "不明（Task9時点では未取得）",
+    "founded_year": null,
+    "employee_range": "不明（Task9時点では未取得）",
+    "business_type": "不明",
+    "listed_status": "不明"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "令和7年度 コンテンツ産業成長投資支援事業費補助金（海外展開支援・開発プラットフォーム構築支援）（IP360） | 【VIPO】映像産業振興機構",
+      "url": "https://www.vipo.or.jp/project/ip360",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "コンテンツ産業支援メニュー",
+      "url": "https://www.meti.go.jp/policy/mono_info_service/contents/menu_contents.html",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "経済産業省から IP360 コンテンツ産業成長投資支援事業が始まります！ | のるん行政書士事務所",
+      "url": "https://norn-gyosei.com/%E7%B5%8C%E6%B8%88%E7%94%A3%E6%A5%AD%E7%9C%81%E3%81%8B%E3%82%89-ip360-%E3%82%B3%E3%83%B3%E3%83%86%E3%83%B3%E3%83%84%E7%94%A3%E6%A5%AD%E6%88%90%E9%95%B7%E6%8A%95%E8%B3%87%E6%94%AF%E6%8F%B4%E4%BA%8B",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-4",
+      "source_type": "government",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "業界の現状及びアクションプラン（案）について 【アニメ】 （事務 ...",
+      "url": "https://www.meti.go.jp/shingikai/mono_info_service/entertainment_creative/pdf/003_04_02.pdf",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-5",
+      "source_type": "statistics",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "「アニメ制作市場」動向調査2026 - 帝国データバンク",
+      "url": "https://www.tdb.co.jp/report/industry/20260819-animation25y",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-6",
+      "source_type": "statistics",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "アニメ制作市場、初の4千億円突破もピークアウトの可能性　2026年市場は5年ぶり減少へ（帝国データバンク） - Yahoo!ニュース",
+      "url": "https://news.yahoo.co.jp/articles/c58a0fca833556d6a1a9a7557a60ad45703a39a4",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-7",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "アニメ産業の市場規模と輸出額をデータと図解で解説【2026年】 | 可視化pedia",
+      "url": "https://kashikapedia.com/anime-data",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-8",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+      "url": "https://www.ab-i.jp",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-9",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "会社概要 株式会社ABI",
+      "url": "https://www.ab-i.jp/company_outline.html",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-10",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "コンテンツ産業の持続可能な成長に向けて ～アニメ産業の制作 ...",
+      "url": "https://www.doyukai.or.jp/policyproposals/2025/250414.html",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-11",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "わが国のアニメ産業における供給面の課題｜日本総研",
+      "url": "https://www.jri.co.jp/page.jsp?id=110461",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-12",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "IP360補助金とは？｜コンテンツ産業成長投資支援事業（最大 ...",
+      "url": "https://milareso.co.jp/csl/ip360",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-13",
+      "source_type": "news",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "【補助金】映像・ゲーム・アニメ等のコンテンツ産業向け支援事業 ...",
+      "url": "https://doshinren.jp/oshirase260608",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-14",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "コンテンツ制作業界のM&A動向！会社売却のメリットや成功のポイントや事例5選を解説！ | M&A・事業承継ならM&A総合研究所",
+      "url": "https://masouken.com/%E3%82%B3%E3%83%B3%E3%83%86%E3%83%B3%E3%83%84%E5%88%B6%E4%BD%9C%E6%A5%AD%E7%95%8C%E3%81%AEM&A",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-15",
+      "source_type": "news",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "アニメ産業レポート | アニメーションビジネス・ジャーナル",
+      "url": "http://animationbusiness.info/archives/tag/%E3%82%A2%E3%83%8B%E3%83%A1%E7%94%A3%E6%A5%AD%E3%83%AC%E3%83%9D%E3%83%BC%E3%83%88",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-16",
+      "source_type": "news",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "株式会社ABI｜世の中の笑顔をつくるコネクト上流カンパニー",
+      "url": "https://abi-inc.co.jp",
+      "published_at": null,
+      "score": 55
+    },
+    {
+      "id": "src-17",
+      "source_type": "government",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "アニメーションビジネスの現状と課題",
+      "url": "https://www.cas.go.jp/jp/seisaku/atarashii_sihonsyugi/wgkaisai/contents_dai1/siryou4.pdf",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-18",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "「アニメ制作市場」動向調査2025｜株式会社 帝国データバンク[TDB]",
+      "url": "https://www.tdb.co.jp/report/industry/20250813-anime24y",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-19",
+      "source_type": "statistics",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "日本のアニメ市場規模、2034年までに41億米ドルに到達――2026年～2034年の年平均成長率は7.28% | NEWSCAST",
+      "url": "https://newscast.jp/smart/news/2565545",
+      "published_at": null,
+      "score": 30
+    },
+    {
+      "id": "src-20",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "reference",
+      "label": "アニメ市場規模・予測レポート、2026〜2035年",
+      "url": "https://www.gminsights.com/ja/industry-analysis/anime-market",
+      "published_at": null,
+      "score": 30
+    }
+  ],
+  "top_sources": [
+    {
+      "id": "src-8",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "アニメ制作から日本や中国での放映・コンテンツ配信なら株式会社ABI",
+      "url": "https://www.ab-i.jp",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-9",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "reference",
+      "label": "会社概要 株式会社ABI",
+      "url": "https://www.ab-i.jp/company_outline.html",
+      "published_at": null,
+      "score": 93
+    },
+    {
+      "id": "src-1",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "令和7年度 コンテンツ産業成長投資支援事業費補助金（海外展開支援・開発プラットフォーム構築支援）（IP360） | 【VIPO】映像産業振興機構",
+      "url": "https://www.vipo.or.jp/project/ip360",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "コンテンツ産業支援メニュー",
+      "url": "https://www.meti.go.jp/policy/mono_info_service/contents/menu_contents.html",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "経済産業省から IP360 コンテンツ産業成長投資支援事業が始まります！ | のるん行政書士事務所",
+      "url": "https://norn-gyosei.com/%E7%B5%8C%E6%B8%88%E7%94%A3%E6%A5%AD%E7%9C%81%E3%81%8B%E3%82%89-ip360-%E3%82%B3%E3%83%B3%E3%83%86%E3%83%B3%E3%83%84%E7%94%A3%E6%A5%AD%E6%88%90%E9%95%B7%E6%8A%95%E8%B3%87%E6%94%AF%E6%8F%B4%E4%BA%8B",
+      "published_at": null,
+      "score": 100
+    }
+  ],
+  "hidden_sources_count": 15,
+  "ai_pipeline": {
+    "note": "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
+    "company_context_generated_at": "2026-09-08T02:26:41.941Z",
+    "pipeline_stats": {
+      "fetched_total": 31,
+      "normalized_total": 31,
+      "duplicates_removed": 3,
+      "after_dedupe": 28,
+      "exact_url_duplicates_removed": 0,
+      "selected_for_ai": 20,
+      "max_sources_for_ai": 20
+    },
+    "llm": {
+      "provider": "deepseek",
+      "display_name": "DeepSeek",
+      "model": "deepseek-v4-flash",
+      "usage": {
+        "input_tokens": 41408,
+        "output_tokens": 3188,
+        "estimated_cost": 0.00669
+      }
+    }
+  },
+  "free_opportunity": {
+    "title": "中国市場向けアニメIPの共同制作・ローカライズ支援サービスの立ち上げ",
+    "why_now": "日本政府はコンテンツ産業の海外展開を国家戦略として推進しており、IP360補助金（海外展開支援・開発プラットフォーム構築支援）が2026年度に創設され、コンテンツIPの海外展開に向けたローカライズやプロモーション、AI・XR等を活用した開発プラットフォーム構築への補助が開始されました（src-1）。また、経済産業省は2033年までに海外アニメ市場を約6兆円へ拡大する国家目標を発表し、2024年の海外市場規模2.17兆円の約3倍を目指しています（src-20）。アニメ市場全体は2024年に3兆8,407億円と過去最高を記録し、海外売上は前年比26%増と2桁成長が続いています（src-20）。こうした中、中国市場はアニメコンテンツの需要が高く、日中共同制作やローカライズのニーズが拡大しています。",
+    "why_company": "株式会社ABIは、日本と中国のアニメ番組や実写番組の企画・制作・プロデュースを事業としており（src-8）、会社概要では「アニメ制作から日本国内と中国での放映・コンテンツ配信まで。中国ライブコンサート展開支援も」と明記されています（src-9）。また、事業内容にはコンテンツの企画・制作・管理・販売に加え、著作権管理、コンサートやイベントの興業、キャラクター商品の開発など、IPを多角的に活用できる体制が含まれています（src-9）。このように、日中両市場にまたがる制作・配信・ライセンスの実績とノウハウを持つABIは、中国市場向けのIP展開支援を新たな収益源として発展させる土台を有しています。",
+    "market_change": "日本政府はコンテンツ産業の海外展開を後押ししており、IP360補助金では海外展開支援（ローカライズ・プロモーション）や開発プラットフォーム構築支援（AI・XR・ブロックチェーン活用）が公募され、2026年度に複数回の公募が実施されました（src-1）。経済産業省は2033年までに海外アニメ市場を約6兆円へ拡大する目標を掲げ、2024年の海外市場規模2.17兆円の約3倍を目指しています（src-20）。アニメ市場全体は2024年に3兆8,407億円と過去最高を記録し、海外売上は2兆1,702億円で全体の56%を占め、前年比26%増と2桁成長が続いています（src-20）。一方、アニメ制作市場は2025年に初めて4,000億円を超えましたが、制作会社の「利益なき繁忙」やアニメーター不足が深刻化しており、制作現場のキャパシティが限界に達しています（src-5, src-6）。",
+    "evidence": [
+      {
+        "source_id": "src-8",
+        "quote": "日本と中国のアニメ番組や実写番組の企画・制作・プロデュース。ABI"
+      },
+      {
+        "source_id": "src-9",
+        "quote": "アニメ制作から日本国内と中国での放映・コンテンツ配信まで。中国ライブコンサート展開支援も。"
+      },
+      {
+        "source_id": "src-1",
+        "quote": "コンテンツIPの権利者が主体となって個社で行うローカライズを支援する事業"
+      },
+      {
+        "source_id": "src-20",
+        "quote": "海外アニメ市場を2033年までに約6兆円（約370億米ドル）へ拡大する国家目標を発表した。これは、2024年の海外市場規模2.17兆円の約3倍に相当する。"
+      }
+    ],
+    "first_action": "IP360補助金の海外展開支援（ローカライズ支援）の次回公募スケジュールを確認し、自社が権利を持つIPまたはクライアントIPの中国市場向けローカライズ案件を企画・申請する。",
+    "extended_analysis": {
+      "market_size": "アニメ市場全体は2024年に3兆8,407億円と過去最高を記録し、海外売上は2兆1,702億円で全体の56%を占めています（src-20）。経済産業省は2033年までに海外アニメ市場を約6兆円へ拡大する目標を掲げており、中国市場はその主要なターゲットの一つと考えられます。",
+      "competition": "アニメ制作市場では元請・グロス請企業がライセンス事業や製作委員会への出資を通じて収益を拡大する一方、専門スタジオは小幅な伸びにとどまるなど、制作態様による格差が拡大しています（src-5）。中国市場に特化したローカライズ支援サービスはまだ確立された大手が少ない可能性がありますが、日中共同制作を行う他社との競争が想定されます。",
+      "risks": "中国市場では規制や検閲の変更リスクがあり、コンテンツのローカライズには現地の法規制への対応が不可欠です。また、アニメ制作市場全体でアニメーター不足が深刻化しており、制作キャパシティの制約が生じる可能性があります（src-5, src-6）。",
+      "priority": "政府の補助金（IP360）が2026年度に創設され、海外展開支援の公募が実施されている今が、中国市場向けローカライズ支援を立ち上げる好機です。ABIは既に中国市場での放映・配信実績を持ち、補助金を活用することで初期投資のリスクを軽減できます。",
+      "case_examples": "公開情報からは、中国市場向けローカライズ支援サービスを立ち上げた同業他社の具体的な事例は確認できませんでした。",
+      "confidence_note": "本分析は、政府の補助金情報（src-1, src-2）、市場統計（src-20, src-5）、企業情報（src-8, src-9）を組み合わせて作成しました。市場規模や補助金の詳細は今後更新される可能性があります。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "AI・XR技術を活用したアニメ制作の生産性向上サービス"
+    },
+    {
+      "id": "locked-2",
+      "title": "中国市場向けアニメIPのライセンス管理・二次利用収益化支援"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "中国市場向けアニメIPの共同制作・ローカライズ支援サービスを、IP360補助金を活用して立ち上げることを推奨します。",
+      "recommended_timing": "2026年度のIP360補助金の公募は終了していますが、次年度の公募開始（例年3月頃）に備え、今から企画書の準備を開始することを推奨します。",
+      "expected_impact": "中国市場でのローカライズ需要を取り込むことで、既存の制作・配信事業に加え、IPライセンス収益の拡大が期待できます。政府補助金を活用することで初期投資の負担を軽減できます。",
+      "investment_level": "中（補助金活用により初期投資を抑制可能だが、人材・現地パートナーシップ構築に投資が必要）",
+      "reason": [
+        "政府がIP360補助金や海外アニメ市場6兆円目標など、コンテンツ海外展開を強力に後押ししている（src-1, src-20）",
+        "ABIは中国市場での放映・配信実績を持ち、ローカライズ支援を提供できる独自の強みがある（src-8, src-9）",
+        "アニメ市場の海外売上は2桁成長が続いており、中国市場は主要な成長ドライバーである（src-20）"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "AI・XR技術を活用したアニメ制作の生産性向上サービス",
+        "summary": "IP360補助金の開発プラットフォーム構築支援事業は、AIやXR、ブロックチェーンを活用した開発プラットフォーム構築を支援しています（src-1）。ABIは制作・配信の知見を活かし、アニメ制作工程の効率化・高度化を支援するサービスを提供できる可能性があります。",
+        "expected_effect": "制作会社の生産性向上を支援することで、業界全体の課題である人材不足・コスト増に対応し、新たな収益源を創出できます。",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "中国市場向けアニメIPのライセンス管理・二次利用収益化支援",
+        "summary": "ABIは著作権管理やキャラクター商品開発の事業を有しており（src-9）、中国市場でのIPライセンス管理・二次利用収益化を支援するサービスを展開できます。アニメ市場ではライセンス事業が好調で、二次利用収益の還流が進んでいます（src-5）。",
+        "expected_effect": "IPホルダーの収益機会を拡大し、ABIのライセンス管理ノウハウを活かした安定的な収益が見込めます。",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "中国の動画配信プラットフォーム向けコンテンツ供給・共同制作の仲介",
+        "summary": "中国市場では動画配信プラットフォーム向けのアニメ需要が旺盛です。ABIは中国市場でのネットワークを活かし、日本のアニメ制作会社と中国の配信プラットフォームを結ぶ仲介・共同制作支援サービスを提供できます。",
+        "expected_effect": "日本の制作会社の中国市場参入を支援し、ABIは仲介手数料や制作プロデュース収益を得られます。",
+        "relevance": "高"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "IP360補助金の次年度公募スケジュールを確認し、申請に必要な書類を準備する",
+          "中国市場向けローカライズ支援の具体的なサービス内容と価格モデルを設計する"
+        ],
+        "expected_outcome": "補助金申請の準備が整い、サービスの基本設計が固まる"
+      },
+      "day_60": {
+        "actions": [
+          "中国の配信プラットフォームや現地パートナーとの連携協議を開始する",
+          "パイロット案件として、自社またはクライアントIPの中国向けローカライズ企画を策定する"
+        ],
+        "expected_outcome": "現地パートナーとの協業可能性が明確になり、パイロット案件の企画が完成する"
+      },
+      "day_90": {
+        "actions": [
+          "IP360補助金の公募が開始され次第、申請を提出する",
+          "パイロット案件の制作を開始し、サービス提供の実績を積む"
+        ],
+        "expected_outcome": "補助金申請が完了し、パイロット案件を通じてサービスの有効性を検証できる"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "中国市場におけるアニメローカライズの需要動向や競合他社のサービス内容について、追加調査を実施する"
+      },
+      {
+        "label": "補助金申請支援",
+        "description": "IP360補助金の申請書類作成や事業計画策定を専門家と連携して支援する"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "中国のコンテンツ規制や検閲方針の変更を定期的にモニタリングし、サービス内容に反映する"
+      },
+      {
+        "theme": "補助金情報",
+        "description": "IP360補助金の次年度公募情報や関連する政府支援策の動向を注視する"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@www.ab-i.jp",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。"
+  },
+  "human_review": {
+    "status": "approved",
+    "reviewer": "Takenori Kouda",
+    "reviewed_at": "2026-09-08T06:32:11.990Z",
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "AI生成直後の状態。人間によるレビュー・承認が完了するまで配信不可。",
+    "review_history": [
+      {
+        "at": "2026-09-08T02:26:41.941Z",
+        "actor": "generate-company-report.js",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 81,
+    "grade": "B",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 20件（5/5点）",
+      "情報源の種類数（関連のみ）: 5種類（5/5点）",
+      "政府/統計情報: あり（関連あり）（4/4点）",
+      "企業情報: あり（関連あり）（6/6点）",
+      "業界情報: あり（関連あり）（4/4点）",
+      "ニュース比率: 25%（8/8点）",
+      "有効な引用文: 4件（8/8点）",
+      "source_type偏り: 最大偏り30%（7/7点）",
+      "source_role偏り: 最大偏り45%（7/7点）",
+      "evidence件数: 4件（7/7点）"
+    ],
+    "warnings": [
+      "関連性 A:2 B:9 C:5 D:4（関連55% / ノイズ20%）（5/15点、要改善）"
+    ],
+    "improvements": [
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 5,
+        "max": 5,
+        "detail": "情報源数: 20件"
+      },
+      "type_balance": {
+        "points": 5,
+        "max": 5,
+        "detail": "情報源の種類数（関連のみ）: 5種類",
+        "distinctTypes": 5
+      },
+      "government_presence": {
+        "points": 4,
+        "max": 4,
+        "detail": "政府/統計情報: あり（関連あり）",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり（関連あり）",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 4,
+        "max": 4,
+        "detail": "業界情報: あり（関連あり）",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 25%",
+        "newsRatio": 0.25
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 9,
+        "max": 13,
+        "detail": "情報源scoreの平均: 72.3点",
+        "average": 72.3
+      },
+      "type_skew": {
+        "points": 7,
+        "max": 7,
+        "detail": "source_type偏り: 最大偏り30%",
+        "maxShare": 0.3
+      },
+      "role_skew": {
+        "points": 7,
+        "max": 7,
+        "detail": "source_role偏り: 最大偏り45%",
+        "maxShare": 0.45
+      },
+      "evidence_count": {
+        "points": 7,
+        "max": 7,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      },
+      "source_relevance": {
+        "points": 5,
+        "max": 15,
+        "detail": "関連性 A:2 B:9 C:5 D:4（関連55% / ノイズ20%）",
+        "counts": {
+          "A": 2,
+          "B": 9,
+          "C": 5,
+          "D": 4
+        },
+        "relevantRatio": 0.55,
+        "noiseRatio": 0.2
+      }
+    }
+  }
+}

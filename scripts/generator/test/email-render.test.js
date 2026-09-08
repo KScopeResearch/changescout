@@ -7,12 +7,10 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
-const fs = require("fs");
 
 const T = require(path.join(__dirname, "..", "shared", "report-teaser"));
 const R = require(path.join(__dirname, "..", "leads", "email-render"));
-const DATA = path.join(__dirname, "..", "..", "..", "website", "aor", "data");
-const load = (s) => JSON.parse(fs.readFileSync(path.join(DATA, s + ".json"), "utf-8"));
+const { loadReport: load } = require("./fixtures/aor-reports");
 
 const REPORT_URL = "https://d261eor7y01afd.cloudfront.net/report-preview.html?company=SLUG&lead=LEAD1&token=TOK1";
 const UNSUB_URL = "https://d261eor7y01afd.cloudfront.net/unsubscribe.html?lead=LEAD1&token=TOK1";
