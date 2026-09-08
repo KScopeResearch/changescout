@@ -32,3 +32,22 @@ test("report-preview.js: hidden_sources_count > 0 のとき「ほか N 件」を
 test("report-preview.js: evidence 結合には全 source_pages を使う（getSourceMap(data.source_pages)）", () => {
   assert.match(src, /getSourceMap\(data\.source_pages\)/);
 });
+
+// Phase55 P0-1 Hotfix: 壊れた business_summary（Markdown table / profile dump）をヘッダーに出さない
+test("report-preview.js: business_summary は SummaryGuard を通してから描画する", () => {
+  assert.match(src, /SummaryGuard/);
+  assert.match(src, /isUsableBusinessSummary/);
+  // ガードを通過した場合のみ summary 段落を append する
+  assert.match(src, /summaryGuard\(data\.company_profile\.business_summary\)[\s\S]{0,200}report-header__summary/);
+});
+
+test("report-preview.html: summary-guard.js を common.js より前に読み込む", () => {
+  const html = fs.readFileSync(
+    path.join(__dirname, "..", "..", "..", "website", "aor", "report-preview.html"),
+    "utf-8"
+  );
+  const guardIdx = html.indexOf("assets/js/summary-guard.js");
+  const commonIdx = html.indexOf("assets/js/common.js");
+  assert.ok(guardIdx !== -1, "summary-guard.js の <script> が無い");
+  assert.ok(guardIdx < commonIdx, "summary-guard.js は common.js より前に読み込むこと");
+});

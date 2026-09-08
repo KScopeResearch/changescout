@@ -92,7 +92,17 @@ function renderHeader(data) {
   }
   el.appendChild(industry);
 
-  if (data.company_profile.business_summary) {
+  // Phase55 P0-1 Hotfix: 会社概要ページの Markdown テーブル断片・見出し断片や、
+  // 会社名/代表者/所在地/資本金といったプロフィール項目の羅列が business_summary に
+  // 混入しているケース（illegame.com の RC1 で発生）は、壊れた文字列をそのまま
+  // ファーストビューに出さず summary 段落を非表示にする（推測での会社概要生成はしない）。
+  const summaryGuard =
+    typeof SummaryGuard !== "undefined" && SummaryGuard && typeof SummaryGuard.isUsableBusinessSummary === "function"
+      ? SummaryGuard.isUsableBusinessSummary
+      : function () {
+          return true;
+        };
+  if (data.company_profile.business_summary && summaryGuard(data.company_profile.business_summary)) {
     const summary = document.createElement("p");
     summary.className = "report-header__summary";
     summary.textContent = data.company_profile.business_summary;
