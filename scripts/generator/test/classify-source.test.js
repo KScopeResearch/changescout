@@ -179,6 +179,25 @@ test("発注先/制作会社マッチングポータル（Web幹事 等）は di
   assert.equal(r.source_type, "directory");
 });
 
+test("業界メディアの実質的な市場分析記事は news（score 上限なし）にする（illegame 飲食DX 回帰）", () => {
+  const r = c({
+    url: "https://sogyotecho.jp/food-business-trend-2026/",
+    title: "飲食ビジネスのトレンドとは？2026年の注目動向と成功のヒントを解説 - 創業手帳",
+    source_type: "government",
+  });
+  assert.equal(r.source_type, "news");
+  assert.equal(r.scoreCap, null, "実質的な市場分析記事は 55 で頭打ちにしない");
+});
+
+test("市場分析っぽくても listicle（おすすめ比較）は news 上限なしにしない", () => {
+  const r = c({
+    url: "https://blog.example.com/pos-hikaku",
+    title: "【2026年】飲食店向けPOSレジおすすめ10選を徹底比較｜市場動向も解説",
+    source_type: "government",
+  });
+  assert.ok(r.scoreCap != null || r.category === "other", `listicle は昇格しない: ${JSON.stringify(r)}`);
+});
+
 test("SEO記事・比較記事は statistics にしない（RC-A3）", () => {
   const r = c({ url: "https://blog.example.com/anime-market", title: "アニメ市場の市場規模まとめ｜おすすめ動画配信サービス比較ランキング記事", source_type: "statistics" });
   assert.notEqual(r.source_type, "statistics");
@@ -260,12 +279,13 @@ test("buildTopSources: directory / review は top_sources に出さない（cite
     { id: "src-4", source_type: "government", score: 100, evidence_strength: "primary", label: "AI導入補助金 デジタル化支援" },
   ];
   const { top_sources } = buildTopSources(sourcePages, {
-    evidenceIds: ["src-1", "src-4"],
+    // src-2（directory）を evidence として引用していても top には出さない（Gate-5 と整合）
+    evidenceIds: ["src-1", "src-2", "src-4"],
     relevanceHints: "イル・レガメ AI導入 デジタル化 補助金",
   });
   const ids = top_sources.map((s) => s.id);
   assert.deepEqual(ids, ["src-1", "src-4"]);
-  assert.ok(!ids.includes("src-2"));
+  assert.ok(!ids.includes("src-2"), "引用された directory も top に入れない");
   assert.ok(!ids.includes("src-3"));
 });
 

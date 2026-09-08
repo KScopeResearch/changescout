@@ -168,7 +168,19 @@ function buildTopSources(sourcePages, options = {}) {
       .sort(byScoreDesc)
   );
   const tierD = take(all.filter((s) => !isNoisy(s) && isRelevant(s)).sort(byScoreDesc));
-  const tierE = take(all.filter((s) => evidenceIds.has(s.id) && isNoisy(s)).sort(byScoreDesc));
+  // Tier E は「分析が引用した低score の外部 source」を透明性のため末尾に載せる。
+  // directory / review は引用されていても top_sources に出さない（STEP4 / STEP8A.2 Gate-5）。
+  const tierE = take(
+    all
+      .filter(
+        (s) =>
+          evidenceIds.has(s.id) &&
+          isNoisy(s) &&
+          s.source_type !== "directory" &&
+          s.source_type !== "review"
+      )
+      .sort(byScoreDesc)
+  );
 
   const ordered = [...tierA, ...tierB, ...tierC, ...tierD, ...tierE];
   const top = ordered.slice(0, n);

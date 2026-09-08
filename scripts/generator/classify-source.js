@@ -79,6 +79,10 @@ const INDUSTRY_ORG = /(工業会|工業協会|事業者団体|振興会|振興�
 // --- 報道・プレスリリース --------------------------------------------------
 const NEWS_HOST = /(^|\.)(nikkei\.com|asahi\.com|yomiuri\.co\.jp|mainichi\.jp|sankei\.com|nhk\.or\.jp|jiji\.com|kyodo\.co\.jp|reuters\.com|bloomberg\.co\.jp|itmedia\.co\.jp|techcrunch\.com|toyokeizai\.net|diamond\.jp|president\.jp|newspicks\.com|prtimes\.jp|atpress\.ne\.jp|value-press\.com|impress\.co\.jp|ascii\.jp|cnet\.com|engadget\.com|ledge\.ai|ainow\.ai|businessinsider\.jp|forbesjapan\.com|japan-forward\.com|screens-lab\.jp|zdnet\.com)$/;
 const NEWS_TITLE = /(ニュースリリース|プレスリリース|報道発表|記者会見|を発表しました|が発表)/;
+// 市場・業界の分析記事（統計機関ではないが、業界メディア等の実質的な市場解説）。
+// listicle（おすすめ比較・ランキング・完全ガイド）は除外する。
+const MARKET_ANALYSIS_TITLE = /(市場規模|市場動向|市場調査|業界動向|業界の現状|業界トレンド|需要動向|需要予測|市場予測|成長市場|市場の展望|トレンド(とは|解説|予測|レポート|\d{4})|の現状と課題|市場は\d)/;
+const LISTICLE_TITLE = /(おすすめ|オススメ|比較\d*選|ランキング|徹底比較|徹底解説|完全ガイド|選び方|導入事例\d*選|まとめ\d*選|一覧【)/;
 
 // --- 企業DB・店舗/求人/見積ディレクトリ（STEP3: Local Directory Guard）-------
 const DIRECTORY_HOST = /(^|\.)(retty\.me|tabelog\.com|gnavi\.co\.jp|hotpepper\.jp|ekiten\.jp|itp\.ne\.jp|mapion\.co\.jp|navitime\.co\.jp|its-mo\.com|baseconnect\.in|musubu\.in|houjin\.jp|houjin-bangou\.nta\.go\.jp|salesnow\.jp|biz-maps\.com|alarmbox\.jp|compalyze\.co\.jp|buffett-code\.com|ullet\.com|zehitomo\.com|imitsu\.jp|meetsmore\.com|creema\.jp|minne\.com|goope\.jp|jimdofree\.com|jimdo\.com|wixsite\.com|amebaownd\.com|indeed\.com|rikunabi\.com|mynavi\.jp|doda\.jp|wantedly\.com|green-japan\.com|type\.jp|townwork\.net|baitoru\.com|job-medley\.com|en-japan\.com|hatalike\.jp|handcrafted\.jp|jbplt\.jp|goo\.gl|g\.page)$/;
@@ -193,6 +197,11 @@ function classifySource(item, options = {}) {
   // 9. news（報道・プレスリリース）
   if (NEWS_HOST.test(host) || NEWS_TITLE.test(title)) {
     return out("news", "news", null, null, "報道・プレスリリース");
+  }
+
+  // 9b. 業界メディア等による実質的な市場・業界分析記事（listicle を除く）→ news（上限なし）
+  if (MARKET_ANALYSIS_TITLE.test(title) && !LISTICLE_TITLE.test(title) && !SNS_HOST.test(host)) {
+    return out("news", "market_analysis", null, null, "市場・業界の分析記事（業界メディア等）");
   }
 
   // 10. テンプレが company と言っているが対象企業と別ドメイン → 他社サイト（reference）
