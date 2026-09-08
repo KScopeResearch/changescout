@@ -133,16 +133,34 @@ test("buildReportUrl: baseUrlの末尾スラッシュ有無に関わらず同じ
   assert.equal(withSlash, withoutSlash);
 });
 
-test("buildEmailContent: text/htmlのいずれにもreportUrlが含まれ、companyNameで件名が組み立てられる", () => {
+test("buildEmailContent: published JSON から teaser メールを組み立てる（reportUrl 保持・件名に会社名）", () => {
   const { subject, text, html } = buildEmailContent({
-    companyName: "サンプル株式会社",
+    report: {
+      company_profile: { name: "サンプル株式会社", industry_label: "情報サービス業" },
+      human_review: { status: "approved", reviewed_at: "2026-09-08T00:00:00.000Z" },
+      free_opportunity: {
+        title: "AI活用型・業務効率化支援サービスの立ち上げ",
+        why_now: "人手不足が深刻化しており、AI導入の需要が高まっています。",
+        why_company: "サンプル株式会社は、システム開発と運用支援を自社で提供しています。",
+        market_change: "サービス市場は前年比10%増で拡大しています。",
+        first_action: "既存顧客にヒアリングし、パイロットを1件企画する。",
+        extended_analysis: { priority: "既存事業の延長で早期に着手できます。", confidence_note: "" },
+      },
+    },
     reportUrl: "https://aor.example.invalid/report-preview.html?company=s&lead=l&token=t",
+    unsubscribeUrl: "https://aor.example.invalid/unsubscribe.html?lead=l&token=t",
   });
   assert.match(subject, /サンプル株式会社/);
+  // teaser の Opportunity title が本文に載る（Preview Hero と一致）
+  assert.ok(text.includes("AI活用型・業務効率化支援サービスの立ち上げ"));
+  assert.ok(html.includes("AI活用型・業務効率化支援サービスの立ち上げ"));
+  // reportUrl は text は生・html はエスケープ後で含まれる
   assert.ok(text.includes("https://aor.example.invalid/report-preview.html?company=s&lead=l&token=t"));
-  // html側はhref属性値としてHTMLエスケープされる（"&" → "&amp;"）ため、生のURL文字列
-  // ではなくエスケープ後の形で含まれる（有効なHTMLとして正しい。text側は生のURLで検証する）。
   assert.ok(html.includes("https://aor.example.invalid/report-preview.html?company=s&amp;lead=l&amp;token=t"));
+  // 個人情報・壊れた断片が出ない
+  assert.doesNotMatch(html + text, /undefined|null|\[object Object\]|## \||\|-{2,}\|/);
+  // AI 生成を謳わない・煽らない
+  assert.doesNotMatch(subject, /AI が|必ず|今すぐ|限定|保証/);
 });
 
 // ---------------------------------------------------------------------------

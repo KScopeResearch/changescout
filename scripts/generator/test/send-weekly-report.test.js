@@ -107,15 +107,38 @@ const GENERATED_AT_2 = "2026-08-19T01:52:35.000Z";
 // buildWeeklyEmailContent: 初回メールとの文言の違い
 // ---------------------------------------------------------------------------
 
-test("buildWeeklyEmailContent: 初回（完成）ではなく更新の文言になる", () => {
+test("buildWeeklyEmailContent: 初回（完成）ではなく更新の文言になる（Phase55 STEP4: teaser 版）", () => {
   const { subject, text, html } = buildWeeklyEmailContent({
+    report: {
+      company_profile: { name: "テスト株式会社", industry_label: "情報サービス業" },
+      human_review: { status: "approved", reviewed_at: "2026-09-08T00:00:00.000Z" },
+      free_opportunity: {
+        title: "AI活用型・業務効率化支援サービスの立ち上げ",
+        why_now: "人手不足が深刻化しています。",
+        why_company: "テスト株式会社は開発と運用を自社提供しています。",
+        market_change: "市場は前年比10%増です。",
+        first_action: "既存顧客にヒアリングする。",
+        extended_analysis: {},
+      },
+    },
+    reportUrl: "https://aor.example.invalid/report-preview.html?company=test",
+  });
+  assert.match(subject, /更新/);
+  assert.doesNotMatch(subject, /完成しました/);
+  assert.match(text, /更新/);
+  assert.match(html, /更新/);
+  // teaser の Opportunity が本文に載る
+  assert.ok(text.includes("AI活用型・業務効率化支援サービスの立ち上げ"));
+});
+
+test("buildWeeklyEmailContent: 後方互換（companyName だけの旧シグネチャでも動く）", () => {
+  const { subject, text } = buildWeeklyEmailContent({
     companyName: "テスト株式会社",
     reportUrl: "https://aor.example.invalid/report-preview.html?company=test",
   });
-  assert.match(subject, /更新されました/);
-  assert.doesNotMatch(subject, /完成しました/);
-  assert.match(text, /更新されました/);
-  assert.match(html, /更新されました/);
+  assert.match(subject, /テスト株式会社/);
+  assert.match(subject, /更新/);
+  assert.ok(text.includes("https://aor.example.invalid/report-preview.html?company=test"));
 });
 
 test("buildWeeklyEmailContent: unsubscribeUrl指定時はtext/html双方に配信停止リンクを含み、返信案内も残す（Phase49 STEP5）", () => {

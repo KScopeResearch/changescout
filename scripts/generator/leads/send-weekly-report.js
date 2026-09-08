@@ -51,57 +51,27 @@ const { redactSecrets } = require("../shared/redact");
 const { isValidIso8601 } = require("../shared/date-utils");
 const { runCli } = require("../shared/cli-utils");
 const sesClient = require("./ses-client");
+const { buildTeaser } = require("../shared/report-teaser");
+const { renderWeeklyReportEmail } = require("./email-render");
 
 /**
- * Weeklyメール本文（件名・text・html）を組み立てる（Pure Function）。send-initial-report.jsの
- * buildEmailContent()と構造は同じだが、「完成しました（初回）」ではなく「更新されました
- * （Weekly）」という意味になるよう文言のみを変える。
+ * Weeklyメール本文（件名・text・html）を組み立てる（Pure Function・Phase55 STEP4）。
+ * Initial と同じ report-teaser.js / email-render.js を使い、published JSON から派生した
+ * 個社別 Opportunity teaser を「更新版」として届ける（「更新されました → URL」だけの
+ * 通知はやめる）。LLM・API は呼ばない・数字を作らない。
  *
- * 【PJ2 AOR Phase49 STEP5】unsubscribeUrl（配信停止確認ページへのURL）を受け取り、本文
- * （text/html両方）に配信停止リンクを明記する。従来の「返信で配信停止」も併記して残す
- * （返信ベースの停止フローは維持）。unsubscribeUrl未指定時は返信のみ案内する（後方互換）。
- * @param {{companyName:string, reportUrl:string, unsubscribeUrl?:string}} params
+ * 後方互換: 旧シグネチャ `{companyName, reportUrl, unsubscribeUrl}` でも動く
+ *   （report が無ければ company_profile.name だけの最小 report とみなす）。
+ * @param {{report?:Object, companyName?:string, reportUrl:string, unsubscribeUrl?:string}} params
  * @returns {{subject:string, text:string, html:string}}
  */
-function buildWeeklyEmailContent({ companyName, reportUrl, unsubscribeUrl }) {
-  const subject = `${companyName} 様向け AI Opportunity Report が更新されました`;
-
-  const optOutText = unsubscribeUrl
-    ? [`配信停止をご希望の場合は、次のリンクから手続きいただけます: ${unsubscribeUrl}`, "（本メールへの直接のご返信でも承ります。）"]
-    : ["配信停止をご希望の場合は、本メールに直接ご返信ください。"];
-
-  const text = [
-    `${companyName} 様`,
-    "",
-    "貴社向けの AI Opportunity Report（無料版）が最新の内容に更新されました。",
-    "以下のURLからご覧いただけます。",
-    "",
-    reportUrl,
-    "",
-    "本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。",
-    ...optOutText,
-    "",
-    "AI Opportunity Report 運営事務局",
-  ].join("\n");
-
-  const escapedName = sesClient.escapeHtml(companyName);
-  const escapedUrl = sesClient.escapeHtml(reportUrl);
-  const optOutHtml = unsubscribeUrl
-    ? `配信停止をご希望の場合は<a href="${sesClient.escapeHtml(unsubscribeUrl)}">こちら</a>から手続きいただけます` +
-      `（本メールへの直接のご返信でも承ります）。`
-    : `配信停止をご希望の場合は、本メールに直接ご返信ください。`;
-  const html =
-    `<!doctype html><html lang="ja"><head><meta charset="utf-8"></head>` +
-    `<body style="font-family:sans-serif;line-height:1.7;color:#1a1a1a;">` +
-    `<p>${escapedName} 様</p>` +
-    `<p>貴社向けの <strong>AI Opportunity Report</strong>（無料版）が最新の内容に更新されました。</p>` +
-    `<p><a href="${escapedUrl}" style="display:inline-block;padding:10px 18px;background:#1d4ed8;` +
-    `color:#ffffff;text-decoration:none;border-radius:6px;">レポートを見る</a></p>` +
-    `<p style="font-size:0.85em;color:#555555;">本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。<br>` +
-    `${optOutHtml}</p>` +
-    `<p style="font-size:0.85em;color:#555555;">AI Opportunity Report 運営事務局</p>` +
-    `</body></html>`;
-
+function buildWeeklyEmailContent({ report, companyName, reportUrl, unsubscribeUrl }) {
+  const rep =
+    report && report.company_profile
+      ? report
+      : { company_profile: { name: companyName || "" } };
+  const teaser = buildTeaser(rep, reportUrl);
+  const { subject, text, html } = renderWeeklyReportEmail(teaser, { unsubscribeUrl });
   return { subject, text, html };
 }
 
@@ -186,7 +156,12 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
     if (missingSite.length) {
       throw new Error(`送信に必要な環境変数が設定されていません: ${missingSite.join(", ")}`);
     }
-    const companyName = (published.company_profile && published.company_profile.name) || lead.company_slug;
+    const reportForEmail = published;
+    if (!reportForEmail.company_profile || !reportForEmail.company_profile.name) {
+      reportForEmail.company_profile = Object.assign({}, reportForEmail.company_profile, {
+        name: (reportForEmail.company_profile && reportForEmail.company_profile.name) || lead.company_slug,
+      });
+    }
     const reportUrl = buildReportUrl(process.env.AOR_SITE_BASE_URL, {
       companySlug: lead.company_slug,
       leadId: lead.lead_id,
@@ -198,7 +173,7 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
       leadId: lead.lead_id,
       reportToken: lead.report_token,
     });
-    ({ subject, text, html } = buildWeeklyEmailContent({ companyName, reportUrl, unsubscribeUrl }));
+    ({ subject, text, html } = buildWeeklyEmailContent({ report: reportForEmail, reportUrl, unsubscribeUrl }));
     // oneClick:false — 現状のunsubscribeUrlは静的な確認ページでありPOSTを処理しないため、
     // RFC 8058のワンクリック（List-Unsubscribe-Post）は付けない。MUAは確認ページを開くだけ。
     // POSTを受けてその場で配信停止するエンドポイントを用意したらtrueへ戻す（unsubscribe-url.js参照）。

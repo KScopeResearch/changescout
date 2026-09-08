@@ -1,23 +1,14 @@
 /*
- * market-stats.js — Phase55 STEP3
+ * market-numbers.js — Phase55 STEP4（canonical / CommonJS）
  *
- * free_opportunity の why_now / market_change / extended_analysis.market_size に
- * 「文章として」埋め込まれている数値を、正規表現で抽出して visual module 用の
- * 構造化データにする。
+ * why_now / market_change / market_size に literal に出現する数値だけを正規表現で抽出する。
+ * ブラウザ版 website/aor/assets/js/market-stats.js と同一ロジック（parity は
+ * scripts/generator/test/market-numbers-parity.test.js が保証する）。
  *
- * 【厳守】数字を新しく作らない・推測しない・丸めない。テキストに literal に
- * 出現する表現だけを取り出す。LLM・API は一切呼ばない。
- *
- * UMD: ブラウザ（<script>）と Node（テスト）の両方で使える。
+ * 【厳守】数字を作らない・推測しない・丸めない。LLM/API は呼ばない。
+ * Lambda bundle は website/ を含まないため、送信側（email-teaser.js）はこちらを使う。
  */
-(function (root, factory) {
-  if (typeof module === "object" && module.exports) {
-    module.exports = factory();
-  } else {
-    root.MarketStats = factory();
-  }
-})(typeof self !== "undefined" ? self : this, function () {
-  "use strict";
+"use strict";
 
   // 金額（兆・億・万の複合と、円 / 米ドル を扱う。小数も許容）
   var MONEY_RE =
@@ -183,8 +174,4 @@
     }).length;
   }
 
-  return {
-    extractMarketNumbers: extractMarketNumbers,
-    countMarketMomentum: countMarketMomentum,
-  };
-});
+  module.exports = { extractMarketNumbers: extractMarketNumbers, countMarketMomentum: countMarketMomentum };

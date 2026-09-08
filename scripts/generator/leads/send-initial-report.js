@@ -68,6 +68,8 @@ const { readJsonSafe } = require("../shared/json-file");
 const { redactSecrets } = require("../shared/redact");
 const { runCli } = require("../shared/cli-utils");
 const { buildUnsubscribeUrl } = require("./unsubscribe-url");
+const { buildTeaser } = require("../shared/report-teaser");
+const { renderInitialReportEmail } = require("./email-render");
 // PJ2 AOR Phase45 STEP3B: Initial AORの送信基盤をSESからblastengineへ切り替えた
 // （docs/strategy_v2/13_architecture.md「メール送信アーキテクチャ v1.0」）。
 // Weekly AOR（send-weekly-report.js）は引き続きses-client.jsを使用し、本ファイルの変更対象外。
@@ -100,44 +102,17 @@ function buildReportUrl(baseUrl, { companySlug, leadId, reportToken }) {
 }
 
 /**
- * メール本文（件名・text・html）を組み立てる（Pure Function）。デザイン刷新が目的ではなく、
- * report-previewへの正しい導線確立が目的のため、既存UIの文言・トーン（「AI Opportunity
- * Report」「様向けレポート」等、report-preview.js/email-capture.htmlの既存コピーに準拠）を
- * 大きく外れない範囲の最小構成にとどめる。
- * @param {{companyName:string, reportUrl:string}} params
+ * メール本文（件名・text・html）を組み立てる（Pure Function・Phase55 STEP4）。
+ * 「レポートが完成しました」という通知ではなく、published JSON から派生した個社別の
+ * Opportunity teaser（title / なぜ今 / なぜ御社か / 市場の動き）を載せ、詳細は
+ * reportUrl（既存の Preview URL）へ誘導する。LLM・API は呼ばない・数字を作らない。
+ * teaser の値は Preview Hero と「同じ published JSON から」派生する（report-teaser.js）。
+ * @param {{report:Object, reportUrl:string, unsubscribeUrl?:string}} params
  * @returns {{subject:string, text:string, html:string}}
  */
-function buildEmailContent({ companyName, reportUrl }) {
-  const subject = `${companyName} 様向け AI Opportunity Report が完成しました`;
-
-  const text = [
-    `${companyName} 様`,
-    "",
-    "貴社向けの AI Opportunity Report（無料版）が完成しました。",
-    "以下のURLからご覧いただけます。",
-    "",
-    reportUrl,
-    "",
-    "本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。",
-    "配信停止をご希望の場合は、本メールに直接ご返信ください。",
-    "",
-    "AI Opportunity Report 運営事務局",
-  ].join("\n");
-
-  const escapedName = mailClient.escapeHtml(companyName);
-  const escapedUrl = mailClient.escapeHtml(reportUrl);
-  const html =
-    `<!doctype html><html lang="ja"><head><meta charset="utf-8"></head>` +
-    `<body style="font-family:sans-serif;line-height:1.7;color:#1a1a1a;">` +
-    `<p>${escapedName} 様</p>` +
-    `<p>貴社向けの <strong>AI Opportunity Report</strong>（無料版）が完成しました。</p>` +
-    `<p><a href="${escapedUrl}" style="display:inline-block;padding:10px 18px;background:#1d4ed8;` +
-    `color:#ffffff;text-decoration:none;border-radius:6px;">レポートを見る</a></p>` +
-    `<p style="font-size:0.85em;color:#555555;">本メールに心当たりがない場合は、内容を破棄していただいて問題ございません。<br>` +
-    `配信停止をご希望の場合は、本メールに直接ご返信ください。</p>` +
-    `<p style="font-size:0.85em;color:#555555;">AI Opportunity Report 運営事務局</p>` +
-    `</body></html>`;
-
+function buildEmailContent({ report, reportUrl, unsubscribeUrl }) {
+  const teaser = buildTeaser(report || {}, reportUrl);
+  const { subject, text, html } = renderInitialReportEmail(teaser, { unsubscribeUrl });
   return { subject, text, html };
 }
 
@@ -213,15 +188,18 @@ async function sendInitialReportForLead(leadId, options = {}) {
     if (missingSite.length) {
       throw new Error(`送信に必要な環境変数が設定されていません: ${missingSite.join(", ")}`);
     }
-    const publishedData = readJsonSafe(publishedPathFor(lead.company_slug));
-    const companyName =
-      (publishedData && publishedData.company_profile && publishedData.company_profile.name) || lead.company_slug;
+    const publishedData = readJsonSafe(publishedPathFor(lead.company_slug)) || {};
+    // company_profile.name が取れない場合は company_slug をフォールバック名にする
+    if (!publishedData.company_profile || !publishedData.company_profile.name) {
+      publishedData.company_profile = Object.assign({}, publishedData.company_profile, {
+        name: (publishedData.company_profile && publishedData.company_profile.name) || lead.company_slug,
+      });
+    }
     const reportUrl = buildReportUrl(process.env.AOR_SITE_BASE_URL, {
       companySlug: lead.company_slug,
       leadId: lead.lead_id,
       reportToken: lead.report_token,
     });
-    ({ subject, text, html } = buildEmailContent({ companyName, reportUrl }));
 
     // PJ2 AOR Phase45 STEP3A/3B/3C: 配信停止URLの組み立て（Provider非依存の共通ヘルパー
     // unsubscribe-url.jsを使用）。blastengineの公式API仕様（STEP3Cで確認）に合わせ、
@@ -233,6 +211,10 @@ async function sendInitialReportForLead(leadId, options = {}) {
       reportToken: lead.report_token,
     });
     unsubscribe = { url: unsubscribeUrl, mailto: process.env.BLASTENGINE_FROM || undefined };
+
+    // Phase55 STEP4: published JSON から個社別 Opportunity teaser メールを組み立てる
+    // （teaser の値は Preview Hero と同じ published JSON から派生する）。
+    ({ subject, text, html } = buildEmailContent({ report: publishedData, reportUrl, unsubscribeUrl }));
   } catch (err) {
     return { ok: false, leadId, error: err.message };
   }
