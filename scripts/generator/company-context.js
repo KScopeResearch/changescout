@@ -28,6 +28,7 @@ const { mergeSources } = require("./merge-sources");
 const { normalizeSources } = require("./normalize-sources");
 const { deduplicateSources, dedupeSourcesByExactUrl } = require("./deduplicate-sources");
 const { scoreSources } = require("./score-sources");
+const { reclassifySources, applyScoreCaps } = require("./classify-source");
 const { applyRelevanceGuard } = require("./search/relevance-guard");
 
 const MAX_SOURCES_FOR_AI = 20;
@@ -271,11 +272,20 @@ async function buildCompanyContext(companyUrl) {
   // --- normalize ---
   const normalized = normalizeSources(merged);
 
+  // --- reclassify（Phase54 STEP8A.1）---
+  // 検索クエリのテンプレート（query-builder.js）が付けた source_type を信頼せず、
+  // ドメイン・タイトル・本文から内容ベースで再分類する。企業DB・店舗/求人ディレクトリ・
+  // 口コミサイト・SNS・他社サイト・民間の補助金まとめは directory / review / reference へ
+  // 落とし、score 上限（_score_cap）を付ける。mock 由来（simulated）は再分類しない。
+  const reclassified = reclassifySources(normalized, { targetUrl: companyUrl });
+
   // --- deduplicate ---
-  const { deduplicated, removedCount } = deduplicateSources(normalized);
+  const { deduplicated, removedCount } = deduplicateSources(reclassified);
 
   // --- score ---
-  const scored = scoreSources(deduplicated);
+  // scoreSources() でカテゴリ基準点を付けた後、classify-source.js が決めた上限で
+  // クランプする（directory<=30 等）。
+  const scored = applyScoreCaps(scoreSources(deduplicated));
 
   // --- 関連性ガード（PJ2 AOR企業同一性バグ修正）---
   // 対象企業とは無関係な別企業を主体的に説明しているsourceのscoreを引き下げてから再ソートする。

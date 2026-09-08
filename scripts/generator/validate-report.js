@@ -250,7 +250,7 @@ function validateReport(report) {
   // --- AI出力の内容品質チェック（Task11で追加、いずれも警告） ---
   checkSpeculationPhrases(report, warnings);
   checkEmptyAnalysisContent(report, warnings);
-  checkOpportunityEvidenceQuality(report, warnings); // Phase53 STEP10.12
+  checkOpportunityEvidenceQuality(report, warnings, errors); // Phase53 STEP10.12 / Phase54 STEP8A.1
 
   // --- 旧スキーマ残存チェック ---
   if ("opportunities_open" in report) errors.push("旧フィールド opportunities_open が残っています");
@@ -336,13 +336,15 @@ const LOW_RELEVANCE_SCORE = 30;
 // Phase54 STEP1: 外部の市場変化を示す source_type。
 const EXTERNAL_MARKET_TYPES = ["government", "statistics", "industry_association", "technology"];
 
-function checkOpportunityEvidenceQuality(report, warnings) {
+function checkOpportunityEvidenceQuality(report, warnings, errors) {
   const freeOpp = report.free_opportunity || {};
   const evidence = Array.isArray(freeOpp.evidence) ? freeOpp.evidence : [];
 
   checkGovernmentSubjectConfusion(freeOpp, warnings);
   checkOpportunityIsNotExistingBusiness(report, warnings); // Phase54 STEP1
   checkMarketChangeExternality(report, warnings); // Phase54 STEP1
+  checkMarketChangeEvidenceGate(report, Array.isArray(errors) ? errors : []); // Phase54 STEP8A.1 STEP5
+  checkOpportunityEvidenceGate(report, Array.isArray(errors) ? errors : []); // Phase54 STEP8A.1 STEP6
 
   if (evidence.length === 0) return;
 
@@ -512,6 +514,69 @@ function checkMarketChangeExternality(report, warnings) {
       "free_opportunity.market_change が company source のみを引用しています" +
         "（quality-rules.md Phase54ルール6: 市場変化は外部の変化。government/statistics/" +
         "industry_association/technology の source を最低1件引用する。会社の説明にしない）"
+    );
+  }
+}
+
+// Phase54 STEP8A.1 STEP5: Market Change の根拠ゲート（warning ではなく error = HOLD 対象）。
+// 市場変化を、directory/review・reference のみ・company のみ・出典なしで書いている場合は FAIL。
+// 「公開情報からは十分な外部データを取得できなかった」と正直に書いている場合は許容する。
+const MARKET_CHANGE_OK_TYPES = ["government", "statistics", "industry_association", "technology", "news"];
+
+function isReferenceGradeSource(s) {
+  return (
+    !s ||
+    s.source_type === "directory" ||
+    s.source_type === "review" ||
+    s.evidence_strength === "reference" ||
+    (typeof s.score === "number" && s.score <= LOW_RELEVANCE_SCORE)
+  );
+}
+
+function checkMarketChangeEvidenceGate(report, errors) {
+  const mc = (report.free_opportunity || {}).market_change;
+  // 実データの market_change は 80〜300字程度。fixture の定型文（十数字）は対象外にする。
+  if (typeof mc !== "string" || mc.length < 20) return;
+  if (/公開情報からは.*(取得できなかった|確認できな|不足|得られなかった)/.test(mc)) return;
+
+  const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
+  const cited = [...new Set(mc.match(/src-\d+/g) || [])].map((id) => sourceById.get(id)).filter(Boolean);
+
+  // 引用が1件も無い場合は checkMarketChangeExternality の warning が扱う（error にはしない）。
+  if (cited.length === 0) return;
+
+  const hasStrongExternal = cited.some(
+    (s) => MARKET_CHANGE_OK_TYPES.includes(s.source_type) && !isReferenceGradeSource(s) && (s.score || 0) >= 70
+  );
+  if (!hasStrongExternal) {
+    const kinds = cited.map((s) => `${s.id}:${s.source_type}/${s.score}`).join(", ");
+    errors.push(
+      "free_opportunity.market_change が外部市場 source（government/statistics/industry_association/" +
+        `technology・news可、score>=70・非 reference）を引用していません（引用: ${kinds}）` +
+        "（Phase54 STEP8A.1 STEP5: directory/review・reference のみ・company のみで市場変化を書かない）"
+    );
+  }
+}
+
+// Phase54 STEP8A.1 STEP6: Opportunity evidence の根拠ゲート。
+// directory/review・reference だけを根拠に Opportunity を組み立てている場合は FAIL。
+// company 欠落・外部市場欠落・score<=30 過半数 は warning（既存の checkOpportunityEvidenceQuality）。
+function checkOpportunityEvidenceGate(report, errors) {
+  const freeOpp = report.free_opportunity || {};
+  const evidence = Array.isArray(freeOpp.evidence) ? freeOpp.evidence : [];
+  if (evidence.length === 0) return;
+
+  const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
+  const evidenceSources = evidence.map((ev) => sourceById.get(ev.source_id)).filter(Boolean);
+  if (evidenceSources.length === 0) return; // source_id 不整合は errors の別チェックが扱う
+
+  const allReferenceGrade = evidenceSources.every(isReferenceGradeSource);
+  if (allReferenceGrade) {
+    const kinds = evidenceSources.map((s) => `${s.id}:${s.source_type}/${s.score}`).join(", ");
+    errors.push(
+      `free_opportunity.evidence が directory/review・reference・低score(<=${LOW_RELEVANCE_SCORE}) の ` +
+        `source のみで構成されています（${kinds}）` +
+        "（Phase54 STEP8A.1 STEP6: company の一次情報 + 関連性のある外部市場 source を根拠にすること）"
     );
   }
 }

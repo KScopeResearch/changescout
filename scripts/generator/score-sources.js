@@ -37,6 +37,9 @@ function classifyCategory(item) {
 
   if (type === "government") return "政府";
   if (type === "statistics") return "統計";
+  // Phase54 STEP8A.1: 企業DB・店舗/求人ディレクトリ・口コミサイトは低信頼。
+  // classify-source.js が付けた _score_cap（<=30）が最終的に効くが、基準点も低くしておく。
+  if (type === "directory" || type === "review") return "SNS";
 
   if (type === "company") {
     if (/IR|決算|有価証券報告書|investor/i.test(haystack)) return "企業IR";

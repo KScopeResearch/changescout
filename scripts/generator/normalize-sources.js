@@ -11,7 +11,20 @@
  * id と score はこの段階では null（後段のcompany-context.js/score-sources.jsで確定する）。
  */
 
-const VALID_SOURCE_TYPES = ["company", "government", "industry_association", "statistics", "news", "technology"];
+// Phase54 STEP8A.1: directory（企業DB・店舗/求人/見積ディレクトリ）と review（口コミ・評判サイト）を
+// 追加した。検索結果には対象企業と無関係な、あるいは信頼度の低いこれらのページが混入し、
+// テンプレ由来の source_type（government 等）のまま高スコアで扱われる事故があったため、
+// classify-source.js が内容ベースでこの2型へ再分類する。
+const VALID_SOURCE_TYPES = [
+  "company",
+  "government",
+  "industry_association",
+  "statistics",
+  "news",
+  "technology",
+  "directory",
+  "review",
+];
 const VALID_SOURCE_ROLES = ["company_fact", "market_change", "industry_trend", "evidence"];
 
 const DEFAULT_STRENGTH_BY_TYPE = {
@@ -21,6 +34,8 @@ const DEFAULT_STRENGTH_BY_TYPE = {
   industry_association: "secondary",
   technology: "secondary",
   news: "reference",
+  directory: "reference",
+  review: "reference",
 };
 
 /**
@@ -47,6 +62,9 @@ function normalizeSource(raw) {
     source_role: sourceRole,
     evidence_strength: raw.evidence_strength || DEFAULT_STRENGTH_BY_TYPE[sourceType] || "reference",
     score: null,
+    // Phase54 STEP8A.1: mock（合成）由来かどうか。classify-source.js が内容ベース再分類を
+    // 行うかどうかの判断に使う（mock はホスト・本文が非実在のため再分類しない）。
+    simulated: raw.simulated === true,
   };
 }
 

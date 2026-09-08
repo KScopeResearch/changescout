@@ -109,13 +109,17 @@ function relevanceTokens(text) {
  *
  * 【STEP8 で並び基準を score → 関連性へ変更】STEP7 で illegame.com の top_sources に
  * EV自動車補助金・浦安市補助金一覧・同名のバー（Retty）が score 95-100 で混入していた。
- * これらは government/statistics の基礎スコアが高いだけで、対象企業とは無関係。
- * 新しい並び:
- *   1. 会社ページ（source_type:"company"）
- *   2. 分析が実際に引用した source（evidence の source_id）— 関連性が高いもの優先
- *   3. 引用されていないが、会社名・Opportunity・事業概要と語が重なる source（score 降順）
- *   4. 上記で 5 件に満たない場合のみ、引用済みの低スコア source で埋める
- * 「引用もされず、語も重ならない高スコア source」は top に入れない（＝ EV補助金等を除外）。
+ *
+ * 【STEP8A.1 で Tier 制へ】classify-source.js が directory / review を正しく落とすように
+ * なったのを受け、明示的な Tier で並べる:
+ *   Tier A: 会社ページ（company・score>=80）
+ *   Tier B: 外部市場の一次/二次情報（government/statistics/industry_association・score>=70・非ノイズ・関連）
+ *   Tier C: 技術/報道（technology/news・score>=70・非ノイズ・関連）
+ *   Tier D: それ以外の関連 source（非ノイズ・関連）
+ *   Tier E: 分析が実際に引用した低関連 source（透明性のため末尾に載せる。引用されていない
+ *           ノイズ〈directory/review/score<=30/reference〉は top に入れない）
+ * 「関連」= evidence として引用された、または 会社名/Opportunity/事業概要 と語が重なる。
+ * relevanceHints が空なら全 source を関連扱い（従来互換）。
  *
  * @param {Array<Object>} sourcePages
  * @param {{evidenceIds?:string[], relevanceHints?:string, n?:number}} [options]
@@ -127,28 +131,46 @@ function buildTopSources(sourcePages, options = {}) {
   const hints = relevanceTokens(options.relevanceHints || "");
   const all = Array.isArray(sourcePages) ? [...sourcePages] : [];
 
+  const EXTERNAL = ["government", "statistics", "industry_association"];
   const isNoisy = (s) =>
-    s.evidence_strength === "reference" || (typeof s.score === "number" && s.score <= 30);
+    s.evidence_strength === "reference" ||
+    s.source_type === "directory" ||
+    s.source_type === "review" ||
+    (typeof s.score === "number" && s.score <= 30);
   const isTopical = (s) => {
     const label = (s.label || s.title || "").toLowerCase();
     return hints.length === 0 ? true : hints.some((t) => label.includes(t));
   };
+  const isRelevant = (s) => evidenceIds.has(s.id) || isTopical(s);
   const byScoreDesc = (a, b) => (b.score || 0) - (a.score || 0);
 
-  const company = all.filter((s) => s.source_type === "company");
-  const nonCompany = all.filter((s) => s.source_type !== "company");
-  const citedRelevant = nonCompany.filter((s) => evidenceIds.has(s.id) && !isNoisy(s)).sort(byScoreDesc);
-  const otherRelevant = nonCompany
-    .filter((s) => !evidenceIds.has(s.id) && !isNoisy(s) && isTopical(s))
-    .sort(byScoreDesc);
-  const citedNoisy = nonCompany.filter((s) => evidenceIds.has(s.id) && isNoisy(s)).sort(byScoreDesc);
+  const used = new Set();
+  const take = (arr) =>
+    arr.filter((s) => {
+      if (used.has(s.id)) return false;
+      used.add(s.id);
+      return true;
+    });
 
-  const seen = new Set();
-  const ordered = [...company, ...citedRelevant, ...otherRelevant, ...citedNoisy].filter((s) => {
-    if (seen.has(s.id)) return false;
-    seen.add(s.id);
-    return true;
-  });
+  const tierA = take(
+    all.filter((s) => s.source_type === "company" && (s.score || 0) >= 80).sort(byScoreDesc)
+  );
+  const tierB = take(
+    all
+      .filter((s) => EXTERNAL.includes(s.source_type) && (s.score || 0) >= 70 && !isNoisy(s) && isRelevant(s))
+      .sort(byScoreDesc)
+  );
+  const tierC = take(
+    all
+      .filter(
+        (s) => ["technology", "news"].includes(s.source_type) && (s.score || 0) >= 70 && !isNoisy(s) && isRelevant(s)
+      )
+      .sort(byScoreDesc)
+  );
+  const tierD = take(all.filter((s) => !isNoisy(s) && isRelevant(s)).sort(byScoreDesc));
+  const tierE = take(all.filter((s) => evidenceIds.has(s.id) && isNoisy(s)).sort(byScoreDesc));
+
+  const ordered = [...tierA, ...tierB, ...tierC, ...tierD, ...tierE];
   const top = ordered.slice(0, n);
   return { top_sources: top, hidden_sources_count: Math.max(0, all.length - top.length) };
 }

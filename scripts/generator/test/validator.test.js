@@ -19,12 +19,23 @@ test("validateReport: good.jsonはPASSする", () => {
   assert.deepEqual(result.errors, []);
 });
 
-test("validateReport: average.json/bad.jsonも構造としてはPASSする（品質はquality-evaluator.jsが別途判定）", () => {
-  ["average.json", "bad.json"].forEach((name) => {
-    const report = readJson(path.join(REPORT_FIXTURES_DIR, name));
-    const result = validateReport(report);
-    assert.equal(result.ok, true, `${name} は構造的にはPASSするはず`);
-  });
+test("validateReport: average.json は構造としてはPASSする（品質はquality-evaluator.jsが別途判定）", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "average.json"));
+  const result = validateReport(report);
+  assert.equal(result.ok, true, "average.json は構造的にはPASSするはず");
+});
+
+// Phase54 STEP8A.1 STEP6: Opportunity の根拠が directory/review・reference・低score のみの
+// レポートは、品質ではなく「送ってはいけない構造」として validateReport が error（HOLD）にする。
+// bad.json は evidence が news/score35/reference の1件のみ = この条件に該当する。
+test("validateReport: bad.json は Opportunity 根拠ゲート（STEP8A.1 STEP6）で error になる", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "bad.json"));
+  const result = validateReport(report);
+  assert.equal(result.ok, false);
+  assert.ok(
+    result.errors.some((e) => e.includes("directory/review・reference")),
+    `期待した error がない: ${JSON.stringify(result.errors)}`
+  );
 });
 
 test("validateReport: 必須フィールド欠如を検出する", () => {
@@ -207,17 +218,23 @@ test("validateReport: fact区分に推測表現があれば警告する（エラ
 // Phase53 STEP10.12 — Opportunity Evidence Gate（すべて警告、okはtrueのまま）
 // ---------------------------------------------------------------------------
 
-test("STEP10.12 Test E: evidence が全て低スコア/reference の source のみなら警告する", () => {
+test("STEP10.12 Test E → STEP8A.1 STEP6: evidence が全て低スコア/reference の source のみなら error（HOLD）にする", () => {
   const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
   report.source_pages.forEach((s) => {
     s.score = 20;
     s.evidence_strength = "reference";
   });
   const result = validateReport(report);
-  assert.equal(result.ok, true, "関連性の問題は警告のみ");
+  // Phase53 STEP10.12 時点では warning だったが、Phase54 STEP8A.1 STEP6 で
+  // 「directory/review・reference のみを根拠にした Opportunity」は構造的な HOLD（error）に格上げした。
+  assert.equal(result.ok, false, "全て低関連 source を根拠にした Opportunity は error");
+  assert.ok(
+    result.errors.some((e) => e.includes("directory/review・reference")),
+    `期待した error がない: ${JSON.stringify(result.errors)}`
+  );
   assert.ok(
     result.warnings.some((w) => w.includes("関連性が低いと判断された source")),
-    `期待した警告がない: ${JSON.stringify(result.warnings)}`
+    `関連性 warning も併せて出る: ${JSON.stringify(result.warnings)}`
   );
 });
 

@@ -24,6 +24,8 @@ const SOURCE_TYPE_LABELS = {
   statistics: "統計",
   news: "ニュース",
   technology: "技術",
+  directory: "企業情報サイト",
+  review: "口コミ",
 };
 
 const SOURCE_ROLE_LABELS = {
