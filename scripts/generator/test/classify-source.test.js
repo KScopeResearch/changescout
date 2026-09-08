@@ -45,6 +45,11 @@ test("ホットペッパービューティーの口コミページは directory/
   assert.ok(r.scoreCap <= 30);
 });
 
+test("食べログ / ぐるなび の店舗ページは directory", () => {
+  assert.equal(c({ url: "https://tabelog.com/tokyo/A1310/A131002/13012345/", title: "イル・レガメ (神保町/イタリアン) - 食べログ", source_type: "government" }).source_type, "directory");
+  assert.equal(c({ url: "https://r.gnavi.co.jp/abcde/", title: "イル・レガメ - ぐるなび", source_type: "statistics" }).source_type, "directory");
+});
+
 test("Google マップの店舗ページは directory", () => {
   const r = c({
     url: "https://www.google.com/maps/place/IL+Legame/@35.6,139.7,17z",

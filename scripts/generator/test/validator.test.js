@@ -255,19 +255,26 @@ test("STEP10.12 Test G: 会社source + 通常スコアの健全な evidence で�
   assert.ok(!result.warnings.some((w) => w.includes('source_type:"company"')));
 });
 
-test("STEP10.12 Test H: 日本の施策（クールジャパン/JLOX）を中国政府の施策として記述したら警告する", () => {
+test("STEP10.12 Test H → STEP8A.2 Gate-1: 日本の施策（クールジャパン）を中国政府の施策として記述したら error（HOLD）", () => {
   const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
   report.free_opportunity.why_now =
     "中国政府は2024年に「新たなクールジャパン戦略」を公表し、コンテンツ輸出を後押ししています。";
   const bad = validateReport(report);
-  assert.equal(bad.ok, true);
+  // Phase53 STEP10.12 では warning だったが、Phase54 STEP8A.2 Gate-1 で主体取り違えは
+  // 構造的な HOLD（error）に格上げした。
+  assert.equal(bad.ok, false);
+  assert.ok(
+    bad.errors.some((e) => e.includes("主体取り違え")),
+    `期待した error がない: ${JSON.stringify(bad.errors)}`
+  );
   assert.ok(bad.warnings.some((w) => w.includes("中国政府の施策として記述")), JSON.stringify(bad.warnings));
 
-  // 正しい主体（日本政府）なら警告は出ない
+  // 正しい主体（日本政府）なら error も warning も出ない
   const report2 = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
   report2.free_opportunity.why_now =
     "日本政府は2024年に「新たなクールジャパン戦略」を公表し、コンテンツ輸出を後押ししています。";
   const good = validateReport(report2);
+  assert.equal(good.ok, true);
   assert.ok(!good.warnings.some((w) => w.includes("中国政府の施策として記述")));
 });
 
@@ -415,4 +422,96 @@ test("validateReview: history[].atが不正な日付形式の場合を検出す�
   });
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.includes("history[0].at")));
+});
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP8A.2 — LLM 出力 Hard Guards（Gate-1 主体帰属 / Gate-2 他社製品名 / Gate-5 top source）
+// ---------------------------------------------------------------------------
+
+test("STEP8A.2 Gate-1: 「クールジャパン戦略を中国政府が公表」は error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.why_now =
+    "中国政府は2024年6月に「新たなクールジャパン戦略」を公表し、日本発コンテンツの海外市場規模の目標を掲げた。";
+  const v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("主体取り違え")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-1: 「中国政府系プラットフォーム」は error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.title = "中国政府系プラットフォーム向けのアニメIP提供サービス";
+  const v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("主体取り違え")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-1: 中国の配信PFを「国営」と書くと error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.market_change =
+    "国営のbilibiliが日本アニメを配信しており、視聴需要が伸びている（src-2）。";
+  const v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("主体取り違え")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-1: 正しい主体（日本政府がクールジャパン）は error にしない", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.why_now =
+    "日本政府は2024年6月に新たなクールジャパン戦略を公表し、海外展開を後押ししている（src-2）。";
+  const v = validateReport(report);
+  assert.equal(v.ok, true, JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-2: 他社製品名「AI導入の立て直し」を title に使うと error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.title = "AI導入の立て直し支援サービスの提供";
+  const v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("他社の製品・サービス名")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-3: 実質的な market_change で source_id 引用ゼロは error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.market_change =
+    "AI活用が中小企業に広がる一方で、導入後に定着しない企業が増えているという市場変化がある。";
+  const v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("source_id を1件も引用していません")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-3: 情報不足を正直に書いた market_change は error にしない", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.market_change =
+    "公開情報では、貴社の市場に関する十分な外部データを確認できませんでした。";
+  const v = validateReport(report);
+  assert.equal(v.ok, true, JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-5: top_sources に directory / review / Wikipedia が入ると error", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.top_sources = [
+    { id: "src-1", source_type: "company", label: "自社", url: "https://a" },
+    { id: "src-9", source_type: "directory", label: "全国法人リスト", url: "https://houjin.jp/c/x" },
+  ];
+  let v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("Gate-5")), JSON.stringify(v.errors));
+
+  report.top_sources = [
+    { id: "src-1", source_type: "company", label: "自社", url: "https://a" },
+    { id: "src-5", source_type: "news", label: "ABCアニメーション - Wikipedia", url: "https://ja.wikipedia.org/wiki/x" },
+  ];
+  v = validateReport(report);
+  assert.equal(v.ok, false);
+  assert.ok(v.errors.some((e) => e.includes("Wikipedia")), JSON.stringify(v.errors));
+});
+
+test("STEP8A.2 Gate-5: top_sources が company/government のみなら error にしない", () => {
+  const report = readJson(path.join(REPORT_FIXTURES_DIR, "good.json"));
+  report.top_sources = [
+    { id: "src-1", source_type: "company", label: "自社", url: "https://a" },
+    { id: "src-2", source_type: "government", label: "市場統計", url: "https://x.go.jp" },
+  ];
+  const v = validateReport(report);
+  assert.equal(v.ok, true, JSON.stringify(v.errors));
 });

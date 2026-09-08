@@ -19,7 +19,7 @@
  * guessCompanyName()・search/relevance-guard.jsのコメント参照。
  */
 
-const { fetchCompany } = require("./fetch-company");
+const { fetchCompany, decodeHtmlEntities } = require("./fetch-company");
 const { fetchGovernment } = require("./fetch-government");
 const { fetchIndustry } = require("./fetch-industry");
 const { fetchNews } = require("./fetch-news");
@@ -28,8 +28,9 @@ const { mergeSources } = require("./merge-sources");
 const { normalizeSources } = require("./normalize-sources");
 const { deduplicateSources, dedupeSourcesByExactUrl } = require("./deduplicate-sources");
 const { scoreSources } = require("./score-sources");
-const { reclassifySources, applyScoreCaps } = require("./classify-source");
-const { applyRelevanceGuard } = require("./search/relevance-guard");
+const { reclassifySources, applyScoreCaps, downgradeSameNameLocalBusiness } = require("./classify-source");
+const { extractBusinessKeywords } = require("./search/query-builder");
+const { applyRelevanceGuard, extractAddressHint } = require("./search/relevance-guard");
 
 const MAX_SOURCES_FOR_AI = 20;
 
@@ -51,11 +52,68 @@ function guessIndustryHint(companyResult) {
     ["会計", "バックオフィス支援サービス業"],
     ["記帳", "バックオフィス支援サービス業"],
     ["労務", "バックオフィス支援サービス業"],
+    // Phase54 STEP8A.2: 実データ3社（アニメ制作・事業開発コンサル）が「中小企業」既定に
+    // 落ちて市場クエリが機能しなかったため、頻出業種を追加。推測ではなく本文一致のみ。
+    ["アニメ", "コンテンツ・アニメ産業"],
+    ["映像", "コンテンツ・映像産業"],
+    ["コンテンツ配信", "コンテンツ・映像産業"],
+    ["新規事業", "新規事業・事業開発支援"],
+    ["事業開発", "新規事業・事業開発支援"],
+    ["インキュベーション", "新規事業・事業開発支援"],
+    ["M&A", "経営コンサルティング業"],
+    ["事業再生", "経営コンサルティング業"],
+    ["コンサル", "経営コンサルティング業"],
+    ["美容室", "美容・サロン業"],
+    ["飲食店", "飲食業"],
+    ["システム開発", "情報サービス業"],
+    ["ソフトウェア", "情報サービス業"],
+    ["広告", "広告業"],
+    ["不動産", "不動産業"],
+    ["物流", "物流・運輸業"],
+    ["介護", "医療・介護"],
+    ["人材", "人材サービス業"],
   ];
   for (const [keyword, label] of dictionary) {
     if (text.includes(keyword)) return label;
   }
   return "中小企業";
+}
+
+/**
+ * 会社ページの取得結果から、検索クエリ組み立て用の会社プロフィールを作る（Phase54 STEP8A.2）。
+ * 会社ページに実在する情報だけを使い、無い属性は null / 空配列にする（推測で足さない）。
+ * @param {Object} companyResult - fetchCompany() の戻り値
+ * @param {string} companyUrl
+ * @param {{companyName:string, industryHint:string}} known
+ * @returns {{companyName:string, prefecture:(string|null), cityWard:(string|null), industry:string, keywords:string[], domain:(string|null)}}
+ */
+function buildQueryProfile(companyResult, companyUrl, known) {
+  const bodyText = decodeHtmlEntities(`${companyResult.label || ""}\n${companyResult.content || ""}`);
+  // 住所は「〒 / 住所 / 所在地 / 本社」等の近くにある都道府県だけを信用する。
+  // ランディングページの本文に対して extractAddressHint をそのまま使うと "中国市場" から
+  // "中国市" のような誤検出が出るため、明示的な住所文脈がある場合に限定する。
+  const addrContext = (bodyText.match(/(?:〒|住所|所在地|本社|Address)[^\n]{0,40}/g) || []).join(" ");
+  const addr = addrContext ? extractAddressHint(addrContext) : { prefecture: null, cityWard: null };
+  let domain = null;
+  try {
+    domain = new URL(companyUrl).hostname.replace(/^www\./, "");
+  } catch (e) {
+    domain = null;
+  }
+  // クエリ用の社名は、guessCompanyName() が <title> 全文を返すケース（前株の英字社名
+  // "株式会社ABI" 等で発生）に備え、本文から法人名を1件抜き出せればそちらを優先する。
+  const queryName = extractLegalEntityName(bodyText) || known.companyName;
+  return {
+    companyName: queryName,
+    prefecture: addr.prefecture,
+    cityWard: addr.prefecture ? addr.cityWard : null,
+    industry: known.industryHint,
+    keywords: extractBusinessKeywords(bodyText, {
+      title: companyResult.label || "",
+      companyName: queryName,
+    }),
+    domain,
+  };
 }
 
 // PJ2 AOR（企業同一性バグ修正）: 日本の会社名によく使われる法人格。
@@ -253,11 +311,15 @@ async function buildCompanyContext(companyUrl) {
   const industryHint = guessIndustryHint(companyResult);
   const companyName = guessCompanyName(companyResult, companyUrl);
 
+  // Phase54 STEP8A.2: 会社名だけでなく所在地・業種・事業キーワードを検索クエリへ反映する。
+  // 市場クエリは会社名を主語にしない（同名別会社の混入と、外部市場ソースの枯渇を防ぐ）。
+  const queryProfile = buildQueryProfile(companyResult, companyUrl, { companyName, industryHint });
+
   const [governmentResults, industryResults, newsResults, statisticsResults] = await Promise.all([
-    fetchGovernment({ industryHint, companyName }),
-    fetchIndustry({ industryHint, companyName }),
-    fetchNews({ industryHint, companyName }),
-    fetchStatistics({ industryHint, companyName }),
+    fetchGovernment(queryProfile),
+    fetchIndustry(queryProfile),
+    fetchNews(queryProfile),
+    fetchStatistics(queryProfile),
   ]);
 
   // --- merge ---
@@ -305,9 +367,12 @@ async function buildCompanyContext(companyUrl) {
   // 【Phase53 STEP10.12】対象企業のURL（登録可能ドメイン）も渡す。同名の別法人が
   // 自社ブランドとして名乗っている別ドメインのページ（例: ab-i.jp に対する abi-inc.co.jp）を
   // 降格するために使う。
-  const guarded = applyRelevanceGuard(scored, companyIdentityTokens, targetProfileText, {
-    targetUrl: companyUrl,
-  }).sort((a, b) => b.score - a.score);
+  // Phase54 STEP8A.2 STEP4 Post-Filter: 社名は一致するが別業種のローカル店舗
+  // （同名のバー・美容室・ネイル・飲食店・通販ショップ等）を directory へ落とす。
+  const guarded = downgradeSameNameLocalBusiness(
+    applyRelevanceGuard(scored, companyIdentityTokens, targetProfileText, { targetUrl: companyUrl }),
+    { companyName: queryProfile.companyName, targetUrl: companyUrl }
+  ).sort((a, b) => b.score - a.score);
 
   // --- URL完全一致の最終一意化 ---
   // deduplicateSources() の fuzzy 判定をすり抜けて同一URLが複数残った場合の保険。

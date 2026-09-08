@@ -20,8 +20,8 @@ const { search } = require("./search/search-client");
  * @returns {Promise<Array<Object>>} [{source_type, source_role, label, url, content, organization, published_at, ok, simulated}]
  */
 async function fetchNews(context) {
-  const companyName = (context && context.companyName) || "対象企業";
-  const queries = buildQueriesForCategory("news", companyName);
+  const profile = context && context.companyName ? context : { companyName: "対象企業" };
+  const queries = buildQueriesForCategory("news", profile);
 
   const perQueryResults = await Promise.all(
     queries.map((q) => search(q.query, { sourceType: q.sourceType, sourceRole: q.sourceRole }))

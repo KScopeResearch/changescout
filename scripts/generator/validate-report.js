@@ -340,11 +340,15 @@ function checkOpportunityEvidenceQuality(report, warnings, errors) {
   const freeOpp = report.free_opportunity || {};
   const evidence = Array.isArray(freeOpp.evidence) ? freeOpp.evidence : [];
 
+  const errs = Array.isArray(errors) ? errors : [];
   checkGovernmentSubjectConfusion(freeOpp, warnings);
   checkOpportunityIsNotExistingBusiness(report, warnings); // Phase54 STEP1
   checkMarketChangeExternality(report, warnings); // Phase54 STEP1
-  checkMarketChangeEvidenceGate(report, Array.isArray(errors) ? errors : []); // Phase54 STEP8A.1 STEP5
-  checkOpportunityEvidenceGate(report, Array.isArray(errors) ? errors : []); // Phase54 STEP8A.1 STEP6
+  checkMarketChangeEvidenceGate(report, errs); // Phase54 STEP8A.1 STEP5
+  checkOpportunityEvidenceGate(report, errs); // Phase54 STEP8A.1 STEP6
+  checkSubjectAttributionHardGate(freeOpp, errs); // Phase54 STEP8A.2 Gate-1
+  checkCompetitorProductLeakage(freeOpp, errs); // Phase54 STEP8A.2 Gate-2
+  checkTopSourceLeakage(report, errs); // Phase54 STEP8A.2 Gate-5
 
   if (evidence.length === 0) return;
 
@@ -496,7 +500,7 @@ function checkOpportunityIsNotExistingBusiness(report, warnings) {
 function checkMarketChangeExternality(report, warnings) {
   const mc = (report.free_opportunity || {}).market_change;
   if (typeof mc !== "string" || !mc) return;
-  if (/公開情報からは.*(取得できなかった|確認できな|不足)/.test(mc)) return; // 情報不足を正直に書いている場合は許容
+  if (disclosesInsufficientMarketData(mc)) return; // 情報不足を正直に書いている場合は許容
 
   const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
   const cited = [...new Set(mc.match(/src-\d+/g) || [])].map((id) => sourceById.get(id)).filter(Boolean);
@@ -533,17 +537,35 @@ function isReferenceGradeSource(s) {
   );
 }
 
+// market_change / why_now が「外部データを確認できなかった」旨を正直に書いているか。
+// これに該当する場合は、出典なし・弱いという理由での error を出さない。
+function disclosesInsufficientMarketData(text) {
+  const t = String(text || "");
+  return (
+    /公開情報[^。]{0,60}(確認できま?せん|確認できなかった|確認できない|取得できま?せん|取得できなかった|得られま?せん|得られなかった|不足)/.test(t) ||
+    /(十分な|明確な)(外部|市場)?(データ|情報|変化|動向)[^。]{0,20}(確認できま?せん|確認できなかった|得られま?せん|ありません|存在しません)/.test(t)
+  );
+}
+
 function checkMarketChangeEvidenceGate(report, errors) {
   const mc = (report.free_opportunity || {}).market_change;
   // 実データの market_change は 80〜300字程度。fixture の定型文（十数字）は対象外にする。
   if (typeof mc !== "string" || mc.length < 20) return;
-  if (/公開情報からは.*(取得できなかった|確認できな|不足|得られなかった)/.test(mc)) return;
+  if (disclosesInsufficientMarketData(mc)) return;
 
   const sourceById = new Map((report.source_pages || []).map((s) => [s.id, s]));
   const cited = [...new Set(mc.match(/src-\d+/g) || [])].map((id) => sourceById.get(id)).filter(Boolean);
 
-  // 引用が1件も無い場合は checkMarketChangeExternality の warning が扱う（error にはしない）。
-  if (cited.length === 0) return;
+  // Phase54 STEP8A.2 Gate-3: 実質的な market_change（20字以上）で source_id 引用ゼロは error。
+  if (cited.length === 0) {
+    errors.push(
+      "free_opportunity.market_change が source_id を1件も引用していません" +
+        "（Phase54 STEP8A.2 Gate-3: 市場変化は外部市場 source を添えて書く。外部データが無い場合は" +
+        "「公開情報では十分な市場変化を確認できませんでした」等、情報不足を明記すること。" +
+        "別会社の情報で市場変化を構成してはならない）"
+    );
+    return;
+  }
 
   const hasStrongExternal = cited.some(
     (s) => MARKET_CHANGE_OK_TYPES.includes(s.source_type) && !isReferenceGradeSource(s) && (s.score || 0) >= 70
@@ -553,7 +575,7 @@ function checkMarketChangeEvidenceGate(report, errors) {
     errors.push(
       "free_opportunity.market_change が外部市場 source（government/statistics/industry_association/" +
         `technology・news可、score>=70・非 reference）を引用していません（引用: ${kinds}）` +
-        "（Phase54 STEP8A.1 STEP5: directory/review・reference のみ・company のみで市場変化を書かない）"
+        "（Phase54 STEP8A.1 STEP5 / STEP8A.2 Gate-3: directory/review・reference のみ・company のみで市場変化を書かない）"
     );
   }
 }
@@ -579,6 +601,81 @@ function checkOpportunityEvidenceGate(report, errors) {
         "（Phase54 STEP8A.1 STEP6: company の一次情報 + 関連性のある外部市場 source を根拠にすること）"
     );
   }
+}
+
+// ---------------------------------------------------------------------------
+// Phase54 STEP8A.2 Hard Guards（Gate-1 / Gate-2 / Gate-5）
+// ---------------------------------------------------------------------------
+
+const SUBJECT_ATTR_FIELDS = ["title", "why_now", "why_company", "market_change", "first_action"];
+
+// Gate-1: 明白な主体取り違え。正常な文章を壊さないよう、近接（15字以内）＋明確なパターンに限定する。
+const SUBJECT_ATTR_PATTERNS = [
+  { re: /中国政府[^。\n]{0,15}クールジャパン/, label: "「中国政府」と「クールジャパン戦略」を結び付けている" },
+  { re: /クールジャパン[^。\n]{0,15}(?:を公表|を策定|を発表)[^。\n]{0,15}(?:中国|中国政府|中国当局)/, label: "クールジャパン戦略の公表主体を中国側にしている" },
+  { re: /中国政府[^。\n]{0,10}(?:が|は)[^。\n]{0,10}(?:クールジャパン|JLOX|ＪＬＯＸ|JETRO|ジェトロ)/, label: "日本の施策・機関の主体を中国政府にしている" },
+  { re: /中国政府系[^。\n]{0,8}(?:プラットフォーム|配信|動画|サイト)/, label: "中国の民間配信プラットフォームを「中国政府系」と記述している" },
+  { re: /中国政府系[^。\n]{0,8}(?:助成金|補助金|支援金|ファンド|基金)/, label: "助成制度の主体を「中国政府系」と（日本の施策と混同して）記述している" },
+  { re: /(?:国営|政府運営|政府所有)[^。\n]{0,8}(?:bilibili|哔哩哔哩|愛奇芸|iQIYI|騰訊視頻|Tencent\s*Video|優酷|Youku|芒果TV)/i, label: "中国の民間配信プラットフォームを「国営／政府運営」と記述している" },
+];
+
+function checkSubjectAttributionHardGate(freeOpp, errors) {
+  for (const field of SUBJECT_ATTR_FIELDS) {
+    const text = typeof freeOpp[field] === "string" ? freeOpp[field] : "";
+    if (!text) continue;
+    for (const { re, label } of SUBJECT_ATTR_PATTERNS) {
+      if (re.test(text)) {
+        errors.push(
+          `free_opportunity.${field}: 主体取り違えの疑いが強い記述です（${label}）` +
+            "（Phase54 STEP8A.2 RULE-A/B/C: source に明示されていない主体を付与しない。" +
+            "日本の施策〈クールジャパン戦略・JLOX+・JETRO〉と中国の規制・機関を混同しない）"
+        );
+        break;
+      }
+    }
+  }
+}
+
+// Gate-2: 既知の他社製品・サービス名の流用。テストしやすいよう配列で持つ。
+const KNOWN_COMPETITOR_PRODUCTS = ["AI導入の立て直し", "詰まったAI導入"];
+const COMPETITOR_LEAK_FIELDS = ["title", "first_action", "why_now", "why_company"];
+
+function checkCompetitorProductLeakage(freeOpp, errors) {
+  for (const field of COMPETITOR_LEAK_FIELDS) {
+    const text = typeof freeOpp[field] === "string" ? freeOpp[field] : "";
+    if (!text) continue;
+    for (const product of KNOWN_COMPETITOR_PRODUCTS) {
+      if (text.includes(product)) {
+        errors.push(
+          `free_opportunity.${field}: 検索で出てきた他社の製品・サービス名「${product}」を` +
+            "そのまま使用しています（Phase54 STEP8A.2 RULE-D: 対象企業の一手として一般的な" +
+            "機能・価値で言い換えること）"
+        );
+        break;
+      }
+    }
+  }
+}
+
+// Gate-5: top_sources に directory/review/Wikipedia が混入していないか。
+function checkTopSourceLeakage(report, errors) {
+  const top = Array.isArray(report.top_sources) ? report.top_sources : [];
+  top.forEach((s) => {
+    if (!s) return;
+    const label = `${s.label || s.title || ""}`;
+    const url = `${s.url || ""}`;
+    if (s.source_type === "directory" || s.source_type === "review") {
+      errors.push(
+        `top_sources に ${s.source_type} の source（${s.id || label}）が含まれています` +
+          "（Phase54 STEP8A.2 Gate-5: 企業DB・店舗/求人ディレクトリ・口コミサイトは top_sources に出さない）"
+      );
+    } else if (/wikipedia\.org|ウィキペディア|\bWikipedia\b/i.test(`${label} ${url}`)) {
+      errors.push(
+        `top_sources に Wikipedia の source（${s.id || label}）が含まれています` +
+          "（Phase54 STEP8A.2 Gate-5: 百科事典は top_sources に出さない）"
+      );
+    }
+  });
 }
 
 /**

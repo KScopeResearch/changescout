@@ -26,6 +26,7 @@
  */
 
 const { registrableDomain, sameRegistrableDomain } = require("./search/relevance-guard");
+const { companyNameCores } = require("./search/query-builder");
 
 const DIRECTORY_MAX_SCORE = 30; // STEP3: Local Directory Guard は score<=30
 const REVIEW_MAX_SCORE = 30;
@@ -233,6 +234,38 @@ function reclassifySources(items, options = {}) {
   });
 }
 
+// STEP4 Post-Filter: 対象企業と同名だが別業種の店舗（バー・美容室・ネイル・飲食店・
+// 通販ショップ等）を、ディレクトリ掲載でなくても directory 級へ落とすためのマーカー。
+const LOCAL_BUSINESS_MARKER = /(バー|BAR|居酒屋|スナック|パブ|カフェ|喫茶|レストラン|ビストロ|食堂|ラーメン|焼肉|寿司|ネイル|まつげ|マツエク|美容室|美容院|ヘアサロン|理容|床屋|エステ|サロン|整体|接骨院|鍼灸|マッサージ|ホテル|旅館|民宿|ゲストハウス|ハンドメイド|革製品|レザー|アクセサリー|雑貨店|セレクトショップ|ブティック|花屋|パン屋|ベーカリー|ケーキ)/;
+
+/**
+ * STEP4 Post-Filter: 対象企業と社名は一致するが別業種のローカル店舗を directory へ落とす。
+ * 検索結果取得後、classify / score / relevance-guard の後に呼ぶ。
+ * @param {Array<Object>} sources - id 付与前でも後でもよい
+ * @param {{companyName?:string, targetUrl?:string}} options
+ * @returns {Array<Object>}
+ */
+function downgradeSameNameLocalBusiness(sources, options = {}) {
+  const cores = companyNameCores(options.companyName);
+  if (cores.length === 0) return sources || [];
+  const targetUrl = options.targetUrl || "";
+  return (sources || []).map((s) => {
+    if (!s || s.source_type === "company") return s;
+    if (targetUrl && s.url && sameRegistrableDomain(s.url, targetUrl)) return s;
+    const label = `${s.title || s.label || ""}`;
+    const mentionsName = cores.some((c) => c.length >= 2 && label.includes(c));
+    if (!mentionsName || !LOCAL_BUSINESS_MARKER.test(label)) return s;
+    return {
+      ...s,
+      source_type: "directory",
+      evidence_strength: "reference",
+      score: Math.min(typeof s.score === "number" ? s.score : DIRECTORY_MAX_SCORE, DIRECTORY_MAX_SCORE),
+      _classification: "directory",
+      _classification_reason: "同名だが別業種のローカル店舗（STEP4 post-filter）",
+    };
+  });
+}
+
 /**
  * _score_cap が付いた item の score を上限でクランプする（scoreSources() の後に呼ぶ）。
  * @param {Array<Object>} scored
@@ -251,6 +284,7 @@ module.exports = {
   isLocalDirectory,
   reclassifySources,
   applyScoreCaps,
+  downgradeSameNameLocalBusiness,
   DIRECTORY_MAX_SCORE,
   REVIEW_MAX_SCORE,
   REFERENCE_MAX_SCORE,
