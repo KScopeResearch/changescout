@@ -141,6 +141,39 @@ test("帝国データバンク・矢野経済研究所は statistics", () => {
   assert.equal(c({ url: "https://www.tdb.co.jp/report/industry/20250813-anime24y", title: "「アニメ制作市場」動向調査2025｜株式会社 帝国データバンク[TDB]", source_type: "industry_association" }).source_type, "statistics");
 });
 
+test("補助金の交付額表（EV車両の別表等）は industry_association にしない（illegame top_sources 回帰）", () => {
+  const r = c({
+    url: "https://www.cev-pc.or.jp/hojo/pdf/R4ho/R4ho_meigaragotojougen_2.pdf",
+    title: "1 of 9 （別表１）銘柄ごとの補助金交付額 車両登録日：R5.04.01以降 【電気自動車】 アウディ SQ8 Sport",
+    source_type: "government",
+  });
+  assert.notEqual(r.source_type, "industry_association");
+  assert.notEqual(r.source_type, "government");
+  assert.ok(r.scoreCap <= 30);
+});
+
+test("省庁名を本文で言及しているだけのシンクタンク記事は government にしない（ab-i src-1 回帰）", () => {
+  const r = c(
+    {
+      url: "https://www.jri.co.jp/column/opinion/detail/16473",
+      title: "広がるアニメ制作会社のIP戦略最前線― 産業構造、ビジネスモデル、政策支援を読み解く｜日本総研",
+      summary: "文化庁や経済産業省による政策支援が拡充している。クールジャパン戦略も…",
+      source_type: "government",
+    },
+    "https://www.ab-i.jp"
+  );
+  assert.equal(r.source_type, "industry_association");
+});
+
+test("発注先/制作会社マッチングポータル（Web幹事 等）は directory", () => {
+  const r = c({
+    url: "https://web-kanji.com/companies/kaleidoscope",
+    title: "株式会社カレイドスコープの制作実績と評判 | 東京都渋谷区のホームページ制作会社 | Web幹事",
+    source_type: "government",
+  });
+  assert.equal(r.source_type, "directory");
+});
+
 test("SEO記事・比較記事は statistics にしない（RC-A3）", () => {
   const r = c({ url: "https://blog.example.com/anime-market", title: "アニメ市場の市場規模まとめ｜おすすめ動画配信サービス比較ランキング記事", source_type: "statistics" });
   assert.notEqual(r.source_type, "statistics");

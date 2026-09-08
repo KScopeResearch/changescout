@@ -61,6 +61,10 @@ const GOV_ORG = new RegExp(
 // 民間の補助金まとめ／申請代行／エージェント。go.jp でなければ government ではない（RC-A2）。
 const SUBSIDY_AGGREGATOR_HOST = /(hojokin|hojyokin|hozyokin|jyoseikin|josei-kin|subsidy|hojo-)/i;
 const SUBSIDY_AGGREGATOR_TITLE = /(補助金|助成金)(まとめ|一覧|ガイド|辞典|ポータル|検索|情報|比較|エージェント)|使える(補助金|助成金)|申請代行|補助金コンサル/;
+// 補助金の交付額表・交付要綱・対象銘柄リスト等の行政様式。市場分析ではなく、
+// 対象企業と無関係な補助金（例: EV車両の補助金交付額表）を industry_association 扱い
+// しないための除外パターン。
+const SUBSIDY_ADMIN_DOC_TITLE = /銘柄ごとの補助金|補助金交付額|交付額(の)?(一覧|上限)|交付要綱|交付規程|公募要領|間接補助事業者|【電気自動車】|車両登録日|対象車両一覧/;
 
 // --- 統計・調査機関（RC-A3）-----------------------------------------------
 const STATS_HOST = /(^|\.)(e-stat\.go\.jp|stat\.go\.jp|boj\.or\.jp|yano\.co\.jp|tdb\.co\.jp|tsr-net\.co\.jp|nikkei-r\.co\.jp|gartner\.com|idc\.com|statista\.com|fcr\.co\.jp|m2ri\.jp|mm-research\.co\.jp)$/;
@@ -78,7 +82,9 @@ const NEWS_TITLE = /(ニュースリリース|プレスリリース|報道発表
 // --- 企業DB・店舗/求人/見積ディレクトリ（STEP3: Local Directory Guard）-------
 const DIRECTORY_HOST = /(^|\.)(retty\.me|tabelog\.com|gnavi\.co\.jp|hotpepper\.jp|ekiten\.jp|itp\.ne\.jp|mapion\.co\.jp|navitime\.co\.jp|its-mo\.com|baseconnect\.in|musubu\.in|houjin\.jp|houjin-bangou\.nta\.go\.jp|salesnow\.jp|biz-maps\.com|alarmbox\.jp|compalyze\.co\.jp|buffett-code\.com|ullet\.com|zehitomo\.com|imitsu\.jp|meetsmore\.com|creema\.jp|minne\.com|goope\.jp|jimdofree\.com|jimdo\.com|wixsite\.com|amebaownd\.com|indeed\.com|rikunabi\.com|mynavi\.jp|doda\.jp|wantedly\.com|green-japan\.com|type\.jp|townwork\.net|baitoru\.com|job-medley\.com|en-japan\.com|hatalike\.jp|handcrafted\.jp|jbplt\.jp|goo\.gl|g\.page)$/;
 const DIRECTORY_HOST_CONTAINS = /(maps\.google\.|google\.[a-z.]+\/maps)/;
-const DIRECTORY_TITLE = /(企業詳細|企業情報（電話番号|の会社概要・役員|法人リスト|全国法人|の求人|求人情報|中途採用|アルバイト情報|の店舗一覧|ショップ一覧|クーポン|ネット予約|への地図|の地図|アクセス・地図|ハンドメイド通販|通販・販売|フリマ|オンラインショップ|見積(もり)?(依頼|比較|の依頼)|発注先(探し)?|ビジネスマッチング|の電話番号・住所|インボイス登録番号・会社概要)/;
+const DIRECTORY_TITLE = /(企業詳細|企業情報（電話番号|の会社概要・役員|法人リスト|全国法人|の求人|求人情報|中途採用|アルバイト情報|の店舗一覧|ショップ一覧|クーポン|ネット予約|への地図|の地図|アクセス・地図|ハンドメイド通販|通販・販売|フリマ|オンラインショップ|見積(もり)?(依頼|比較|の依頼)|発注先(探し)?|ビジネスマッチング|の電話番号・住所|インボイス登録番号・会社概要|の制作実績と評判|制作会社\s*\|)/;
+// 発注先/制作会社/士業などのマッチング・比較ポータル。
+const VENDOR_PORTAL_HOST = /(^|\.)(web-kanji\.com|hp-tsukurikata\.com|weval\.jp|pronavi\.[a-z.]+|発注ナビ|imitsu\.jp|ai-market\.jp|utsuwaz\.jp|comdesignet\.com)$/;
 
 // --- 口コミ・評判サイト --------------------------------------------------
 const REVIEW_HOST = /(^|\.)(openwork\.jp|jobtalk\.jp|en-hyouban\.com|kaisha-hyouban\.com|minhyo\.jp|lighthouse\.jp)$/;
@@ -105,6 +111,9 @@ function classifySource(item, options = {}) {
   const org = (item && item.organization) || "";
   const body = (item && (item.summary || item.content || item.quote)) || "";
   const hay = `${title} ${org} ${body}`;
+  // 省庁名は「本文でたまたま言及している」だけの記事（例: 日本総研の政策解説コラム）を
+  // government に誤分類しないよう、タイトルと組織名だけで判定する。
+  const titleOrg = `${title} ${org}`;
   const targetUrl = options.targetUrl || "";
 
   const out = (source_type, category, scoreCap, evidenceStrength, reason) => ({
@@ -142,35 +151,41 @@ function classifySource(item, options = {}) {
     return out("review", "review", REVIEW_MAX_SCORE, "reference", "口コミ・評判サイト");
   }
 
-  // 4. 企業DB・店舗/求人/見積ディレクトリ → directory（STEP3: Local Directory Guard）
-  if (DIRECTORY_HOST.test(host) || DIRECTORY_HOST_CONTAINS.test(url) || DIRECTORY_TITLE.test(title)) {
+  // 4. 企業DB・店舗/求人/見積ディレクトリ・発注ポータル → directory（STEP3: Local Directory Guard）
+  if (
+    DIRECTORY_HOST.test(host) ||
+    VENDOR_PORTAL_HOST.test(host) ||
+    DIRECTORY_HOST_CONTAINS.test(url) ||
+    DIRECTORY_TITLE.test(title)
+  ) {
     return out("directory", "directory", DIRECTORY_MAX_SCORE, "reference", "企業DB・店舗/求人/見積ディレクトリ");
   }
 
-  // 5. 民間の補助金まとめ／エージェント（go.jp でない）→ reference（RC-A2）
+  // 5. 民間の補助金まとめ／エージェント／交付額一覧などの行政様式 → reference（RC-A2）
   if (
-    !GOV_HOST.test(host) &&
-    (SUBSIDY_AGGREGATOR_HOST.test(host) || SUBSIDY_AGGREGATOR_TITLE.test(title))
+    (!GOV_HOST.test(host) &&
+      (SUBSIDY_AGGREGATOR_HOST.test(host) || SUBSIDY_AGGREGATOR_TITLE.test(title))) ||
+    SUBSIDY_ADMIN_DOC_TITLE.test(title)
   ) {
-    return out("news", "reference", REFERENCE_MAX_SCORE, "reference", "民間の補助金まとめ/エージェント（政府機関ではない）");
+    return out("news", "reference", REFERENCE_MAX_SCORE, "reference", "民間の補助金まとめ/行政様式（市場分析ではない）");
   }
 
-  // 6. government（RC-A2）
-  if (GOV_HOST.test(host) || GOV_HOST_ALLOW.test(host) || GOV_ORG.test(hay)) {
+  // 6. government（RC-A2。省庁名は本文ではなくタイトル・組織名で判定する）
+  if (GOV_HOST.test(host) || GOV_HOST_ALLOW.test(host) || GOV_ORG.test(titleOrg)) {
     return out("government", "government", null, null, "公的機関ドメイン/省庁名");
   }
 
   // 7. statistics（RC-A3）
   if (
     STATS_HOST.test(host) ||
-    STATS_ORG.test(hay) ||
+    STATS_ORG.test(titleOrg) ||
     (STATS_TITLE.test(title) && !/ブログ|まとめ|比較|おすすめ|ランキング記事/.test(title))
   ) {
     return out("statistics", "statistics", null, null, "統計・調査機関");
   }
 
   // 8. industry_association（業界団体・シンクタンク）
-  if (INDUSTRY_HOST.test(host) || INDUSTRY_ORG.test(hay)) {
+  if (INDUSTRY_HOST.test(host) || INDUSTRY_ORG.test(titleOrg)) {
     return out("industry_association", "industry_association", null, null, "業界団体・シンクタンク");
   }
 
