@@ -3,6 +3,12 @@
  * First Action steps / Evidence・Sources 折りたたみ / CTA V2）。
  * 共通トークンは base.css。base.css の既存クラスは壊さない（このファイルは追加分のみ）。 */
 
+/* Phase55 STEP5.1 (P2-1): どれだけ長い stat 値（例: 「17兆3,777億9,000万米ドル」）が
+ * 来ても Preview がビューポート外へ横溢れしないための保険。第一対策は
+ * .stat-card__value / .market-badge__value の overflow-wrap（下記）。これは第二対策。
+ * このファイルは report-preview.html 専用なので body 指定でも他ページに影響しない。 */
+body { overflow-x: hidden; }
+
 /* ============ Hero ============ */
 .report-hero {
   background: var(--color-surface);
@@ -94,7 +100,13 @@
   padding: 6px 12px;
   line-height: 1.2;
 }
-.market-badge__value { font-size: 1.05rem; font-weight: 800; color: var(--color-primary-dark); }
+.market-badge__value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  /* STEP5.1(P2-1): 長い金額文字列は最終手段として任意位置で折り返す */
+  overflow-wrap: anywhere;
+}
 .market-badge__label { font-size: 0.68rem; color: var(--color-text-muted); }
 
 /* ============ セクション見出し ============ */
@@ -170,7 +182,10 @@
   font-weight: 800;
   color: var(--color-primary-dark);
   line-height: 1.15;
+  /* 短い値（「約6兆円」等）は語中で割らず、長い値（「17兆3,777億9,000万米ドル」等）だけ
+   * はみ出す場合に限り任意位置で折り返す。STEP5.1(P2-1)。 */
   word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 .stat-card__label { font-size: 0.74rem; color: var(--color-text-muted); margin-top: 4px; }
 .stat-card__src { font-size: 0.66rem; color: var(--color-text-muted); opacity: 0.8; margin-top: 2px; }
