@@ -337,6 +337,11 @@ const COVERAGE_MAP = [
   { module: "review/review-cli.js", testFile: null },
   { module: "jobs/job-cli.js", testFile: null },
   { module: "website/aor-admin/server.js", testFile: "security.test.js（未認証401/認証済み200/CSRF拒否）" },
+  { module: "website/aor/assets/js/summary-guard.js", testFile: "summary-guard.test.js" },
+  { module: "website/aor/assets/js/market-stats.js", testFile: "market-stats.test.js" },
+  { module: "website/aor/assets/js/preview-ui.js", testFile: "preview-ui.test.js" },
+  { module: "website/aor/assets/js/illustrations.js", testFile: "visual-theme.test.js" },
+  { module: "website/aor/assets/js/report-preview.js", testFile: "report-preview-static.test.js（静的アサーション）" },
 ];
 
 function estimateCoverage() {

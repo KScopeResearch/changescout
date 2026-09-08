@@ -3,38 +3,49 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>無料レポート | AI Opportunity Report</title>
+<title>御社向け 市場機会レポート | AI Opportunity Report</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/report-preview.css">
+<link rel="stylesheet" href="assets/css/preview-conversion.css">
 </head>
 <body class="theme-blue">
 
 <div class="page" id="page" hidden>
 
-  <header class="report-header" id="report-header"></header>
+  <!-- Phase55 STEP3: Hero（御社向け・Opportunity 先出し） -->
+  <header class="report-hero" id="report-hero"></header>
 
   <main>
-    <section class="section source-pages" id="source-pages"></section>
+    <!-- ① この機会 -->
+    <section class="section" id="sec-opportunity"></section>
 
-    <section class="section" id="main-opportunity">
-      <h2 class="section-title">御社が狙うべきOpportunity</h2>
-      <div id="main-opportunity-card"></div>
-    </section>
+    <!-- ② 市場で起きていること -->
+    <section class="section" id="sec-market"></section>
 
-    <section class="section" id="locked-themes"></section>
+    <!-- ③ なぜ御社か -->
+    <section class="section" id="sec-whyyou"></section>
 
-    <section class="section cta-block">
-      <a href="#" class="btn btn-primary btn-cta" data-cta>追加分析を見る（無料）</a>
-      <p class="cta-note">登録すると、このOpportunityの市場規模・競合状況・リスクまで踏み込んだ追加分析が見られます。</p>
-    </section>
+    <!-- ④ 今日できること -->
+    <section class="section" id="sec-firstaction"></section>
+
+    <!-- ⑤ この提案の根拠 -->
+    <section class="section" id="sec-evidence"></section>
+
+    <!-- ⑥ 参照した情報源 -->
+    <section class="section" id="sec-sources"></section>
+
+    <!-- ⑦ 人による確認 -->
+    <section class="section" id="sec-review"></section>
+
+    <!-- ⑧ ほかの検討テーマ -->
+    <section class="section" id="sec-locked"></section>
+
+    <!-- ⑨ さらに詳しく -->
+    <section class="section cta-block cta-v2" id="sec-cta"></section>
   </main>
 
   <footer class="report-footer" id="report-footer"></footer>
-
-  <section class="section cta-block">
-    <a href="#" class="btn btn-primary btn-cta" data-cta>追加分析を見る（無料）</a>
-  </section>
 
 </div>
 
@@ -47,6 +58,9 @@
 </div>
 
 <script src="assets/js/summary-guard.js"></script>
+<script src="assets/js/market-stats.js"></script>
+<script src="assets/js/preview-ui.js"></script>
+<script src="assets/js/illustrations.js"></script>
 <script src="assets/js/common.js"></script>
 <script src="assets/js/report-preview.js"></script>
 </body>
