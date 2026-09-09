@@ -57,14 +57,17 @@ test("Hero: 大型イラストは max-width で伸びすぎない・width:100% �
   assert.match(css, /\.hero-illust__svg\s*\{[\s\S]*?width:\s*100%/);
 });
 
-test("Hero: eyebrow に「AI Opportunity Report」「無料レポート」、pill に「無料版」が出る", () => {
-  assert.match(js, /AI Opportunity Report/);
-  assert.match(js, /無料レポート/);
-  assert.match(js, /"AI Opportunity", "Priority", "無料版"/);
+test("Hero: eyebrow に「無料ビジネスチャンスレポート」、pill に「無料」が出る（Opportunity 表記なし）", () => {
+  assert.match(js, /無料ビジネスチャンスレポート/);
+  assert.match(js, /"無料", "御社専用分析"/);
+  // 表示コピーに旧「Opportunity」語が出ない
+  const codeOnly = js.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.doesNotMatch(codeOnly, /"AI Opportunity Report"/);
+  assert.doesNotMatch(codeOnly, /"AI Opportunity"/);
 });
 
-test("Hero: 宛名は「<会社名> 様へ」（company_profile.name のみ・business_summary は使わない）", () => {
-  assert.match(js, /\$\{cp\.name \|\| ""\} 様へ/);
+test("Hero: 宛名は company_profile.name ベース（PreviewUI.salutation）・business_summary は使わない", () => {
+  assert.match(js, /PreviewUI\.salutation\(cp\.name\)/);
   const codeOnly = js.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(codeOnly, /business_summary/);
 });

@@ -81,3 +81,30 @@ test("humanReviewLine: report-teaser.js == preview-ui.js", () => {
 test("KNOWN_THEMES が一致（テーマ集合のずれを検知）", () => {
   assert.deepEqual(shTeaser.KNOWN_THEMES.slice().sort(), webUI.KNOWN_THEMES.slice().sort());
 });
+
+test("salutation: report-teaser.js == preview-ui.js（Phase56 STEP2）", () => {
+  ["株式会社カレイドスコープ", "有限会社サンプル", "kscope.co.jp", "", null, "株式会社ABI"].forEach((n) => {
+    assert.equal(shTeaser.salutation(n), webUI.salutation(n), JSON.stringify(n));
+  });
+});
+
+test("oneLineSummary / expectedBenefit / rerankMarketStats: report-teaser.js == preview-ui.js（実データ3社）", () => {
+  SLUGS.forEach((s) => {
+    const r = loadIf(s);
+    if (!r || !r.free_opportunity) return;
+    assert.equal(shTeaser.oneLineSummary(r.free_opportunity.title), webUI.oneLineSummary(r.free_opportunity.title), s + " oneLineSummary");
+    assert.deepEqual(shTeaser.expectedBenefit(r), webUI.expectedBenefit(r), s + " expectedBenefit");
+    const fo = r.free_opportunity;
+    const ea = fo.extended_analysis || {};
+    const nums = shStats.extractMarketNumbers([fo.why_now, fo.market_change, ea.market_size], { max: 8, maxPerKind: 2 });
+    assert.deepEqual(shTeaser.rerankMarketStats(nums), webUI.rerankMarketStats(nums), s + " rerankMarketStats");
+  });
+});
+
+test("pickHeroVariant（rerank 反映後）: report-teaser.js == preview-ui.js（実データ3社）", () => {
+  SLUGS.forEach((s) => {
+    const r = loadIf(s);
+    if (!r || !r.free_opportunity) return;
+    assert.equal(shTeaser.pickHeroVariant(r), webUI.pickHeroVariant(r), s);
+  });
+});

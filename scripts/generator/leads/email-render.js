@@ -1,26 +1,23 @@
 /*
- * email-render.js — Phase55 STEP4
+ * email-render.js — Phase56 STEP2（Business Chance メール V3）
  *
  * report-teaser.js の teaser view model から、Initial / Weekly の AOR メール
  * （subject / preheader / text / html）を組み立てる。
  *
  * 【方針】
  *  - published JSON から派生した teaser の値だけを使う。LLM/API を呼ばない・数字を作らない。
- *  - メールで全文を見せない（"入口"）。詳細は reportUrl（既存の Preview URL）へ。
- *  - HTML は email-safe: table レイアウト / inline style / 外部画像なし / SVG なし
- *    （Outlook の Word エンジンでも崩れにくい構成）。
+ *  - メールは "LP 入口"。無料であること・登録不要であることを明記し、詳細は reportUrl へ。
+ *  - HTML は email-safe: table レイアウト / inline style / 外部画像なし / SVG なし。
  *  - reportUrl / unsubscribe は呼び出し側から受け取り、本モジュールでは生成しない。
  */
 "use strict";
 
-// blastengine-client.js の escapeHtml と同等（依存を持ち込まず self-contained に）
 function esc(text) {
   return String(text == null ? "" : text).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 }
 
-// テーマごとのアクセント色（Preview の Visual Theme と対応。SVG は使わず色だけ引き継ぐ）
 var THEME_ACCENT = {
   ai_dx: "#2f5fa8",
   new_business: "#1f7a4d",
@@ -40,58 +37,69 @@ function accentFor(theme) {
   return THEME_ACCENT[theme] || THEME_ACCENT.generic_insight;
 }
 
-/* ---------- text 版（プレーンテキスト） ---------- */
+function statLine(s) {
+  var scope = s.worldOnly ? "参考データ: " : "";
+  return "  " + scope + s.value + (s.label ? "（" + s.label + "）" : "");
+}
+
+/* ---------- text 版 ---------- */
 
 function renderText(t, opts) {
   var o = opts || {};
   var kind = o.kind || "initial";
-  const greet = t.hasCompanyName ? t.companyName + " 様" : "ご担当者様";
-  const lines = [greet, ""];
+  var greet = t.salutation || (t.hasCompanyName ? t.companyName + " 経営者様" : "ご担当者様");
+  var lines = [greet, ""];
 
   if (kind === "weekly") {
-    lines.push("御社向けの市場機会レポートを、最新の内容に更新しました。");
-  } else {
+    lines.push("御社向けのビジネスチャンスレポートを、最新の内容に更新しました。");
+  } else if (t.hasOpportunity) {
     lines.push(
-      "御社の公開情報と市場データをもとに、今回特に注目したい市場機会を1件に絞って整理しました。"
+      "御社について公開情報を分析した結果、次の新しいビジネスチャンスが見つかりました。"
     );
+  } else {
+    lines.push("御社について公開情報を分析し、レポートにまとめました。");
   }
   lines.push("");
 
   if (t.hasOpportunity) {
-    lines.push("― 今回の機会 ―");
+    lines.push("― 今回見つけたビジネスチャンス ―");
     lines.push(t.opportunityTitle);
+    if (t.chanceSummary) {
+      lines.push("");
+      lines.push("一言でいうと: " + t.chanceSummary);
+    }
     lines.push("");
     if (t.whyNow) {
-      lines.push("【なぜ今か】");
+      lines.push("【なぜ今なのか】");
       lines.push(t.whyNow);
       lines.push("");
     }
     if (t.whyCompany) {
-      lines.push("【なぜ御社か】");
+      lines.push("【なぜ御社なのか】");
       lines.push(t.whyCompany);
       lines.push("");
     }
     if (t.marketStats && t.marketStats.length) {
-      lines.push("【市場の動き】");
+      lines.push("【新しい市場の動き】");
       t.marketStats.forEach(function (s) {
-        lines.push("  " + s.value + (s.label ? "（" + s.label + "）" : ""));
+        lines.push(statLine(s));
       });
       lines.push("");
     }
-  } else {
-    lines.push("今回の市場分析で確認できた主なポイントを、レポートに整理しています。");
-    lines.push("");
   }
 
-  lines.push("このレポートでは、以下まで整理しています。");
-  lines.push("  ・なぜ今この機会なのか");
-  lines.push("  ・なぜ御社に関係するのか");
-  lines.push("  ・市場で何が起きているのか");
-  lines.push("  ・まず何を確認すべきか");
+  lines.push("今回のレポートでは");
+  lines.push("  ・なぜ今なのか");
+  lines.push("  ・なぜ御社なのか");
+  lines.push("  ・今日からできる一歩");
+  lines.push("を5分で読める形で整理しています。");
   lines.push("");
-  lines.push("▼ " + (kind === "weekly" ? "更新版レポートを見る" : "このOpportunityの詳細を見る"));
+  lines.push("無料で閲覧できます。");
+  lines.push("");
+  lines.push("▼ " + (kind === "weekly" ? "更新版レポートを見る" : "無料でレポートを見る"));
   lines.push(t.reportUrl);
   lines.push("");
+  lines.push("※ このレポートは無料です。メールアドレス以外の登録は不要です。");
   if (t.reviewApproved) lines.push("※ " + t.reviewLine);
   lines.push("");
   lines.push("―――――――――――");
@@ -103,7 +111,7 @@ function renderText(t, opts) {
     lines.push("配信停止をご希望の場合は、本メールに直接ご返信ください。");
   }
   lines.push("");
-  lines.push("AI Opportunity Report 運営事務局");
+  lines.push("無料ビジネスチャンスレポート 運営事務局");
   return lines.join("\n");
 }
 
@@ -113,16 +121,18 @@ function statCellsHtml(stats, accent) {
   if (!stats || !stats.length) return "";
   var cells = stats
     .map(function (s) {
+      var scope = s.worldOnly
+        ? '<div style="font-size:10px;color:#8a94a3;">参考データ</div>'
+        : "";
       return (
         '<td style="padding:6px 10px 6px 0;vertical-align:top;">' +
+        scope +
         '<div style="font-size:18px;font-weight:700;color:' +
         accent +
         ';line-height:1.2;">' +
         esc(s.value) +
         "</div>" +
-        (s.label
-          ? '<div style="font-size:11px;color:#5b6472;">' + esc(s.label) + "</div>"
-          : "") +
+        (s.label ? '<div style="font-size:11px;color:#5b6472;">' + esc(s.label) + "</div>" : "") +
         "</td>"
       );
     })
@@ -138,16 +148,18 @@ function renderHtml(t, opts) {
   var o = opts || {};
   var kind = o.kind || "initial";
   var accent = accentFor(t.theme);
-  var greet = t.hasCompanyName ? esc(t.companyName) + " 様" : "ご担当者様";
+  var greet = esc(t.salutation || (t.hasCompanyName ? t.companyName + " 経営者様" : "ご担当者様"));
   var intro =
     kind === "weekly"
-      ? "御社向けの市場機会レポートを、最新の内容に更新しました。"
-      : "御社の公開情報と市場データをもとに、今回特に注目したい市場機会を1件に絞って整理しました。";
-  var ctaLabel = kind === "weekly" ? "更新版レポートを見る" : "このOpportunityの詳細を見る";
+      ? "御社向けのビジネスチャンスレポートを、最新の内容に更新しました。"
+      : t.hasOpportunity
+        ? "御社について公開情報を分析した結果、次の新しいビジネスチャンスが見つかりました。"
+        : "御社について公開情報を分析し、レポートにまとめました。";
+  var ctaLabel = kind === "weekly" ? "更新版レポートを見る" : "無料でレポートを見る";
 
-  var oppBlock = "";
+  var chanceBlock = "";
   if (t.hasOpportunity) {
-    oppBlock =
+    chanceBlock =
       '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
       'style="border:1px solid #e1e6ee;border-left:4px solid ' +
       accent +
@@ -155,14 +167,17 @@ function renderHtml(t, opts) {
       '<tr><td style="padding:16px 18px;">' +
       '<div style="font-size:11px;font-weight:700;letter-spacing:0.04em;color:' +
       accent +
-      ';">今回の機会</div>' +
+      ';">今回見つけたビジネスチャンス</div>' +
       '<div style="font-size:17px;font-weight:800;color:#1f2430;line-height:1.5;margin:6px 0 4px;">' +
       esc(t.opportunityTitle) +
       "</div>" +
+      (t.chanceSummary
+        ? '<div style="font-size:13px;font-weight:700;color:' + accent + ';margin:0 0 2px;">一言でいうと: ' + esc(t.chanceSummary) + "</div>"
+        : "") +
       (t.whyNow
         ? '<div style="font-size:12px;font-weight:700;color:' +
           accent +
-          ';margin-top:12px;">なぜ今か</div>' +
+          ';margin-top:12px;">なぜ今なのか</div>' +
           '<div style="font-size:13px;line-height:1.8;color:#1f2430;">' +
           esc(t.whyNow) +
           "</div>"
@@ -170,7 +185,7 @@ function renderHtml(t, opts) {
       (t.whyCompany
         ? '<div style="font-size:12px;font-weight:700;color:' +
           accent +
-          ';margin-top:12px;">なぜ御社か</div>' +
+          ';margin-top:12px;">なぜ御社なのか</div>' +
           '<div style="font-size:13px;line-height:1.8;color:#1f2430;">' +
           esc(t.whyCompany) +
           "</div>"
@@ -178,13 +193,10 @@ function renderHtml(t, opts) {
       (t.marketStats && t.marketStats.length
         ? '<div style="font-size:12px;font-weight:700;color:' +
           accent +
-          ';margin-top:12px;">市場の動き</div>' +
+          ';margin-top:12px;">新しい市場の動き</div>' +
           statCellsHtml(t.marketStats, accent)
         : "") +
       "</td></tr></table>";
-  } else {
-    oppBlock =
-      '<p style="font-size:13px;line-height:1.8;color:#1f2430;">今回の市場分析で確認できた主なポイントを、レポートに整理しています。</p>';
   }
 
   var button =
@@ -200,6 +212,10 @@ function renderHtml(t, opts) {
     ';">' +
     esc(ctaLabel) +
     " ›</a></td></tr></table>";
+
+  var reassure =
+    '<p style="font-size:12px;line-height:1.7;color:#5b6472;background:#f5f7fb;border-radius:6px;' +
+    'padding:10px 12px;margin:12px 0 0;">このレポートは無料です。<br>メールアドレス以外の登録は不要です。</p>';
 
   var unsubHtml = o.unsubscribeUrl
     ? '配信停止をご希望の場合は<a href="' +
@@ -218,27 +234,29 @@ function renderHtml(t, opts) {
     '<tr><td align="center" style="padding:20px 12px;">' +
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" ' +
     'style="max-width:600px;width:100%;background:#ffffff;border:1px solid #e1e6ee;border-radius:10px;' +
-    'font-family:-apple-system,BlinkMacSystemFont,\'Hiragino Sans\',\'Yu Gothic\',\'Segoe UI\',sans-serif;">' +
+    "font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic','Segoe UI',sans-serif;\">" +
     '<tr><td style="padding:24px 22px;">' +
     '<div style="font-size:12px;font-weight:700;letter-spacing:0.04em;color:' +
     accent +
-    ';">御社向け 市場機会レポート</div>' +
+    ';">無料ビジネスチャンスレポート</div>' +
     '<p style="font-size:15px;font-weight:700;color:#1f2430;margin:10px 0 6px;">' +
     greet +
     "</p>" +
     '<p style="font-size:13px;line-height:1.8;color:#1f2430;margin:0;">' +
     intro +
     "</p>" +
-    oppBlock +
-    '<p style="font-size:12px;line-height:1.8;color:#5b6472;margin:14px 0 4px;">このレポートでは、' +
-    "<br>・なぜ今この機会なのか<br>・なぜ御社に関係するのか<br>・市場で何が起きているのか<br>・まず何を確認すべきか<br>" +
-    "まで整理しています。</p>" +
-    '<div style="text-align:center;margin:18px 0 8px;">' +
+    chanceBlock +
+    '<p style="font-size:12px;line-height:1.8;color:#5b6472;margin:14px 0 4px;">今回のレポートでは、' +
+    "<br>・なぜ今なのか<br>・なぜ御社なのか<br>・今日からできる一歩<br>" +
+    "を5分で読める形で整理しています。</p>" +
+    '<p style="font-size:13px;font-weight:700;color:#1f2430;margin:8px 0 0;">無料で閲覧できます。</p>' +
+    '<div style="text-align:center;margin:14px 0 8px;">' +
     button +
     "</div>" +
+    reassure +
     (t.reviewApproved
       ? '<p style="font-size:11px;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;' +
-        'border-radius:6px;padding:8px 10px;margin:12px 0 0;">✓ ' +
+        'border-radius:6px;padding:8px 10px;margin:10px 0 0;">✓ ' +
         esc(t.reviewLine) +
         "</p>"
       : "") +
@@ -246,7 +264,7 @@ function renderHtml(t, opts) {
     '<p style="font-size:11px;line-height:1.7;color:#5b6472;margin:0;">' +
     unsubHtml +
     "</p>" +
-    '<p style="font-size:11px;color:#5b6472;margin:8px 0 0;">AI Opportunity Report 運営事務局</p>' +
+    '<p style="font-size:11px;color:#5b6472;margin:8px 0 0;">無料ビジネスチャンスレポート 運営事務局</p>' +
     "</td></tr></table>" +
     "</td></tr></table></body></html>"
   );
@@ -272,7 +290,7 @@ function renderInitialReportEmail(teaser, opts) {
 
 function renderWeeklyReportEmail(teaser, opts) {
   const o = opts || {};
-  const pre = "前回から内容を見直し、御社向けの市場機会を最新化しました。";
+  const pre = "無料で読めるレポートです。前回から内容を見直し、御社向けのビジネスチャンスを最新化しました。";
   return {
     subject: teaserMod.subject(teaser, { kind: "weekly" }),
     preheader: pre,

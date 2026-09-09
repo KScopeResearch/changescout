@@ -139,8 +139,9 @@ test("report-preview.js: CTA は共有ヘルパー（ctaButton）で組み立て
   assert.match(js, /querySelectorAll\("\[data-cta\]"\)[\s\S]*?setAttribute\("href", target\)/);
 });
 
-test("report-preview.js: CTA 文言に「無料」が含まれる（上部・下部とも）", () => {
-  assert.match(js, /無料で続きを見る/);
+test("report-preview.js: CTA 文言に「無料」が含まれる（上部・中間・下部）", () => {
+  assert.match(js, /無料でレポートを見る/);
+  assert.match(js, /このビジネスチャンスを詳しく見る/);
   assert.match(js, /御社専用の追加分析を見る（無料）/);
 });
 
@@ -156,7 +157,7 @@ test("report-preview.js: 市場数値は MarketStats（抽出）に委譲し、p
 
 test("report-preview.js: Hero に eyebrow / 宛名 / メインキャッチ(h1) / サブコピー / Pill / 確認済みバッジ / 大型イラストがある", () => {
   assert.match(js, /report-hero__eyebrow/);
-  assert.match(js, /様へ/);
+  assert.match(js, /PreviewUI\.salutation\(cp\.name\)/);
   assert.match(js, /report-hero__headline/);
   assert.match(js, /PreviewUI\.heroSubcopy/);
   assert.match(js, /report-hero__pill|report-hero__chip/);

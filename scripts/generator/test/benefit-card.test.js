@@ -13,7 +13,7 @@ test("benefitCards: 3社で 3 枚（なぜ今 / なぜ御社 / 今日できる�
     const cards = P.benefitCards(loadReport(s));
     assert.equal(cards.length, 3, s);
     assert.deepEqual(cards.map((c) => c.key), ["why_now", "why_company", "first_action"]);
-    assert.deepEqual(cards.map((c) => c.label), ["なぜ今か", "なぜ御社か", "今日できること"]);
+    assert.deepEqual(cards.map((c) => c.label), ["なぜ今なのか", "なぜ御社なのか", "今日からできる一歩"]);
     cards.forEach((c) => {
       assert.ok(c.text.length > 0, s + " " + c.key + " 空");
       assert.doesNotMatch(c.text, /src-\d+/, s + " src-N 残り");

@@ -29,9 +29,48 @@
   // Hero variant（Phase55 STEP2: A=営業提案書 / B=市場インサイト / C=AIアナリスト）
   // ---------------------------------------------------------------------------
 
+  // ---------------------------------------------------------------------------
+  // Market Snapshot 並べ替え（Phase56 STEP2: 地域 > 業界 > 補助金 > 日本 > 世界）
+  // shared/report-teaser.js の rerankMarketStats と同一ロジック（parity テストあり）。
+  // ---------------------------------------------------------------------------
+  var WORLD_RE = /(米ドル|USドル|US\$|世界|グローバル|global)/i;
+  var LOCAL_RE = /(地域|商店街|市内|県内|近隣|エリア|沿線|地元|自治体|市区町村)/;
+  var INDUSTRY_RE = /(業界|業種|同業|市場調査|需要|導入率|活用率|来店|客数|口コミ|予約)/;
+  var SUBSIDY_RE = /(補助|助成|給付|交付|公募)/;
+  var JP_RE = /(国内|日本|全国)/;
+
+  function statTier(stat) {
+    var s = (stat.label || "") + " " + (stat.value || "");
+    if (WORLD_RE.test(s)) return 4;
+    if (LOCAL_RE.test(s)) return 0;
+    if (INDUSTRY_RE.test(s)) return 1;
+    if (SUBSIDY_RE.test(s)) return 2;
+    if (JP_RE.test(s)) return 3;
+    return 1.5;
+  }
+
+  function rerankMarketStats(stats) {
+    var arr = (stats || []).map(function (s, i) {
+      var tier = statTier(s);
+      return Object.assign({}, s, { tier: tier, isWorld: tier >= 4, _i: i });
+    });
+    var kindRank = { size: 0, growth: 1, multiple: 1, cagr: 1, money: 2, percent: 2, milestone: 3, year: 5 };
+    arr.sort(function (a, b) {
+      if (a.tier !== b.tier) return a.tier - b.tier;
+      var ka = kindRank[a.kind] == null ? 4 : kindRank[a.kind];
+      var kb = kindRank[b.kind] == null ? 4 : kindRank[b.kind];
+      return ka - kb || a._i - b._i;
+    });
+    return arr.map(function (s) {
+      var out = Object.assign({}, s);
+      delete out._i;
+      return out;
+    });
+  }
+
   /**
    * @param {Object} report - published JSON
-   * @returns {"A"|"B"}  ※ C は「明確な自動判定条件が無い」ため STEP3 では採用しない（STEP2 §49）
+   * @returns {"A"|"B"}
    */
   function pickHeroVariant(report) {
     var fo = (report && report.free_opportunity) || {};
@@ -40,16 +79,69 @@
       max: 30,
       maxPerKind: 30,
     });
-    if (countMarketMomentum(all) < 2) return "A";
-    // B は「日本の会社にとって信じられる規模感」であること＝先頭の数値が円建て
-    var top = all
+    var local = rerankMarketStats(all);
+    var momentum = local.filter(function (n) {
+      return (n.kind === "size" || n.kind === "growth" || n.kind === "multiple" || n.kind === "cagr") && !n.isWorld;
+    }).length;
+    if (momentum < 2) return "A";
+    // B は「日本の会社にとって信じられる規模感」＝世界市場でない・円建ての数値が先頭
+    var rank = { size: 0, growth: 1, multiple: 1, cagr: 1 };
+    var top = local
+      .filter(function (n) {
+        return !n.isWorld;
+      })
       .slice()
       .sort(function (a, b) {
-        var rank = { size: 0, growth: 1, multiple: 1, cagr: 1 };
         return (rank[a.kind] == null ? 5 : rank[a.kind]) - (rank[b.kind] == null ? 5 : rank[b.kind]);
       })[0];
     var topIsYen = top && /円/.test(top.value) && !/ドル/.test(top.value);
     return topIsYen ? "B" : "A";
+  }
+
+  // --- 宛名（Phase56 STEP2 GOAL-1）: shared/report-teaser.js の salutation と同一 ---
+  function salutation(name) {
+    var n = String(name || "").trim();
+    if (!n) return "ご担当者様";
+    if (/^[a-z0-9][a-z0-9.\-_]*\.[a-z]{2,}$/i.test(n) || !/[ぁ-んァ-ヶ一-龠A-Za-z]/.test(n)) {
+      return "ご担当者様";
+    }
+    return n + " 経営者様";
+  }
+
+  // --- 「一言でいうと」: shared/report-teaser.js の oneLineSummary と同一 ---
+  function oneLineSummary(title) {
+    var t = String(title || "").trim().replace(/（src-\d+[^）]*）/g, "");
+    if (!t) return "";
+    var m = t.match(/^(.*?)(の立ち上げ|の提供|の展開|の構築|の開発|の商品化|の体系化と展開|の導入|の強化|の拡大)$/);
+    var core = m ? m[1] : t.replace(/。$/, "");
+    if (core.length > 34) {
+      var comma = core.slice(0, 34).lastIndexOf("・");
+      core = comma > 12 ? core.slice(0, comma) : core.slice(0, 34);
+    }
+    var verb = m ? "を始めるチャンスがあります。" : "に取り組むチャンスがあります。";
+    return core + verb;
+  }
+
+  // --- 期待できること: shared/report-teaser.js の expectedBenefit と同一 ---
+  var BENEFIT_HINTS = [
+    ["売上", /(売上|収益|客単価|単価|LTV|購入額|受注)/],
+    ["集客", /(集客|新規顧客|来店|問い合わせ|リード|認知|流入|予約)/],
+    ["リピート", /(リピート|再来|継続|定着|会員|ファン|定期)/],
+    ["採用・定着", /(採用|人材確保|離職|定着|応募)/],
+    ["利益率", /(利益|粗利|コスト削減|原価|マージン)/],
+    ["業務効率", /(効率化|工数|時間短縮|自動化|省力|生産性)/],
+  ];
+  function expectedBenefit(report) {
+    var fo = (report && report.free_opportunity) || {};
+    var ea = fo.extended_analysis || {};
+    var hay = [ea.priority, fo.market_change, fo.why_company, fo.why_now, fo.title].map(String).join(" ");
+    var hits = [];
+    for (var i = 0; i < BENEFIT_HINTS.length; i++) {
+      if (BENEFIT_HINTS[i][1].test(hay) && hits.indexOf(BENEFIT_HINTS[i][0]) === -1) hits.push(BENEFIT_HINTS[i][0]);
+      if (hits.length >= 2) break;
+    }
+    if (!hits.length) hits.push("業務効率");
+    return hits;
   }
 
   // ---------------------------------------------------------------------------
@@ -210,9 +302,9 @@
   function benefitCards(report) {
     var fo = (report && report.free_opportunity) || {};
     var cards = [
-      { key: "why_now", label: "なぜ今か", text: summarizeSentence(fo.why_now, 120) },
-      { key: "why_company", label: "なぜ御社か", text: summarizeSentence(fo.why_company, 120) },
-      { key: "first_action", label: "今日できること", text: summarizeSentence(fo.first_action, 120) },
+      { key: "why_now", label: "なぜ今なのか", text: summarizeSentence(fo.why_now, 120) },
+      { key: "why_company", label: "なぜ御社なのか", text: summarizeSentence(fo.why_company, 120) },
+      { key: "first_action", label: "今日からできる一歩", text: summarizeSentence(fo.first_action, 120) },
     ];
     return cards.filter(function (c) {
       return c.text && c.text.length > 0;
@@ -225,13 +317,18 @@
 
   /**
    * @param {Object} report
-   * @returns {{stats:Array, hasComparison:boolean, multiple:(Object|undefined), years:string[]}}
+   * @returns {{stats:Array, hasComparison:boolean, multiple:(Object|undefined), years:string[], worldOnly:boolean}}
    */
   function marketSnapshot(report) {
     var fo = (report && report.free_opportunity) || {};
     var ea = fo.extended_analysis || {};
     var text = [fo.why_now, fo.market_change, ea.market_size];
-    var stats = extractMarketNumbers(text, { max: 4, maxPerKind: 2 });
+    // Phase56 STEP2: 経営者に近い順（地域>業界>補助金>日本>世界）。世界市場は末尾。
+    var ranked = rerankMarketStats(extractMarketNumbers(text, { max: 8, maxPerKind: 2 }));
+    var worldOnly = ranked.length > 0 && ranked.every(function (s) { return s.isWorld; });
+    var stats = ranked.slice(0, 4).map(function (s) {
+      return { value: s.value, kind: s.kind, label: s.label, sourceId: s.sourceId || null, isWorld: !!s.isWorld, worldOnly: worldOnly };
+    });
     var withYears = extractMarketNumbers(text, { max: 30, maxPerKind: 30, includeYears: true });
     var years = withYears
       .filter(function (n) {
@@ -252,13 +349,14 @@
     var multiple = stats.filter(function (s) {
       return s.kind === "multiple";
     })[0];
-    var momentum = countMarketMomentum(stats);
+    var momentum = countMarketMomentum(stats.filter(function (s) { return !s.isWorld; }));
     return {
       stats: stats,
       hasComparison: !!multiple,
       multiple: multiple,
       years: uniqYears,
       hasMomentum: momentum >= 2,
+      worldOnly: worldOnly,
     };
   }
 
@@ -378,5 +476,9 @@
     benefitCards: benefitCards,
     marketSnapshot: marketSnapshot,
     trustItems: trustItems,
+    salutation: salutation,
+    oneLineSummary: oneLineSummary,
+    expectedBenefit: expectedBenefit,
+    rerankMarketStats: rerankMarketStats,
   };
 });
