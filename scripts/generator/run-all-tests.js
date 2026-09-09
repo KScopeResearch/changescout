@@ -345,6 +345,8 @@ const COVERAGE_MAP = [
   { module: "website/aor/assets/css/preview-conversion.css", testFile: "responsive-css.test.js, report-preview-static.test.js" },
   { module: "shared/market-numbers.js", testFile: "report-teaser-parity.test.js" },
   { module: "shared/report-teaser.js", testFile: "report-teaser.test.js, report-teaser-parity.test.js" },
+  { module: "shared/business-chance-ranking.js", testFile: "business-chance-ranking.test.js, theme-distance-score.test.js, customer-change-rule.test.js, first-action-distance.test.js, kscope-theme-selection.test.js, ab-i-theme-regression.test.js, illegame-theme-regression.test.js" },
+  { module: "shared/theme-library.js", testFile: "customer-change-rule.test.js, theme-distance-score.test.js" },
   { module: "leads/email-render.js", testFile: "email-render.test.js" },
 ];
 

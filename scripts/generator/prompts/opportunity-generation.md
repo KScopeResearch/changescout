@@ -12,9 +12,37 @@
 （詳細は [quality-rules.md](quality-rules.md)「Opportunity と Market Change の質」）。
 
 **読者は中小企業・店舗の経営者。テーマは「経営者が明日使える距離」に寄せること**
-（quality-rules.md「ビジネスチャンスの『近さ』」/ RULE-THEME-1〜8）。
+（quality-rules.md「ビジネスチャンスの『近さ』」/ RULE-THEME-1〜8、および
+「Business Chance Engine V3.1」/ RULE-THEME-9〜13）。
+
+**手順（Business Chance Engine V3.1）**:
+1. `free_opportunity` を書く前に、ビジネスチャンス候補を **最低5件** 挙げる
+   （`{title, why_now, why_company, first_action, expected_benefit}`）。
+2. 各候補を Near-field Distance Score（100点）で自己評価し、**80点以上**の候補のうち
+   最も「経営者に近い」1件を採用する（RULE-THEME-10）。
+3. `why_now` に **顧客側の変化を最低1件**（RULE-THEME-11）。
+4. `first_action` は **明日の朝30分で着手できる一歩**（RULE-THEME-12。「〜を検討する」禁止）。
+5. `title` / `why_now` の冒頭は **Near か Mid のみ**。世界市場（Far）は主語にしない（RULE-THEME-13）。
+6. 全国 B2B（コンサル等）でも **顧客業界を1つ具体的に選び**、顧客の課題を先に書く（kscope 型ルール）。
+7. 採用しなかった上位2件を `locked_opportunities` へ。
+
 世界市場・国家戦略・巨大市場規模を `title` / `why_now` の主語にしない。
 地域・商圏・業界レベルの変化を最低2件、具体的に挙げること。
+
+### company_context の任意フィールド（あれば候補づくりに使う。無くてもよい）
+
+`company_context` に以下が含まれる場合はテーマ選定の入力として使う（既存スキーマは変更しない・
+これらは任意の追加フィールドであり、無い場合は sources から推定する）:
+
+| フィールド | 意味 |
+|---|---|
+| `customer_segments` | 対象企業の顧客セグメント（配列。例: `["中小製造業", "建設会社"]`） |
+| `industry_focus` | 対象企業が最も濃く関わる業界（1つ） |
+| `company_scale` | 対象企業の規模（`micro` / `small` / `mid`） |
+| `service_model` | `b2b_national` / `b2b_regional` / `b2c_store` / `b2c_ec` 等 |
+| `primary_customer` | 主要顧客の1類型（kscope 型ルールでこの業界を選ぶ起点にする） |
+| `operating_region` | 対象企業（または主要顧客）の商圏 |
+| `company_distance_profile` | 近接プロファイル（`near_store` / `near_industry` / `national_b2b`） |
 
 ```json
 {
