@@ -56,6 +56,10 @@
   // Visual theme（deterministic。存在する asset にしか割り当てない）
   // ---------------------------------------------------------------------------
 
+  // NOTE: Phase56 STEP3 のイラストは 20 テーマへ拡張したが（illustrations.js の THEMES）、
+  // pickVisualTheme が返す集合（KNOWN_THEMES）は email 側 shared/report-teaser.js と parity を
+  // 保つため 12 のまま。新ドメイン（healthcare/finance/... のルーティング）は両者同時に
+  // 拡張する別 STEP で行う。ここで返さないテーマのグリフは「将来のための予備」。
   var THEME_RULES = [
     ["overseas", /(海外|中国|グローバル|越境|輸出|インバウンド|日中|ローカライズ)/],
     ["content_media", /(アニメ|映像|コンテンツ|IP|ゲーム|メディア|放送|配信|エンタメ)/],
@@ -170,6 +174,108 @@
     };
   }
 
+  /**
+   * why_company を Hero サブコピー用に 1〜2 文へ短縮する（src-N は落とす）。
+   * @param {string} whyCompany
+   * @returns {string}
+   */
+  function heroSubcopy(whyCompany) {
+    var t = String(whyCompany || "").replace(/（src-\d+[^）]*）/g, "").replace(/\s+/g, "").trim();
+    if (!t) return "";
+    var sentences = t.split(/(?<=。)/).filter(Boolean);
+    var out = sentences.slice(0, 2).join("");
+    return out || t.slice(0, 120);
+  }
+
+  /**
+   * 1文を句点までに切り詰める（src-N を落とす。maxLen 超過時は「…」）。
+   * @param {string} text @param {number} [maxLen]
+   * @returns {string}
+   */
+  function summarizeSentence(text, maxLen) {
+    var lim = maxLen || 110;
+    var t = String(text || "").replace(/（src-\d+[^）]*）/g, "").replace(/\s+/g, "").trim();
+    if (!t) return "";
+    var first = (t.match(/^[\s\S]*?。/) || [t])[0];
+    if (first.length <= lim) return first;
+    return t.slice(0, lim).replace(/[、。]?$/, "") + "…";
+  }
+
+  /**
+   * Hero 直下の Benefit カード3枚（なぜ今 / なぜ御社 / 今日できること）の view model。
+   * 各テキストは published JSON から機械抽出のみ。
+   * @param {Object} report
+   * @returns {Array<{key:string, label:string, text:string}>}
+   */
+  function benefitCards(report) {
+    var fo = (report && report.free_opportunity) || {};
+    var cards = [
+      { key: "why_now", label: "なぜ今か", text: summarizeSentence(fo.why_now, 120) },
+      { key: "why_company", label: "なぜ御社か", text: summarizeSentence(fo.why_company, 120) },
+      { key: "first_action", label: "今日できること", text: summarizeSentence(fo.first_action, 120) },
+    ];
+    return cards.filter(function (c) {
+      return c.text && c.text.length > 0;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Market Snapshot（数字カード + 比較バー + タイムライン用の年）
+  // ---------------------------------------------------------------------------
+
+  /**
+   * @param {Object} report
+   * @returns {{stats:Array, hasComparison:boolean, multiple:(Object|undefined), years:string[]}}
+   */
+  function marketSnapshot(report) {
+    var fo = (report && report.free_opportunity) || {};
+    var ea = fo.extended_analysis || {};
+    var text = [fo.why_now, fo.market_change, ea.market_size];
+    var stats = extractMarketNumbers(text, { max: 4, maxPerKind: 2 });
+    var withYears = extractMarketNumbers(text, { max: 30, maxPerKind: 30, includeYears: true });
+    var years = withYears
+      .filter(function (n) {
+        return n.kind === "year" || n.kind === "milestone";
+      })
+      .map(function (n) {
+        var m = String(n.value).match(/(19|20)\d{2}/);
+        return m ? m[0] : null;
+      })
+      .filter(Boolean);
+    // 重複除去 + 昇順
+    var uniqYears = years
+      .filter(function (y, i) {
+        return years.indexOf(y) === i;
+      })
+      .sort()
+      .slice(0, 4);
+    var multiple = stats.filter(function (s) {
+      return s.kind === "multiple";
+    })[0];
+    var momentum = countMarketMomentum(stats);
+    return {
+      stats: stats,
+      hasComparison: !!multiple,
+      multiple: multiple,
+      years: uniqYears,
+      hasMomentum: momentum >= 2,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Trust / Micro Proof（CTA 直前）
+  // ---------------------------------------------------------------------------
+
+  function trustItems(report) {
+    var approved = ((report && report.human_review) || {}).status === "approved";
+    return [
+      { key: "no_signup", label: "登録不要" },
+      { key: "free", label: "無料で閲覧" },
+      { key: "reviewed", label: approved ? "人間が確認済み" : "運営がレビュー中" },
+      { key: "unsub", label: "配信はいつでも停止可" },
+    ];
+  }
+
   // ---------------------------------------------------------------------------
   // First Action view model（1文を「調べる→比較する→試す」の step へ緩く分割）
   // ---------------------------------------------------------------------------
@@ -267,5 +373,10 @@
     buildFirstActionViewModel: buildFirstActionViewModel,
     humanReviewLine: humanReviewLine,
     categorizeSources: categorizeSources,
+    heroSubcopy: heroSubcopy,
+    summarizeSentence: summarizeSentence,
+    benefitCards: benefitCards,
+    marketSnapshot: marketSnapshot,
+    trustItems: trustItems,
   };
 });

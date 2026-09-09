@@ -1,95 +1,120 @@
-/* preview-conversion.css — Phase55 STEP3
- * report-preview.html の Conversion 版レイアウト（Hero / Opportunity V2 / Market Stats /
- * First Action steps / Evidence・Sources 折りたたみ / CTA V2）。
- * 共通トークンは base.css。base.css の既存クラスは壊さない（このファイルは追加分のみ）。 */
-
-/* Phase55 STEP5.1 (P2-1): どれだけ長い stat 値（例: 「17兆3,777億9,000万米ドル」）が
- * 来ても Preview がビューポート外へ横溢れしないための保険。第一対策は
- * .stat-card__value / .market-badge__value の overflow-wrap（下記）。これは第二対策。
+/* preview-conversion.css — Phase56 STEP1（Hero / First-View 全面リデザイン）
+ * report-preview.html 専用。共通トークンは base.css。
+ *
+ * Phase55 STEP5.1 (P2-1): 長い stat 値がビューポート外へ横溢れしないための保険。
  * このファイルは report-preview.html 専用なので body 指定でも他ページに影響しない。 */
 body { overflow-x: hidden; }
 
-/* ============ Hero ============ */
+/* フォーカスリング（キーボード操作の可視化） */
+.report-hero a:focus-visible,
+.cta-v3__btn:focus-visible,
+.hero-cta-inline:focus-visible,
+.disclosure > summary:focus-visible,
+.source-group__list a:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ============ Hero V3 ============ */
 .report-hero {
-  background: var(--color-surface);
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 85% 0%, var(--color-primary-bg) 0%, transparent 60%),
+    var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 28px 24px;
+  border-radius: 16px;
+  padding: 26px 24px 24px;
   margin-top: 24px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
+.hero-review-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--color-verified-bg);
+  color: var(--color-verified-text);
+  border: 1px solid var(--color-verified-border);
+  z-index: 2;
+}
+.hero-review-badge--pending {
+  background: var(--color-pending-bg);
+  color: var(--color-pending-text);
+  border-color: var(--color-pending-border);
+}
+.hero-body { position: relative; z-index: 1; max-width: 100%; }
 .report-hero__eyebrow {
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
   color: var(--color-primary);
-  margin: 0 0 6px;
+  margin: 0 88px 8px 0;
+  text-transform: none;
 }
+.report-hero__eyebrow-sep { opacity: 0.5; }
 .report-hero__company {
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   color: var(--color-text-muted);
-  margin: 0 0 10px;
+  margin: 0 0 8px;
 }
 .report-hero__headline {
-  font-size: 1.55rem;
-  line-height: 1.45;
+  font-size: 1.9rem;
+  line-height: 1.4;
   font-weight: 800;
   color: var(--color-text);
   margin: 0 0 12px;
-}
-.report-hero__pill {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-border);
-  color: var(--color-primary-dark);
-  border-radius: 12px;
-  padding: 10px 14px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  margin: 0 0 12px;
-}
-.report-hero__pill-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  opacity: 0.75;
-  white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 .report-hero__sub {
-  font-size: 0.96rem;
-  line-height: 1.75;
+  font-size: 1rem;
+  line-height: 1.8;
   color: var(--color-text);
-  margin: 0 0 16px;
+  margin: 0 0 14px;
+}
+.report-hero__pill {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+}
+.report-hero__chip {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  padding: 4px 10px;
 }
 .report-hero__badges {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+  margin: 0 0 12px;
 }
-.hero-illust {
-  margin: 8px 0 4px;
-  color: var(--color-primary);
-}
-.hero-illust__svg {
+.report-hero__badges-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--color-text-muted);
   width: 100%;
-  max-width: 340px;
-  height: auto;
+  margin-bottom: 2px;
 }
-.hero-illust__market { color: var(--color-primary); opacity: 0.55; }
-.hero-illust__flow { opacity: 0.5; }
-.hero-illust__opp { fill: var(--color-primary-bg); }
-.hero-illust__accent { color: var(--color-primary-dark); }
-.hero-illust__company { opacity: 0.6; }
-.hero-cta-inline {
-  display: inline-block;
-  margin-top: 14px;
-  font-size: 0.92rem;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-/* Market Badge（Hero の数字チップ） */
 .market-badge {
   display: inline-flex;
   flex-direction: column;
@@ -97,17 +122,143 @@ body { overflow-x: hidden; }
   background: var(--color-bg);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  padding: 6px 12px;
+  padding: 7px 12px;
   line-height: 1.2;
+  max-width: 100%;
 }
 .market-badge__value {
-  font-size: 1.05rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-primary-dark);
-  /* STEP5.1(P2-1): 長い金額文字列は最終手段として任意位置で折り返す */
   overflow-wrap: anywhere;
 }
-.market-badge__label { font-size: 0.68rem; color: var(--color-text-muted); }
+.market-badge__label { font-size: 0.68rem; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.hero-cta-inline {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+.hero-cta-inline:hover { text-decoration: underline; }
+
+.hero-illust {
+  margin: 6px auto 0;
+  color: var(--color-primary);
+  width: 100%;
+  max-width: 300px;
+}
+.hero-illust__svg { width: 100%; height: auto; display: block; }
+.hero-illust__bg { color: var(--color-primary); }
+.hero-illust__ring { color: var(--color-primary); }
+.hero-illust__flow { color: var(--color-primary-dark); }
+.hero-illust__opp { color: var(--color-primary); }
+.hero-illust__mark { color: var(--color-primary-dark); }
+.hero-illust__accent-shapes { color: var(--color-primary); }
+
+/* ============ Benefit カード ============ */
+.benefit-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.benefit-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 16px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.benefit-card__icon {
+  color: var(--color-primary);
+  display: inline-flex;
+  width: 34px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  border-radius: 9px;
+}
+.benefit-card__label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  margin: 2px 0 0;
+}
+.benefit-card__text {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ============ CTA V3 ============ */
+.cta-v3 { text-align: center; }
+.cta-v3--top { margin: 4px 0; }
+.cta-v3__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.02rem;
+  padding: 16px 30px;
+  border-radius: 999px;
+  text-decoration: none;
+  line-height: 1.4;
+  box-shadow: 0 8px 20px -8px var(--color-primary);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  max-width: 100%;
+}
+.cta-v3__btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px -8px var(--color-primary);
+}
+.cta-v3__btn-arrow { transition: transform 0.12s ease; }
+.cta-v3__btn:hover .cta-v3__btn-arrow { transform: translateX(3px); }
+.cta-v3__sub {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin: 8px 0 0;
+}
+.cta-v2__proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+.cta-v2__proof span::before { content: "✓ "; color: #0d9488; font-weight: 700; }
+
+/* ============ Trust strip ============ */
+.trust-strip {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 12px;
+}
+.trust-strip__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+.trust-strip__icon { color: #0d9488; font-weight: 800; }
 
 /* ============ セクション見出し ============ */
 .sec-head {
@@ -117,13 +268,109 @@ body { overflow-x: hidden; }
   margin: 0 0 12px;
 }
 .sec-head__glyph { color: var(--color-primary); display: inline-flex; }
-.sec-head__title { font-size: 1.05rem; font-weight: 700; margin: 0; color: var(--color-text); }
+.sec-head__title { font-size: 1.08rem; font-weight: 800; margin: 0; color: var(--color-text); }
 
-/* ============ Opportunity Card V2 ============ */
+/* ============ Market Snapshot ============ */
+.market-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0 4px;
+}
+.stat-card {
+  flex: 1 1 130px;
+  min-width: 130px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 12px;
+  padding: 13px 15px;
+}
+.stat-card__value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  line-height: 1.15;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+.stat-card__label { font-size: 0.74rem; color: var(--color-text-muted); margin-top: 4px; overflow-wrap: anywhere; }
+.stat-card__src { font-size: 0.66rem; color: var(--color-text-muted); opacity: 0.8; margin-top: 2px; }
+.market-stats__none {
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
+}
+
+/* 比較バー */
+.market-bar { margin: 16px 0 4px; font-size: 0.8rem; color: var(--color-text-muted); }
+.market-bar__caption { margin-bottom: 6px; }
+.market-bar__track {
+  height: 12px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-border) 100%);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.market-bar__now {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--color-primary-dark);
+  border-radius: 999px;
+}
+.market-bar__ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 0.72rem;
+}
+
+/* タイムライン（CSS のみ） */
+.market-timeline {
+  list-style: none;
+  margin: 16px 0 4px;
+  padding: 0;
+  display: flex;
+  gap: 4px;
+  position: relative;
+}
+.market-timeline::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 5px;
+  height: 2px;
+  background: var(--color-primary-border);
+}
+.market-timeline__item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  min-width: 0;
+}
+.market-timeline__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  border: 2px solid var(--color-surface);
+}
+.market-timeline__year {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+
+/* ============ Opportunity Card V3 ============ */
 .oppv2 {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: 14px;
   padding: 22px 22px 20px;
 }
 .oppv2__eyebrow {
@@ -145,6 +392,12 @@ body { overflow-x: hidden; }
   margin: 0 0 16px;
 }
 .oppv2__block { margin: 16px 0; }
+.oppv2__block--action {
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
 .oppv2__block-label {
   font-size: 0.82rem;
   font-weight: 800;
@@ -162,64 +415,11 @@ body { overflow-x: hidden; }
 }
 .oppv2__confidence strong { color: var(--color-text); }
 
-/* ============ Market Stats ============ */
-.market-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 12px 0 4px;
-}
-.stat-card {
-  flex: 1 1 120px;
-  min-width: 120px;
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-border);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-.stat-card__value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-primary-dark);
-  line-height: 1.15;
-  /* 短い値（「約6兆円」等）は語中で割らず、長い値（「17兆3,777億9,000万米ドル」等）だけ
-   * はみ出す場合に限り任意位置で折り返す。STEP5.1(P2-1)。 */
-  word-break: keep-all;
-  overflow-wrap: anywhere;
-}
-.stat-card__label { font-size: 0.74rem; color: var(--color-text-muted); margin-top: 4px; }
-.stat-card__src { font-size: 0.66rem; color: var(--color-text-muted); opacity: 0.8; margin-top: 2px; }
-.market-stats__none {
-  font-size: 0.86rem;
-  color: var(--color-text-muted);
-  margin: 6px 0 0;
-}
-
-/* Market Change 比較バー */
-.market-bar {
-  margin: 14px 0 4px;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-.market-bar__track {
-  height: 10px;
-  background: var(--color-border);
-  border-radius: 999px;
-  overflow: hidden;
-  margin: 4px 0;
-}
-.market-bar__fill {
-  height: 100%;
-  background: var(--color-primary);
-  border-radius: 999px;
-}
-
-/* ============ First Action steps ============ */
-.first-action { }
-.first-action__steps { list-style: none; margin: 0; padding: 0; counter-reset: fa; }
+/* First Action steps */
+.first-action__steps { list-style: none; margin: 6px 0 0; padding: 0; counter-reset: fa; }
 .first-action__step {
   position: relative;
-  padding: 10px 0 10px 40px;
+  padding: 8px 0 8px 38px;
   border-left: 2px solid var(--color-primary-border);
   margin-left: 12px;
 }
@@ -228,7 +428,7 @@ body { overflow-x: hidden; }
   content: counter(fa, decimal-leading-zero);
   position: absolute;
   left: -15px;
-  top: 8px;
+  top: 6px;
   width: 26px;
   height: 26px;
   border-radius: 999px;
@@ -241,15 +441,7 @@ body { overflow-x: hidden; }
   justify-content: center;
 }
 .first-action__step p { margin: 0; font-size: 0.92rem; line-height: 1.75; }
-.first-action__single {
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-border);
-  border-radius: 8px;
-  padding: 12px 14px;
-  font-size: 0.92rem;
-  line-height: 1.75;
-  margin: 0;
-}
+.first-action__single { font-size: 0.92rem; line-height: 1.75; margin: 6px 0 0; }
 
 /* ============ 折りたたみ（Evidence / Sources） ============ */
 .disclosure { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
@@ -272,6 +464,7 @@ body { overflow-x: hidden; }
 }
 .disclosure[open] > summary::before { transform: rotate(90deg); }
 .disclosure__body { padding: 4px 18px 16px; }
+.disclosure__lede { font-size: 0.82rem; color: var(--color-text-muted); margin: 4px 0 10px; line-height: 1.7; }
 
 .source-group { margin: 10px 0; }
 .source-group__label {
@@ -321,45 +514,30 @@ body { overflow-x: hidden; }
   border-color: var(--color-pending-border);
 }
 
-/* ============ CTA V2 ============ */
-.cta-v2 { text-align: center; }
-.cta-v2__btn {
-  display: inline-block;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 800;
-  font-size: 1rem;
-  padding: 15px 30px;
-  border-radius: 999px;
-  text-decoration: none;
-  line-height: 1.4;
-}
-.cta-v2__btn:hover { background: var(--color-primary-dark); }
-.cta-v2__proof {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 16px;
-  justify-content: center;
-  margin-top: 12px;
-  font-size: 0.78rem;
-  color: var(--color-text-muted);
-}
-.cta-v2__proof span::before { content: "✓ "; color: #0d9488; font-weight: 700; }
-
-/* ============ locked themes（V2 見出しに合わせて微調整） ============ */
+/* locked themes */
 #sec-locked .locked-panel { margin-top: 0; }
 
 /* ============ Responsive ============ */
+@media (max-width: 900px) {
+  .benefit-cards { grid-template-columns: 1fr; }
+}
 @media (max-width: 480px) {
-  .report-hero { padding: 20px 16px; }
-  .report-hero__headline { font-size: 1.3rem; }
+  .report-hero { padding: 22px 16px 20px; border-radius: 14px; }
+  .report-hero__eyebrow { margin-right: 76px; }
+  .report-hero__headline { font-size: 1.42rem; }
+  .report-hero__sub { font-size: 0.95rem; }
+  .hero-review-badge { font-size: 0.66rem; padding: 4px 8px; }
   .oppv2 { padding: 18px 16px; }
   .oppv2__title { font-size: 1.15rem; }
   .stat-card { flex-basis: 100%; }
   .stat-card__value { font-size: 1.35rem; }
-  .cta-v2__btn { display: block; padding: 15px 18px; }
+  .cta-v3__btn { display: flex; width: 100%; padding: 15px 18px; }
+  .market-timeline__year { font-size: 0.68rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .disclosure > summary::before { transition: none; }
+  .disclosure > summary::before,
+  .cta-v3__btn,
+  .cta-v3__btn-arrow { transition: none; }
+  .cta-v3__btn:hover { transform: none; }
 }
