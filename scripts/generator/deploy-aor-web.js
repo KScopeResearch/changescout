@@ -24,6 +24,19 @@
  * 1件でも見つかった場合、**dry-run/実実行を問わず即座に中止し、1件も対象にしない**
  * （部分的に古いデータが残る方が、個人情報や認証情報を漏らすより安全という判断）。
  *
+ * 【Phase58 STEP4: Deploy前 reconciliation gate（Public Data Safety より前段）】
+ * `website/aor/data/<slug>.json` が物理的に存在するだけで deploy 対象になっていたため、
+ * 「current report が HOLD になった後も stale な Published artifact が公開されうる」
+ * 構造的リスクがあった（Phase58 STEP3 監査）。`reconcilePublishedReports()` が deploy 前に、
+ * 本番 Published Report artifact ごとに current な内部 report/review を突き合わせ、
+ * `review-engine.js` の `isPublishable()`（Single Source of Truth）で公開可能状態かを
+ * 検査する。1件でも stale/orphan（STALE_ORPHAN / STALE_UNAPPROVED / STALE_UNPUBLISHABLE /
+ * STALE_AFTER_REGENERATION）を検出したら **FAIL CLOSED**（dry-run/実行を問わず deploy 全体を中止。
+ * その1件だけ除外するのではなく全体を止める＝「deploy は成功した」と運用者に誤認させないため）。
+ * 本番 artifact と fixture/sample の区別は既存の命名規約を利用する（`id` が `generated-` で
+ * 始まる ＋ RFC 2606 / IANA 予約テストドメインでない）。`isPublished()` / `isPublishable()` の
+ * semantic は変更しない。
+ *
  * 【デプロイ対象のホワイトリスト化】website/aor/ 配下を無条件にsyncするのではなく、
  * 受信者向けサイトを構成しうる拡張子（ALLOWED_EXTENSIONS）のみを対象とし、
  * 開発用ディレクトリ名らしきパスセグメント（EXCLUDED_PATH_SEGMENTS: .git/node_modules/
@@ -60,10 +73,42 @@ const path = require("path");
 const { checkPublicDataSafety, listFilesRecursive } = require("./shared/public-data-safety-check");
 const { createLogger } = require("./shared/logger");
 const { runCli } = require("./shared/cli-utils");
+const reportStore = require("./report-store"); // Phase58 STEP4: current 内部 report の取得（REPORT_STORE_BACKEND 尊重）
+const reviewStore = require("./review/review-store"); // Phase58 STEP4: current 内部 review の取得（REVIEW_STORE_BACKEND 尊重）
+const reviewEngine = require("./review/review-engine"); // Phase58 STEP4: isPublishable() を SSOT として再利用
 
 const logger = createLogger("deploy-aor-web");
 
 const SOURCE_DIR = path.join(__dirname, "..", "..", "website", "aor");
+
+// Phase58 STEP4: Published Report artifact が置かれる SOURCE_DIR 相対のディレクトリ。
+const PUBLISHED_DATA_DIR = "data";
+
+// Phase58 STEP4: RFC 2606 / IANA が文書・テスト用に予約しているドメイン。
+// これらを slug に持つ Published JSON は「本番 Published Report」ではなく e2e/サンプル用
+// フィクスチャなので reconciliation の対象外とする（run-all-tests.js / classify-source.js の
+// 既存コメントでも example.com 系を「予約テストドメイン」として明示的に扱っている）。
+const RESERVED_TEST_DOMAIN_RE = /(^|\.)(example\.(com|net|org)|example|test|invalid|localhost)$/i;
+
+// Phase58 STEP4: reconciliation の分類ラベル。
+const RECONCILIATION_CLASS = Object.freeze({
+  DEPLOY_ELIGIBLE: "DEPLOY_ELIGIBLE",
+  STALE_ORPHAN: "STALE_ORPHAN", // published あり / current report 無し
+  STALE_UNAPPROVED: "STALE_UNAPPROVED", // published あり / current report あり / review 無し
+  STALE_UNPUBLISHABLE: "STALE_UNPUBLISHABLE", // published あり / review あり / isPublishable false（承認/評価）
+  STALE_AFTER_REGENERATION: "STALE_AFTER_REGENERATION", // published あり / review approved / freshness NG（承認後に再生成）
+  STALE_UNREADABLE: "STALE_UNREADABLE", // published JSON をパースできない
+  SKIPPED_NON_PRODUCTION: "SKIPPED_NON_PRODUCTION", // fixture / sample / 予約テストドメイン
+});
+
+// Phase58 STEP4: STALE_* は全て deploy を止める（FAIL CLOSED）。
+const STALE_CLASSES = new Set([
+  RECONCILIATION_CLASS.STALE_ORPHAN,
+  RECONCILIATION_CLASS.STALE_UNAPPROVED,
+  RECONCILIATION_CLASS.STALE_UNPUBLISHABLE,
+  RECONCILIATION_CLASS.STALE_AFTER_REGENERATION,
+  RECONCILIATION_CLASS.STALE_UNREADABLE,
+]);
 
 // デプロイ対象から除外するファイル（開発者向けドキュメントであり、受信者向けサイトの一部ではない）。
 const EXCLUDE_FILENAMES = new Set(["README.md"]);
@@ -192,13 +237,203 @@ function buildDeployPlan(config, relativeKeys) {
 }
 
 /**
+ * Phase58 STEP4: `website/aor/data/<slug>.json` が「本番 Published Report artifact」か
+ * （＝ reconciliation の対象にすべきか）を判定する。
+ *
+ * 既存の命名規約のみを使う（新しい metadata / schema は導入しない）:
+ *   1. `id` が `generated-` で始まる … generate-company-report.js が付与する接頭辞。
+ *      手書きサンプル（company-01 等、`id: "company-01"`）はこれを持たない。
+ *   2. slug が RFC 2606 / IANA 予約テストドメインでない … e2e-*.example.com /
+ *      example.com / phase15-test.example.com 等の e2e・サンプルを除外する。
+ *
+ * @param {string} slug
+ * @param {Object|null} publishedJson - パース済みの website/aor/data/<slug>.json
+ * @returns {boolean}
+ */
+function isProductionReportArtifact(slug, publishedJson) {
+  const id = publishedJson && typeof publishedJson.id === "string" ? publishedJson.id : "";
+  if (!id.startsWith("generated-")) return false;
+  if (RESERVED_TEST_DOMAIN_RE.test(slug)) return false;
+  return true;
+}
+
+/**
+ * Phase58 STEP4: 1つの本番 Published Report artifact について、current な内部
+ * report/review と突き合わせて分類する。判定は必ず `reviewEngine.isPublishable()` に委譲し、
+ * reviewApproved / evaluationOk / freshness を再実装しない（Single Source of Truth）。
+ *
+ * **Published JSON 自身の human_review / evaluation / published_at は判定に使わない。**
+ * 「old published = approved / current report = HOLD」を正しく検出するため、必ず
+ * current の output/<slug>/{report,review}.json を SSOT とする。
+ *
+ * @param {string} slug
+ * @param {{client?:Object}} [storeOptions] - report-store / review-store のテスト用 DI（省略可）
+ * @returns {Promise<{slug:string, classification:string, publishable:boolean, reasons:string[], detail:?string}>}
+ */
+async function classifyPublishedArtifact(slug, storeOptions = {}) {
+  const report = await reportStore.loadReport(slug, storeOptions);
+  if (!report) {
+    return {
+      slug,
+      classification: RECONCILIATION_CLASS.STALE_ORPHAN,
+      publishable: false,
+      reasons: [],
+      detail: `current report が存在しません: output/${slug}/report.json`,
+    };
+  }
+
+  // review-store は「未存在」でも createEmptyReview() を返す（既存契約）。
+  // 未存在かどうかは createEmptyReview() と厳密一致するかで判定する（loadReview の実装契約そのもの）。
+  const emptyReview = reviewEngine.createEmptyReview(report.id);
+  const review = await reviewStore.loadReview(slug, report.id);
+  const reviewAbsent = JSON.stringify(review) === JSON.stringify(emptyReview);
+  if (reviewAbsent) {
+    return {
+      slug,
+      classification: RECONCILIATION_CLASS.STALE_UNAPPROVED,
+      publishable: false,
+      reasons: [`current review が存在しません: output/${slug}/review.json`],
+      detail: "レビュー未着手（review.json が無い）",
+    };
+  }
+
+  const { publishable, reasons } = reviewEngine.isPublishable(review, report.evaluation || null, report);
+  if (publishable) {
+    return { slug, classification: RECONCILIATION_CLASS.DEPLOY_ELIGIBLE, publishable: true, reasons: [], detail: null };
+  }
+
+  // freshness 起因（承認後に report が再生成された等）は STALE_AFTER_REGENERATION として区別する
+  // （review 自体は approved の場合のみ。未承認なら下の STALE_UNPUBLISHABLE 扱い）。
+  const freshnessFailure = reasons.some((r) =>
+    /より後です|再生成された可能性|日時形式が不正|日時として解釈できない|reviewed_atが記録されていない/.test(r)
+  );
+  if (freshnessFailure && review.status === "approved") {
+    return {
+      slug,
+      classification: RECONCILIATION_CLASS.STALE_AFTER_REGENERATION,
+      publishable: false,
+      reasons,
+      detail: reasons.join(" / "),
+    };
+  }
+
+  return {
+    slug,
+    classification: RECONCILIATION_CLASS.STALE_UNPUBLISHABLE,
+    publishable: false,
+    reasons,
+    detail: reasons.join(" / "),
+  };
+}
+
+/**
+ * Phase58 STEP4: deploy 対象に含まれる全 Published Report artifact
+ * （`<sourceDir>/data/<slug>.json`）について reconciliation を実行する。
+ *
+ * @param {{relativeKeys?:string[], sourceDir?:string, storeOptions?:Object}} [input]
+ *   - relativeKeys: listDeployableFiles() 相当（省略時は sourceDir を走査）
+ *   - sourceDir: 省略時 SOURCE_DIR（テストで一時ディレクトリを渡す）
+ *   - storeOptions: report-store / review-store の DI（省略可）
+ * @returns {Promise<{ok:boolean, results:Array<Object>, stale:Array<Object>, eligible:Array<Object>, skipped:Array<Object>}>}
+ */
+async function reconcilePublishedReports(input = {}) {
+  const sourceDir = input.sourceDir || SOURCE_DIR;
+  const storeOptions = input.storeOptions || {};
+  const dataDirPrefix = `${PUBLISHED_DATA_DIR}/`;
+
+  let dataKeys;
+  if (Array.isArray(input.relativeKeys)) {
+    dataKeys = input.relativeKeys.filter(
+      (k) => k.startsWith(dataDirPrefix) && k.toLowerCase().endsWith(".json")
+    );
+  } else {
+    const dataDir = path.join(sourceDir, PUBLISHED_DATA_DIR);
+    dataKeys = fs.existsSync(dataDir)
+      ? listFilesRecursive(dataDir)
+          .map((p) => `${PUBLISHED_DATA_DIR}/${path.relative(dataDir, p).split(path.sep).join("/")}`)
+          .filter((k) => k.toLowerCase().endsWith(".json"))
+      : [];
+  }
+
+  const results = [];
+  for (const key of dataKeys) {
+    const slug = key.slice(dataDirPrefix.length).replace(/\.json$/i, "");
+    const absPath = path.join(sourceDir, ...key.split("/"));
+
+    let raw;
+    try {
+      raw = fs.readFileSync(absPath, "utf-8");
+    } catch (err) {
+      if (err.code === "ENOENT") continue; // 列挙後に消えた（レース）→ deploy 側の ENOENT 処理に任せる
+      throw err; // ENOENT 以外（権限エラー等）はデプロイ全体の異常としてそのまま伝播（deploy の既存方針と一致）
+    }
+    let publishedJson;
+    try {
+      publishedJson = JSON.parse(raw);
+    } catch (err) {
+      // JSON として壊れている Published artifact は、それ自体 deploy すべきでない → stale 扱い。
+      results.push({
+        slug,
+        key,
+        classification: RECONCILIATION_CLASS.STALE_UNREADABLE,
+        publishable: false,
+        reasons: [],
+        detail: `Published JSON をパースできません: ${err.message}`,
+      });
+      continue;
+    }
+
+    if (!isProductionReportArtifact(slug, publishedJson)) {
+      results.push({
+        slug,
+        key,
+        classification: RECONCILIATION_CLASS.SKIPPED_NON_PRODUCTION,
+        publishable: null,
+        reasons: [],
+        detail: "fixture / sample / 予約テストドメイン（reconciliation 対象外）",
+      });
+      continue;
+    }
+
+    // eslint-disable-next-line no-await-in-loop
+    const classified = await classifyPublishedArtifact(slug, storeOptions);
+    results.push({ ...classified, key });
+  }
+
+  const stale = results.filter((r) => STALE_CLASSES.has(r.classification));
+  const eligible = results.filter((r) => r.classification === RECONCILIATION_CLASS.DEPLOY_ELIGIBLE);
+  const skipped = results.filter((r) => r.classification === RECONCILIATION_CLASS.SKIPPED_NON_PRODUCTION);
+
+  return { ok: stale.length === 0, results, stale, eligible, skipped };
+}
+
+/**
  * @param {{bucket:string, region:string, distributionId?:string, execute?:boolean}} config -
  *   execute:true を明示しない限りdry-run（AWS SDKクライアントを一切生成しない）。
- * @param {{s3Client?:Object, cloudFrontClient?:Object}} [options] -
+ * @param {{s3Client?:Object, cloudFrontClient?:Object, storeOptions?:Object}} [options] -
  *   execute:true 時に、テストでAWSクライアントを差し替えるためのDIフック。
+ *   storeOptions は Phase58 STEP4 の reconciliation で report-store / review-store へ渡す DI。
  * @returns {Promise<Object>}
  */
 async function deployAorWeb(config, options = {}) {
+  const relativeKeys = listDeployableFiles();
+
+  // Phase58 STEP4: Deploy前 reconciliation（Public Data Safety より前段。FAIL CLOSED）。
+  // stale/orphan Published artifact を1件でも検出したら、dry-run / 実行を問わず deploy 全体を中止する
+  // （その1件だけを除外するのではなく全体を止める＝「deploy は成功した」と運用者に誤認させないため）。
+  const reconciliation = await reconcilePublishedReports({
+    relativeKeys,
+    sourceDir: SOURCE_DIR,
+    storeOptions: options.storeOptions,
+  });
+  if (!reconciliation.ok) {
+    logger.error(
+      "Deploy前 reconciliation に失敗しました（stale/orphan な Published artifact を検出）。デプロイを中止します（1件も対象にしません）。",
+      { stale: reconciliation.stale.map((s) => ({ slug: s.slug, classification: s.classification, detail: s.detail })) }
+    );
+    return { ok: false, reconciliation };
+  }
+
   const safety = checkPublicDataSafety(SOURCE_DIR);
   if (!safety.ok) {
     logger.error("公開前セーフティチェックに失敗しました。デプロイを中止します（1件も対象にしません）。", {
@@ -206,8 +441,6 @@ async function deployAorWeb(config, options = {}) {
     });
     return { ok: false, safetyProblems: safety.problems };
   }
-
-  const relativeKeys = listDeployableFiles();
 
   if (config.execute !== true) {
     const plan = buildDeployPlan(config, relativeKeys);
@@ -307,6 +540,26 @@ async function main() {
 
   const result = await deployAorWeb({ bucket, region, distributionId, execute });
   if (!result.ok) {
+    if (result.reconciliation) {
+      console.error("STALE PUBLISHED ARTIFACT DETECTED");
+      console.error("");
+      result.reconciliation.stale.forEach((s) => {
+        console.error(`  slug: ${s.slug}`);
+        console.error(`  published: website/aor/data/${s.slug}.json`);
+        console.error(`  current report: scripts/generator/output/${s.slug}/report.json`);
+        console.error(`  current publishable: false`);
+        console.error(`  classification: ${s.classification}`);
+        console.error(`  reason: ${s.detail || (s.reasons || []).join(" / ") || "-"}`);
+        console.error("");
+      });
+      console.error("Deployment aborted.");
+      console.error(
+        "Unpublish the stale artifact (node scripts/generator/unpublish-report.js <slug>) " +
+          "or publish an approved current report before deploying."
+      );
+      process.exitCode = 1;
+      return;
+    }
     console.error("デプロイを中止しました（セーフティチェック失敗）。詳細:");
     (result.safetyProblems || []).forEach((p) => {
       console.error(`  - ${p.file}: ${p.violations.join(", ")}`);
@@ -347,4 +600,10 @@ module.exports = {
   EXCLUDE_FILENAMES,
   ALLOWED_EXTENSIONS,
   EXCLUDED_PATH_SEGMENTS,
+  // Phase58 STEP4: Deploy前 reconciliation gate
+  reconcilePublishedReports,
+  classifyPublishedArtifact,
+  isProductionReportArtifact,
+  RECONCILIATION_CLASS,
+  RESERVED_TEST_DOMAIN_RE,
 };

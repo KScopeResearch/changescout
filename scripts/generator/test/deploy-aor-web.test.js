@@ -14,6 +14,9 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 
+const path = require("path");
+const os = require("os");
+
 const {
   deployAorWeb,
   isDeployableFile,
@@ -22,7 +25,15 @@ const {
   SOURCE_DIR,
   EXCLUDE_FILENAMES,
   ALLOWED_EXTENSIONS,
+  reconcilePublishedReports,
+  classifyPublishedArtifact,
+  isProductionReportArtifact,
+  RECONCILIATION_CLASS,
+  RESERVED_TEST_DOMAIN_RE,
 } = require("../deploy-aor-web");
+const { writeJson } = require("../shared/json-file");
+const { OUTPUT_DIR } = require("../shared/paths");
+const engine = require("../review/review-engine");
 
 /** @returns {{send:Function, calls:Array<Object>}} */
 function createFakeS3Client() {
@@ -274,4 +285,261 @@ test("EXCLUDE_FILENAMES には README.md が含まれる", () => {
 
 test("ALLOWED_EXTENSIONS には .html/.css/.js/.json が含まれる", () => {
   [".html", ".css", ".js", ".json"].forEach((ext) => assert.ok(ALLOWED_EXTENSIONS.has(ext)));
+});
+
+// ===========================================================================
+// Phase58 STEP4 — Deploy前 reconciliation gate
+// ===========================================================================
+
+/**
+ * output/<slug>/{report.json, review.json} を一時的に用意する。
+ * 既存の実データには触れないよう、必ず "test-recon-*" 系の slug を使うこと。
+ * @param {string} slug
+ * @param {{generatedAt?:string, evaluationStatus?:string, review?:"none"|"approved"|"rejected"|"pending"}} opts
+ */
+function setupInternal(slug, opts = {}) {
+  const dir = path.join(OUTPUT_DIR, slug);
+  fs.mkdirSync(dir, { recursive: true });
+  const report = {
+    id: `generated-${slug}`,
+    meta: { schema_version: "2.4", generated_at: opts.generatedAt || "2026-01-01T00:00:00.000Z" },
+    evaluation: { score: 85, grade: "B", status: opts.evaluationStatus || "PASS", reasons: [], warnings: [], improvements: [] },
+  };
+  writeJson(path.join(dir, "report.json"), report);
+
+  const mode = opts.review || "approved";
+  if (mode !== "none") {
+    let review = engine.createEmptyReview(report.id);
+    if (mode === "approved") {
+      review = engine.approve(review, { reviewer: "tester" });
+      // freshness を明示的に固定したい場合
+      if (opts.reviewedAt) review = { ...review, reviewed_at: opts.reviewedAt };
+    } else if (mode === "rejected") {
+      review = engine.reject(review, { reviewer: "tester", comment: "no" });
+    } // "pending" は createEmptyReview のまま（ただし history を1件足して「未着手」と区別する）
+    if (mode === "pending") review = { ...review, history: [{ at: "2026-01-01T00:00:00.000Z", actor: "gen", action: "submitted_for_review" }] };
+    writeJson(path.join(OUTPUT_DIR, slug, "review.json"), review);
+  }
+  return report;
+}
+
+/** @param {string} slug */
+function cleanupInternal(slug) {
+  fs.rmSync(path.join(OUTPUT_DIR, slug), { recursive: true, force: true });
+}
+
+/**
+ * 一時 sourceDir に data/<slug>.json（公開 artifact 相当）を作る。
+ * @param {string} slug
+ * @param {Object} [publishedOverride]
+ * @returns {string} tmp sourceDir
+ */
+function makeTmpSourceWithPublished(slug, publishedOverride) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "aor-recon-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  const published = publishedOverride || {
+    id: `generated-${slug}`,
+    meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z", published_at: "2026-02-01T00:00:00.000Z" },
+    company_profile: { name: slug },
+    free_opportunity: { title: "x" },
+    source_pages: [],
+  };
+  writeJson(path.join(tmp, "data", `${slug}.json`), published);
+  return tmp;
+}
+
+test("isProductionReportArtifact: generated- 接頭辞かつ非予約ドメインのみ本番扱い", () => {
+  assert.equal(isProductionReportArtifact("ab-i.jp", { id: "generated-ab-i.jp" }), true);
+  assert.equal(isProductionReportArtifact("kscope.co.jp", { id: "generated-kscope.co.jp" }), true);
+  // 手書きサンプル（id に generated- 接頭辞なし）
+  assert.equal(isProductionReportArtifact("company-01-manufacturing", { id: "company-01" }), false);
+  // 予約テストドメイン
+  assert.equal(isProductionReportArtifact("example.com", { id: "generated-example.com" }), false);
+  assert.equal(isProductionReportArtifact("e2e-task29-test.example.com", { id: "generated-e2e-task29-test.example.com" }), false);
+  assert.equal(isProductionReportArtifact("phase15-test.example.com", { id: "generated-phase15-test.example.com" }), false);
+  assert.equal(isProductionReportArtifact("foo.test", { id: "generated-foo.test" }), false);
+  assert.equal(isProductionReportArtifact("foo.invalid", { id: "generated-foo.invalid" }), false);
+  // id が無い / 壊れている
+  assert.equal(isProductionReportArtifact("whatever.jp", null), false);
+  assert.equal(isProductionReportArtifact("whatever.jp", {}), false);
+});
+
+test("RESERVED_TEST_DOMAIN_RE: RFC 2606 / IANA 予約ドメインにマッチする", () => {
+  ["example.com", "sub.example.com", "example.net", "example.org", "x.example", "y.test", "z.invalid", "localhost"].forEach(
+    (d) => assert.match(d, RESERVED_TEST_DOMAIN_RE)
+  );
+  ["ab-i.jp", "kscope.co.jp", "example.co.jp", "notexample.com"].forEach((d) =>
+    assert.doesNotMatch(d, RESERVED_TEST_DOMAIN_RE)
+  );
+});
+
+test("Test1: 正常（published + current report + approved review + eval PASS + fresh）→ DEPLOY_ELIGIBLE", async (t) => {
+  const slug = "test-recon-eligible.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "approved", generatedAt: "2026-01-01T00:00:00.000Z" });
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, true);
+  assert.equal(r.eligible.length, 1);
+  assert.equal(r.eligible[0].slug, slug);
+  assert.equal(r.stale.length, 0);
+});
+
+test("Test2: current report あり / review なし → STALE_UNAPPROVED（deploy blocked）", async (t) => {
+  const slug = "test-recon-noreview.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "none" });
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale.length, 1);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_UNAPPROVED);
+});
+
+test("Test2b: current report あり / review rejected → STALE_UNPUBLISHABLE", async (t) => {
+  const slug = "test-recon-rejected.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "rejected" });
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_UNPUBLISHABLE);
+});
+
+test("Test2c: eval FAIL の current report → STALE_UNPUBLISHABLE", async (t) => {
+  const slug = "test-recon-evalfail.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "approved", evaluationStatus: "FAIL" });
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_UNPUBLISHABLE);
+});
+
+test("Test3: published あり / current report なし → STALE_ORPHAN（deploy blocked）", async (t) => {
+  const slug = "test-recon-orphan.corp";
+  cleanupInternal(slug); // output/<slug>/ を作らない
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale.length, 1);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_ORPHAN);
+});
+
+test("Test4: review approved だが generated_at > reviewed_at → STALE_AFTER_REGENERATION", async (t) => {
+  const slug = "test-recon-regen.corp";
+  cleanupInternal(slug);
+  // review を過去に固定し、report.generated_at をそれより後にする
+  setupInternal(slug, { review: "approved", reviewedAt: "2026-01-01T00:00:00.000Z", generatedAt: "2026-06-01T00:00:00.000Z" });
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(tmp, { recursive: true, force: true });
+  });
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_AFTER_REGENERATION);
+});
+
+test("Test5: published artifact が無ければ reconciliation の対象にならない", async (t) => {
+  const slug = "test-recon-nopublished.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "none" }); // internal は HOLD 状態だが…
+  t.after(() => cleanupInternal(slug));
+
+  // sourceDir に data/<slug>.json を置かない
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "aor-recon-empty-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+  const r = await reconcilePublishedReports({ sourceDir: tmp });
+  assert.equal(r.ok, true);
+  assert.equal(r.results.length, 0, "published artifact が無い slug は結果に含まれない");
+});
+
+test("Test6: 既存 fixture / sample / 予約テストドメインは reconciliation error にならない（SKIPPED_NON_PRODUCTION）", async () => {
+  // 実際の website/aor/data/ に対して実行
+  const r = await reconcilePublishedReports();
+  assert.equal(r.ok, true, "現在の実データは stale ゼロのはず");
+  // company-01/02/03・e2e-*・example.com・phase15-test は全て SKIPPED_NON_PRODUCTION
+  const skippedSlugs = r.skipped.map((s) => s.slug);
+  ["company-01-manufacturing", "company-02-construction", "company-03-service", "example.com", "phase15-test.example.com"].forEach(
+    (s) => assert.ok(skippedSlugs.includes(s), `${s} は SKIPPED_NON_PRODUCTION のはず`)
+  );
+  // ab-i.jp は本番 artifact として DEPLOY_ELIGIBLE
+  assert.ok(r.eligible.some((e) => e.slug === "ab-i.jp"), "ab-i.jp は DEPLOY_ELIGIBLE のはず");
+});
+
+test("classifyPublishedArtifact: STALE_UNREADABLE は壊れた Published JSON（sourceDir 経由）で発生する", async (t) => {
+  const slug = "test-recon-broken.corp";
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "aor-recon-broken-"));
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  fs.writeFileSync(path.join(tmp, "data", `${slug}.json`), "{ this is not json", "utf-8");
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+  const r = await reconcilePublishedReports({ relativeKeys: [`data/${slug}.json`], sourceDir: tmp });
+  assert.equal(r.ok, false);
+  assert.equal(r.stale[0].classification, RECONCILIATION_CLASS.STALE_UNREADABLE);
+});
+
+test("deployAorWeb: 実 website/aor/ に対する dry-run は reconciliation を通過し（ok:true）、結果に reconciliation を含む", async () => {
+  const result = await deployAorWeb({ bucket: "b", region: "r" });
+  assert.equal(result.ok, true);
+  assert.ok(result.dryRun);
+  // reconciliation が実行されて uploads があること（既存挙動の regression 確認）
+  assert.ok(result.uploads.length > 0);
+});
+
+test("deployAorWeb: stale Published artifact があると dry-run/実行を問わず FAIL CLOSED（1件もアップロードしない）", async (t) => {
+  const slug = "test-recon-deployblock.corp";
+  cleanupInternal(slug);
+  setupInternal(slug, { review: "none" }); // stale（review 無し）
+  // 実 website/aor/data/ に一時的に本番 artifact 相当を置く（この test 内で必ず消す）
+  const publishedPath = path.join(SOURCE_DIR, "data", `${slug}.json`);
+  writeJson(publishedPath, {
+    id: `generated-${slug}`,
+    meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z", published_at: "2026-02-01T00:00:00.000Z" },
+    company_profile: { name: slug },
+    free_opportunity: { title: "x" },
+    source_pages: [],
+  });
+  t.after(() => {
+    cleanupInternal(slug);
+    fs.rmSync(publishedPath, { force: true });
+  });
+
+  const s3Client = createFakeS3Client();
+  // dry-run
+  const dry = await deployAorWeb({ bucket: "b", region: "r" }, { s3Client });
+  assert.equal(dry.ok, false, "stale 検出時は ok:false");
+  assert.ok(dry.reconciliation && dry.reconciliation.stale.some((x) => x.slug === slug));
+  assert.equal(dry.uploads, undefined, "dry-run 計画は組まれない");
+
+  // execute:true でも同じ（FAIL CLOSED）
+  const exec = await deployAorWeb({ bucket: "b", region: "r", execute: true }, { s3Client });
+  assert.equal(exec.ok, false);
+  assert.equal(s3Client.calls.length, 0, "1件も S3 へアップロードしないはず");
 });
