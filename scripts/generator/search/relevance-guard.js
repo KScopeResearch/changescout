@@ -419,6 +419,30 @@ const COMPANY_INFO_PATH =
   /\/(company|corporate|about|aboutus|about-us|profile|company-profile|outline|company_outline|overview|companyinfo|company-info|会社概要|会社情報|企業情報)\/?$/i;
 
 /**
+ * URL のホスト名から会社名トークンの核（label 部分）を取り出す。
+ * `www.` を除き、TLD（.jp / .com / .co.jp / .or.jp 等の2階層 TLD 含む）を落とした
+ * 最上位ラベルを返す。例: https://www.ab-i.jp → "ab-i" / https://kscope.co.jp → "kscope"。
+ * @param {string} url
+ * @returns {string|null}
+ */
+function hostnameCompanyToken(url) {
+  let host;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch (e) {
+    return null;
+  }
+  host = host.replace(/^www\./, "");
+  const parts = host.split(".");
+  const twoLevelTld = /^(co|or|ne|go|lg|ac|ed|gr|ad)\.jp$/;
+  if (parts.length >= 3 && twoLevelTld.test(parts.slice(-2).join("."))) {
+    return parts[parts.length - 3] || null;
+  }
+  if (parts.length >= 2) return parts[parts.length - 2] || null;
+  return parts[0] || null;
+}
+
+/**
  * source が「対象企業と同名（または類似名）だが、別ドメインの別法人」に見えるかを判定する
  * 述語（Phase56 STEP9-G / why_company evidence isolation。例: ab-i.jp に対する abi-inc.co.jp、
  * 株式会社カレイドスコープ に対する声優事務所カレイドスコープ〈klsp.jp/company〉）。
@@ -430,9 +454,13 @@ const COMPANY_INFO_PATH =
  * 判定: 対象企業と別ドメイン かつ タイトルに対象企業名の核を含み、かつ
  *   (a) 自社ブランド型タイトル / ルート直下ページ（looksLikeDifferentCompanySameName）、または
  *   (b) URL が「会社概要／会社情報」パス
+ *
+ * 【Phase56 STEP9-I】呼び出し元が `guessCompanyName()` の戻り値（会社ページの<title>全文が
+ * そのまま入っているケースがある）を token に渡しても機能するよう、options.targetUrl の
+ * ホスト名ラベル（例: "ab-i" / "kscope"）を常に追加の識別トークンとして加える。
  * @param {{title?:string|null, url?:string|null}} item
  * @param {string[]} companyIdentityTokens - 対象企業を指す既知の文字列（会社名等）
- * @param {{targetUrl?:string}} [options] - 対象企業の URL（登録可能ドメイン比較に使う）
+ * @param {{targetUrl?:string}} [options] - 対象企業の URL（登録可能ドメイン比較・ホスト名トークンに使う）
  * @returns {boolean}
  */
 function looksLikeSameNameOtherCompany(item, companyIdentityTokens, options = {}) {
@@ -442,7 +470,7 @@ function looksLikeSameNameOtherCompany(item, companyIdentityTokens, options = {}
   const title = item.title || "";
   if (SELF_BRANDED_TITLE_MARKERS_EXCLUDE.test(title)) return false; // 導入事例・口コミ・インタビュー等は別扱い
   const titleLower = title.toLowerCase();
-  const cores = (companyIdentityTokens || [])
+  const cores = [...(companyIdentityTokens || []), hostnameCompanyToken(options.targetUrl)]
     .filter(Boolean)
     .map((t) => coreName(t))
     .filter((c) => c.length >= 3);
@@ -571,6 +599,7 @@ module.exports = {
   looksLikeUnrelatedCompany,
   looksLikeDifferentCompanySameName,
   looksLikeSameNameOtherCompany,
+  hostnameCompanyToken,
   registrableDomain,
   sameRegistrableDomain,
   isSameCompanyName,

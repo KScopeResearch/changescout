@@ -34,10 +34,45 @@ const {
   applyRelevanceGuard,
   extractAddressHint,
   looksLikeSameNameOtherCompany,
+  hostnameCompanyToken,
 } = require("./search/relevance-guard");
 const { sanitizeSources } = require("./shared/pii-sanitizer"); // Phase56 STEP9-D（P4）
 
 const MAX_SOURCES_FOR_AI = 20;
+
+/**
+ * Company Claim Isolation 用のクリーンな会社名識別トークンを組み立てる（Phase56 STEP9-I）。
+ *
+ * STEP9-H で、`guessCompanyName()` が会社ページの<title>全文（例:「アニメ制作から日本や中国での
+ * 放映・コンテンツ配信なら株式会社ABI」）をそのまま返すケースがあり、その文字列を識別トークンに
+ * 使っていたため `looksLikeSameNameOtherCompany()` が同名の別法人（abi-inc.co.jp 等）を検出
+ * できていなかった。ここでは<title>全文に依存せず、次を識別トークンとして集約する:
+ *   1. URL ホスト名ラベル（"ab-i" / "kscope"）＋ 記号除去形（"abi"）
+ *   2. 会社名候補から法人名だけを抜き出したもの（"株式会社ABI"）
+ *   3. 会社ページ本文から抽出した法人名（"株式会社ABI"）
+ *   4. 元の `companyName`（後方互換。<title>全文でも実質無害＝どのソースタイトルにも一致しない）
+ *
+ * このトークンは Company Claim Isolation（`annotateCompanyClaimEligibility`）でのみ使い、
+ * relevance guard（score 降格）の識別トークンは STEP9-G 以前のまま変更しない。
+ * @param {string} companyUrl
+ * @param {string} companyName - guessCompanyName() の戻り値
+ * @param {string} targetProfileText - 会社ページの label + content
+ * @returns {string[]}
+ */
+function buildCompanyClaimTokens(companyUrl, companyName, targetProfileText) {
+  const tokens = new Set();
+  const add = (t) => {
+    const s = String(t || "").trim();
+    if (s.length >= 2) tokens.add(s);
+  };
+  const hostToken = hostnameCompanyToken(companyUrl);
+  add(hostToken);
+  if (hostToken) add(hostToken.replace(/[-_.]/g, "")); // "ab-i" → "abi"
+  add(extractLegalEntityName(companyName));
+  add(extractLegalEntityName(targetProfileText || ""));
+  add(companyName);
+  return [...tokens];
+}
 
 /**
  * 各 source に「会社固有主張の根拠として使ってよいか」のフラグを付ける
@@ -441,8 +476,10 @@ async function buildCompanyContext(companyUrl, options = {}) {
   }));
 
   // --- 会社固有主張の根拠適格性フラグ（Phase56 STEP9-G / why_company evidence isolation）---
+  // Phase56 STEP9-I: <title>全文に依存しないクリーンな識別トークンを使う。
+  const companyClaimTokens = buildCompanyClaimTokens(companyUrl, companyName, targetProfileText);
   const annotatedTopSources = annotateCompanyClaimEligibility(rankedTopSources, {
-    companyIdentityTokens,
+    companyIdentityTokens: companyClaimTokens,
     targetUrl: companyUrl,
   });
 
@@ -475,6 +512,7 @@ module.exports = {
   buildCompanyContext,
   buildQueryProfile,
   annotateCompanyClaimEligibility,
+  buildCompanyClaimTokens,
   guessIndustryHint,
   guessCompanyName,
   normalizeCompanyName,
