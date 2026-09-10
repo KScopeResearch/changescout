@@ -147,14 +147,25 @@
     return ReportStatus.deployPendingTone(n);
   }
 
+  /** null/undefined は「未提供」を意味する "—"。数値（0 含む）はそのまま表示する。 */
+  function metricNumOrDash(v) {
+    return v === null || v === undefined ? "—" : v;
+  }
+
   function renderReportSummary(data) {
     if (isSectionError(data)) return sectionErrorHtml("Report Summary", data);
-    const webVal = data.web_deployed === null || data.web_deployed === undefined ? "—" : data.web_deployed;
-    const pendVal = data.deploy_pending === null || data.deploy_pending === undefined ? "—" : data.deploy_pending;
+    const webVal = metricNumOrDash(data.web_deployed);
+    const pendVal = metricNumOrDash(data.deploy_pending);
+    // Phase58 STEP6: published_stale / published_orphan は API（collectReportSummary）の値を
+    // そのまま表示する。UI 側で publishable / freshness / review status を再判定しない。
+    const staleVal = metricNumOrDash(data.published_stale);
+    const orphanVal = metricNumOrDash(data.published_orphan);
     let html = metricGrid([
       { label: "Generated", value: data.generated },
       { label: "Approved", value: data.approved },
       { label: "Published (Backend)", value: data.published_backend },
+      { label: "Published Stale", value: staleVal, tone: data.published_stale > 0 ? "bad" : undefined },
+      { label: "Published Orphan", value: orphanVal, tone: data.published_orphan > 0 ? "bad" : undefined },
       { label: "Web Deployed", value: webVal },
       { label: "Deploy Pending", value: pendVal, tone: deployPendingTone(data.deploy_pending) },
     ]);
@@ -170,6 +181,33 @@
           : ` (slug 一覧は取得できませんでした)`) +
         `</div>`;
     }
+
+    // Phase58 STEP6: 公開 artifact は残っているが current report が公開可能でない（stale）／
+    // current report 自体が無い（orphan）状態を運営者へ提示する。表示のみ（解消操作は追加しない）。
+    if (data.published_stale && data.published_stale > 0) {
+      const slugs = Array.isArray(data.stale_slugs) ? data.stale_slugs : [];
+      html +=
+        `<div class="dash-alert tone-warn">` +
+        `<strong>⚠ 公開 artifact と現在のレポートが食い違っているものが ${esc(data.published_stale)} 件あります（Published Stale）。</strong>` +
+        ` 公開データは残っていますが、現在の内部レポートは公開可能な状態ではありません` +
+        `（レビュー未承認 / 却下 / 品質評価 FAIL / 承認後に再生成 等）。` +
+        (slugs.length
+          ? `<ul class="plain-list">` + slugs.map((s) => `<li>${esc(s)}</li>`).join("") + `</ul>`
+          : ` (slug 一覧は取得できませんでした)`) +
+        `</div>`;
+    }
+    if (data.published_orphan && data.published_orphan > 0) {
+      const slugs = Array.isArray(data.orphan_slugs) ? data.orphan_slugs : [];
+      html +=
+        `<div class="dash-alert tone-warn">` +
+        `<strong>⚠ 対応する現在のレポートが無い公開 artifact が ${esc(data.published_orphan)} 件あります（Published Orphan）。</strong>` +
+        ` published backend には残っていますが、内部の report/review が見つかりません。` +
+        (slugs.length
+          ? `<ul class="plain-list">` + slugs.map((s) => `<li>${esc(s)}</li>`).join("") + `</ul>`
+          : ` (slug 一覧は取得できませんでした)`) +
+        `</div>`;
+    }
+
     if (data.web_deployed_note) {
       html += `<div class="dash-note">Web Deployed 情報: ${esc(data.web_deployed_note)}</div>`;
     }

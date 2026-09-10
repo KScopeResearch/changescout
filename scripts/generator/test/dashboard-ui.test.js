@@ -109,6 +109,83 @@ test("renderReportSummary: web_deployed=null（取得失敗）は — 表示、d
   assert.equal(ui.deployPendingTone(null), "dim");
 });
 
+// ---------------------------------------------------------------------------
+// Phase58 STEP6 — Published Stale / Published Orphan の表示（API 値をそのまま出す）
+// ---------------------------------------------------------------------------
+
+test("Case A: published_stale=0 / published_orphan=0 は 0 を表示し、警告アラートを出さない", () => {
+  const html = ui.renderReportSummary({
+    generated: 1, approved: 1, published_backend: 1,
+    published_stale: 0, published_orphan: 0, stale_slugs: [], orphan_slugs: [],
+    web_deployed: 1, deploy_pending: 0, pending_slugs: [],
+  });
+  assert.match(html, /Published Stale/);
+  assert.match(html, /Published Orphan/);
+  // 既存 metric も引き続き表示
+  assert.match(html, /Generated/);
+  assert.match(html, /Approved/);
+  assert.match(html, /Published \(Backend\)/);
+  assert.ok(!html.includes("dash-alert"), "stale/orphan=0 で警告アラートは出さない");
+});
+
+test("Case B: published_stale=1 は警告 + stale_slugs 一覧、orphan は 0", () => {
+  const html = ui.renderReportSummary({
+    generated: 3, approved: 2, published_backend: 2,
+    published_stale: 1, published_orphan: 0, stale_slugs: ["example.com"], orphan_slugs: [],
+    web_deployed: null, deploy_pending: null, pending_slugs: [],
+  });
+  assert.match(html, /Published Stale/);
+  assert.match(html, /dash-alert/);
+  assert.match(html, /Published Stale/);
+  assert.match(html, /1 件/);
+  assert.match(html, /example\.com/);
+  // orphan のアラートは出ない
+  assert.ok(!html.includes("Published Orphan） です") && !/Orphan.*orphan\.example/.test(html));
+});
+
+test("Case C: published_orphan=1 は警告 + orphan_slugs 一覧、stale は 0", () => {
+  const html = ui.renderReportSummary({
+    generated: 2, approved: 2, published_backend: 3,
+    published_stale: 0, published_orphan: 1, stale_slugs: [], orphan_slugs: ["orphan.example"],
+    web_deployed: null, deploy_pending: null, pending_slugs: [],
+  });
+  assert.match(html, /Published Orphan/);
+  assert.match(html, /dash-alert/);
+  assert.match(html, /1 件/);
+  assert.match(html, /orphan\.example/);
+  // stale のスラッグ列挙は無い
+  assert.ok(!html.includes("<li>example.com</li>"));
+});
+
+test("Case D: stale ×2 / orphan ×1 が正しくカウント・列挙され取り違えない", () => {
+  const html = ui.renderReportSummary({
+    generated: 5, approved: 3, published_backend: 4,
+    published_stale: 2, published_orphan: 1,
+    stale_slugs: ["a.example", "b.example"], orphan_slugs: ["c.example"],
+    web_deployed: null, deploy_pending: null, pending_slugs: [],
+  });
+  assert.match(html, /2 件/);
+  assert.match(html, /1 件/);
+  assert.match(html, /<li>a\.example<\/li>/);
+  assert.match(html, /<li>b\.example<\/li>/);
+  assert.match(html, /<li>c\.example<\/li>/);
+  // stale アラートに c.example が混ざらない / orphan アラートに a.example が混ざらない
+  const staleAlert = html.slice(html.indexOf("Published Stale"), html.indexOf("Published Orphan", html.indexOf("Published Stale")));
+  assert.ok(!staleAlert.includes("c.example"), "stale 一覧に orphan slug が混入している");
+});
+
+test("Case E: 新フィールドを持たない legacy summary でも undefined/NaN/null を誤表示しない", () => {
+  const html = ui.renderReportSummary({
+    generated: 2, approved: 1, published_backend: 1, web_deployed: 7, deploy_pending: 0, pending_slugs: [],
+  });
+  assert.match(html, /Published Stale/);
+  assert.match(html, /Published Orphan/);
+  assert.ok(!html.includes("undefined"), "undefined を画面に出さない");
+  assert.ok(!html.includes("NaN"), "NaN を画面に出さない");
+  // legacy（未提供）は "—" で表示、警告アラートは出さない
+  assert.ok(!/Published Stale.*dash-alert/s.test(html) || !html.includes("dash-alert"));
+});
+
 test("renderSesHealth: 実値をそのまま。secret は元々含まれない", () => {
   const html = ui.renderSesHealth(SAMPLE_HEALTH.ses);
   assert.match(html, /GRANTED/);
