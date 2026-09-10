@@ -192,16 +192,32 @@ async function collectSuppressionSummary(options = {}) {
  * Report Summary — レポート公開状態の集計。特に「backend 公開済みだが Web 未反映」
  * （Phase51 STEP28 の障害クラス）を deploy_pending として検出する。
  *
+ * 【Phase58 STEP5: stale / orphan published metric】
+ * 「Published artifact は存在するが、current internal report は今は publishable ではない」
+ * 状態を明示的に集計する（従来は published_backend と approved を見比べないと気付けなかった）。
+ *   - published_stale  … current report/review が存在し（＝ reportsCache に載っており）、
+ *                        published === true かつ **publishable === false**。
+ *   - published_orphan … published/ backend に artifact があるが、対応する current
+ *                        report/review が無い（reportsCache に該当 id が無い）。
+ *
+ * 判定は必ず current internal state を SSOT とする。`publishable` は server.js の toSummary()
+ * が `reviewEngine.isPublishable(review, evaluation, report)` で算出した値をそのまま使う
+ * （ここで reviewApproved / evaluationOk / freshness を再実装しない）。**Published JSON 側の
+ * human_review / evaluation / meta.published_at は判定に一切使わない**（old published=approved /
+ * current=HOLD を検出するのが目的のため）。
+ *
  * @param {{
- *   reportsCache?: Array<{id:string, review_status?:string, published?:boolean}>,
+ *   reportsCache?: Array<{id:string, review_status?:string, published?:boolean, publishable?:boolean}>,
  *   publishedBackendSlugs?: string[],
  *   webDeployedSlugs?: string[],
  * }} input
  *   - reportsCache: server.js の reportsCache（listCompanySummaries() の結果）。
- *     generated / approved の集計に使う（追加 I/O を避けるため）。
+ *     generated / approved / stale の集計に使う（追加 I/O を避けるため）。
+ *     各要素は toSummary() の戻り値（id / review_status / publishable / published 等）。
  *   - publishedBackendSlugs / webDeployedSlugs: 呼び出し側が S3 ListObjectsV2 で
- *     取得した slug 配列（aws-status.js 経由）。差集合で deploy_pending を出す。
+ *     取得した slug 配列（aws-status.js 経由）。差集合で deploy_pending / orphan を出す。
  * @returns {{generated:number, approved:number, published_backend:number,
+ *   published_stale:number, published_orphan:number, stale_slugs:string[], orphan_slugs:string[],
  *   web_deployed:number, deploy_pending:number, pending_slugs:string[]}}
  */
 function collectReportSummary(input = {}) {
@@ -225,6 +241,23 @@ function collectReportSummary(input = {}) {
     published_backend = backendSet.size;
   }
 
+  // Phase58 STEP5: published_stale — current report/review が存在するのに今は公開不可。
+  // publishable が明示的に false のもののみ数える（undefined は「不明」として除外＝安全側）。
+  const stale_slugs = reportsCache
+    .filter((r) => r && r.published === true && r.publishable === false)
+    .map((r) => r.id)
+    .filter(Boolean)
+    .sort();
+  const published_stale = stale_slugs.length;
+
+  // Phase58 STEP5: published_orphan — published/ backend に artifact があるが current 側に無い。
+  // S3 の published/ 一覧が取れているときのみ検出できる（取れなければ 0）。
+  const cacheIds = new Set(reportsCache.map((r) => r && r.id).filter(Boolean));
+  const orphan_slugs = publishedBackendSlugs
+    ? [...backendSet].filter((slug) => !cacheIds.has(slug)).sort()
+    : [];
+  const published_orphan = orphan_slugs.length;
+
   let web_deployed = null;
   let pending_slugs = [];
   if (webDeployedSlugs) {
@@ -237,6 +270,10 @@ function collectReportSummary(input = {}) {
     generated,
     approved,
     published_backend,
+    published_stale,
+    published_orphan,
+    stale_slugs,
+    orphan_slugs,
     web_deployed,
     deploy_pending: web_deployed === null ? null : pending_slugs.length,
     pending_slugs,
