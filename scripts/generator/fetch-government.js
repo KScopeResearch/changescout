@@ -22,7 +22,14 @@ async function fetchGovernment(context) {
   const queries = buildQueriesForCategory("government", profile);
 
   const perQueryResults = await Promise.all(
-    queries.map((q) => search(q.query, { sourceType: q.sourceType, sourceRole: q.sourceRole }))
+    queries.map((q) =>
+      search(q.query, {
+        sourceType: q.sourceType,
+        sourceRole: q.sourceRole,
+        preferredDomains: q.preferredDomains, // Phase57 STEP2
+        excludeTerms: q.excludeTerms,
+      })
+    )
   );
 
   return perQueryResults.flatMap((r) => r.results);

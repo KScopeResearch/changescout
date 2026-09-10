@@ -273,9 +273,14 @@ test("STEP57-1 buildQueries theme mode: 会社固有クエリにドメイン・�
   assert.ok(company.excludeTerms.includes("求人"));
   assert.ok(company.excludeTerms.includes("評判"));
   assert.ok(company.excludeTerms.includes("ランキング"));
-  // 市場クエリには preferredDomains 候補が付く
-  const market = qs.filter((q) => q.sourceRole !== "company_fact");
-  assert.ok(market.every((q) => Array.isArray(q.preferredDomains) && q.preferredDomains.length > 0));
+  // preferredDomains 候補は government / industry_association クエリに付く（Phase57 STEP2）
+  const gov = qs.find((q) => q.sourceType === "government");
+  const ind = qs.find((q) => q.sourceType === "industry_association");
+  assert.ok(Array.isArray(gov.preferredDomains) && gov.preferredDomains.length > 0);
+  assert.ok(Array.isArray(ind.preferredDomains) && ind.preferredDomains.length > 0);
+  // statistics / technology / news には付けない（調査会社・業界メディアを取り逃さないため）
+  assert.equal(qs.find((q) => q.sourceType === "statistics").preferredDomains, undefined);
+  assert.equal(qs.find((q) => q.sourceType === "technology").preferredDomains, undefined);
 });
 
 test("STEP57-1 buildQueries theme mode: カテゴリ多様性（company / government / statistics / industry / news）", () => {

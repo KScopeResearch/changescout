@@ -340,6 +340,9 @@ function buildQueries(profileOrName) {
     ? joinQuery([companyName, locality, domain, "会社概要 事業内容"])
     : joinQuery([companyName, locality, "会社概要"]);
 
+  // Phase57 STEP2: preferredDomains（include_domains）は「権威ある一次情報を狙う」
+  // government / industry_association クエリにのみ付ける。statistics（市場調査会社）・
+  // technology（業界メディア）・news は制限すると market データを取り逃すため付けない。
   const withDomains = (spec) => (preferredDomains.length ? { ...spec, preferredDomains } : spec);
 
   return [
@@ -360,13 +363,13 @@ function buildQueries(profileOrName) {
       sourceType: "government",
       sourceRole: "market_change",
     }),
-    // 市場: 規模・統計
-    withDomains({
+    // 市場: 規模・統計（調査会社ドメインを取り逃さないよう include_domains は付けない）
+    {
       category: "statistics",
       query: joinQuery([statSubject, statSuffix]),
       sourceType: "statistics",
       sourceRole: "industry_trend",
-    }),
+    },
     // 市場: 業界動向
     withDomains({
       category: "industry",
@@ -374,20 +377,20 @@ function buildQueries(profileOrName) {
       sourceType: "industry_association",
       sourceRole: "industry_trend",
     }),
-    // 市場: 技術・トレンド・課題
-    withDomains({
+    // 市場: 技術・トレンド・課題（業界メディアを取り逃さないよう include_domains は付けない）
+    {
       category: "industry",
       query: joinQuery([statSubject, trendSuffix]),
       sourceType: "technology",
       sourceRole: "industry_trend",
-    }),
+    },
     // 市場: 最新動向（報道）
-    withDomains({
+    {
       category: "news",
       query: joinQuery([marketSubject, newsSuffix]),
       sourceType: "news",
       sourceRole: "evidence",
-    }),
+    },
   ];
 }
 

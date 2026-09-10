@@ -32,8 +32,46 @@ function isConfigured() {
 }
 
 /**
+ * Tavily の request body を組み立てる（Phase57 STEP2 で分離・テスト可能に）。
+ * options.preferredDomains があれば include_domains（結果をそのドメインに限定）へ。
  * @param {string} query
- * @param {{signal?:AbortSignal}} [options]
+ * @param {{preferredDomains?:string[]}} [options]
+ * @returns {Object}
+ */
+function buildRequestBody(query, options = {}) {
+  const body = {
+    query,
+    max_results: MAX_RESULTS,
+    include_answer: false,
+    search_depth: "basic",
+  };
+  const domains = Array.isArray(options.preferredDomains)
+    ? options.preferredDomains.filter((d) => typeof d === "string" && d.trim())
+    : [];
+  if (domains.length) body.include_domains = domains.slice(0, 20);
+  return body;
+}
+
+/**
+ * excludeTerms（求人・評判等）にヒットする結果をタイトル/URLで除外する（Phase57 STEP2）。
+ * @param {Array<Object>} results
+ * @param {string[]} [excludeTerms]
+ * @returns {Array<Object>}
+ */
+function applyExcludeTerms(results, excludeTerms) {
+  const terms = (Array.isArray(excludeTerms) ? excludeTerms : [])
+    .filter((t) => typeof t === "string" && t.trim())
+    .map((t) => t.toLowerCase());
+  if (!terms.length) return results;
+  return (results || []).filter((r) => {
+    const hay = `${(r && r.title) || ""} ${(r && r.url) || ""}`.toLowerCase();
+    return !terms.some((t) => hay.includes(t));
+  });
+}
+
+/**
+ * @param {string} query
+ * @param {{signal?:AbortSignal, preferredDomains?:string[], excludeTerms?:string[]}} [options]
  * @returns {Promise<{results:Array<Object>, usage:Object}>}
  */
 async function searchRaw(query, options = {}) {
@@ -48,12 +86,7 @@ async function searchRaw(query, options = {}) {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      query,
-      max_results: MAX_RESULTS,
-      include_answer: false,
-      search_depth: "basic",
-    }),
+    body: JSON.stringify(buildRequestBody(query, options)),
     signal: options.signal,
   });
 
@@ -65,17 +98,24 @@ async function searchRaw(query, options = {}) {
   const data = await response.json();
   const rawResults = Array.isArray(data.results) ? data.results : [];
 
-  const results = rawResults.map((item) => ({
+  const mapped = rawResults.map((item) => ({
     title: item.title || null,
     url: item.url || null,
     snippet: item.content || null,
     published_at: item.published_date || null,
     organization: null, // Tavilyはorganization相当の情報を返さないため呼び出し側で補完しない
   }));
+  const results = applyExcludeTerms(mapped, options.excludeTerms);
+  const excluded = mapped.length - results.length;
 
   return {
     results,
-    usage: { queries: 1, results_returned: results.length, response_time: data.response_time || null },
+    usage: {
+      queries: 1,
+      results_returned: results.length,
+      ...(excluded > 0 ? { excluded } : {}),
+      response_time: data.response_time || null,
+    },
   };
 }
 
@@ -85,4 +125,6 @@ module.exports = {
   requiresApiKey: true,
   isConfigured,
   searchRaw,
+  buildRequestBody,
+  applyExcludeTerms,
 };
