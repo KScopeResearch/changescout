@@ -132,3 +132,53 @@ test("containsStreetAddress: 街区住所は true、都道府県/市区町村の
   assert.equal(containsStreetAddress(null), false);
   assert.equal(containsStreetAddress(""), false);
 });
+
+// --- Phase56 STEP9-F: 市場の年レンジを街区住所と誤検知しない（回帰テスト） -----
+// STEP9-E の実 API 検証で、kscope の market_change「AI品質検査市場が2026〜2036年に成長」が
+// 街区住所として誤検知され Validator が spurious FAIL していた。原因は separator に `〜`/`~`
+// を含み、`市`（市場の一部）+ 年レンジ を「市区町村 + 番地」と誤認していたこと。
+
+test("STEP9-F 回帰: 市場の年レンジ（〜 / ~）は街区住所ではない", () => {
+  const marketRanges = [
+    "AI品質検査市場が2026〜2036年に成長",
+    "日本のアニメ市場は2025〜2030年",
+    "市場規模は2026~2036年に拡大",
+    "世界市場は2024年に約4.2億米ドル、2025〜2034年に年平均31.2%で成長",
+    "日本国内でもAI品質検査市場が2026〜2036年に高い年平均成長率で成長すると見込まれている（src-1）。",
+    "市場は2026-2036年に拡大する見込み", // ハイフン2数のみ＝年レンジ
+  ];
+  for (const t of marketRanges) {
+    assert.equal(containsStreetAddress(t), false, `誤検知: ${t}`);
+  }
+});
+
+test("STEP9-F 回帰: sanitizeText は市場の年レンジ文をそのまま保持する", () => {
+  const t = "日本国内でもAI品質検査市場が2026〜2036年に高い年平均成長率で成長すると見込まれている。";
+  assert.equal(sanitizeText(t), t);
+  const t2 = "製造業におけるAI市場は2024〜2034年に年平均31.2%で成長すると推定されている。";
+  assert.equal(sanitizeText(t2), t2);
+});
+
+test("STEP9-F 回帰: 実住所の検出能力は維持（丁目/番地/号・ハイフン3連結・全角空白区切り）", () => {
+  assert.equal(containsStreetAddress("東京都千代田区外神田3丁目6番5号"), true);
+  assert.equal(containsStreetAddress("東京都千代田区外神田３丁目６番５号"), true);
+  assert.equal(containsStreetAddress("東京都千代田区外神田3-6-5"), true);
+  assert.equal(containsStreetAddress("千代田区外神田3-6-5"), true);
+  assert.equal(containsStreetAddress("東京都　千代田区　外神田　３－６－５－８０５"), true); // gBiz 事業所テーブル
+  assert.equal(containsStreetAddress("東京都新宿区西新宿1-1-1"), true);
+  assert.equal(containsStreetAddress("千代田区外神田３丁目"), true); // 丁目のみでも識別性あり
+});
+
+test("STEP9-F 回帰: validate-report checkResidualPii の誤検知が消える（kscope 型 market_change）", () => {
+  const { validateReport } = require("../validate-report");
+  const { readJson } = require("../shared/json-file");
+  const { REPORT_FIXTURES_DIR } = require("../shared/paths");
+  const report = readJson(require("path").join(REPORT_FIXTURES_DIR, "good.json"));
+  report.free_opportunity.market_change =
+    "製造業におけるAIは品質管理などに用途が広がり、日本国内でもAI品質検査市場が2026〜2036年に高い年平均成長率で成長すると見込まれている（src-1）。";
+  const result = validateReport(report);
+  assert.ok(
+    !result.errors.some((e) => e.includes("街区レベルの住所")),
+    "市場年レンジで PII error が出てはいけない: " + JSON.stringify(result.errors)
+  );
+});
