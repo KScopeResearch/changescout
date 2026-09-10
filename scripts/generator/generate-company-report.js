@@ -304,9 +304,12 @@ async function buildReport(context, options = {}) {
         "引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位" +
         `${context.pipeline_stats.max_sources_for_ai}件に絞り込み済み。` +
         (options.opportunityTheme
-          ? `【Phase56 STEP9】--opportunity-theme により採用テーマを「${options.opportunityTheme}」へ固定して生成（AIによるテーマ再選択なし）。`
+          ? `【Phase56 STEP9】--opportunity-theme により採用テーマを「${options.opportunityTheme}」へ固定して生成（AIによるテーマ再選択なし）。` +
+            "【STEP9-D】採用テーマを検索クエリ（市場クエリの主語）にも反映（P2）。"
           : ""),
-      ...(options.opportunityTheme ? { opportunity_theme_fixed: options.opportunityTheme } : {}),
+      ...(options.opportunityTheme
+        ? { opportunity_theme_fixed: options.opportunityTheme, opportunity_theme_search_applied: true }
+        : {}),
     },
     company_profile: companyProfile,
     source_pages: sourcePages,
@@ -368,7 +371,8 @@ async function generateCompanyReport(companyUrl, options = {}) {
   if (!companyUrl) throw new Error("companyUrlが必須です");
 
   onProgress("fetch:start", { companyUrl });
-  const context = await buildCompanyContext(companyUrl);
+  // 【Phase56 STEP9-D / P2】採用テーマ固定モード時は、テーマを検索層（query-builder）へも伝播させる。
+  const context = await buildCompanyContext(companyUrl, { opportunityTheme: options.opportunityTheme });
   onProgress("fetch:done", { pipeline_stats: context.pipeline_stats });
 
   const slug = slugFromUrl(companyUrl);

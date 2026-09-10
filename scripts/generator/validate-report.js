@@ -58,6 +58,7 @@
 
 const { VALID_SOURCE_TYPES, VALID_SOURCE_ROLES } = require("./normalize-sources");
 const { ISO_8601_PATTERN } = require("./shared/date-utils"); // Task18: 正規表現の二重管理を避けshared/へ集約
+const { containsStreetAddress } = require("./shared/pii-sanitizer"); // Phase56 STEP9-D（P4）
 
 const REQUIRED_TOP_LEVEL_FIELDS = [
   "meta",
@@ -251,6 +252,7 @@ function validateReport(report) {
   checkSpeculationPhrases(report, warnings);
   checkEmptyAnalysisContent(report, warnings);
   checkOpportunityEvidenceQuality(report, warnings, errors); // Phase53 STEP10.12 / Phase54 STEP8A.1
+  checkResidualPii(report, errors); // Phase56 STEP9-D（P4）: 登記住所等の混入は error（HOLD）
 
   // --- 旧スキーマ残存チェック ---
   if ("opportunities_open" in report) errors.push("旧フィールド opportunities_open が残っています");
@@ -406,6 +408,33 @@ function checkOpportunityEvidenceQuality(report, warnings, errors) {
       }
     });
   }
+}
+
+// Phase56 STEP9-D（P4）: 生成されたレポート本文に、登記上の本店所在地（街区レベルの住所）が
+// 残っていないかのバックストップ。第一防衛線は company-context.js の sanitizeSources()（LLM へ
+// 渡す前の除去）。ここは「sanitize が漏れた場合に Publish を止める」ための error 判定。
+// 都道府県・市区町村レベルの言及（「千代田区の飲食店」等）は対象にしない（street-level のみ）。
+const PII_SCAN_FIELDS = ["why_now", "why_company", "market_change", "first_action"];
+
+function checkResidualPii(report, errors) {
+  const freeOpp = report.free_opportunity || {};
+  PII_SCAN_FIELDS.forEach((field) => {
+    if (containsStreetAddress(freeOpp[field])) {
+      errors.push(
+        `free_opportunity.${field} に街区レベルの住所（登記上の本店所在地等）が含まれています` +
+          "（Phase56 STEP9-D / P4: 登記住所・法人番号・代表者個人名などのボイラープレートは" +
+          "レポート本文に記載しない。company_context の sanitize 漏れの可能性）"
+      );
+    }
+  });
+  (freeOpp.evidence || []).forEach((ev, i) => {
+    if (ev && containsStreetAddress(ev.quote)) {
+      errors.push(
+        `free_opportunity.evidence[${i}].quote に街区レベルの住所が含まれています` +
+          "（Phase56 STEP9-D / P4: 登記ボイラープレートを引用しない）"
+      );
+    }
+  });
 }
 
 // Phase53 STEP10.12: 日本の公的施策を「中国政府の施策」と取り違えていないかの最小ヒューリスティック。

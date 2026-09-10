@@ -31,6 +31,7 @@ const { scoreSources } = require("./score-sources");
 const { reclassifySources, applyScoreCaps, downgradeSameNameLocalBusiness } = require("./classify-source");
 const { extractBusinessKeywords } = require("./search/query-builder");
 const { applyRelevanceGuard, extractAddressHint } = require("./search/relevance-guard");
+const { sanitizeSources } = require("./shared/pii-sanitizer"); // Phase56 STEP9-D（P4）
 
 const MAX_SOURCES_FOR_AI = 20;
 
@@ -84,8 +85,8 @@ function guessIndustryHint(companyResult) {
  * 会社ページに実在する情報だけを使い、無い属性は null / 空配列にする（推測で足さない）。
  * @param {Object} companyResult - fetchCompany() の戻り値
  * @param {string} companyUrl
- * @param {{companyName:string, industryHint:string}} known
- * @returns {{companyName:string, prefecture:(string|null), cityWard:(string|null), industry:string, keywords:string[], domain:(string|null)}}
+ * @param {{companyName:string, industryHint:string, opportunityTheme?:string}} known
+ * @returns {{companyName:string, prefecture:(string|null), cityWard:(string|null), industry:string, keywords:string[], domain:(string|null), opportunityTheme:(string|null)}}
  */
 function buildQueryProfile(companyResult, companyUrl, known) {
   const bodyText = decodeHtmlEntities(`${companyResult.label || ""}\n${companyResult.content || ""}`);
@@ -113,6 +114,12 @@ function buildQueryProfile(companyResult, companyUrl, known) {
       companyName: queryName,
     }),
     domain,
+    // Phase56 STEP9-D（P2）: 採用テーマを検索層へ伝播させる。query-builder.deriveMarketSubject()
+    // が市場クエリの主語をテーマ側へ寄せる（未指定＝null なら従来どおり会社プロフィール由来）。
+    opportunityTheme:
+      typeof known.opportunityTheme === "string" && known.opportunityTheme.trim()
+        ? known.opportunityTheme.trim()
+        : null,
   };
 }
 
@@ -303,9 +310,16 @@ function normalizeCompanyName(rawTitle, options = {}) {
  * 会社URLを起点に company_context を構築する。
  * 内部で fetch → merge → normalize → deduplicate → score の順に処理する。
  * @param {string} companyUrl - 対象企業のURL
+ * @param {{opportunityTheme?:string}} [options] - 【Phase56 STEP9-D / P2】採用テーマ固定モード時、
+ *   このテーマを検索クエリ（市場クエリの主語）へ伝播させる。未指定時は従来どおり会社プロフィール由来。
  * @returns {Promise<Object>} company_context データ（sources配列はスコア降順・上位20件）
  */
-async function buildCompanyContext(companyUrl) {
+async function buildCompanyContext(companyUrl, options = {}) {
+  const opportunityTheme =
+    typeof options.opportunityTheme === "string" && options.opportunityTheme.trim()
+      ? options.opportunityTheme.trim()
+      : null;
+
   // --- fetch ---
   const companyResult = await fetchCompany(companyUrl);
   const industryHint = guessIndustryHint(companyResult);
@@ -313,7 +327,12 @@ async function buildCompanyContext(companyUrl) {
 
   // Phase54 STEP8A.2: 会社名だけでなく所在地・業種・事業キーワードを検索クエリへ反映する。
   // 市場クエリは会社名を主語にしない（同名別会社の混入と、外部市場ソースの枯渇を防ぐ）。
-  const queryProfile = buildQueryProfile(companyResult, companyUrl, { companyName, industryHint });
+  // Phase56 STEP9-D（P2）: 採用テーマがあれば市場クエリの主語をテーマ側へ寄せる。
+  const queryProfile = buildQueryProfile(companyResult, companyUrl, {
+    companyName,
+    industryHint,
+    opportunityTheme,
+  });
 
   const [governmentResults, industryResults, newsResults, statisticsResults] = await Promise.all([
     fetchGovernment(queryProfile),
@@ -381,15 +400,21 @@ async function buildCompanyContext(companyUrl) {
   const { deduplicated: uniqueByUrl, removedCount: exactUrlRemovedCount } = dedupeSourcesByExactUrl(guarded);
 
   // --- 上位20件に絞り込み、最終idを確定させる ---
-  const topSources = uniqueByUrl.slice(0, MAX_SOURCES_FOR_AI).map((item, index) => ({
+  const rankedTopSources = uniqueByUrl.slice(0, MAX_SOURCES_FOR_AI).map((item, index) => ({
     ...item,
     id: `src-${index + 1}`,
   }));
+
+  // --- PII / 登記ボイラープレートの除去（Phase56 STEP9-D / P4）---
+  // LLM プロンプトへ渡る前に、gBizINFO 等由来の本店所在地の番地・法人番号・代表者個人名などを
+  // sources[] のテキストから除去する。score / source_type / url は変更しない。
+  const topSources = sanitizeSources(rankedTopSources);
 
   return {
     input_url: companyUrl,
     generated_at: new Date().toISOString(),
     industry_hint: industryHint,
+    opportunity_theme: opportunityTheme, // Phase56 STEP9-D（P2）: null なら従来挙動
     company_fetch_ok: companyResult.ok,
     company_fetch_error: companyResult.error,
     pipeline_stats: {
@@ -407,6 +432,7 @@ async function buildCompanyContext(companyUrl) {
 
 module.exports = {
   buildCompanyContext,
+  buildQueryProfile,
   guessIndustryHint,
   guessCompanyName,
   normalizeCompanyName,

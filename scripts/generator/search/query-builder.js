@@ -119,15 +119,80 @@ function extractBusinessKeywords(text, options = {}) {
   return scored.slice(0, max).map((s) => s.t);
 }
 
+// Phase56 STEP9-D（P2）: 採用テーマ文字列から市場検索に使う意味要素を取り出すための
+// 定型接尾語・区切り。会社固有テーマを if 文でハードコードしない（一般化した抽出のみ）。
+const THEME_BOILERPLATE =
+  /(?:サービス)?の?立ち上げ$|導入支援|構築支援|活用支援|運用支援|内製化支援|移行支援|の支援|支援サービス|支援$|向けの?|の新規事業|モデル(?:構築)?|事業化|サービス化|の商品化|プロジェクト$/g;
+// テーマ抽出時に単独では意味を持たない語（業種・課題を表さない一般語）。
+// KEYWORD_STOPWORDS は会社ページからの抽出用に「予約」「相談」等の nav 語を含むが、
+// テーマ文字列ではそれらが意味を持つ（例: LINE予約）ため、テーマ抽出専用のこの集合だけを使う。
+const THEME_STOPWORDS = new Set([
+  "向け", "支援", "導入", "活用", "構築", "運用", "事業", "サービス", "モデル", "立ち上げ",
+  "新規", "推進", "強化", "展開", "会社", "企業", "システム", "ソリューション", "プロジェクト",
+  "実現", "対応", "提供", "改善", "最適", "最適化", "促進", "実装", "整備", "刷新", "見直し",
+  "株式会社", "有限会社", "合同会社", "カンパニー", "ビジネス", "プラットフォーム",
+  "会社概要", "企業情報", "私たち", "こちら", "詳細", "情報", "ページ", "サイト",
+]);
+
+/**
+ * 採用テーマ（例:「中小製造業向け『AI品質検査』導入支援サービスの立ち上げ」）から、
+ * 市場・業界検索の主語に使える意味要素を最大5件抽出する（Phase56 STEP9-D / P2）。
+ * 会社固有のテーマ名を条件分岐で扱わず、定型接尾語の除去 + トークン化のみで一般化する。
+ * @param {string|null|undefined} theme
+ * @returns {string[]}
+ */
+function extractThemeTerms(theme) {
+  const t = String(theme || "").trim();
+  if (!t) return [];
+  const cleaned = t
+    .replace(/[「」『』（）()【】｢｣]/g, " ")
+    .replace(THEME_BOILERPLATE, " ");
+  const tokens =
+    cleaned.match(/[一-龠々]{2,}|[ァ-ヶ][ァ-ヶー]{1,}|[A-Za-z][A-Za-z0-9]{1,}/g) || [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of tokens) {
+    const w = raw.trim();
+    if (!w || seen.has(w)) continue;
+    if (THEME_STOPWORDS.has(w) || KEYWORD_FRAGMENTS.test(w)) continue;
+    if (/^[0-9]+$/.test(w)) continue;
+    seen.add(w);
+    out.push(w);
+    if (out.length >= 5) break;
+  }
+  return out;
+}
+
 /**
  * profile から「市場クエリの主語」を作る（会社名は入れない）。
- * @param {{industry?:string|null, keywords?:string[]}} profile
+ * Phase56 STEP9-D（P2）: profile.opportunityTheme があれば、市場クエリの主語をテーマ側へ寄せる。
+ * テーマと業種ヒントが噛み合っている場合は業種ヒントを残し、噛み合っていない場合
+ * （会社の現業がテーマの対象市場と別＝kscope/illegame 型）は業種ヒントを落とす。
+ * @param {{industry?:string|null, keywords?:string[], opportunityTheme?:string|null}} profile
  * @returns {string}
  */
 function deriveMarketSubject(profile) {
   const industry = (profile.industry || "").trim();
   const keywords = (profile.keywords || []).filter(Boolean);
   const hasRealIndustry = industry && industry !== DEFAULT_INDUSTRY;
+
+  // --- Phase56 STEP9-D（P2）: テーマ主導の主語 ---
+  const themeTerms = extractThemeTerms(profile.opportunityTheme);
+  if (themeTerms.length >= 2) {
+    const industryCore = industry.replace(/産業|業界|業$|・.*$/g, "");
+    const industryOnTheme =
+      hasRealIndustry &&
+      themeTerms.some(
+        (t) => industry.includes(t) || t.includes(industry) || (industryCore && t.includes(industryCore)) || (industryCore && industryCore.includes(t))
+      );
+    const parts = [];
+    if (industryOnTheme) parts.push(industry);
+    for (const t of themeTerms) {
+      if (parts.length >= 4) break;
+      if (!parts.some((p) => p.includes(t) || t.includes(p))) parts.push(t);
+    }
+    if (parts.length > 0) return parts.join(" ");
+  }
 
   // 業種が取れている場合はキーワードを最大2件、取れていない場合は最大3件添える。
   const maxKeywords = hasRealIndustry ? 2 : 3;
@@ -231,4 +296,5 @@ module.exports = {
   extractBusinessKeywords,
   companyNameCores,
   deriveMarketSubject,
+  extractThemeTerms,
 };

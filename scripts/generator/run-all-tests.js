@@ -308,14 +308,16 @@ async function checkDashboardSmoke() {
  * 構造的な近似値であることに注意（npm系カバレッジツールは要件で使用できないため）。
  */
 const COVERAGE_MAP = [
-  { module: "validate-report.js", testFile: "validator.test.js" },
+  { module: "validate-report.js", testFile: "validator.test.js, validate-report-pii.test.js" },
+  { module: "shared/pii-sanitizer.js", testFile: "pii-sanitizer.test.js, validate-report-pii.test.js" },
+  { module: "search/relevance-guard.js", testFile: "company-context.test.js, relevance-guard-publisher.test.js" },
   { module: "quality-evaluator.js", testFile: "quality.test.js" },
   { module: "review/review-engine.js", testFile: "review.test.js" },
   { module: "jobs/job-store.js", testFile: "jobs.test.js" },
   { module: "jobs/job-runner.js", testFile: "jobs.test.js" },
   { module: "jobs/job-engine.js", testFile: "jobs.test.js" },
   { module: "search/search-client.js", testFile: "search.test.js" },
-  { module: "search/query-builder.js", testFile: "search.test.js, query-builder.test.js" },
+  { module: "search/query-builder.js", testFile: "search.test.js, query-builder.test.js, query-builder-theme.test.js" },
   { module: "classify-source.js", testFile: "classify-source.test.js" },
   { module: "deduplicate-sources.js", testFile: "search.test.js" },
   { module: "llm/llm-client.js", testFile: "llm.test.js" },
@@ -329,7 +331,7 @@ const COVERAGE_MAP = [
   { module: "shared/cli-utils.js", testFile: "error-handling.test.js" },
   { module: "shared/config-validator.js", testFile: "error-handling.test.js" },
   { module: "shared/redact.js", testFile: "error-handling.test.js, security.test.js" },
-  { module: "company-context.js", testFile: "generator.test.js（間接的にbuildCompanyContext経由）" },
+  { module: "company-context.js", testFile: "generator.test.js（間接的にbuildCompanyContext経由）, company-context.test.js, query-builder-theme.test.js" },
   { module: "normalize-sources.js", testFile: null },
   { module: "merge-sources.js", testFile: null },
   { module: "score-sources.js", testFile: null },

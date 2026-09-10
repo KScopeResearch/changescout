@@ -89,6 +89,61 @@ const ENTITY_MENTION_PATTERN = new RegExp(
 // 明確に低くなるよう、既存のカテゴリスコア帯を踏まえて設定した。
 const FLAGGED_SCORE_CAP = 30;
 
+// ---------------------------------------------------------------------------
+// Phase56 STEP9-D（P1）: 調査会社・発行元の法人名を「別企業言及」から除外する
+// ---------------------------------------------------------------------------
+// 【背景】STEP9-C で、ab-i.jp の市場調査ソース（帝国データバンク「アニメ制作市場」動向調査、
+// IMARC Group のアニメ市場規模予測 等）が、本文に「株式会社 帝国データバンク」「IMARC Group」
+// という法人名が出るというだけで looksLikeUnrelatedCompany() のルール(4) に該当し、
+// score 95 → 30 / evidence_strength "reference" に降格していた。市場調査レポートは
+// 発行元（調査会社・シンクタンク・信用調査・業界メディア・大手コンサル）を必ず名乗るため、
+// 発行元名の言及だけで市場・統計ソースを無関係扱いすると、quality-rules.md 必須条件2・3
+// （政府/統計・業界情報を最低1件）を構造的に満たせなくなる。
+//
+// 【方針】ルール(4) の「主体として言及される法人名」の集合から、既知の発行元名を除外する。
+// 発行元名しか残らなければ「一般的な市場情報」として扱い、降格しない（＝ルール(4) 冒頭の
+// 「法人名の明示的な言及がない」ケースと同じ扱い）。発行元でない別法人（別の総合商社・
+// 別の製品ページ・競合企業など）が主体として言及されているケースは従来どおり降格する。
+//
+// classify-source.js の STATS_ORG / NEWS 系ドメインと概念的に重複するが、classify-source が
+// このモジュールを require しているため（循環回避）、ここに独立して保持する。
+// 片方を変えたらもう片方も見直すこと。
+const RESEARCH_PUBLISHER_NAME = new RegExp(
+  [
+    // 信用調査・企業データ
+    "帝国データバンク", "東京商工リサーチ",
+    // 民間調査・シンクタンク
+    "矢野経済研究所", "矢野経済", "富士経済", "富士キメラ総研", "富士キメラ",
+    "MM総研", "エムエム総研", "日本総研", "日本総合研究所", "三菱総合研究所", "三菱総研",
+    "野村総合研究所", "野村総研", "みずほリサーチ", "大和総研", "ニッセイ基礎研究所",
+    "日本経済研究所", "船井総研", "船井総合研究所",
+    // 市場調査・マーケティングリサーチ
+    "インテージ", "マクロミル", "ネオマーケティング", "クロス・マーケティング", "GfK",
+    // 海外調査会社
+    "IMARC", "Statista", "Gartner", "ガートナー", "IDC", "Euromonitor",
+    "Grand\\s*View\\s*Research", "MarketsandMarkets", "Mordor\\s*Intelligence",
+    "Fortune\\s*Business\\s*Insights", "Research\\s*Nester", "Research\\s*and\\s*Markets",
+    "Global\\s*Information", "QYResearch", "Precedence\\s*Research",
+    // 大手コンサル（レポート発行元になりうる）
+    "PwC", "デロイト", "Deloitte", "KPMG", "アクセンチュア", "Accenture",
+    "ボストン\\s*コンサルティング", "マッキンゼー", "McKinsey",
+    // 業界メディア・出版
+    "日経BP", "日経リサーチ", "東洋経済新報社",
+  ].join("|"),
+  "i"
+);
+
+/**
+ * 法人名の言及文字列が、レポートの「発行元」（調査会社・シンクタンク・業界メディア・
+ * 大手コンサル）を指しているかどうか。発行元名は「このソースが別企業を説明している」ことの
+ * 証拠にはならない（Phase56 STEP9-D / P1）。
+ * @param {string} entityMention - ENTITY_MENTION_PATTERN が抽出した法人名文字列
+ * @returns {boolean}
+ */
+function isResearchPublisherName(entityMention) {
+  return RESEARCH_PUBLISHER_NAME.test(String(entityMention || ""));
+}
+
 /**
  * 文字列から法人格（株式会社等）を除去した「名称の核」を取り出す。
  * @param {string} text
@@ -411,8 +466,12 @@ function looksLikeUnrelatedCompany(item, companyIdentityTokens, targetProfile, o
   }
 
   // --- (4) 本文中に主体として言及される法人名が、対象企業と一致しない ---
-  const mentions = [...haystack.matchAll(ENTITY_MENTION_PATTERN)].map((m) => m[0]);
-  if (mentions.length === 0) return false; // 法人名の明示的な言及がない一般情報は対象外
+  // Phase56 STEP9-D（P1）: 調査会社・シンクタンク・業界メディア等（レポートの発行元）の
+  // 法人名は「別企業を説明している」ことの証拠にならないため、判定集合から除外する。
+  // 発行元名しか出てこない場合は、法人名の明示的な言及がない一般市場情報と同じ扱いにする。
+  const rawMentions = [...haystack.matchAll(ENTITY_MENTION_PATTERN)].map((m) => m[0]);
+  const mentions = rawMentions.filter((m) => !isResearchPublisherName(m));
+  if (mentions.length === 0) return false; // 法人名の明示的な言及がない（または発行元名のみの）一般情報は対象外
 
   const matchesTarget = mentions.some((mention) =>
     tokens.some((token) => isSameCompanyName(mention, token))
@@ -473,5 +532,6 @@ module.exports = {
   extractIndustryGroups,
   buildTargetProfile,
   looksLikeDifferentCompanyDespiteSameName,
+  isResearchPublisherName,
   FLAGGED_SCORE_CAP,
 };
