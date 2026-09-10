@@ -381,3 +381,37 @@ test("renderDashboard: operationalHealth（API レスポンス形状）を渡す
   assert.ok(html.indexOf("Report Summary") < html.indexOf("Operational Health Detail"));
   assert.ok(html.indexOf("Operational Health Detail") < html.indexOf("System Health"));
 });
+
+// ---------------------------------------------------------------------------
+// Phase58 STEP7 — Published Stale / Orphan アラートに Operations への導線
+// ---------------------------------------------------------------------------
+
+test("STEP7: published_stale>0 のアラートに 'View details in Operations →' リンクが付く", () => {
+  const html = ui.renderReportSummary({
+    generated: 3, approved: 2, published_backend: 2,
+    published_stale: 1, published_orphan: 0, stale_slugs: ["example.com"], orphan_slugs: [],
+    web_deployed: null, deploy_pending: null, pending_slugs: [],
+  });
+  assert.match(html, /View details in Operations →/);
+  assert.match(html, /href="operations\.html#published-artifact-health"/);
+});
+
+test("STEP7: published_orphan>0 のアラートにも Operations 導線が付く", () => {
+  const html = ui.renderReportSummary({
+    generated: 2, approved: 2, published_backend: 3,
+    published_stale: 0, published_orphan: 1, stale_slugs: [], orphan_slugs: ["orphan.example"],
+    web_deployed: null, deploy_pending: null, pending_slugs: [],
+  });
+  const links = html.match(/operations\.html#published-artifact-health/g) || [];
+  assert.equal(links.length, 1, "orphan アラートに1つだけ導線が付く");
+});
+
+test("STEP7: stale=0 / orphan=0 のときは Operations 導線を出さない", () => {
+  const html = ui.renderReportSummary({
+    generated: 1, approved: 1, published_backend: 1,
+    published_stale: 0, published_orphan: 0, stale_slugs: [], orphan_slugs: [],
+    web_deployed: 1, deploy_pending: 0, pending_slugs: [],
+  });
+  assert.ok(!html.includes("View details in Operations"));
+  assert.ok(!html.includes("published-artifact-health"));
+});

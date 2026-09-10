@@ -194,6 +194,7 @@
         (slugs.length
           ? `<ul class="plain-list">` + slugs.map((s) => `<li>${esc(s)}</li>`).join("") + `</ul>`
           : ` (slug 一覧は取得できませんでした)`) +
+        ` <a href="operations.html#published-artifact-health">View details in Operations →</a>` +
         `</div>`;
     }
     if (data.published_orphan && data.published_orphan > 0) {
@@ -205,6 +206,7 @@
         (slugs.length
           ? `<ul class="plain-list">` + slugs.map((s) => `<li>${esc(s)}</li>`).join("") + `</ul>`
           : ` (slug 一覧は取得できませんでした)`) +
+        ` <a href="operations.html#published-artifact-health">View details in Operations →</a>` +
         `</div>`;
     }
 

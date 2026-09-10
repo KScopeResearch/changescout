@@ -54,6 +54,7 @@ const AdminApi = (() => {
     getDashboardHealth: () => getJson("/api/dashboard/health"),
     getDashboardReports: () => getJson("/api/dashboard/reports"),
     getDashboardOperationalHealth: () => getJson("/api/dashboard/operational-health"), // Phase59
+    getDashboardStaleReports: () => getJson("/api/dashboard/stale-reports"), // Phase58 STEP7
 
     // --- Delivery UI（Phase52 STEP6 API。read-only GET） ---
     getDeliveries: () => getJson("/api/deliveries"),

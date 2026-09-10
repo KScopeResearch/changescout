@@ -260,6 +260,11 @@ async function checkDashboardSmoke() {
     if (dashOpHealthApi.status !== 200 || !dashOpHealthApi.body.includes("operational_health")) {
       return { ok: false, detail: `/api/dashboard/operational-health が期待どおりではない（status: ${dashOpHealthApi.status}）` };
     }
+    // Phase58 STEP7: Published Artifact Health API（read-only）の疎通。
+    const dashStaleApi = await httpGet("localhost", port, "/api/dashboard/stale-reports", { auth: `${adminUser}:${adminPassword}` });
+    if (dashStaleApi.status !== 200 || !dashStaleApi.body.includes("published_stale")) {
+      return { ok: false, detail: `/api/dashboard/stale-reports が期待どおりではない（status: ${dashStaleApi.status}）` };
+    }
 
     // Phase52 STEP9: System UI（画面 + 既存 /api/health・/api/dashboard/health の再利用）の疎通。
     const systemPage = await httpGet("localhost", port, "/system.html", { auth: `${adminUser}:${adminPassword}` });
@@ -294,7 +299,7 @@ async function checkDashboardSmoke() {
     return {
       ok: true,
       detail:
-        "未認証401・認証済み200・/api/reports・/api/jobs・/dashboard.html・/api/dashboard・/leads.html・/api/leads・/deliveries.html・/api/deliveries・/suppressions.html・/api/suppressions・/reports.html・/api/dashboard/reports・/api/dashboard/operational-health・/system.html・/api/health・/operations.htmlの応答を確認しました",
+        "未認証401・認証済み200・/api/reports・/api/jobs・/dashboard.html・/api/dashboard・/leads.html・/api/leads・/deliveries.html・/api/deliveries・/suppressions.html・/api/suppressions・/reports.html・/api/dashboard/reports・/api/dashboard/operational-health・/api/dashboard/stale-reports・/system.html・/api/health・/operations.htmlの応答を確認しました",
     };
   } catch (err) {
     return { ok: false, detail: `Dashboard確認中にエラー: ${err.message}` };

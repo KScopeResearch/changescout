@@ -88,6 +88,87 @@
     );
   }
 
+  // ---- Published Artifact Health（Phase58 STEP7。read-only 閲覧導線のみ）----
+  // classification 文字列は API がそのまま保持し、UI だけが表示名へ変換する（§6）。
+  var CLASSIFICATION_LABEL = {
+    DEPLOY_ELIGIBLE: "Healthy",
+    STALE_UNAPPROVED: "Review missing",
+    STALE_UNPUBLISHABLE: "Not publishable",
+    STALE_AFTER_REGENERATION: "Approved report became stale",
+    STALE_ORPHAN: "Missing current report",
+    STALE_UNREADABLE: "Published artifact unreadable",
+  };
+
+  function classificationLabel(c) {
+    return CLASSIFICATION_LABEL[c] || (c == null ? "—" : String(c));
+  }
+
+  /** reasons トークン配列 → 表示文字列（そのまま結合。判定はしない）。 */
+  function reasonText(item) {
+    var rs = item && Array.isArray(item.reasons) ? item.reasons : [];
+    return rs.length ? rs.join(", ") : "—";
+  }
+
+  /**
+   * Published Artifact Health セクション（§4）。
+   * @param {Object|undefined} data - GET /api/dashboard/stale-reports のレスポンス
+   *   （{ok, generated_at, published_stale, published_orphan, items} または {status:"error"}）
+   */
+  function renderPublishedArtifactHealth(data) {
+    var d = data || {};
+    var head = '<section class="card" id="published-artifact-health"><h2>Published Artifact Health</h2>';
+
+    if (isSectionError(d) || d.ok === false) {
+      return (
+        head +
+        '<div class="dash-section-error">⚠ Published Artifact Health を取得できませんでした' +
+        '<span class="dash-error-msg">' + esc(d.message || d.error || "") + "</span></div></section>"
+      );
+    }
+
+    var items = Array.isArray(d.items) ? d.items : [];
+    var stale = d.published_stale == null ? 0 : d.published_stale;
+    var orphan = d.published_orphan == null ? 0 : d.published_orphan;
+    var updatedAt = d.generated_at || null;
+
+    var counts =
+      '<div class="field-row">' +
+      '<div class="field"><div class="label">Published Stale</div><div class="value' + (stale > 0 ? " tone-warn" : "") + '">' + esc(stale) + "</div></div>" +
+      '<div class="field"><div class="label">Published Orphan</div><div class="value' + (orphan > 0 ? " tone-warn" : "") + '">' + esc(orphan) + "</div></div>" +
+      '<div class="field"><div class="label">Updated At</div><div class="value">' + esc(updatedAt || "—") + "</div></div>" +
+      "</div>";
+
+    if (items.length === 0) {
+      return head + counts + '<div class="dash-alert tone-good">No stale published artifacts detected.</div></section>';
+    }
+
+    var rows = items
+      .map(function (it) {
+        var slug = (it && it.slug) || "";
+        return (
+          "<tr>" +
+          "<td>" + esc(slug || "—") + "</td>" +
+          "<td>" + esc(classificationLabel(it && it.classification)) + "</td>" +
+          "<td>" + esc((it && it.review_status) || "—") + "</td>" +
+          "<td>" + esc((it && it.evaluation_status) || "—") + "</td>" +
+          "<td>" + (it && it.published === true ? "YES" : "NO") + "</td>" +
+          "<td>" + esc(reasonText(it)) + "</td>" +
+          '<td><a href="/reports.html?slug=' + encodeURIComponent(slug) + '">View Report</a></td>' +
+          "</tr>"
+        );
+      })
+      .join("");
+
+    return (
+      head +
+      counts +
+      '<div class="dash-alert tone-warn">Some published artifacts are stale or orphaned. Review them before the next deployment.</div>' +
+      '<div class="dash-table-wrap"><table class="dash-table"><thead><tr>' +
+      "<th>Slug</th><th>Classification</th><th>Review</th><th>Evaluation</th><th>Published</th><th>Reason</th><th></th>" +
+      "</tr></thead><tbody>" + rows + "</tbody></table></div></section>"
+    );
+  }
+
   // ---- 他 UI への導線（重複実装しない）----
   function renderActionableLinks(payload) {
     var reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
@@ -203,6 +284,7 @@
     var reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
     return (
       renderSystemStatus(payload) +
+      renderPublishedArtifactHealth(payload && payload.staleReports) +
       renderPublishTable(reports, st.submittingKey) +
       renderActionableLinks(payload)
     );
@@ -212,7 +294,7 @@
   // ブラウザ側（mutation フロー）
   // -------------------------------------------------------------------------
 
-  var state = { reports: [], health: {}, dashboard: {}, submittingKey: null, modalOp: null };
+  var state = { reports: [], health: {}, dashboard: {}, staleReports: {}, submittingKey: null, modalOp: null };
 
   function $(id) {
     return document.getElementById(id);
@@ -233,7 +315,7 @@
   function renderAll() {
     var container = $("operations-container");
     if (container) {
-      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports }, { submittingKey: state.submittingKey });
+      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports, staleReports: state.staleReports }, { submittingKey: state.submittingKey });
       wireOpButtons(container);
     }
     renderModal();
@@ -307,7 +389,12 @@
     container.setAttribute("aria-busy", "true");
     if (!state.reports.length) container.innerHTML = '<div class="empty-state">読み込み中…</div>';
 
-    var settled = await Promise.allSettled([AdminApi.listReports(), AdminApi.getDashboard(), AdminApi.getHealth()]);
+    var settled = await Promise.allSettled([
+      AdminApi.listReports(),
+      AdminApi.getDashboard(),
+      AdminApi.getHealth(),
+      AdminApi.getDashboardStaleReports(),
+    ]);
 
     var authFailed = settled.some(function (r) {
       return r.status === "rejected" && /認証/.test((r.reason && r.reason.message) || "");
@@ -328,6 +415,7 @@
     state.reports = Array.isArray(settled[0].value) ? settled[0].value : [];
     state.dashboard = settled[1].status === "fulfilled" ? settled[1].value : { status: "error", message: (settled[1].reason && settled[1].reason.message) || String(settled[1].reason) };
     state.health = settled[2].status === "fulfilled" ? settled[2].value : { status: "error", message: (settled[2].reason && settled[2].reason.message) || String(settled[2].reason) };
+    state.staleReports = settled[3].status === "fulfilled" ? settled[3].value : { status: "error", message: (settled[3].reason && settled[3].reason.message) || String(settled[3].reason) };
 
     renderAll();
     container.removeAttribute("aria-busy");
@@ -359,6 +447,8 @@
       renderPublishTable: renderPublishTable,
       renderConfirmDialog: renderConfirmDialog,
       renderOperations: renderOperations,
+      renderPublishedArtifactHealth: renderPublishedArtifactHealth,
+      classificationLabel: classificationLabel,
     };
   } else {
     init();

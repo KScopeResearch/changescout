@@ -39,6 +39,8 @@ const { checkLlmConfig, checkSearchConfig, formatReport } = require("../../scrip
 const { LOGS_DIR } = require("../../scripts/generator/shared/paths"); // Task23: Health API拡張用
 const { publishReport, isPublished } = require("../../scripts/generator/publish-report"); // Task24
 const { unpublishReport } = require("../../scripts/generator/unpublish-report"); // Task38
+const { classifyPublishedArtifact, RECONCILIATION_CLASS } = require("../../scripts/generator/deploy-aor-web"); // Phase58 STEP7: reconciliation 分類の再利用（read-only）
+const publishedStore = require("../../scripts/generator/published-store"); // Phase58 STEP7: published_at の read-only 取得
 const { validateSlug, isWithinDir } = require("../../scripts/generator/shared/path-safety"); // Task25
 const { listCompanySlugs } = require("../../scripts/generator/company-index"); // PJ2 AOR: company_slug一覧backend接続PoC
 const reportStore = require("../../scripts/generator/report-store"); // PJ2 AOR: report backend接続（Phase B-5）
@@ -360,14 +362,18 @@ async function broadcastReportsUpdate() {
 
 // scripts/generator/output/ 配下の変更（review-cli.jsによる更新・新規レポート生成等）を検知して
 // 自動的にSSEで一覧を再送する。デバウンスして、連続書き込みで何度も送らないようにする。
-try {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  fs.watch(OUTPUT_DIR, { recursive: true }, () => {
-    clearTimeout(watchDebounceTimer);
-    watchDebounceTimer = setTimeout(broadcastReportsUpdate, 300);
-  });
-} catch (e) {
-  logger.warn(`output/ の監視を開始できませんでした（SSEの自動更新は無効）: ${e.message}`);
+// Phase58 STEP7: この fs.watch はプロセスを常駐させるため、直接実行時（＝実サーバー起動時）
+// のみ登録する。ユニットテストが require したときは登録しない（ハンドルが残らないように）。
+if (require.main === module) {
+  try {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    fs.watch(OUTPUT_DIR, { recursive: true }, () => {
+      clearTimeout(watchDebounceTimer);
+      watchDebounceTimer = setTimeout(broadcastReportsUpdate, 300);
+    });
+  } catch (e) {
+    logger.warn(`output/ の監視を開始できませんでした（SSEの自動更新は無効）: ${e.message}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -738,6 +744,11 @@ async function handleApi(req, res, url, session, ip) {
     return true;
   }
 
+  if (pathname === "/api/dashboard/stale-reports" && req.method === "GET") {
+    await handleDashboardStaleReports(res);
+    return true;
+  }
+
   // --- Delivery API（Phase52 STEP6。GET / read-only。Lead.history から配信イベントを抽出） ---
   if (pathname === "/api/deliveries" && req.method === "GET") {
     await handleDeliveries(res);
@@ -829,6 +840,114 @@ async function buildOperationalHealthSection() {
 }
 
 /**
+ * Phase58 STEP7: classification（reconciliation の分類）→ 表示用の短い reason トークン。
+ * 純粋なマッピングのみ（新しい判定ロジックではない）。
+ * @param {string} classification
+ * @returns {string[]}
+ */
+function reasonTokensForClassification(classification) {
+  switch (classification) {
+    case RECONCILIATION_CLASS.STALE_AFTER_REGENERATION:
+      return ["freshness"];
+    case RECONCILIATION_CLASS.STALE_UNAPPROVED:
+      return ["review_missing"];
+    case RECONCILIATION_CLASS.STALE_ORPHAN:
+      return ["orphan"];
+    case RECONCILIATION_CLASS.STALE_UNPUBLISHABLE:
+      return ["evaluation_fail"];
+    case RECONCILIATION_CLASS.STALE_UNREADABLE:
+      return ["unreadable"];
+    default:
+      return [];
+  }
+}
+
+/**
+ * Phase58 STEP7: /api/dashboard/stale-reports の items を組み立てる（read-only・DI 可能な純粋関数）。
+ *
+ * - slug 一覧は collectReportSummary() の stale_slugs / orphan_slugs をそのまま使う（再集計しない）。
+ * - classification は deploy-aor-web.js の reconciliation helper（classifyPublishedArtifact）へ委譲する。
+ * - ここで publishable / freshness / review の再判定は一切行わない。
+ *   published / publishable / review_status / evaluation_status / reviewed_at は reportsCache
+ *   （= server.js toSummary → reviewEngine.isPublishable の結果）の値をそのまま載せる。
+ *
+ * @param {Array<Object>} reportsCache
+ * @param {string[]} staleSlugs
+ * @param {string[]} orphanSlugs
+ * @param {{classify:(slug:string)=>Promise<Object>, loadReport:(slug:string)=>Promise<Object|null>, loadPublished:(slug:string)=>Promise<Object|null>}} deps
+ * @returns {Promise<Array<Object>>}
+ */
+async function buildStaleReportItems(reportsCache, staleSlugs, orphanSlugs, deps) {
+  const byId = new Map((reportsCache || []).map((r) => [r && r.id, r]).filter(([id]) => id));
+  const out = [];
+
+  const add = async (slug, isOrphan) => {
+    const r = byId.get(slug) || null;
+    const classified = (await deps.classify(slug)) || {};
+    const report = isOrphan ? null : await deps.loadReport(slug);
+    let published = null;
+    try {
+      published = await deps.loadPublished(slug);
+    } catch {
+      published = null;
+    }
+    out.push({
+      slug,
+      classification: classified.classification || null,
+      published: r ? r.published === true : true,
+      publishable: r ? r.publishable === true : false,
+      review_status: (r && r.review_status) || null,
+      evaluation_status: (r && r.evaluation_status) || null,
+      generated_at: (report && report.meta && report.meta.generated_at) || null,
+      reviewed_at: (r && r.reviewed_at) || null,
+      published_at: (published && published.meta && published.meta.published_at) || null,
+      reasons: reasonTokensForClassification(classified.classification),
+    });
+  };
+
+  for (const slug of Array.isArray(staleSlugs) ? staleSlugs : []) await add(slug, false);
+  for (const slug of Array.isArray(orphanSlugs) ? orphanSlugs : []) await add(slug, true);
+  return out;
+}
+
+/**
+ * operational health（stale / orphan）詳細セクションを組み立てる。
+ * @returns {Promise<{published_stale:number, published_orphan:number, items:Array<Object>}>}
+ */
+async function buildStaleReportsSection() {
+  const publishedResult = await awsStatus.listPublishedBackendSlugs();
+  const publishedBackendSlugs = Array.isArray(publishedResult) ? publishedResult : null;
+  const summary = dashboardAggregates.collectReportSummary({ reportsCache, publishedBackendSlugs });
+  const items = await buildStaleReportItems(reportsCache, summary.stale_slugs, summary.orphan_slugs, {
+    classify: (slug) => classifyPublishedArtifact(slug),
+    loadReport: (slug) => reportStore.loadReport(slug),
+    loadPublished: (slug) => publishedStore.loadPublished(slug),
+  });
+  return { published_stale: summary.published_stale, published_orphan: summary.published_orphan, items };
+}
+
+/**
+ * GET /api/dashboard/stale-reports — Phase58 STEP7。stale / orphan な Published artifact の
+ * 運用詳細（1 行 1 会社）。read-only。Operations 画面「Published Artifact Health」で表示する。
+ */
+async function handleDashboardStaleReports(res) {
+  try {
+    const section = await buildStaleReportsSection();
+    sendJson(res, 200, { ok: true, generated_at: new Date().toISOString(), ...section });
+  } catch (err) {
+    logger.error(`/api/dashboard/stale-reports の組み立てに失敗しました: ${err.stack || err.message}`);
+    sendJson(res, 200, {
+      ok: false,
+      generated_at: new Date().toISOString(),
+      error: err.message,
+      published_stale: 0,
+      published_orphan: 0,
+      items: [],
+    });
+  }
+}
+
+/**
  * GET /api/deliveries — Lead.history 由来の配信イベント一覧 + 集計。
  * deliveries は「1行=1配信イベント」（delivery-log.js）、summary は Dashboard と共通の
  * 集計値（dashboard-aggregates.collectDeliverySummary）。UI 側で再集計しないための構成。
@@ -900,20 +1019,30 @@ async function buildReportSummarySection() {
 // サーバー起動
 // ---------------------------------------------------------------------------
 
-const envCheck = auth.checkRequiredEnv();
-if (!envCheck.ok) {
-  logger.error(`起動を中止しました: ${envCheck.message}`);
-  process.exitCode = 1;
-} else {
-  // PJ2 AOR: reportsCache初期化（listCompanySummaries()）がcompany-index.js経由でasync化
-  // されたため、module top-levelで同期実行できなくなった。ここでIIFEにしてawaitし、
-  // 「cache初期化完了前にserverをlistenさせない・初期化失敗時に中途半端なserverを
-  // 起動しない」を満たす。GET /api/reports・SSEのレスポンス形式・reportsCacheの意味は
-  // 一切変更していない（従来通り「事前計算済みの一覧をそのまま返す」）。
-  startServer().catch((err) => {
-    logger.error(`起動を中止しました: reportsCacheの初期化に失敗しました: ${err.stack || err.message}`);
+// Phase58 STEP7: server 起動とは独立に、純粋関数（DI 可能）をテストから require できるよう
+// 常時エクスポートする。startServer() 完了後に server / listCompanySummaries / loadCompany を
+// Object.assign で追加する（従来の module.exports の内容は不変）。
+module.exports = { buildStaleReportItems, reasonTokensForClassification };
+
+// Phase58 STEP7: `node website/aor-admin/server.js`（および child_process.spawn による
+// 既存の HTTP テスト）で直接実行されたときだけ起動する。ユニットテストが require したときは
+// 起動せず、上記の純粋関数だけを公開する。
+if (require.main === module) {
+  const envCheck = auth.checkRequiredEnv();
+  if (!envCheck.ok) {
+    logger.error(`起動を中止しました: ${envCheck.message}`);
     process.exitCode = 1;
-  });
+  } else {
+    // PJ2 AOR: reportsCache初期化（listCompanySummaries()）がcompany-index.js経由でasync化
+    // されたため、module top-levelで同期実行できなくなった。ここでIIFEにしてawaitし、
+    // 「cache初期化完了前にserverをlistenさせない・初期化失敗時に中途半端なserverを
+    // 起動しない」を満たす。GET /api/reports・SSEのレスポンス形式・reportsCacheの意味は
+    // 一切変更していない（従来通り「事前計算済みの一覧をそのまま返す」）。
+    startServer().catch((err) => {
+      logger.error(`起動を中止しました: reportsCacheの初期化に失敗しました: ${err.stack || err.message}`);
+      process.exitCode = 1;
+    });
+  }
 }
 
 async function startServer() {
@@ -1020,6 +1149,6 @@ async function startServer() {
     console.log("  スケジューラ: 無効（JOB_SCHEDULER_ENABLED=true で有効化）");
   }
 
-  module.exports = { server, listCompanySummaries, loadCompany };
+  Object.assign(module.exports, { server, listCompanySummaries, loadCompany });
 }
 
