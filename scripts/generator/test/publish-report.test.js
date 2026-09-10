@@ -20,7 +20,9 @@ const {
   validateSlug,
   AOR_DATA_DIR,
   syncPublishedHumanReview,
+  buildPublicReport,
 } = require("../publish-report");
+const { findInternalFieldLeaks } = require("../shared/public-report");
 const { readJson, writeJson } = require("../shared/json-file");
 const { OUTPUT_DIR } = require("../shared/paths");
 const engine = require("../review/review-engine");
@@ -28,6 +30,25 @@ const { validateReport } = require("../validate-report");
 const reportStore = require("../report-store"); // PJ2 AOR: report backend接続（Phase B-4）のテストで使用
 
 const FIXTURE_REPORT = readJson(path.join(__dirname, "..", "fixtures", "good.json"));
+
+/**
+ * Phase58 STEP1: 公開 JSON は report.json のコピーではなく buildPublicReport() の
+ * allowlist 射影。published と「report を射影したもの」を比較するためのヘルパー。
+ * published_at は publish 時刻なので、比較時は published 側の値をそのまま使う。
+ * @param {Object} published - 公開された JSON
+ * @param {Object} sourceReport - 元 report（human_review 同期後の状態を渡すこと）
+ */
+function assertIsPublicProjectionOf(published, sourceReport) {
+  assert.deepEqual(findInternalFieldLeaks(published), [], "公開 JSON に内部フィールドが残ってはならない");
+  assert.ok(published.meta && typeof published.meta.published_at === "string", "meta.published_at が付与されるはず");
+  const expected = buildPublicReport(sourceReport, { publishedAt: published.meta.published_at });
+  assert.deepEqual(published, expected, "公開 JSON は元 report の Public 射影と一致するはず");
+  // 内部フィールドが確実に落ちていること（明示確認）
+  assert.equal("evaluation" in published, false);
+  assert.equal("ai_pipeline" in published, false);
+  assert.equal("send_target" in published, false);
+  assert.equal("reviewer" in (published.human_review || {}), false);
+}
 
 /** @param {string} slug @param {Object} [reviewOverride] */
 function setupCompany(slug, reviewOverride) {
@@ -82,7 +103,7 @@ test("publishReport: needs_revisionの場合は公開を拒否する", async () 
   }
 });
 
-test("publishReport: 承認済み（approved）は公開に成功し、内容がそのままコピーされる", async () => {
+test("publishReport: 承認済み（approved）は公開に成功し、Public 射影が書き込まれる", async () => {
   const slug = "test-publish-approved";
   cleanupCompany(slug);
   const { report } = setupCompany(slug);
@@ -96,7 +117,9 @@ test("publishReport: 承認済み（approved）は公開に成功し、内容が
     assert.equal(await isPublished(slug), true);
 
     const published = readJson(result.publishedPath);
-    assert.deepEqual(published, report, "公開されたJSONはreport.jsonの内容と完全に一致するはず（変換・加工しない）");
+    // good.json の human_review.status は既に "approved" なので syncPublishedHumanReview は
+    // report をそのまま返す → 元 report を射影したものと一致するはず。
+    assertIsPublicProjectionOf(published, report);
   } finally {
     cleanupCompany(slug);
   }
@@ -154,12 +177,13 @@ test("STEP10.14 Test A: review store が approved なら、公開された repor
     assert.equal(result.ok, true);
     const published = readJson(result.publishedPath);
     assert.equal(published.human_review.status, "approved", "公開物は canonical（review store）の状態を反映するはず");
-    assert.equal(published.human_review.reviewer, "Takenori Kouda");
     assert.ok(published.human_review.reviewed_at);
+    // Phase58 STEP1: reviewer は internal field。公開 JSON へは含めない。
+    assert.equal("reviewer" in published.human_review, false, "reviewer は公開 JSON へ含めない");
     // report.json 本体（source: OUTPUT_DIR/<slug>/report.json）は書き換えない
     assert.equal(readJson(path.join(dir, "report.json")).human_review.status, "pending_review");
-    // human_review 以外は変換しない
-    assert.deepEqual({ ...published, human_review: 0 }, { ...report, human_review: 0 });
+    // 公開物 = 「canonical status を反映した report」の Public 射影
+    assertIsPublicProjectionOf(published, syncPublishedHumanReview(report, review));
   } finally {
     cleanupCompany(slug);
   }
@@ -184,12 +208,21 @@ test("STEP10.14 Test C: review store 未存在（pending_review 相当）なら 
   assert.equal(syncPublishedHumanReview(report, undefined).human_review.status, "pending_review");
 });
 
-test("STEP10.14 Test D: publish の human_review 同期は delivery_approval_status に一切触れない（Review approval と Delivery Approval は独立）", async () => {
-  const slug = "test-sync-delivery-independent";
+test("STEP10.14 Test D: syncPublishedHumanReview は human_review 以外の兄弟フィールドに触れない（Review approval と Delivery Approval は独立）", () => {
+  // report にこのフィールドは通常無いが、あっても helper が触らないこと（helper レベル）。
+  const report = { ...pendingReviewReport("test-sync-delivery-independent"), delivery_approval_status: "pending" };
+  const review = engine.approve(engine.createEmptyReview(report.id), { reviewer: "tester" });
+  const synced = syncPublishedHumanReview(report, review);
+  assert.equal(synced.human_review.status, "approved");
+  assert.equal(synced.delivery_approval_status, "pending", "helper は delivery_approval_status を変更しない");
+});
+
+test("STEP10.14 Test D2: Phase58 STEP1 — delivery_approval_status のような内部 delivery metadata は公開 JSON へ含めない", async () => {
+  const slug = "test-sync-delivery-independent-2";
   cleanupCompany(slug);
   const dir = path.join(OUTPUT_DIR, slug);
   fs.mkdirSync(dir, { recursive: true });
-  const report = { ...pendingReviewReport(slug), delivery_approval_status: "pending" }; // report にこのフィールドは通常無いが、あっても触らないことを確認
+  const report = { ...pendingReviewReport(slug), delivery_approval_status: "pending" };
   writeJson(path.join(dir, "report.json"), report);
   let review = engine.createEmptyReview(report.id);
   review = engine.approve(review, { reviewer: "tester" });
@@ -198,7 +231,11 @@ test("STEP10.14 Test D: publish の human_review 同期は delivery_approval_sta
   try {
     const published = readJson((await publishReport(slug)).publishedPath);
     assert.equal(published.human_review.status, "approved");
-    assert.equal(published.delivery_approval_status, "pending", "delivery_approval_status は変更されない");
+    assert.equal(
+      "delivery_approval_status" in published,
+      false,
+      "allowlist 外のフィールドは公開 JSON へ含めない（将来の内部フィールド漏洩防止）"
+    );
   } finally {
     cleanupCompany(slug);
   }
@@ -233,7 +270,7 @@ test("STEP10.14 Test G/H: illegame.com / ab-i.jp 型（埋め込み pending_revi
   });
 });
 
-test("STEP10.14 Test I: 埋め込み status が既に canonical と一致していれば公開物は report と完全一致（既存挙動 regression）", async () => {
+test("STEP10.14 Test I: 埋め込み status が既に canonical と一致していれば human_review は素通し（Public 射影のみ適用）", async () => {
   const slug = "test-sync-no-mismatch-identity";
   cleanupCompany(slug);
   const { report } = setupCompany(slug); // good.json（human_review.status = "approved"）
@@ -244,7 +281,8 @@ test("STEP10.14 Test I: 埋め込み status が既に canonical と一致して�
   try {
     const result = await publishReport(slug);
     assert.equal(result.ok, true);
-    assert.deepEqual(readJson(result.publishedPath), report, "不整合が無ければ従来どおりバイト一致コピー");
+    // 不整合が無ければ syncPublishedHumanReview は report を素通し → 公開物は report の Public 射影
+    assertIsPublicProjectionOf(readJson(result.publishedPath), report);
   } finally {
     cleanupCompany(slug);
   }
@@ -328,8 +366,7 @@ test("publishReport: report-store.js経由でreport.jsonを保存したcompany�
   try {
     const result = await publishReport(slug);
     assert.equal(result.ok, true);
-    const published = readJson(result.publishedPath);
-    assert.deepEqual(published, report);
+    assertIsPublicProjectionOf(readJson(result.publishedPath), report);
   } finally {
     cleanupCompany(slug);
   }
@@ -532,7 +569,7 @@ test("publishReport: PUBLISHED_STORE_BACKEND=s3時、公開に成功するとpub
   // 既存のローカルwebsite/aor/data/経路（deploy-aor-web.jsの同期元）もPUBLISHED_STORE_BACKENDの
   // 値に関わらず維持されているはず。
   assert.equal(fs.existsSync(publishedPathFor(slug)), true, "ローカル公開経路も引き続き維持されるはず");
-  assert.deepEqual(readJson(publishedPathFor(slug)), report);
+  assertIsPublicProjectionOf(readJson(publishedPathFor(slug)), report);
 });
 
 test("publishReport: PUBLISHED_STORE_BACKEND=s3時、published store（S3）側に書き込まれたキーは<prefix><slug>.jsonである", async (t) => {
@@ -613,7 +650,7 @@ test("publishReport: PUBLISHED_STORE_BACKEND=s3時、S3側への同期が失敗�
 
   // ローカル公開経路（deploy-aor-web.jsの同期元）は実際に成立しているはず。
   assert.equal(fs.existsSync(publishedPathFor(slug)), true);
-  assert.deepEqual(readJson(publishedPathFor(slug)), report);
+  assertIsPublicProjectionOf(readJson(publishedPathFor(slug)), report);
 });
 
 test("publishReport: PUBLISHED_STORE_BACKEND未設定（filesystem）時は、S3同期を試みないためpublished_store_sync_errorは含まれない", async () => {

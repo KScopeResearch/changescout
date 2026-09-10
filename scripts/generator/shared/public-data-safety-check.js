@@ -203,6 +203,30 @@ function checkFile(filePath) {
 }
 
 /**
+ * 【Phase58 STEP1】公開 report JSON（website/aor/data/<slug>.json）に、内部専用フィールド
+ * （evaluation / ai_pipeline / send_target / human_review.reviewer 等）が混入していないかを
+ * 構造的に検査する。判定ロジックの実体は shared/public-report.js の allowlist
+ * （buildPublicReport が出力しうるフィールド）＋ findInternalFieldLeaks に委譲する。
+ *
+ * 【この関数は checkPublicDataSafety() のディレクトリ走査には組み込んでいない】
+ * website/aor/data/ には Phase58 STEP1 以前に publish された既存レポート
+ * （手動サンプル company-01-manufacturing 等、および過去に publish された実社レポート）が
+ * 残っており、それらは旧コントラクト（report.json のほぼコピー）で evaluation 等を含む。
+ * ディレクトリ走査へ組み込むと deploy-aor-web.js が既存ファイルで一律停止してしまうため、
+ * 「これから publish されるレポートが射影を通っていること」を保証する用途に限定する
+ * （publish-report.js が書き込み直前に findInternalFieldLeaks で検査済み。本関数は
+ * テスト・将来のバッチ再射影ツール用の再利用可能なエントリポイント）。
+ *
+ * @param {Object} parsedReport - パース済みの公開 report JSON
+ * @returns {{ok:boolean, violations:string[]}}
+ */
+function checkPublicReportInternalFields(parsedReport) {
+  const { findInternalFieldLeaks } = require("./public-report");
+  const violations = findInternalFieldLeaks(parsedReport);
+  return { ok: violations.length === 0, violations };
+}
+
+/**
  * 公開対象ディレクトリ配下の全ファイルを検査する（I/O）。
  * @param {string} dir - 検査対象ディレクトリ（例: website/aor/）
  * @returns {{ok:boolean, checkedFiles:number, problems:Array<{file:string, violations:string[]}>, skippedFiles:string[]}}
@@ -231,6 +255,7 @@ function checkPublicDataSafety(dir) {
 
 module.exports = {
   checkPublicDataSafety,
+  checkPublicReportInternalFields, // Phase58 STEP1
   checkFile,
   listFilesRecursive,
   checkJsonStructure,

@@ -85,6 +85,23 @@
 数値スコアをそのまま表示しない。根拠のない数値（例:「82点」）はかえって懐疑心を招くため、
 外部表示は「関連度: 高/中」の定性表示＋一言の理由に統一する。
 
+**Public Report Contract（Phase58 STEP1確定事項）**: 上記「表示しない」を一段強化し、
+**公開JSON（`website/aor/data/<slug>.json`）そのものに内部情報を含めない**。受信者向けLPは
+`website/aor/assets/js/common.js`が`fetch("data/<slug>.json")`でJSON全体をブラウザへ取得する
+ため、rendererが非表示にしていてもURL直叩きで読めてしまう。`publish-report.js`は
+`scripts/generator/shared/public-report.js`の`buildPublicReport()`でallowlist射影を通し、
+以下を公開JSONから除外する:
+
+- `evaluation`（score / grade / 13-metric breakdown）
+- `ai_pipeline`（LLM provider / model）
+- `send_target`（配信先・取得経路・opt-in記録という内部delivery metadata）
+- `human_review.reviewer` / `review_duration_minutes` / `checklist` / `notes` / `review_history`
+  （公開するのは`status`と`reviewed_at`のみ）
+- `meta.note` / `meta.pipeline_version`
+
+allowlistに無い将来の新規フィールドも同様に公開JSONへ漏れない。詳細は
+[scripts/generator/README.md](../../scripts/generator/README.md)「公開データ境界 / Public Report Contract」。
+
 ## 実装状況（Task8〜Task9: Phase1 MVP）
 
 `scripts/generator/`に、本ドキュメントのパイプライン（①〜⑦）に対応するMVP実装を追加した

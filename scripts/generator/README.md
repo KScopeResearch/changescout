@@ -416,9 +416,11 @@ Job Runnerのジョブキューはメモリのみで永続化しない設計（j
 **背景**: Task23の運用前リハーサルで、`scripts/generator/output/<slug>/report.json`
 （AIパイプラインの生成物）と`website/aor/data/<slug>.json`（受信者向けLPが実際に読み込む
 ファイル）を繋ぐ処理が存在しないことが判明した
-（[docs/pre-launch-rehearsal.md](../../docs/pre-launch-rehearsal.md)参照）。両者は
-schema_version 2.4で構造が完全に一致しているため、変換は一切行わずそのままコピーする
-方式で公開機能を追加した。
+（[docs/pre-launch-rehearsal.md](../../docs/pre-launch-rehearsal.md)参照）。当初は
+schema_version 2.4で構造が完全に一致していたため変換なしのコピー方式だったが、
+**Phase58 STEP1で「Public Report Contract（公開データ境界）」を導入し、
+`shared/public-report.js`の`buildPublicReport()`によるallowlist射影を通すよう変更した**
+（下記「公開データ境界」節参照）。
 
 **設計方針（検討した3方式のうちAを採用）**:
 
@@ -473,6 +475,47 @@ node scripts/generator/publish-report.js <slug>
   （`company-01-manufacturing.json`等）とAIパイプラインが公開したデータが同じ
   ディレクトリに混在する（次節「website/aor/data/の管理方針」参照）。公開先に既存ファイルが
   ある場合は`WARN`ログを出す（ブロックはしない。再公開は正規の操作のため）
+
+### 公開データ境界 / Public Report Contract（Phase58 STEP1で追加）
+
+**背景**: Phase57 STEP6のRead-Only監査で、`website/aor/data/<slug>.json`が
+`report.json`のほぼコピーであり、`evaluation`（社内品質スコア）・`ai_pipeline`
+（LLM provider/model）・`human_review.reviewer`/`notes`/`checklist`/`review_history`・
+`send_target`（内部delivery metadata）・`meta.note`/`pipeline_version`まで公開JSONに
+同梱されていることが判明した。`website/aor/assets/js/common.js`はJSON全体を
+`fetch("data/<slug>.json")`でブラウザへ取得するため、renderer が非表示にしていても
+JSON URLを直接叩けば内部情報が読める状態だった（監査 I-1 / I-2 / I-4）。
+
+**方針**: 「rendererで隠す」ではなく「公開payloadそのものに存在しない」へ移行する。
+`publish-report.js`は`shared/public-report.js`の`buildPublicReport()`で
+**allowlist射影**を通した内容だけを書き込む。書き込み直前に`findInternalFieldLeaks()`で
+射影漏れが無いことを検査し、1件でもあれば公開を中止する（多層防御）。
+
+**Public（公開JSONに残す）**:
+
+| フィールド | 備考 |
+|---|---|
+| `id` | レポート識別子（`generated-<slug>`） |
+| `meta.schema_version` / `generated_at` / `published_at` / `industry_category` / `opportunity_theme_fixed` / `opportunity_theme_search_applied` | `published_at`はPhase58 STEP1で追加。publish射影を生成した時刻（ISO 8601） |
+| `company_profile` / `free_opportunity` / `source_pages` / `top_sources` / `hidden_sources_count` / `locked_opportunities` / `paid_analysis` | 公開コンテンツそのもの。PII は`shared/pii-sanitizer.js`（生成時）と`shared/public-data-safety-check.js`（デプロイ時）が担保 |
+| `human_review.status` / `human_review.reviewed_at` | 「運営がこのレポートの内容と出典を確認しました」＋日付表示（`preview-ui.js` / `report-teaser.js`）に必要 |
+
+**Internal（公開JSONに含めない）**:
+
+| フィールド | 除外理由 |
+|---|---|
+| `evaluation`（score / grade / breakdown 全体） | 社内レビュー優先度用の内部指標。[docs/strategy_v2/05_ai_pipeline.md](../../docs/strategy_v2/05_ai_pipeline.md)「対外表示との使い分け」で数値スコアの外部非表示を明記 |
+| `ai_pipeline`（provider / model） | LLM内部実装情報。公開Contract上不要 |
+| `send_target`（email / acquisition_route / opt_in_recorded） | 内部delivery metadata。renderer・メールteaser・delivery pipelineのいずれも参照しない（配信先は`leads/lead-store.js`の`lead.email`から取得。公開JSONの`send_target`は不使用）。`public-data-safety-check.js`がgeneric corporate emailを許容していたのは防御的許容であり、Contract上の必須ではない |
+| `human_review.reviewer` / `review_duration_minutes` / `checklist` / `notes` / `review_history` | 内部レビュー運用情報 |
+| `meta.note` / `meta.pipeline_version` | 内部生成メモ（"LLM_PROVIDER=deepseek"等）・内部実装バージョン |
+| 上記allowlistに無い将来の新規フィールド | allowlist方式のため、明示的に追加しない限り公開JSONへ一切漏れない |
+
+**Phase58 STEP1以前に公開済みのファイル**: `company-01-manufacturing.json`等の手動サンプル、
+および過去にpublishされた実社レポート（例: `ab-i.jp.json`）は旧コントラクト（コピー方式）で
+`evaluation`等を含む。これらは次回の正規publishで射影を通るまで旧形式のまま残る
+（`shared/public-data-safety-check.js`の`checkPublicReportInternalFields()`で検出可能。
+バッチ再射影は別STEPのスコープ）。
 
 ### website/aor/data/の管理方針（Task25で追加）
 

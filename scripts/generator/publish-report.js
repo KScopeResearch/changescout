@@ -29,8 +29,15 @@
  *   - report.json・review.jsonは一切書き換えない（読み取り専用）
  *   - 公開可否の判定はreview-engine.jsの`isPublishable()`をそのまま使う
  *     （独自の判定ロジックを作らない。review-engine.jsのTask14からの一貫方針）
- *   - website/aor/data/<slug>.jsonへは、report.jsonの内容をそのまま書き込む
- *     （フィールドの変換・加工は一切行わない）
+ *
+ * 【Phase58 STEP1: Public Report Contract（公開データ境界のハードニング）】
+ * website/aor/data/<slug>.jsonへは、report.jsonをそのままコピーするのではなく
+ * `shared/public-report.js`の`buildPublicReport()`でallowlist射影した内容を書き込む。
+ * evaluation（社内品質スコア）・ai_pipeline（LLM実装情報）・send_target（内部delivery
+ * metadata）・human_review.reviewer/notes/checklist/review_history・meta.note/pipeline_version
+ * は公開JSONへ含めない（Phase57 STEP6監査 I-1/I-2/I-4。詳細はpublic-report.js冒頭）。
+ * 書き込み直前に`findInternalFieldLeaks()`で射影漏れが無いことを検査し、1件でもあれば
+ * 公開を中止する（多層防御）。
  *
  * 【PJ2 AOR Phase 3-D-1: published-store.js経由でのS3対応】
  * Lambda等、website/aor/data/へのローカルファイル書き込みが成立しない実行環境からも
@@ -78,6 +85,7 @@ const reviewStore = require("./review/review-store"); // PJ2 AOR: review backend
 const reportStore = require("./report-store"); // PJ2 AOR: report backend接続（Phase B-4）
 const publishedStore = require("./published-store"); // PJ2 AOR Phase 3-D-1: 公開状態のcanonical state
 const publishedFsBackend = require("./published-store/backends/filesystem-backend"); // 既存ローカル公開経路（常時維持）
+const { buildPublicReport, findInternalFieldLeaks } = require("./shared/public-report"); // Phase58 STEP1: Public Report Contract
 const { createLogger } = require("./shared/logger");
 const { runCli } = require("./shared/cli-utils");
 
@@ -234,6 +242,19 @@ async function publishReport(slug, options = {}) {
     };
   }
 
+  // 【Phase58 STEP1】公開 JSON は report.json のコピーではなく allowlist 射影。
+  // internal field（evaluation / ai_pipeline / send_target / 内部レビュー運用情報 等）は
+  // ここで落ちる。書き込み直前に射影漏れを検査し、1件でもあれば公開を中止する。
+  const publicReport = buildPublicReport(reportToPublish);
+  const leaks = findInternalFieldLeaks(publicReport);
+  if (leaks.length > 0) {
+    logger.error(`公開を中止しました（内部フィールドが公開 JSON に混入）: ${slug}: ${leaks.join(" / ")}`);
+    return {
+      ok: false,
+      error: `公開用射影に内部フィールドが残っています（buildPublicReport のバグの可能性）: ${leaks.join(" / ")}`,
+    };
+  }
+
   const publishedPath = publishedPathFor(slug);
   if (!isWithinDir(publishedPath, AOR_DATA_DIR)) {
     return { ok: false, error: `不正なslugです（website/aor/data/外を指しています）: ${slug}` };
@@ -249,9 +270,9 @@ async function publishReport(slug, options = {}) {
   }
 
   // 既存のローカル公開経路（deploy-aor-web.jsの同期元）はPUBLISHED_STORE_BACKENDの値に
-  // 関わらず常に維持する。内容は変換・加工しない（STEP10.14 の human_review 同期のみ、
-  // review store との不整合がある場合に限り適用される）。
-  await publishedFsBackend.writePublished(slug, reportToPublish);
+  // 関わらず常に維持する。内容は STEP10.14 の human_review 同期 ＋ Phase58 STEP1 の
+  // Public Report 射影（buildPublicReport）を経たもの。
+  await publishedFsBackend.writePublished(slug, publicReport);
   logger.info(`公開しました（filesystem）: ${slug} → ${publishedPath}`);
 
   // PJ2 AOR Phase 3-D-1: Lambda側の公開判定に使うcanonical stateはpublished store。
@@ -260,7 +281,7 @@ async function publishReport(slug, options = {}) {
   let publishedStoreSyncError;
   if (usesNonFilesystemPublishedBackend()) {
     try {
-      await publishedStore.savePublished(slug, reportToPublish, options);
+      await publishedStore.savePublished(slug, publicReport, options);
       logger.info(`公開しました（published store / ${process.env.PUBLISHED_STORE_BACKEND}）: ${slug}`);
     } catch (err) {
       // Phase 11: ローカル公開は既に成功しているため、ここでは例外を投げてpublishReport()
@@ -311,4 +332,5 @@ module.exports = {
   validateSlug,
   AOR_DATA_DIR,
   syncPublishedHumanReview,
+  buildPublicReport, // Phase58 STEP1: Public Report Contract（再エクスポート。テスト・呼び出し元の利便のため）
 };
