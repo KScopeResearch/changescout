@@ -266,11 +266,13 @@ function buildCompanyProfile(context) {
 /**
  * report.json 全体を組み立てる。AI分析はllm-client.js経由（Task11）。
  * @param {Object} context - buildCompanyContext() の戻り値
+ * @param {{opportunityTheme?:string}} [options] - 【Phase56 STEP9】opportunityTheme 指定時は
+ *   free_opportunity.title をその値へ固定し、meta.opportunity_theme_fixed に記録する
  * @returns {Promise<Object>} report.json（schema_version 2.4。既存フィールドは変更なし、
  *   ai_pipeline.llmはTask11で追加した内部用の追加情報）
  */
-async function buildReport(context) {
-  const analysis = await generateAnalysis(context);
+async function buildReport(context, options = {}) {
+  const analysis = await generateAnalysis(context, { opportunityTheme: options.opportunityTheme });
   const sourcePages = buildSourcePages(context.sources);
   const companyProfile = buildCompanyProfile(context);
   // 【Phase54 STEP8】top_sources は「分析が引用した source + 会社名/Opportunity と語が重なる source」を優先。
@@ -300,7 +302,11 @@ async function buildReport(context) {
         `経由の実LLM接続に対応（今回はLLM_PROVIDER=${providerId}で生成）。fetch-government/` +
         "fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、" +
         "引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位" +
-        `${context.pipeline_stats.max_sources_for_ai}件に絞り込み済み。`,
+        `${context.pipeline_stats.max_sources_for_ai}件に絞り込み済み。` +
+        (options.opportunityTheme
+          ? `【Phase56 STEP9】--opportunity-theme により採用テーマを「${options.opportunityTheme}」へ固定して生成（AIによるテーマ再選択なし）。`
+          : ""),
+      ...(options.opportunityTheme ? { opportunity_theme_fixed: options.opportunityTheme } : {}),
     },
     company_profile: companyProfile,
     source_pages: sourcePages,
@@ -352,8 +358,9 @@ async function buildReport(context) {
  * console.logは行わない（呼び出し元がログ出力の要否・形式を決める）。
  *
  * @param {string} companyUrl - 対象企業のURL
- * @param {{onProgress?:(step:string, detail:Object)=>void}} [options] - 進捗コールバック（任意）。
- *   CLIはこれを使ってconsole.logし、Job Runnerはjobのイベントログに記録する
+ * @param {{onProgress?:(step:string, detail:Object)=>void, opportunityTheme?:string}} [options] -
+ *   onProgress: 進捗コールバック（任意）。CLIはこれを使ってconsole.logし、Job Runnerはjobのイベントログに記録する。
+ *   opportunityTheme: 【Phase56 STEP9】採用テーマ固定モード（省略時は従来どおりAIがテーマを選定する）
  * @returns {Promise<{context:Object, report:Object, evaluation:Object, validation:{ok:boolean,errors:string[],warnings:string[]}, slug:string, outDir:string, paths:{contextPath:string, reportPath:string, evaluationMdPath:string}}>}
  */
 async function generateCompanyReport(companyUrl, options = {}) {
@@ -376,8 +383,8 @@ async function generateCompanyReport(companyUrl, options = {}) {
   onProgress("context:saved", { contextPath });
 
   const providerId = resolveProviderId();
-  onProgress("analysis:start", { providerId });
-  const report = await buildReport(context);
+  onProgress("analysis:start", { providerId, opportunityTheme: options.opportunityTheme });
+  const report = await buildReport(context, { opportunityTheme: options.opportunityTheme });
   onProgress("analysis:done", { llm: report.ai_pipeline.llm });
 
   const evaluation = evaluateReportQuality(report);
@@ -413,13 +420,40 @@ async function generateCompanyReport(companyUrl, options = {}) {
   return { context, report, evaluation, validation, slug, outDir, paths: { contextPath, reportPath, evaluationMdPath } };
 }
 
+/**
+ * CLI 引数を「先頭の位置引数（会社URL）」と「--key=value フラグ」に分解する。
+ * review/review-by-slug.js の parseFlags と同じ最小方式（--key=value のみ解釈）。
+ * @param {string[]} argv - process.argv.slice(2)
+ * @returns {{companyUrl:(string|undefined), flags:Object}}
+ */
+function parseArgs(argv) {
+  const flags = {};
+  const positional = [];
+  for (const arg of argv) {
+    const m = arg.match(/^--([^=]+)=(.*)$/s);
+    if (m) flags[m[1]] = m[2];
+    else if (!arg.startsWith("--")) positional.push(arg);
+  }
+  return { companyUrl: positional[0], flags };
+}
+
 async function main() {
-  const companyUrl = process.argv[2];
+  const { companyUrl, flags } = parseArgs(process.argv.slice(2));
   if (!companyUrl) {
-    console.error("使い方: node generate-company-report.js <会社URL>");
+    console.error('使い方: node generate-company-report.js <会社URL> [--opportunity-theme="採用テーマ"]');
     // Task23: このファイルは唯一fetch()を行うCLIであり、実行後のprocess.exit()はWindows+
     // Node v24でクラッシュしうる（cli-utils.js冒頭コメント参照）。この分岐はfetch()より前だが、
     // ファイル全体でexitコードの与え方を統一するため、ここもprocess.exitCodeに揃える。
+    process.exitCode = 2;
+    return;
+  }
+
+  // 【Phase56 STEP9】採用テーマ固定モード。--opportunity-theme が「指定されているのに空」は
+  // 誤用の可能性が高いため早期にエラーにする（未指定は従来どおりAIがテーマを選定）。
+  const opportunityTheme =
+    typeof flags["opportunity-theme"] === "string" ? flags["opportunity-theme"].trim() : undefined;
+  if ("opportunity-theme" in flags && !opportunityTheme) {
+    console.error("--opportunity-theme に空の値は指定できません（採用テーマを渡してください）");
     process.exitCode = 2;
     return;
   }
@@ -444,7 +478,12 @@ async function main() {
   let step = 0;
   const total = 6;
 
+  if (opportunityTheme) {
+    console.log(`採用テーマ固定モード: 「${opportunityTheme}」（AIによるテーマ再選択なし）`);
+  }
+
   const { context, report, evaluation, validation } = await generateCompanyReport(companyUrl, {
+    opportunityTheme,
     onProgress(name, detail) {
       switch (name) {
         case "fetch:start":
@@ -464,7 +503,10 @@ async function main() {
           console.log(`[${++step}/${total}] company_context.json を保存: ${detail.contextPath}`);
           break;
         case "analysis:start":
-          console.log(`[${++step}/${total}] AI分析中（LLM_PROVIDER=${detail.providerId}）`);
+          console.log(
+            `[${++step}/${total}] AI分析中（LLM_PROVIDER=${detail.providerId}）` +
+              (detail.opportunityTheme ? `（採用テーマ固定: 「${detail.opportunityTheme}」）` : "")
+          );
           break;
         case "analysis:done":
           console.log(
@@ -517,4 +559,5 @@ module.exports = {
   summarizeBusinessText,
   buildTopSources,
   relevanceTokens,
+  parseArgs,
 };

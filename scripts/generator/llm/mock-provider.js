@@ -36,13 +36,18 @@ function estimateTokens(text) {
 }
 
 /**
- * @param {{context:Object, systemPrompt:string, userPrompt:string}} args
+ * @param {{context:Object, systemPrompt:string, userPrompt:string, opportunityTheme?:string}} args
  * @returns {Promise<{content:string, usage:{input_tokens:number, output_tokens:number}}>}
  */
-async function callRaw({ context, userPrompt }) {
+async function callRaw({ context, userPrompt, opportunityTheme }) {
   const analysis = simulateAiAnalysis(context);
+  // 【Phase56 STEP9】採用テーマ固定モード。mock はルールベースでプロンプトを読まないため、
+  // 実 LLM がプロンプト制約に従うのと同じ結果（title == 指定テーマ）をここで再現する。
+  const freeOpportunity = opportunityTheme
+    ? { ...analysis.free_opportunity, title: opportunityTheme }
+    : analysis.free_opportunity;
   const content = JSON.stringify({
-    free_opportunity: analysis.free_opportunity,
+    free_opportunity: freeOpportunity,
     locked_opportunities: analysis.locked_opportunities,
     paid_analysis: analysis.paid_analysis,
   });

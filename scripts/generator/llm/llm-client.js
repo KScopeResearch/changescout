@@ -88,19 +88,61 @@ function loadPrompt(filename) {
 }
 
 /**
- * company_contextをJSONとして埋め込んだユーザープロンプトを組み立てる。
- * @param {Object} context - buildCompanyContext()の戻り値
+ * 【Phase56 STEP9】--opportunity-theme 指定時に user プロンプトへ差し込む「採用テーマ固定」制約。
+ * テーマは STEP7/STEP8 で運営が確定済みであり、LLM に候補として提案・再選択させない。
+ * プロンプト文言だけに依存せず、generateAnalysis() 側の assertFixedThemeIntegrity() でも担保する。
+ * @param {string} theme
  * @returns {string}
  */
-function buildUserPrompt(context) {
+function buildFixedThemeBlock(theme) {
+  return (
+    "## 【採用テーマ固定 — FIXED OPPORTUNITY THEME】\n\n" +
+    "このレポートの `free_opportunity.title` は運営が既に採用決定しています:\n\n" +
+    `「${theme}」\n\n` +
+    "- `free_opportunity.title` は上記と一字一句同一にすること。言い換え・改題・再ランキング・別テーマへの差し替えを禁止する。\n" +
+    "- 「手順（Business Chance Engine V3.1）」ステップ2（80点以上の候補から最も近い1件を採用）は、" +
+    "このテーマを採用済みとして扱いスキップする。候補列挙は `locked_opportunities` を埋めるためだけに行う。\n" +
+    "- research / evidence は、この固定テーマの妥当性・具体性・緊急性を裏づけるために使う。" +
+    "テーマへ無理に寄せる主張、evidence に基づかない主張は禁止（quality-rules.md・Phase54ルール3・evidence 要件は不変）。\n\n"
+  );
+}
+
+/**
+ * company_contextをJSONとして埋め込んだユーザープロンプトを組み立てる。
+ * @param {Object} context - buildCompanyContext()の戻り値
+ * @param {{opportunityTheme?:string}} [options] - opportunityTheme 指定時は「採用テーマ固定」制約を先頭に差し込む
+ * @returns {string}
+ */
+function buildUserPrompt(context, options = {}) {
   const template = loadPrompt("opportunity-generation.md");
+  const fixedThemeBlock = options.opportunityTheme ? buildFixedThemeBlock(options.opportunityTheme) : "";
   return (
     `${template}\n\n` +
+    fixedThemeBlock +
     `## company_context（実際の入力データ。sources[]に存在する情報のみを事実として使用すること）\n\n` +
     "```json\n" +
     JSON.stringify(context, null, 2) +
     "\n```\n"
   );
+}
+
+/**
+ * 【Phase56 STEP9】固定テーマ指定時、LLM 出力の free_opportunity.title が要求テーマと
+ * 完全一致することを検証する（プロンプト文言だけに頼らない code 側の担保。§7）。
+ * 一致しない場合は例外を投げ、レポートを保存させない（呼び出し元 CLI は非ゼロ終了）。
+ * 「似ているだけ」は不可。前後空白のみ許容する。
+ * @param {Object} parsed - extractJson() の戻り値
+ * @param {string} requestedTheme
+ */
+function assertFixedThemeIntegrity(parsed, requestedTheme) {
+  const got = (parsed && parsed.free_opportunity && parsed.free_opportunity.title) || "";
+  if (String(got).trim() !== String(requestedTheme).trim()) {
+    throw new Error(
+      `固定テーマ違反: --opportunity-theme で「${requestedTheme}」を指定しましたが、` +
+        `AI が返した free_opportunity.title は「${got}」でした` +
+        `（似ているだけでは不可。再生成するか、テーマ指定・プロンプトを見直してください）`
+    );
+  }
 }
 
 /**
@@ -210,6 +252,8 @@ function writeLog(entry) {
  * @param {string} [options.providerId] - 明示的にproviderを指定する場合（省略時はLLM_PROVIDER環境変数）
  * @param {number} [options.timeoutMs]
  * @param {number} [options.maxRetries]
+ * @param {string} [options.opportunityTheme] - 【Phase56 STEP9】採用テーマ固定モード。指定時は
+ *   free_opportunity.title をこの値へ固定し、一致しなければ例外を投げる（テーマ再選択なし）
  * @returns {Promise<{free_opportunity:Object, locked_opportunities:Array, paid_analysis:Object, usage:Object, provider:Object}>}
  */
 async function generateAnalysis(context, options = {}) {
@@ -223,7 +267,7 @@ async function generateAnalysis(context, options = {}) {
   }
 
   const systemPrompt = `${loadPrompt("system-analysis.md")}\n\n${loadPrompt("quality-rules.md")}`;
-  const userPrompt = buildUserPrompt(context);
+  const userPrompt = buildUserPrompt(context, { opportunityTheme: options.opportunityTheme });
 
   const timeoutMs = options.timeoutMs || DEFAULT_TIMEOUT_MS;
   const maxRetries = Number.isFinite(options.maxRetries) ? options.maxRetries : DEFAULT_MAX_RETRIES;
@@ -231,13 +275,16 @@ async function generateAnalysis(context, options = {}) {
   const startedAt = Date.now();
   const { content, usage } = await callWithRetryAndTimeout(
     provider,
-    { context, systemPrompt, userPrompt },
+    { context, systemPrompt, userPrompt, opportunityTheme: options.opportunityTheme },
     { timeoutMs, maxRetries }
   );
   const durationMs = Date.now() - startedAt;
 
   const parsed = extractJson(content);
   validateAnalysisShape(parsed);
+  if (options.opportunityTheme) {
+    assertFixedThemeIntegrity(parsed, options.opportunityTheme);
+  }
 
   const normalizedUsage = {
     input_tokens: typeof usage.input_tokens === "number" ? usage.input_tokens : null,
@@ -271,5 +318,8 @@ module.exports = {
   extractJson,
   validateAnalysisShape,
   calculateCost,
+  buildUserPrompt,
+  buildFixedThemeBlock,
+  assertFixedThemeIntegrity,
   providerIds: Object.keys(PROVIDERS),
 };
