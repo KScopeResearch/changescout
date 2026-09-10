@@ -84,6 +84,18 @@ const NEWS_TITLE = /(ニュースリリース|プレスリリース|報道発表
 const MARKET_ANALYSIS_TITLE = /(市場規模|市場動向|市場調査|業界動向|業界の現状|業界トレンド|需要動向|需要予測|市場予測|成長市場|市場の展望|トレンド(とは|解説|予測|レポート|\d{4})|の現状と課題|市場は\d)/;
 const LISTICLE_TITLE = /(おすすめ|オススメ|比較\d*選|ランキング|徹底比較|徹底解説|完全ガイド|選び方|導入事例\d*選|まとめ\d*選|一覧【)/;
 
+// --- SEO・営業コンテンツ記事（Phase56 STEP9-G / P3）------------------------
+// ベンダーのオウンドメディア（/media/ /blog/ /column/ 等）に載る「完全ガイド」「徹底解説」
+// 「失敗しない進め方」型の解説記事は、一次情報・調査ではなくリード獲得目的のコンテンツ
+// マーケティングであり、市場変化の一次根拠にはならない。統計・政府・業界団体・報道
+// （rule 6〜9b）を通過しなかったものだけを対象にする（＝正当な統計・業界メディア記事は
+// 先に上位ルールで拾われるため誤格下げされない）。SEO タイトル語 AND オウンドメディア
+// パス の両方を要求し、「業界専門メディアの分析記事」との誤検出を避ける。
+const SEO_CONTENT_TITLE =
+  /(完全ガイド|徹底解説|完全版|保存版|決定版|完全マニュアル|完全網羅|入門ガイド|導入ガイド|使い方ガイド|課題解決ガイド|おすすめ\d*選|オススメ\d*選|比較\d*選|選び方|導入方法|進め方|始め方|失敗しない|よくある失敗|とは[？?]|メリット・?デメリット|わかりやすく解説|図解で解説|課題と対策|活用事例と|導入事例と|活用術|完全解説|一挙紹介|まるわかり)/;
+const OWNED_MEDIA_PATH =
+  /\/(media|blog|blogs|column|columns|library|journal|useful|oyakudachi|knowhow|know-how|how-to|guide|guides|contents|content|articles?|magazine|topics|lab|labo|note|ai-information|daiko-plus|mikatamedia|csl|solution-column|dx-column)\//i;
+
 // --- 企業DB・店舗/求人/見積ディレクトリ（STEP3: Local Directory Guard）-------
 const DIRECTORY_HOST = /(^|\.)(retty\.me|tabelog\.com|gnavi\.co\.jp|hotpepper\.jp|ekiten\.jp|itp\.ne\.jp|mapion\.co\.jp|navitime\.co\.jp|its-mo\.com|baseconnect\.in|musubu\.in|houjin\.jp|houjin-bangou\.nta\.go\.jp|salesnow\.jp|biz-maps\.com|alarmbox\.jp|compalyze\.co\.jp|buffett-code\.com|ullet\.com|zehitomo\.com|imitsu\.jp|meetsmore\.com|creema\.jp|minne\.com|goope\.jp|jimdofree\.com|jimdo\.com|wixsite\.com|amebaownd\.com|indeed\.com|rikunabi\.com|mynavi\.jp|doda\.jp|wantedly\.com|green-japan\.com|type\.jp|townwork\.net|baitoru\.com|job-medley\.com|en-japan\.com|hatalike\.jp|handcrafted\.jp|jbplt\.jp|goo\.gl|g\.page)$/;
 const DIRECTORY_HOST_CONTAINS = /(maps\.google\.|google\.[a-z.]+\/maps)/;
@@ -181,10 +193,16 @@ function classifySource(item, options = {}) {
   }
 
   // 7. statistics（RC-A3）
+  // Phase56 STEP9-G（P3）: 統計機関ドメイン・調査機関組織名は従来どおり信頼するが、
+  // 「STATS_TITLE の語（市場規模等）を含むだけ」のケースでは、ベンダーのオウンドメディア
+  // （/blog/ /media/ /column/ 等）に載る「完全ガイド／徹底解説」型記事を statistics に
+  // 昇格させない（Part C.2: 「市場規模」という文字だけで Statistics にしない）。
   if (
     STATS_HOST.test(host) ||
     STATS_ORG.test(titleOrg) ||
-    (STATS_TITLE.test(title) && !/ブログ|まとめ|比較|おすすめ|ランキング記事/.test(title))
+    (STATS_TITLE.test(title) &&
+      !/ブログ|まとめ|比較|おすすめ|ランキング記事/.test(title) &&
+      !(OWNED_MEDIA_PATH.test(url) && SEO_CONTENT_TITLE.test(title)))
   ) {
     return out("statistics", "statistics", null, null, "統計・調査機関");
   }
@@ -202,6 +220,21 @@ function classifySource(item, options = {}) {
   // 9b. 業界メディア等による実質的な市場・業界分析記事（listicle を除く）→ news（上限なし）
   if (MARKET_ANALYSIS_TITLE.test(title) && !LISTICLE_TITLE.test(title) && !SNS_HOST.test(host)) {
     return out("news", "market_analysis", null, null, "市場・業界の分析記事（業界メディア等）");
+  }
+
+  // 9c. SEO・営業コンテンツ記事（Phase56 STEP9-G / P3）→ reference（cap 40）
+  // 「完全ガイド／徹底解説」型タイトル AND ベンダーのオウンドメディアパス（両方必須）。
+  // 一次情報・調査ではないため、market_change の主根拠にはできない扱いにする。
+  // NEWS_HOST・統計機関・業界団体は rule 6〜9 で既に拾われているため、ここに来るのは
+  // ベンダー自社サイトの解説記事のみ。
+  if (SEO_CONTENT_TITLE.test(title) && OWNED_MEDIA_PATH.test(url)) {
+    return out(
+      "news",
+      "seo_content",
+      40,
+      "reference",
+      "SEO・営業コンテンツ記事（完全ガイド/徹底解説等・一次情報や調査ではない）"
+    );
   }
 
   // 10. テンプレが company と言っているが対象企業と別ドメイン → 他社サイト（reference）

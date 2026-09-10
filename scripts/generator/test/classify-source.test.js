@@ -350,3 +350,51 @@ test("STEP6: Opportunity evidence が directory/reference のみなら error（H
   assert.equal(v.ok, false);
   assert.ok(v.errors.some((e) => e.includes("directory/review・reference")), JSON.stringify(v.errors));
 });
+
+// ---------------------------------------------------------------------------
+// Phase56 STEP9-G（P3）: SEO・営業コンテンツ記事（完全ガイド/徹底解説）の分類
+// ---------------------------------------------------------------------------
+// STEP9-E の kscope で「製造業AI活用完全ガイド」等のベンダーオウンドメディア記事が
+// 大量に other/55 に残った。SEO タイトル語 AND オウンドメディアパス の両方が揃う場合のみ
+// reference（cap 40）へ。目的は分類精度であってスコア操作ではない。誤昇格は禁止。
+
+test("STEP9-G P3 negative: ベンダーの完全ガイド記事は seo_content / cap 40 / reference", () => {
+  const cases = [
+    { url: "https://uravation.com/media/manufacturing-ai-complete-guide-2026", title: "【2026年最新】製造業のAI活用完全ガイド｜品質管理・予知保全" },
+    { url: "https://www.optimax.co.jp/ai-information/manufacturing-dx", title: "製造業DX補助金&ロードマップ完全版｜2026年最新の成功事例・課題・進め方を徹底解説" },
+    { url: "https://www.smartmat.io/column/production_management/8183", title: "製造業のAI活用【2026年版】｜工程別ユースケース・導入事例・失敗しない進め方を解説" },
+    { url: "https://www.daiko-xtech.co.jp/daiko-plus/production-control/manufacturing-ai", title: "注目される製造業へのAI活用。課題と対策、事例を紹介" },
+    { url: "https://yachiyo-sol.com/library/ai-seizogyo-katsuyo", title: "AI製造業活用：品質管理・予知保全・生産最適化での導入事例と進め方" },
+  ];
+  for (const c of cases) {
+    const r = classifySource({ ...c, label: c.title, source_type: "news", simulated: false }, { targetUrl: "https://kscope.co.jp" });
+    assert.equal(r.category, "seo_content", `${c.title} => ${r.category}`);
+    assert.equal(r.scoreCap, 40);
+    assert.equal(r.evidenceStrength, "reference");
+  }
+});
+
+test("STEP9-G P3 positive: 正当な統計・調査・報道・業界メディア分析は seo_content に落とさない（誤昇格・誤降格なし）", () => {
+  // 統計機関ドメイン / 調査タイトル
+  assert.equal(
+    classifySource({ url: "https://www.gminsights.com/ja/industry-analysis/artificial-intelligence-ai-in-manufacturing-market", title: "製造業における人工知能市場規模、2034年レポート", source_type: "news" }, {}).category,
+    "statistics"
+  );
+  // 実態調査（PR TIMES）
+  assert.equal(
+    classifySource({ url: "https://prtimes.jp/main/html/rd/p/000000045.000153035.html", title: "「中小企業AI導入実態調査2026」を公開 ── 導入率わずか12%", source_type: "news" }, {}).category,
+    "statistics"
+  );
+  // 報道（NEWS_HOST）に「徹底解説」が入っていても seo_content にしない（rule 9 が先）
+  const news = classifySource({ url: "https://xtech.nikkei.com/atcl/nxt/column/18/03629", title: "製造業DXを徹底解説", source_type: "news" }, {});
+  assert.notEqual(news.category, "seo_content");
+  // SEO タイトル語はあるが オウンドメディアパスでない（/archives/）→ 従来どおり other
+  const noPath = classifySource({ url: "https://www.tomomi-research.com/archives/2718", title: "AI外観検査の完全ガイドと将来展望", source_type: "news" }, {});
+  assert.notEqual(noPath.category, "seo_content");
+});
+
+test("STEP9-G P3: 「市場規模」「調査」という単語だけを含む記事を statistics 95 にしない（既存挙動の確認）", () => {
+  // オウンドメディアの「市場規模とは？完全ガイド」→ seo_content（statistics ではない）
+  const g = classifySource({ url: "https://vendor.example.co.jp/blog/ai-market-guide", title: "AI市場規模とは？完全ガイドでわかりやすく解説", source_type: "news" }, {});
+  assert.equal(g.category, "seo_content");
+});

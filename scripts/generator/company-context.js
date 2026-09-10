@@ -30,10 +30,45 @@ const { deduplicateSources, dedupeSourcesByExactUrl } = require("./deduplicate-s
 const { scoreSources } = require("./score-sources");
 const { reclassifySources, applyScoreCaps, downgradeSameNameLocalBusiness } = require("./classify-source");
 const { extractBusinessKeywords } = require("./search/query-builder");
-const { applyRelevanceGuard, extractAddressHint } = require("./search/relevance-guard");
+const {
+  applyRelevanceGuard,
+  extractAddressHint,
+  looksLikeSameNameOtherCompany,
+} = require("./search/relevance-guard");
 const { sanitizeSources } = require("./shared/pii-sanitizer"); // Phase56 STEP9-D（P4）
 
 const MAX_SOURCES_FOR_AI = 20;
+
+/**
+ * 各 source に「会社固有主張の根拠として使ってよいか」のフラグを付ける
+ * （Phase56 STEP9-G / why_company evidence isolation）。
+ *
+ * STEP9-E で、relevance guard により低 score/reference へ降格済みだった「同名の別法人」
+ * （ab-i.jp に対する abi-inc.co.jp）を、LLM が `why_company` の根拠として採用した。
+ * score を下げるだけでは不十分なため、source metadata として明示フラグを付け、prompt
+ * （quality-rules.md ルール7）で「`disqualified_for_company_claim` の source を対象企業固有の
+ * 主張の根拠にしない」ことを明示する。`market_change` 等はこのフラグを見ないので用途を
+ * 分離できる。`source_type: "company"`（対象企業ドメイン一致）は常に適格。
+ *
+ * @param {Array<Object>} sources
+ * @param {{companyIdentityTokens:string[], targetUrl:string}} options
+ * @returns {Array<Object>} 同じ形の配列に `same_name_other_company` /
+ *   `disqualified_for_company_claim` の boolean を足したもの
+ */
+function annotateCompanyClaimEligibility(sources, options = {}) {
+  const { companyIdentityTokens, targetUrl } = options;
+  return (sources || []).map((s) => {
+    const sameNameOther =
+      s &&
+      s.source_type !== "company" &&
+      looksLikeSameNameOtherCompany(s, companyIdentityTokens || [], { targetUrl });
+    return {
+      ...s,
+      same_name_other_company: !!sameNameOther,
+      disqualified_for_company_claim: !!sameNameOther,
+    };
+  });
+}
 
 /**
  * 会社ページの取得結果テキストから、簡易的に業種の手がかりを推測する。
@@ -405,10 +440,16 @@ async function buildCompanyContext(companyUrl, options = {}) {
     id: `src-${index + 1}`,
   }));
 
+  // --- 会社固有主張の根拠適格性フラグ（Phase56 STEP9-G / why_company evidence isolation）---
+  const annotatedTopSources = annotateCompanyClaimEligibility(rankedTopSources, {
+    companyIdentityTokens,
+    targetUrl: companyUrl,
+  });
+
   // --- PII / 登記ボイラープレートの除去（Phase56 STEP9-D / P4）---
   // LLM プロンプトへ渡る前に、gBizINFO 等由来の本店所在地の番地・法人番号・代表者個人名などを
   // sources[] のテキストから除去する。score / source_type / url は変更しない。
-  const topSources = sanitizeSources(rankedTopSources);
+  const topSources = sanitizeSources(annotatedTopSources);
 
   return {
     input_url: companyUrl,
@@ -433,6 +474,7 @@ async function buildCompanyContext(companyUrl, options = {}) {
 module.exports = {
   buildCompanyContext,
   buildQueryProfile,
+  annotateCompanyClaimEligibility,
   guessIndustryHint,
   guessCompanyName,
   normalizeCompanyName,

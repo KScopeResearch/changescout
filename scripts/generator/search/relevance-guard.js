@@ -413,6 +413,53 @@ function looksLikeDifferentCompanySameName(item, targetUrl) {
   return selfBrandedTitle || rootish;
 }
 
+// 別ドメインの「会社概要／会社情報」ページの URL パス。ここにあって対象企業と同名を
+// タイトルに掲げるなら、対象企業ではなく同名の別法人の自社サイトである可能性が高い。
+const COMPANY_INFO_PATH =
+  /\/(company|corporate|about|aboutus|about-us|profile|company-profile|outline|company_outline|overview|companyinfo|company-info|会社概要|会社情報|企業情報)\/?$/i;
+
+/**
+ * source が「対象企業と同名（または類似名）だが、別ドメインの別法人」に見えるかを判定する
+ * 述語（Phase56 STEP9-G / why_company evidence isolation。例: ab-i.jp に対する abi-inc.co.jp、
+ * 株式会社カレイドスコープ に対する声優事務所カレイドスコープ〈klsp.jp/company〉）。
+ *
+ * company-context.js が source metadata（`same_name_other_company` /
+ * `disqualified_for_company_claim`）を付与する用途に使う。**ガード本体（score 降格）には
+ * 使わない**（誤降格で正当な market source を落とさないため。判定はやや緩め）。
+ *
+ * 判定: 対象企業と別ドメイン かつ タイトルに対象企業名の核を含み、かつ
+ *   (a) 自社ブランド型タイトル / ルート直下ページ（looksLikeDifferentCompanySameName）、または
+ *   (b) URL が「会社概要／会社情報」パス
+ * @param {{title?:string|null, url?:string|null}} item
+ * @param {string[]} companyIdentityTokens - 対象企業を指す既知の文字列（会社名等）
+ * @param {{targetUrl?:string}} [options] - 対象企業の URL（登録可能ドメイン比較に使う）
+ * @returns {boolean}
+ */
+function looksLikeSameNameOtherCompany(item, companyIdentityTokens, options = {}) {
+  if (!item || !item.url || !options || !options.targetUrl) return false;
+  if (sameRegistrableDomain(item.url, options.targetUrl)) return false;
+
+  const title = item.title || "";
+  if (SELF_BRANDED_TITLE_MARKERS_EXCLUDE.test(title)) return false; // 導入事例・口コミ・インタビュー等は別扱い
+  const titleLower = title.toLowerCase();
+  const cores = (companyIdentityTokens || [])
+    .filter(Boolean)
+    .map((t) => coreName(t))
+    .filter((c) => c.length >= 3);
+  const titleMentionsTargetName = cores.some((c) => titleLower.includes(c));
+  if (!titleMentionsTargetName) return false;
+
+  if (looksLikeDifferentCompanySameName(item, options.targetUrl)) return true;
+
+  let pathname = "";
+  try {
+    pathname = new URL(item.url).pathname;
+  } catch (e) {
+    return false;
+  }
+  return COMPANY_INFO_PATH.test(pathname);
+}
+
 /**
  * 検索由来source1件が、対象企業とは無関係な別企業／別地域の情報を主体的に説明して
  * いる可能性が高いかを判定する。
@@ -523,6 +570,7 @@ module.exports = {
   applyRelevanceGuard,
   looksLikeUnrelatedCompany,
   looksLikeDifferentCompanySameName,
+  looksLikeSameNameOtherCompany,
   registrableDomain,
   sameRegistrableDomain,
   isSameCompanyName,

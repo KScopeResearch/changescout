@@ -91,6 +91,14 @@
    `why_company` / `market_change` / `first_action` / `evidence[].quote` に記載してはならない。
    これらはレポートの価値に寄与しない。会社の所在エリア（都道府県・市区町村レベル）が
    事業上の意味を持つ場合（商圏・地域需要など）のみ、そのレベルで言及してよい。
+7. **同名・類似名の別法人を対象企業の情報として使わない**（Phase56 STEP9-G）: `sources` の
+   各要素に `disqualified_for_company_claim: true`（＝`same_name_other_company: true`）が
+   付いている場合、その source は **対象企業と同名だが別ドメインの別法人** の情報である。
+   この source を `why_company` / `why_now` の**対象企業固有の主張**（対象企業が何を行っている・
+   何を強みとする・どんな実績がある等）の根拠にしてはならない。対象企業の事業内容・強みは、
+   `source_type: "company"`（対象企業自身のページ）を根拠にすること。別法人の事業内容
+   （IT/SaaS 等）を対象企業の強みとして取り込まない。市場・業界の一般情報として `market_change`
+   で参照することも避ける（対象企業と混同される恐れがあるため）。
 
 ## Opportunity と Market Change の質（Phase54 STEP1で追加）
 
