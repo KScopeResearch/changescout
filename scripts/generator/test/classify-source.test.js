@@ -398,3 +398,42 @@ test("STEP9-G P3: 「市場規模」「調査」という単語だけを含む�
   const g = classifySource({ url: "https://vendor.example.co.jp/blog/ai-market-guide", title: "AI市場規模とは？完全ガイドでわかりやすく解説", source_type: "news" }, {});
   assert.equal(g.category, "seo_content");
 });
+
+// ---------------------------------------------------------------------------
+// Phase57 STEP3 — Industry Association Source Recovery
+// ---------------------------------------------------------------------------
+// STEP2 で industry_presence が 3社とも 0/4。原因: industry query の結果が
+// bunka/meti/maff 由来で government に分類され、`.or.jp` だけでは昇格しないよう
+// STEP9-G 以降タイトル欠落に弱かった。allowlist ドメイン + 団体マーカーで是正。
+
+test("STEP57-3: 既知の業界団体・工業会・学会・シンクタンクドメインは industry_association", () => {
+  const c = (url, title, st) =>
+    classifySource({ url, title, label: title, source_type: st || "news", simulated: false }, {}).source_type;
+  assert.equal(c("https://www.jppaa.jp/report2026", "日本動画協会 アニメ産業レポート2026"), "industry_association");
+  assert.equal(c("https://aja.gr.jp/data", "アニメ産業レポート"), "industry_association");
+  assert.equal(c("https://www.jfnet.or.jp/report/teigen.html", "外食産業の生産性向上に関する提言"), "industry_association");
+  assert.equal(c("https://www.gaishoku.or.jp/", "日本フードサービス協会"), "industry_association");
+  assert.equal(c("https://www.jri.co.jp/column/opinion/detail/16473", "広がるアニメ制作会社のIP戦略最前線", "government"), "industry_association");
+  assert.equal(c("https://www.murc.jp/report/rc/policy_rearch/x", "三菱UFJリサーチ 製造業AIレポート", "news"), "industry_association");
+});
+
+test("STEP57-3: .or.jp だけでは industry_association に昇格しない（マーカーが必要）", () => {
+  const c = (url, title) =>
+    classifySource({ url, title, label: title, source_type: "news", simulated: false }, {}).source_type;
+  // マーカーなしの .or.jp ブログ → news
+  assert.notEqual(c("https://random-npo.or.jp/blog/2026", "AIについてのブログ記事"), "industry_association");
+  // マーカーあり（一般社団法人 … コンソーシアム）の .or.jp → industry_association
+  assert.equal(
+    c("https://ai-inspection.or.jp/statement", "一般社団法人 日本AI外観検査コンソーシアムの提言"),
+    "industry_association"
+  );
+});
+
+test("STEP57-3: PR TIMES / note / Wantedly / SEO は industry_association にしない（非回帰）", () => {
+  const c = (url, title, st) =>
+    classifySource({ url, title, label: title, source_type: st || "news", simulated: false }, {}).source_type;
+  assert.notEqual(c("https://prtimes.jp/main/html/rd/p/x.html", "製造業AI導入調査 | 株式会社Xのプレスリリース"), "industry_association");
+  assert.notEqual(c("https://note.com/x/n/abc", "製造業のAI活用まとめ"), "industry_association");
+  assert.notEqual(c("https://www.wantedly.com/companies/x", "株式会社Xの会社情報", "company"), "industry_association");
+  assert.notEqual(c("https://consulting-blog.jp/column/ai-guide", "AI外観検査 完全ガイド"), "industry_association");
+});

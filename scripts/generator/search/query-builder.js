@@ -195,12 +195,19 @@ const THEME_KEYWORD_EXPANSIONS = [
   { re: /補助金|助成金|支援制度/, terms: ["補助金", "支援制度"] },
 ];
 
-// テーマ別の preferred domains（政府・業界団体・調査機関）。SearchQuerySpec に候補として
-// 付与する。実 API の include_domains へ渡すのは Phase57 STEP2。
-const PREFERRED_DOMAINS = [
-  { re: /品質検査|外観検査|画像検査|予知保全|製造業|工場|ものづくり|品質管理/, domains: ["meti.go.jp", "chusho.meti.go.jp", "jetro.go.jp", "ipa.go.jp", "jeita.or.jp", "smrj.go.jp", "nedo.go.jp", "monodukuri.com"] },
-  { re: /LINE予約|ネット予約|予約|顧客管理|CRM|POS|キャッシュレス|飲食店|外食|店舗/, domains: ["maff.go.jp", "meti.go.jp", "soumu.go.jp", "jfnet.or.jp", "jf-net.or.jp", "gaishoku.or.jp"] },
-  { re: /IP|知的財産|ライセンス|アニメ|コンテンツ|製作委員会|収益分配/, domains: ["bunka.go.jp", "meti.go.jp", "vipo.or.jp", "jetro.go.jp", "aja.gr.jp", "unijapan.org"] },
+// テーマ別の preferred domains。実 API の include_domains へ渡すのは Phase57 STEP2 以降。
+// Phase57 STEP3: government クエリと industry_association クエリで別配列にする
+// （STEP2 で両者を混ぜた結果、Tavily が go.jp ばかり返し industry_association が 0 件になった）。
+const GOV_PREFERRED_DOMAINS = [
+  { re: /品質検査|外観検査|画像検査|予知保全|製造業|工場|ものづくり|品質管理/, domains: ["meti.go.jp", "chusho.meti.go.jp", "jetro.go.jp", "ipa.go.jp", "smrj.go.jp", "nedo.go.jp"] },
+  { re: /LINE予約|ネット予約|予約|顧客管理|CRM|POS|キャッシュレス|飲食店|外食|店舗/, domains: ["maff.go.jp", "meti.go.jp", "soumu.go.jp", "chusho.meti.go.jp"] },
+  { re: /IP|知的財産|ライセンス|アニメ|コンテンツ|製作委員会|収益分配/, domains: ["bunka.go.jp", "meti.go.jp", "jetro.go.jp"] },
+];
+// 業界団体・工業会・シンクタンク（Tavily のタイトル欠落でも host で拾えるようにする）。
+const INDUSTRY_PREFERRED_DOMAINS = [
+  { re: /品質検査|外観検査|画像検査|予知保全|製造業|工場|ものづくり|品質管理/, domains: ["jeita.or.jp", "jmf.or.jp", "jpca.jp", "jsae.or.jp", "jara.jp", "jri.co.jp", "nri.com", "murc.jp", "dir.co.jp"] },
+  { re: /LINE予約|ネット予約|予約|顧客管理|CRM|POS|キャッシュレス|飲食店|外食|店舗/, domains: ["jfnet.or.jp", "jf-net.or.jp", "gaishoku.or.jp", "jfra.or.jp", "jfma.or.jp", "jga.gr.jp", "jri.co.jp", "murc.jp"] },
+  { re: /IP|知的財産|ライセンス|アニメ|コンテンツ|製作委員会|収益分配/, domains: ["aja.gr.jp", "animationjapan.or.jp", "jppaa.jp", "jri.co.jp", "nri.com", "dir.co.jp", "unijapan.org"] },
 ];
 
 /**
@@ -227,15 +234,21 @@ function expandThemeKeywords(theme) {
 }
 
 /**
- * テーマ文字列に対応する preferred domains（政府・業界団体等）の候補を返す。
+ * テーマ文字列に対応する preferred domains の候補を返す。
  * @param {string|null|undefined} theme
+ * @param {"government"|"industry"|"all"} [kind] - 省略時は "all"（政府 + 業界団体の和集合）
  * @returns {string[]}
  */
-function preferredDomainsForTheme(theme) {
+function preferredDomainsForTheme(theme, kind = "all") {
   const t = String(theme || "");
   const set = new Set();
-  for (const { re, domains } of PREFERRED_DOMAINS) {
-    if (re.test(t)) domains.forEach((d) => set.add(d));
+  const lists = [];
+  if (kind === "government" || kind === "all") lists.push(GOV_PREFERRED_DOMAINS);
+  if (kind === "industry" || kind === "all") lists.push(INDUSTRY_PREFERRED_DOMAINS);
+  for (const list of lists) {
+    for (const { re, domains } of list) {
+      if (re.test(t)) domains.forEach((d) => set.add(d));
+    }
   }
   return [...set];
 }
@@ -324,26 +337,33 @@ function buildQueries(profileOrName) {
   // 統計・業界クエリはサブ市場（外観検査・予知保全 等）に寄せるため拡張語も使う。
   const statSubject = expanded.length >= 2 ? expanded.slice(0, 4).join(" ") : marketSubject;
   const industrySubject = expanded.length >= 3 ? expanded.slice(0, 5).join(" ") : marketSubject;
-  const preferredDomains = themeMode ? preferredDomainsForTheme(profile.opportunityTheme) : [];
 
   // Phase57 STEP1: SEO listicle を避け、一次情報・調査・報道へ寄せる観点語。
   // 既存テストが要求するキーワード族（補助金/支援制度・市場規模/統計・業界動向・
   // トレンド/課題・最新動向）は必ず残す（追加のみ）。
   const govSuffix = themeMode ? "補助金 支援制度 支援事業 経済産業省 2026" : "補助金 支援制度 2026";
   const statSuffix = themeMode ? "市場規模 統計 出荷額 市場調査レポート 予測 2026" : "市場規模 統計 2026";
-  const industrySuffix = themeMode ? "業界動向 業界団体 実態調査 2026" : "業界動向 2026";
   const trendSuffix = themeMode ? "市場 トレンド 課題 技術動向 導入状況" : "市場 トレンド 課題";
   const newsSuffix = themeMode ? "最新動向 プレスリリース 発表 2026" : "最新動向 2026";
+  // Phase57 STEP3: industry_association クエリは「協会・連盟・工業会・学会」を主語に寄せ、
+  // government クエリと語も分ける（Tavily が go.jp ばかり返すのを避ける）。
+  // normal mode は従来どおり（byte 互換）。
+  const industrySuffix = themeMode
+    ? "業界動向 協会 連盟 工業会 振興会 学会 コンソーシアム 提言 実態調査 2026"
+    : "業界動向 2026";
 
   // 会社固有クエリ: ドメイン + 事業内容 で公式サイトへ寄せる（求人・評判系を拾いにくくする）。
   const companyQuery = themeMode
     ? joinQuery([companyName, locality, domain, "会社概要 事業内容"])
     : joinQuery([companyName, locality, "会社概要"]);
 
-  // Phase57 STEP2: preferredDomains（include_domains）は「権威ある一次情報を狙う」
-  // government / industry_association クエリにのみ付ける。statistics（市場調査会社）・
-  // technology（業界メディア）・news は制限すると market データを取り逃すため付けない。
-  const withDomains = (spec) => (preferredDomains.length ? { ...spec, preferredDomains } : spec);
+  // Phase57 STEP2/STEP3: preferredDomains（include_domains）は government / industry_association
+  // クエリにのみ付け、しかも両者で別の配列にする（STEP2 で混ぜた結果 industry が 0 件になった）。
+  const govDomains = themeMode ? preferredDomainsForTheme(profile.opportunityTheme, "government") : [];
+  const industryDomains = themeMode ? preferredDomainsForTheme(profile.opportunityTheme, "industry") : [];
+  const withGovDomains = (spec) => (govDomains.length ? { ...spec, preferredDomains: govDomains } : spec);
+  const withIndustryDomains = (spec) =>
+    industryDomains.length ? { ...spec, preferredDomains: industryDomains } : spec;
 
   return [
     // 会社固有（同名衝突を所在地で抑える）。category は news（fetch-news.js が拾う）にし、
@@ -356,8 +376,8 @@ function buildQueries(profileOrName) {
       sourceRole: "company_fact",
       ...(themeMode ? { excludeTerms: COMPANY_QUERY_EXCLUDE_TERMS } : {}),
     },
-    // 市場: 補助金・支援制度（政策）
-    withDomains({
+    // 市場: 補助金・支援制度（政策）— go.jp 系ドメインに限定
+    withGovDomains({
       category: "government",
       query: joinQuery([marketSubject, govSuffix]),
       sourceType: "government",
@@ -370,8 +390,8 @@ function buildQueries(profileOrName) {
       sourceType: "statistics",
       sourceRole: "industry_trend",
     },
-    // 市場: 業界動向
-    withDomains({
+    // 市場: 業界団体・工業会・学会 — .or.jp / .gr.jp / シンクタンクドメインに限定
+    withIndustryDomains({
       category: "industry",
       query: joinQuery([industrySubject, industrySuffix]),
       sourceType: "industry_association",

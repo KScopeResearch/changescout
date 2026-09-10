@@ -73,8 +73,34 @@ const STATS_ORG = /(矢野経済研究所|帝国データバンク|東京商工�
 const STATS_TITLE = /(市場規模|市場調査|市場動向|市場予測|市場分析レポート|動向調査|実態調査|市場レポート|白書|統計(データ|表|調査|年報)|シェア調査|需要予測)/;
 
 // --- 業界団体・シンクタンク --------------------------------------------------
-const INDUSTRY_HOST = /\.or\.jp$/;
-const INDUSTRY_ORG = /(工業会|工業協会|事業者団体|振興会|振興協会|協会|連合会|協議会|組合連合|事業協同組合|経済団体連合会|経団連|商工会議所|商工会|中小企業家同友会|日本総研|日本総合研究所|みずほリサーチ|大和総研|ニッセイ基礎研究所|三菱総合研究所|野村総合研究所)/;
+// Phase57 STEP3: `.or.jp` だけでは industry_association に昇格させない
+// （Tavily のタイトル欠落で誤判定が出るため）。既知の業界団体・工業会・学会・シンクタンクの
+// ドメイン allowlist、または「協会/連盟/工業会/Association/Federation/Consortium/学会」等の
+// マーカーを持つ .or.jp / .gr.jp のみを対象にする。
+const INDUSTRY_ASSOC_HOST = new RegExp(
+  "(^|\\.)(" +
+    [
+      // 電子・機械・製造系工業会
+      "jeita\\.or\\.jp", "jmf\\.or\\.jp", "jpca\\.jp", "jsae\\.or\\.jp", "jara\\.jp",
+      "jema\\.gr\\.jp", "jpca\\.or\\.jp", "jisa\\.or\\.jp", "cesa\\.or\\.jp", "jasa\\.or\\.jp",
+      "jsme\\.or\\.jp", "ieice\\.org", "ipsj\\.or\\.jp", "robot\\.or\\.jp", "jara\\.or\\.jp",
+      // 経済団体
+      "keidanren\\.or\\.jp", "jcci\\.or\\.jp", "doyukai\\.or\\.jp", "tokyo-cci\\.or\\.jp",
+      // コンテンツ・アニメ
+      "aja\\.gr\\.jp", "animationjapan\\.or\\.jp", "jppaa\\.jp", "unijapan\\.org",
+      "vipo\\.or\\.jp", "acv\\.or\\.jp", "jvta\\.net",
+      // 外食・食品
+      "jfnet\\.or\\.jp", "jf-net\\.or\\.jp", "gaishoku\\.or\\.jp", "jfra\\.or\\.jp",
+      "jfma\\.or\\.jp", "jga\\.gr\\.jp", "shokusan\\.or\\.jp",
+      // シンクタンク（.co.jp だが実質は調査・提言機関）
+      "jri\\.co\\.jp", "nri\\.com", "murc\\.jp", "dir\\.co\\.jp", "mizuho-rt\\.co\\.jp",
+      "mri\\.co\\.jp", "nli-research\\.co\\.jp", "tokiorisk\\.tmnf\\.jp",
+    ].join("|") +
+    ")$"
+);
+const INDUSTRY_ASSOC_MARKER =
+  /(協会|工業会|工業協会|事業者団体|振興会|振興協会|連合会|連盟|協議会|組合連合|事業協同組合|経済団体連合会|経団連|商工会議所|商工会|同友会|フォーラム|コンソーシアム|学会|Association|Federation|Consortium|Institute|Council|Society)/i;
+const INDUSTRY_ORG = /(工業会|工業協会|事業者団体|振興会|振興協会|協会|連合会|協議会|組合連合|事業協同組合|経済団体連合会|経団連|商工会議所|商工会|中小企業家同友会|日本総研|日本総合研究所|みずほリサーチ|大和総研|ニッセイ基礎研究所|三菱総合研究所|野村総合研究所|三菱UFJリサーチ|MURC)/;
 
 // --- 報道・プレスリリース --------------------------------------------------
 const NEWS_HOST = /(^|\.)(nikkei\.com|asahi\.com|yomiuri\.co\.jp|mainichi\.jp|sankei\.com|nhk\.or\.jp|jiji\.com|kyodo\.co\.jp|reuters\.com|bloomberg\.co\.jp|itmedia\.co\.jp|techcrunch\.com|toyokeizai\.net|diamond\.jp|president\.jp|newspicks\.com|prtimes\.jp|atpress\.ne\.jp|value-press\.com|impress\.co\.jp|ascii\.jp|cnet\.com|engadget\.com|ledge\.ai|ainow\.ai|businessinsider\.jp|forbesjapan\.com|japan-forward\.com|screens-lab\.jp|zdnet\.com)$/;
@@ -207,9 +233,15 @@ function classifySource(item, options = {}) {
     return out("statistics", "statistics", null, null, "統計・調査機関");
   }
 
-  // 8. industry_association（業界団体・シンクタンク）
-  if (INDUSTRY_HOST.test(host) || INDUSTRY_ORG.test(titleOrg)) {
-    return out("industry_association", "industry_association", null, null, "業界団体・シンクタンク");
+  // 8. industry_association（業界団体・工業会・学会・シンクタンク）
+  // Phase57 STEP3: allowlist ドメイン / 組織名一致 / （.or.jp・.gr.jp かつ団体マーカー）のみ。
+  // 「.or.jp だから」だけでは昇格しない。
+  if (
+    INDUSTRY_ASSOC_HOST.test(host) ||
+    INDUSTRY_ORG.test(titleOrg) ||
+    (/(^|\.)(or|gr)\.jp$/.test(host) && INDUSTRY_ASSOC_MARKER.test(titleOrg))
+  ) {
+    return out("industry_association", "industry_association", null, null, "業界団体・工業会・学会・シンクタンク");
   }
 
   // 9. news（報道・プレスリリース）

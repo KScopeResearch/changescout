@@ -329,3 +329,63 @@ test("STEP57-1 COMPANY_QUERY_EXCLUDE_TERMS: 求人・評判・比較系を含む
     assert.ok(COMPANY_QUERY_EXCLUDE_TERMS.includes(t), t);
   }
 });
+
+// ---------------------------------------------------------------------------
+// Phase57 STEP3 — Industry Association Source Recovery（query 側）
+// ---------------------------------------------------------------------------
+
+test("STEP57-3 preferredDomainsForTheme(kind): government と industry で別配列・重複なし", () => {
+  const th = "中小製造業向け「AI品質検査」導入支援サービスの立ち上げ";
+  const gov = preferredDomainsForTheme(th, "government");
+  const ind = preferredDomainsForTheme(th, "industry");
+  assert.ok(gov.every((d) => /\.go\.jp$/.test(d)), JSON.stringify(gov));
+  assert.ok(ind.some((d) => /\.(or|gr)\.jp$/.test(d) || /jri\.co\.jp|nri\.com|murc\.jp/.test(d)), JSON.stringify(ind));
+  assert.equal(gov.filter((d) => ind.includes(d)).length, 0, "gov と industry のドメインは重複しない");
+  // kind 省略時は和集合
+  const all = preferredDomainsForTheme(th);
+  assert.ok(gov.every((d) => all.includes(d)) && ind.every((d) => all.includes(d)));
+});
+
+test("STEP57-3 buildQueries theme mode: government と industry_association で include_domains が別", () => {
+  const qs = buildQueries({
+    companyName: "株式会社カレイドスコープ",
+    domain: "kscope.co.jp",
+    industry: "新規事業・事業開発支援",
+    keywords: ["インキュベーション"],
+    opportunityTheme: "中小製造業向け「AI品質検査」導入支援サービスの立ち上げ",
+  });
+  const gov = qs.find((q) => q.sourceType === "government");
+  const ind = qs.find((q) => q.sourceType === "industry_association");
+  assert.ok(gov.preferredDomains.length > 0 && ind.preferredDomains.length > 0);
+  assert.equal(gov.preferredDomains.filter((d) => ind.preferredDomains.includes(d)).length, 0);
+  assert.ok(gov.preferredDomains.every((d) => /\.go\.jp$/.test(d)));
+  // industry query の語に「協会・連盟・工業会・学会」が入る
+  assert.match(ind.query, /協会/);
+  assert.match(ind.query, /工業会|連盟|学会/);
+  // 既存の観点キーワード族は維持
+  assert.match(ind.query, /業界動向/);
+});
+
+test("STEP57-3 buildQueries normal mode（テーマなし）は従来のクエリ列と完全一致（byte 互換）", () => {
+  const profile = {
+    companyName: "株式会社カレイドスコープ",
+    cityWard: "千代田区",
+    industry: "新規事業・事業開発支援",
+    keywords: ["インキュベーション", "新規事業成功"],
+  };
+  assert.deepEqual(
+    buildQueries(profile).map((q) => q.query),
+    [
+      "株式会社カレイドスコープ 千代田区 会社概要",
+      "新規事業・事業開発支援 インキュベーション 新規事業成功 補助金 支援制度 2026",
+      "新規事業・事業開発支援 インキュベーション 新規事業成功 市場規模 統計 2026",
+      "新規事業・事業開発支援 インキュベーション 新規事業成功 業界動向 2026",
+      "新規事業・事業開発支援 インキュベーション 新規事業成功 市場 トレンド 課題",
+      "新規事業・事業開発支援 インキュベーション 新規事業成功 最新動向 2026",
+    ]
+  );
+  for (const q of buildQueries(profile)) {
+    assert.equal(q.preferredDomains, undefined);
+    assert.equal(q.excludeTerms, undefined);
+  }
+});
