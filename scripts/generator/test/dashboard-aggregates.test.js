@@ -17,6 +17,7 @@ const {
   collectDeliverySummary,
   collectSuppressionSummary,
   collectReportSummary,
+  collectOperationalHealth,
   findLatestHistory,
 } = require("../shared/dashboard-aggregates");
 
@@ -371,4 +372,115 @@ test("注入なしで実 Lead ストアから集計できる（形の確認の�
   for (const k of ["unsubscribe", "bounce", "complaint", "harderror", "drop", "manual"]) {
     assert.equal(typeof ss[k], "number");
   }
+});
+
+// ---------------------------------------------------------------------------
+// Phase59 — collectOperationalHealth（stale / orphan の 1行1会社 items）
+// current internal state（reportsCache[].publishable = reviewEngine.isPublishable() の結果）
+// を SSOT に、published_at は表示用に読むだけ（judgement には使わない）。
+// ---------------------------------------------------------------------------
+
+const noPublished = async () => null;
+
+test("collectOperationalHealth: healthy（stale/orphan なし）は items 空", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [
+      { id: "a.example.com", company_name: "A", published: true, publishable: true },
+      { id: "b.example.com", company_name: "B", published: false, publishable: false },
+    ],
+    publishedBackendSlugs: ["a.example.com"],
+    loadPublished: noPublished,
+  });
+  assert.deepEqual(r.items, []);
+  assert.equal(r.stale_count, 0);
+  assert.equal(r.orphan_count, 0);
+});
+
+test("collectOperationalHealth: stale は published===true && publishable===false のみ。reason は publishable_reasons をそのまま使う", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [
+      {
+        id: "x.example.com",
+        company_name: "X Co",
+        published: true,
+        publishable: false,
+        publishable_reasons: ["review.statusが\"approved\"ではありません（実際: pending_review）"],
+      },
+    ],
+    publishedBackendSlugs: ["x.example.com"],
+    loadPublished: async () => ({ meta: { published_at: "2026-09-10T12:00:00.000Z" } }),
+  });
+  assert.equal(r.stale_count, 1);
+  assert.equal(r.orphan_count, 0);
+  assert.deepEqual(r.items[0], {
+    slug: "x.example.com",
+    company_name: "X Co",
+    state: "published_stale",
+    reason: "review.statusが\"approved\"ではありません（実際: pending_review）",
+    published_at: "2026-09-10T12:00:00.000Z",
+  });
+});
+
+test("collectOperationalHealth: orphan は publishedBackendSlugs にあり reportsCache に id が無いもの", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [{ id: "a.example.com", company_name: "A", published: true, publishable: true }],
+    publishedBackendSlugs: ["a.example.com", "gone.example.com"],
+    loadPublished: noPublished,
+  });
+  assert.equal(r.orphan_count, 1);
+  assert.equal(r.stale_count, 0);
+  assert.deepEqual(r.items[0], {
+    slug: "gone.example.com",
+    company_name: null,
+    state: "published_orphan",
+    reason: "current report/review not found",
+    published_at: null,
+  });
+});
+
+test("collectOperationalHealth: publishedBackendSlugs 未取得（null）なら orphan は検出しない（stale は検出できる）", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [{ id: "x.example.com", company_name: "X", published: true, publishable: false, review_status: "rejected" }],
+    publishedBackendSlugs: null,
+    loadPublished: noPublished,
+  });
+  assert.equal(r.stale_count, 1);
+  assert.equal(r.orphan_count, 0);
+  assert.equal(r.items[0].reason, "review not approved (rejected)");
+});
+
+test("collectOperationalHealth: stale ×2 + orphan ×1 が順序どおり（stale が先、reportsCache 順）", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [
+      { id: "s1.example.com", company_name: "S1", published: true, publishable: false, evaluation_status: "FAIL", review_status: "approved" },
+      { id: "ok.example.com", company_name: "OK", published: true, publishable: true },
+      { id: "s2.example.com", company_name: "S2", published: true, publishable: false, review_status: "needs_revision" },
+    ],
+    publishedBackendSlugs: ["s1.example.com", "ok.example.com", "s2.example.com", "orphan.example.com"],
+    loadPublished: noPublished,
+  });
+  assert.deepEqual(r.items.map((i) => i.slug), ["s1.example.com", "s2.example.com", "orphan.example.com"]);
+  assert.deepEqual(r.items.map((i) => i.state), ["published_stale", "published_stale", "published_orphan"]);
+  assert.equal(r.items[0].reason, "evaluation status is FAIL");
+});
+
+test("collectOperationalHealth: loadPublished が例外を投げても published_at は null（集計は止めない）", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [{ id: "x.example.com", company_name: "X", published: true, publishable: false, review_status: "pending_review" }],
+    publishedBackendSlugs: ["x.example.com"],
+    loadPublished: async () => {
+      throw new Error("S3 outage");
+    },
+  });
+  assert.equal(r.stale_count, 1);
+  assert.equal(r.items[0].published_at, null);
+});
+
+test("collectOperationalHealth: company_name が無ければ null（UI 側で slug フォールバック）", async () => {
+  const r = await collectOperationalHealth({
+    reportsCache: [{ id: "x.example.com", published: true, publishable: false, review_status: "pending_review" }],
+    publishedBackendSlugs: [],
+    loadPublished: noPublished,
+  });
+  assert.equal(r.items[0].company_name, null);
 });

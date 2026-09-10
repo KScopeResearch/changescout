@@ -142,7 +142,7 @@ async function loadCompany(slug) {
 async function toSummary(company) {
   const { slug, report, review } = company;
   const evaluation = report.evaluation || null;
-  const { publishable } = engine.isPublishable(review, evaluation, report);
+  const { publishable, reasons: publishable_reasons } = engine.isPublishable(review, evaluation, report);
 
   return {
     id: slug,
@@ -152,6 +152,7 @@ async function toSummary(company) {
     evaluation_score: evaluation ? evaluation.score : null,
     evaluation_grade: evaluation ? evaluation.grade : null,
     publishable,
+    publishable_reasons, // Phase59: Operational Health Detail の Reason 表示に使う（isPublishable の reasons そのまま）
     published: await isPublished(slug), // Task24: 公開済みかどうか（PJ2 AOR: published-store.js経由）
     reviewer: review.reviewer,
     reviewed_at: review.reviewed_at,
@@ -732,6 +733,11 @@ async function handleApi(req, res, url, session, ip) {
     return true;
   }
 
+  if (pathname === "/api/dashboard/operational-health" && req.method === "GET") {
+    await handleDashboardOperationalHealth(res);
+    return true;
+  }
+
   // --- Delivery API（Phase52 STEP6。GET / read-only。Lead.history から配信イベントを抽出） ---
   if (pathname === "/api/deliveries" && req.method === "GET") {
     await handleDeliveries(res);
@@ -800,6 +806,26 @@ async function handleDashboardHealth(res) {
 async function handleDashboardReports(res) {
   const summary = await settleSection(buildReportSummarySection());
   sendJson(res, 200, { generated_at: new Date().toISOString(), ...summary });
+}
+
+/**
+ * GET /api/dashboard/operational-health — Phase59。
+ * stale / orphan な Published artifact を「1 行 1 会社」の items 配列で返す（read-only 表示専用）。
+ * current internal state（reportsCache + reviewEngine.isPublishable の結果）を SSOT とする。
+ */
+async function handleDashboardOperationalHealth(res) {
+  const section = await settleSection(buildOperationalHealthSection());
+  sendJson(res, 200, { generated_at: new Date().toISOString(), operational_health: section });
+}
+
+/**
+ * operational_health セクションを組み立てる。
+ * @returns {Promise<{items:Array<Object>, stale_count:number, orphan_count:number}>}
+ */
+async function buildOperationalHealthSection() {
+  const publishedResult = await awsStatus.listPublishedBackendSlugs();
+  const publishedBackendSlugs = Array.isArray(publishedResult) ? publishedResult : null;
+  return dashboardAggregates.collectOperationalHealth({ reportsCache, publishedBackendSlugs });
 }
 
 /**

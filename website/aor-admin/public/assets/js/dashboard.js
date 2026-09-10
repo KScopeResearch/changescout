@@ -292,17 +292,73 @@
   }
 
   /**
+   * Operational Health Detail — Phase59。stale / orphan な Published artifact の
+   * 対象会社を運営者へ提示する（表示専用。操作機能なし）。
+   *
+   * API（GET /api/dashboard/operational-health）の operational_health をそのまま描画する。
+   * UI は state / publishable / review / freshness / evaluation を一切再判定しない。
+   *
+   * @param {Object|undefined} data - operational_health セクション（{items, stale_count, orphan_count}）
+   *   または {status:"error"} または undefined（legacy: フィールドが無い）
+   * @returns {string} HTML（legacy 時は "" ＝ セクションを描画しない）
+   */
+  function renderOperationalHealthDetail(data) {
+    if (data === undefined || data === null) return ""; // legacy payload: セクション自体を出さない
+    if (isSectionError(data)) return sectionErrorHtml("Operational Health Detail", data);
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    if (items.length === 0) {
+      return `<div class="dash-alert tone-good">No stale or orphan published artifacts detected.</div>`;
+    }
+
+    const stateCell = (state) =>
+      state === "published_orphan"
+        ? `<span class="tone-bad">🔴 Published Orphan</span>`
+        : `<span class="tone-warn">🟡 Published Stale</span>`;
+    const dateCell = (v) => (v ? esc(fmtDateTime(v).slice(0, 10)) : "—");
+
+    const rows = items
+      .map(
+        (it) =>
+          `<tr>` +
+          `<td>${esc((it && (it.company_name || it.slug)) || "—")}</td>` +
+          `<td>${esc((it && it.slug) || "—")}</td>` +
+          `<td>${stateCell(it && it.state)}</td>` +
+          `<td>${esc((it && it.reason) || "—")}</td>` +
+          `<td>${dateCell(it && it.published_at)}</td>` +
+          `</tr>`
+      )
+      .join("");
+
+    return (
+      `<div class="dash-alert tone-warn">Review these published artifacts before the next deployment.</div>` +
+      `<div class="dash-table-wrap"><table class="dash-table">` +
+      `<thead><tr><th>Company</th><th>Slug</th><th>State</th><th>Reason</th><th>Published At</th></tr></thead>` +
+      `<tbody>${rows}</tbody></table></div>`
+    );
+  }
+
+  /**
    * Dashboard 全体の HTML を組み立てる（純粋関数）。
-   * @param {{summary:Object, reports:Object, health:Object}} payload
+   * @param {{summary:Object, reports:Object, health:Object, operationalHealth?:Object}} payload
    *   - summary: GET /api/dashboard の結果（または {status:"error"}）
    *   - reports: GET /api/dashboard/reports の結果
    *   - health:  GET /api/dashboard/health の結果
+   *   - operationalHealth: GET /api/dashboard/operational-health の結果（無ければセクション非表示）
    * @returns {string}
    */
   function renderDashboard(payload) {
     const summary = payload.summary || {};
     const reports = payload.reports || {};
     const health = payload.health || {};
+    // Phase59: operational_health は API レスポンス（{generated_at, operational_health}）の
+    // operational_health、または {status:"error"}、または（legacy）undefined。
+    const opHealthRaw = payload.operationalHealth;
+    const operationalHealth = isSectionError(opHealthRaw)
+      ? opHealthRaw
+      : opHealthRaw && typeof opHealthRaw === "object"
+      ? opHealthRaw.operational_health
+      : undefined;
 
     const summaryErr = isSectionError(summary);
     const lead = summaryErr ? summary : summary.lead_summary;
@@ -321,6 +377,8 @@
       (!healthErr && health.generated_at) ||
       null;
 
+    const opHealthHtml = renderOperationalHealthDetail(operationalHealth);
+
     return (
       `<div class="dash-overview">` +
       `<div class="dash-updated">Last updated: <strong>${esc(fmtDateTime(updatedAt))}</strong>` +
@@ -331,6 +389,7 @@
       `<section class="card"><h2>Delivery Summary</h2>${renderDeliverySummary(delivery)}</section>` +
       `<section class="card"><h2>Suppression Summary</h2>${renderSuppressionSummary(suppression)}</section>` +
       `<section class="card"><h2>Report Summary</h2>${renderReportSummary(reports)}</section>` +
+      (opHealthHtml ? `<section class="card"><h2>Operational Health Detail</h2>${opHealthHtml}</section>` : "") +
       `<section class="card"><h2>System Health</h2>` +
       renderSesHealth(ses) +
       renderLambdaHealth(lambda) +
@@ -352,18 +411,19 @@
     container.setAttribute("aria-busy", "true");
     container.innerHTML = `<div class="empty-state">Loading dashboard…</div>`;
 
-    // 3 API を並行取得。1 つ失敗しても他は表示する（Promise.allSettled）。
-    const [summaryR, reportsR, healthR] = await Promise.allSettled([
+    // 各 API を並行取得。1 つ失敗しても他は表示する（Promise.allSettled）。
+    const [summaryR, reportsR, healthR, opHealthR] = await Promise.allSettled([
       AdminApi.getDashboard(),
       AdminApi.getDashboardReports(),
       AdminApi.getDashboardHealth(),
+      AdminApi.getDashboardOperationalHealth(),
     ]);
 
     const toSection = (r) =>
       r.status === "fulfilled" ? r.value : { status: "error", message: (r.reason && r.reason.message) || String(r.reason) };
 
     // 認証切れは分かりやすく全体で示す
-    const authFailed = [summaryR, reportsR, healthR].some(
+    const authFailed = [summaryR, reportsR, healthR, opHealthR].some(
       (r) => r.status === "rejected" && /認証/.test((r.reason && r.reason.message) || "")
     );
     if (authFailed) {
@@ -377,6 +437,7 @@
       summary: toSection(summaryR),
       reports: toSection(reportsR),
       health: toSection(healthR),
+      operationalHealth: toSection(opHealthR),
     });
     container.removeAttribute("aria-busy");
     if (btn) btn.disabled = false;
@@ -405,6 +466,7 @@
       renderDeliverySummary,
       renderSuppressionSummary,
       renderReportSummary,
+      renderOperationalHealthDetail,
       renderSesHealth,
       renderLambdaHealth,
       renderCloudFrontHealth,

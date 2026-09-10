@@ -261,3 +261,123 @@ test("renderDashboard: 3 API 全滅でも例外を投げず HTML を返す", () 
   assert.equal(typeof html, "string");
   assert.match(html, /API 未取得/);
 });
+
+// ---------------------------------------------------------------------------
+// Phase59 — renderOperationalHealthDetail（stale / orphan の対象会社テーブル・表示専用）
+// API（operational_health）の値をそのまま描画する。UI は state / publishable /
+// review / freshness / evaluation を一切再判定しない。
+// ---------------------------------------------------------------------------
+
+test("OpHealth Case A: healthy（items 空）は Empty State。テーブルを出さない", () => {
+  const html = ui.renderOperationalHealthDetail({ items: [], stale_count: 0, orphan_count: 0 });
+  assert.match(html, /No stale or orphan published artifacts detected\./);
+  assert.match(html, /dash-alert tone-good/);
+  assert.ok(!html.includes("<table"), "Empty State でテーブルを出してはいけない");
+  assert.ok(!html.includes("undefined") && !html.includes("NaN"));
+});
+
+test("OpHealth Case B: published_stale 1件 → テーブル1行 / tone-warn / Published Stale / Published At", () => {
+  const html = ui.renderOperationalHealthDetail({
+    items: [
+      { slug: "example.com", company_name: "Example Inc", state: "published_stale", reason: "freshness fail", published_at: "2026-09-10T12:37:06.000Z" },
+    ],
+    stale_count: 1,
+    orphan_count: 0,
+  });
+  assert.match(html, /Review these published artifacts before the next deployment\./);
+  assert.match(html, /<table[^>]*class="dash-table"/);
+  assert.match(html, /🟡 Published Stale/);
+  assert.match(html, /tone-warn/);
+  assert.match(html, /Example Inc/);
+  assert.match(html, /example\.com/);
+  assert.match(html, /freshness fail/);
+  assert.match(html, /2026-09-10/); // YYYY-MM-DD（時刻部分は出さない）
+  assert.ok(!html.includes("12:37:06"), "日付のみ表示（時刻は出さない）");
+  // 1 行だけ
+  assert.equal((html.match(/<tr>/g) || []).length, 2, "ヘッダ1 + データ1 = 2");
+});
+
+test("OpHealth Case C: published_orphan 1件 → tone-bad / Published Orphan / published_at 無しは —", () => {
+  const html = ui.renderOperationalHealthDetail({
+    items: [{ slug: "orphan.example", company_name: null, state: "published_orphan", reason: "current report/review not found", published_at: null }],
+    stale_count: 0,
+    orphan_count: 1,
+  });
+  assert.match(html, /🔴 Published Orphan/);
+  assert.match(html, /tone-bad/);
+  assert.match(html, /orphan\.example/);
+  assert.match(html, /<td>—<\/td>/); // published_at null → —
+});
+
+test("OpHealth Case D: stale ×2 + orphan ×1 → 3行 / 順序維持 / slug・company・reason 取り違えなし", () => {
+  const html = ui.renderOperationalHealthDetail({
+    items: [
+      { slug: "a.example", company_name: "Alpha", state: "published_stale", reason: "review not approved", published_at: "2026-01-02T03:04:05.000Z" },
+      { slug: "b.example", company_name: "Bravo", state: "published_stale", reason: "evaluation FAIL", published_at: null },
+      { slug: "c.example", company_name: null, state: "published_orphan", reason: "current report/review not found", published_at: null },
+    ],
+    stale_count: 2,
+    orphan_count: 1,
+  });
+  assert.equal((html.match(/<tr>/g) || []).length, 4, "ヘッダ1 + データ3");
+  // 順序: a → b → c
+  const iA = html.indexOf("a.example");
+  const iB = html.indexOf("b.example");
+  const iC = html.indexOf("c.example");
+  assert.ok(iA < iB && iB < iC, "行の順序が API の items 順どおり");
+  // reason が取り違えられていない
+  assert.ok(html.indexOf("review not approved") < html.indexOf("evaluation FAIL"));
+  // Alpha の行に Bravo が混ざらない（各行を分離して確認）
+  const rowA = html.slice(html.indexOf("<td>Alpha"), html.indexOf("<td>Bravo"));
+  assert.ok(!rowA.includes("b.example") && !rowA.includes("evaluation FAIL"));
+});
+
+test("OpHealth Case E: company_name が無い行は Company 列に slug を表示", () => {
+  const html = ui.renderOperationalHealthDetail({
+    items: [{ slug: "no-name.example", company_name: null, state: "published_stale", reason: "x", published_at: null }],
+    stale_count: 1,
+    orphan_count: 0,
+  });
+  // Company セル = slug
+  assert.match(html, /<td>no-name\.example<\/td>\s*<td>no-name\.example<\/td>/);
+});
+
+test("OpHealth Case F: legacy payload（operational_health なし）はセクション非表示・エラーなし", () => {
+  assert.equal(ui.renderOperationalHealthDetail(undefined), "");
+  assert.equal(ui.renderOperationalHealthDetail(null), "");
+  // renderDashboard 全体でも、operationalHealth を渡さなければ Operational Health Detail は出ない
+  const html = ui.renderDashboard({ summary: SAMPLE_SUMMARY, reports: SAMPLE_REPORTS, health: SAMPLE_HEALTH });
+  assert.ok(!html.includes("Operational Health Detail"), "legacy 時はセクション自体を描画しない");
+  assert.ok(!html.includes("undefined") && !html.includes("NaN"));
+  // 既存セクションは正常
+  assert.match(html, /Report Summary/);
+  assert.match(html, /System Health/);
+});
+
+test("OpHealth: セクションエラー（{status:'error'}）は section error として表示（テーブルは出さない）", () => {
+  const html = ui.renderOperationalHealthDetail({ status: "error", message: "S3 outage" });
+  assert.match(html, /dash-section-error/);
+  assert.ok(!html.includes("<table"));
+});
+
+test("renderDashboard: operationalHealth（API レスポンス形状）を渡すと Operational Health Detail セクションが出る", () => {
+  const html = ui.renderDashboard({
+    summary: SAMPLE_SUMMARY,
+    reports: SAMPLE_REPORTS,
+    health: SAMPLE_HEALTH,
+    operationalHealth: {
+      generated_at: "2026-09-11T00:00:00.000Z",
+      operational_health: {
+        items: [{ slug: "example.com", company_name: "Example Inc", state: "published_stale", reason: "freshness fail", published_at: "2026-09-10T12:00:00.000Z" }],
+        stale_count: 1,
+        orphan_count: 0,
+      },
+    },
+  });
+  assert.match(html, /Operational Health Detail/);
+  assert.match(html, /example\.com/);
+  assert.match(html, /🟡 Published Stale/);
+  // Report Summary の後・System Health の前
+  assert.ok(html.indexOf("Report Summary") < html.indexOf("Operational Health Detail"));
+  assert.ok(html.indexOf("Operational Health Detail") < html.indexOf("System Health"));
+});

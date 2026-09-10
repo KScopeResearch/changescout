@@ -17,6 +17,7 @@
  */
 
 const { listLeads, isDeliveryBlocked } = require("../leads/lead-store");
+const publishedStore = require("../published-store"); // Phase59: operational health detail の published_at 取得（read-only）
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -280,12 +281,111 @@ function collectReportSummary(input = {}) {
   };
 }
 
+/**
+ * Operational Health Detail — Phase59。
+ * 「公開 artifact は存在するが、current internal report は今は公開可能でない（stale）」
+ * および「公開 artifact だけあって current report/review が無い（orphan）」対象を、
+ * 運営者が確認できるよう 1 行 1 会社の items 配列にする。
+ *
+ * 判定は collectReportSummary と同じく current internal state を SSOT とする:
+ *   - stale  : reportsCache の要素で published === true かつ publishable === false
+ *              （publishable は server.js toSummary が reviewEngine.isPublishable() で算出した値）
+ *   - orphan : publishedBackendSlugs（S3 published/ 一覧）にあるが reportsCache に id が無い
+ *
+ * published_at は「公開 payload の meta.published_at」（Phase58 STEP1 の Public Contract で
+ * 定義済み）を **表示用に** 読むだけ。approval 判定には一切使わない。取得失敗・未設定は null。
+ *
+ * @param {{
+ *   reportsCache?: Array<{id:string, company_name?:string, review_status?:string,
+ *     evaluation_status?:string, published?:boolean, publishable?:boolean, publishable_reasons?:string[]}>,
+ *   publishedBackendSlugs?: string[],
+ *   loadPublished?: (slug:string) => Promise<Object|null>,  // テスト用 DI（既定 published-store.loadPublished）
+ * }} [input]
+ * @returns {Promise<{items:Array<{slug:string, company_name:(string|null), state:string,
+ *   reason:string, published_at:(string|null)}>, stale_count:number, orphan_count:number}>}
+ */
+async function collectOperationalHealth(input = {}) {
+  const reportsCache = Array.isArray(input.reportsCache) ? input.reportsCache : [];
+  const publishedBackendSlugs = Array.isArray(input.publishedBackendSlugs) ? input.publishedBackendSlugs : null;
+  const loadPublished =
+    typeof input.loadPublished === "function" ? input.loadPublished : (slug) => publishedStore.loadPublished(slug);
+
+  const cacheIds = new Set(reportsCache.map((r) => r && r.id).filter(Boolean));
+  const items = [];
+
+  // stale: current report/review はある（reportsCache に載っている）が今は公開不可
+  for (const r of reportsCache) {
+    if (!r || r.published !== true || r.publishable !== false) continue;
+    items.push({
+      slug: r.id,
+      company_name: r.company_name || null,
+      state: "published_stale",
+      reason: staleReason(r),
+      published_at: await safePublishedAt(loadPublished, r.id),
+    });
+  }
+
+  // orphan: published/ backend に artifact はあるが current report/review が無い
+  if (publishedBackendSlugs) {
+    for (const slug of publishedBackendSlugs) {
+      if (cacheIds.has(slug)) continue;
+      items.push({
+        slug,
+        company_name: null,
+        state: "published_orphan",
+        reason: "current report/review not found",
+        published_at: await safePublishedAt(loadPublished, slug),
+      });
+    }
+  }
+
+  return {
+    items,
+    stale_count: items.filter((i) => i.state === "published_stale").length,
+    orphan_count: items.filter((i) => i.state === "published_orphan").length,
+  };
+}
+
+/**
+ * stale の理由文字列。reviewEngine.isPublishable() が返した reasons をそのまま使う
+ * （server.js toSummary が publishable_reasons として載せる）。無ければ粗く導出する
+ * （旧 reportsCache 形状との後方互換。判定ロジックの再実装ではなく表示用の要約）。
+ * @param {Object} r
+ * @returns {string}
+ */
+function staleReason(r) {
+  if (Array.isArray(r.publishable_reasons) && r.publishable_reasons.length) {
+    return r.publishable_reasons.join(" / ");
+  }
+  if (r.review_status !== "approved") return `review not approved (${r.review_status || "unknown"})`;
+  if (r.evaluation_status === "FAIL") return "evaluation status is FAIL";
+  return "current report is not publishable";
+}
+
+/**
+ * 公開 payload の meta.published_at を read-only で取得する。失敗・未設定は null。
+ * @param {(slug:string) => Promise<Object|null>} loadPublished
+ * @param {string} slug
+ * @returns {Promise<string|null>}
+ */
+async function safePublishedAt(loadPublished, slug) {
+  try {
+    const pub = await loadPublished(slug);
+    const at = pub && pub.meta && pub.meta.published_at;
+    return typeof at === "string" && at ? at : null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
   collectLeadSummary,
   collectDeliverySummary,
   collectSuppressionSummary,
   collectReportSummary,
+  collectOperationalHealth,
   classifySuppression,
   // テスト用に公開
   findLatestHistory,
+  staleReason,
 };
