@@ -15,7 +15,14 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildQueries, deriveMarketSubject, extractThemeTerms } = require("../search/query-builder");
+const {
+  buildQueries,
+  deriveMarketSubject,
+  extractThemeTerms,
+  expandThemeKeywords,
+  preferredDomainsForTheme,
+  COMPANY_QUERY_EXCLUDE_TERMS,
+} = require("../search/query-builder");
 const { buildQueryProfile } = require("../company-context");
 
 // --- extractThemeTerms ---------------------------------------------------
@@ -182,4 +189,138 @@ test("buildQueries: opportunityTheme = null / 空文字は normal mode 扱い", 
   assert.deepEqual(buildQueries({ ...base, opportunityTheme: null }).map((q) => q.query), normal);
   assert.deepEqual(buildQueries({ ...base, opportunityTheme: "" }).map((q) => q.query), normal);
   assert.deepEqual(buildQueries({ ...base, opportunityTheme: "   " }).map((q) => q.query), normal);
+});
+
+// ---------------------------------------------------------------------------
+// Phase57 STEP1 — Source Discovery Improvement
+// ---------------------------------------------------------------------------
+// STEP9-H で、テーマ語を市場クエリに入れても Tavily が SEO「完全ガイド」記事を返していた。
+// テーマ関連語の拡張・観点語の一次情報寄せ・会社クエリのドメイン化・preferred domains 候補。
+
+test("STEP57-1 expandThemeKeywords: テーマ語 + 関連語辞書でサブ市場語を追加する", () => {
+  const q = expandThemeKeywords("中小製造業向け「AI品質検査」導入支援サービスの立ち上げ");
+  assert.ok(q.includes("AI品質検査") || q.includes("品質検査"));
+  assert.ok(q.includes("AI外観検査"));
+  assert.ok(q.includes("画像検査"));
+  assert.ok(q.includes("製造業AI"));
+  const l = expandThemeKeywords("飲食店向けLINE予約・顧客管理DX支援サービスの立ち上げ");
+  assert.ok(l.includes("ネット予約システム"));
+  assert.ok(l.includes("CRM"));
+  assert.ok(l.includes("外食産業"));
+  const ip = expandThemeKeywords("アニメ制作会社のIP保有・収益分配モデル構築支援サービスの立ち上げ");
+  assert.ok(ip.includes("知的財産"));
+  assert.ok(ip.includes("製作委員会"));
+  assert.ok(ip.includes("アニメ産業"));
+});
+
+test("STEP57-1 expandThemeKeywords: 空・null は空配列 / 既存 extractThemeTerms を先頭に含む", () => {
+  assert.deepEqual(expandThemeKeywords(""), []);
+  assert.deepEqual(expandThemeKeywords(null), []);
+  const q = expandThemeKeywords("中小製造業向け「AI品質検査」導入支援サービスの立ち上げ");
+  assert.deepEqual(q.slice(0, 3), extractThemeTerms("中小製造業向け「AI品質検査」導入支援サービスの立ち上げ"));
+});
+
+test("STEP57-1 expandThemeKeywords: 重複語を出さない", () => {
+  const q = expandThemeKeywords("製造業向け「AI品質検査」導入支援サービスの立ち上げ");
+  assert.equal(q.length, new Set(q).size);
+});
+
+test("STEP57-1 preferredDomainsForTheme: テーマ別に政府・業界団体ドメインを返す", () => {
+  const mfg = preferredDomainsForTheme("中小製造業向け「AI品質検査」導入支援サービスの立ち上げ");
+  assert.ok(mfg.includes("meti.go.jp"));
+  assert.ok(mfg.includes("ipa.go.jp"));
+  const food = preferredDomainsForTheme("飲食店向けLINE予約・顧客管理DX支援サービスの立ち上げ");
+  assert.ok(food.includes("maff.go.jp"));
+  const ip = preferredDomainsForTheme("アニメ制作会社のIP保有・収益分配モデル構築支援サービスの立ち上げ");
+  assert.ok(ip.includes("bunka.go.jp") || ip.includes("vipo.or.jp"));
+  assert.deepEqual(preferredDomainsForTheme(""), []);
+  assert.deepEqual(preferredDomainsForTheme("これはどの辞書にも当たらない一般テーマ"), []);
+});
+
+test("STEP57-1 buildQueries theme mode: 市場クエリにサブ市場語・調査寄せ語が入る（kscope）", () => {
+  const qs = buildQueries({
+    companyName: "株式会社カレイドスコープ",
+    domain: "kscope.co.jp",
+    industry: "新規事業・事業開発支援",
+    keywords: ["インキュベーション"],
+    opportunityTheme: "中小製造業向け「AI品質検査」導入支援サービスの立ち上げ",
+  });
+  const joined = qs.map((q) => q.query).join(" | ");
+  assert.match(joined, /AI外観検査|画像検査/); // サブ市場語
+  assert.match(joined, /実態調査|市場調査レポート|出荷額|プレスリリース/); // 一次情報寄せ
+  assert.match(joined, /経済産業省/);
+  // 既存の観点キーワード族は維持
+  assert.match(joined, /補助金|支援制度/);
+  assert.match(joined, /市場規模|統計/);
+  assert.match(joined, /業界動向/);
+  assert.match(joined, /トレンド|課題/);
+  assert.match(joined, /最新動向/);
+});
+
+test("STEP57-1 buildQueries theme mode: 会社固有クエリにドメイン・事業内容が入り、excludeTerms 候補が付く", () => {
+  const qs = buildQueries({
+    companyName: "株式会社ABI",
+    domain: "ab-i.jp",
+    industry: "コンテンツ・アニメ産業",
+    keywords: ["制作"],
+    opportunityTheme: "アニメ制作会社のIP保有・収益分配モデル構築支援サービスの立ち上げ",
+  });
+  const company = qs.find((q) => q.sourceRole === "company_fact");
+  assert.match(company.query, /株式会社ABI/);
+  assert.match(company.query, /ab-i\.jp/);
+  assert.match(company.query, /事業内容/);
+  assert.ok(Array.isArray(company.excludeTerms));
+  assert.ok(company.excludeTerms.includes("求人"));
+  assert.ok(company.excludeTerms.includes("評判"));
+  assert.ok(company.excludeTerms.includes("ランキング"));
+  // 市場クエリには preferredDomains 候補が付く
+  const market = qs.filter((q) => q.sourceRole !== "company_fact");
+  assert.ok(market.every((q) => Array.isArray(q.preferredDomains) && q.preferredDomains.length > 0));
+});
+
+test("STEP57-1 buildQueries theme mode: カテゴリ多様性（company / government / statistics / industry / news）", () => {
+  const qs = buildQueries({
+    companyName: "株式会社イル・レガメ",
+    domain: "illegame.com",
+    industry: "新規事業・事業開発支援",
+    keywords: ["ブランディング"],
+    opportunityTheme: "飲食店向けLINE予約・顧客管理DX支援サービスの立ち上げ",
+  });
+  const roles = new Set(qs.map((q) => q.sourceRole));
+  const types = new Set(qs.map((q) => q.sourceType));
+  assert.ok(qs.length >= 6);
+  assert.ok(types.has("government"));
+  assert.ok(types.has("statistics"));
+  assert.ok(types.has("industry_association"));
+  assert.ok(types.has("technology"));
+  assert.ok(types.has("news"));
+  assert.ok(roles.has("company_fact"));
+  assert.ok(roles.has("market_change"));
+  // 市場クエリに会社名は入らない（従来ルール維持）
+  for (const q of qs.filter((x) => x.sourceRole !== "company_fact")) {
+    assert.ok(!q.query.includes("株式会社イル・レガメ"), q.query);
+  }
+});
+
+test("STEP57-1 buildQueries normal mode（テーマなし）は preferredDomains / excludeTerms を付けない・従来クエリと一致", () => {
+  const base = { companyName: "テスト社", cityWard: "港区", industry: "アニメ産業", keywords: ["配信"] };
+  const qs = buildQueries(base);
+  for (const q of qs) {
+    assert.equal(q.preferredDomains, undefined);
+    assert.equal(q.excludeTerms, undefined);
+  }
+  assert.deepEqual(qs.map((q) => q.query), [
+    "テスト社 港区 会社概要",
+    "アニメ産業 配信 補助金 支援制度 2026",
+    "アニメ産業 配信 市場規模 統計 2026",
+    "アニメ産業 配信 業界動向 2026",
+    "アニメ産業 配信 市場 トレンド 課題",
+    "アニメ産業 配信 最新動向 2026",
+  ]);
+});
+
+test("STEP57-1 COMPANY_QUERY_EXCLUDE_TERMS: 求人・評判・比較系を含む", () => {
+  for (const t of ["求人", "採用", "転職", "就活", "評判", "口コミ", "ランキング", "比較"]) {
+    assert.ok(COMPANY_QUERY_EXCLUDE_TERMS.includes(t), t);
+  }
 });

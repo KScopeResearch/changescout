@@ -163,6 +163,91 @@ function extractThemeTerms(theme) {
   return out;
 }
 
+// ---------------------------------------------------------------------------
+// Phase57 STEP1: Source Discovery Improvement
+// ---------------------------------------------------------------------------
+// STEP9-H で、テーマ語（「中小製造業 AI 品質検査」等）を市場クエリに入れても、Tavily が
+// 返すのは「完全ガイド／徹底解説」型の SEO 記事が大半（kscope 約70% news）だった。
+// 対策:
+//   1. テーマ語を「関連語辞書」で拡張し、サブ市場（外観検査・画像検査・予知保全 等）に
+//      クエリを寄せる。会社固有テーマの if 文ハードコードはしない（辞書は業界横断の一般語）。
+//   2. 市場クエリの観点語に「実態調査・出荷額・プレスリリース・業界団体」等、一次情報・
+//      調査・報道へ寄せる語を追加（SEO listicle へのヒット率を下げる）。
+//   3. 会社固有クエリに ドメイン + 事業内容 を足し、求人/評判/ランキング系を拾いにくくする。
+//   4. テーマ別の preferred domains（政府・業界団体）を SearchQuerySpec に候補として付ける
+//      （実 API へは Phase57 STEP2 で渡す。このモジュールは候補を返すだけ）。
+
+// テーマ関連語辞書。left が theme 文字列に含まれれば right の語を検索キーワード候補へ追加する。
+// 業界横断の一般的な近接語のみ（特定企業名・製品名は入れない）。
+const THEME_KEYWORD_EXPANSIONS = [
+  { re: /品質検査|外観検査|画像検査|検品|欠陥検出|目視検査/, terms: ["AI外観検査", "画像検査", "品質検査", "検品自動化", "品質管理", "製造業AI"] },
+  { re: /予知保全|設備保全|故障予知/, terms: ["予知保全", "設備保全", "IoT保全", "製造業AI"] },
+  { re: /製造業|工場|ものづくり|生産管理/, terms: ["製造業DX", "スマートファクトリー", "生産管理"] },
+  { re: /LINE予約|ネット予約|予約管理|予約システム|Web予約/, terms: ["ネット予約システム", "予約管理システム", "モバイルオーダー", "飲食店予約"] },
+  { re: /顧客管理|CRM|会員管理|リピート|常連/, terms: ["顧客管理システム", "CRM", "会員システム", "リピート施策"] },
+  { re: /キャッシュレス|POS|モバイルオーダー|セルフレジ|自動精算/, terms: ["キャッシュレス決済", "POSレジ", "モバイルオーダー"] },
+  { re: /飲食店|外食|レストラン|居酒屋|カフェ|店舗/, terms: ["飲食店", "外食産業", "店舗経営", "飲食店DX"] },
+  { re: /IP保有|IPビジネス|知的財産|ライセンス|収益分配|製作委員会|二次利用/, terms: ["IPビジネス", "ライセンスビジネス", "知的財産", "収益分配", "製作委員会"] },
+  { re: /アニメ制作|アニメ産業|アニメーション|制作会社/, terms: ["アニメ産業", "アニメ制作", "コンテンツ産業", "アニメーター"] },
+  { re: /インバウンド|訪日|多言語/, terms: ["インバウンド需要", "訪日客", "多言語対応"] },
+  { re: /人手不足|人材不足|採用難|技能継承|技能承継|高齢化/, terms: ["人手不足", "技能継承"] },
+  { re: /DX|デジタル化|デジタルトランスフォーメーション/, terms: ["DX", "デジタル化"] },
+  { re: /補助金|助成金|支援制度/, terms: ["補助金", "支援制度"] },
+];
+
+// テーマ別の preferred domains（政府・業界団体・調査機関）。SearchQuerySpec に候補として
+// 付与する。実 API の include_domains へ渡すのは Phase57 STEP2。
+const PREFERRED_DOMAINS = [
+  { re: /品質検査|外観検査|画像検査|予知保全|製造業|工場|ものづくり|品質管理/, domains: ["meti.go.jp", "chusho.meti.go.jp", "jetro.go.jp", "ipa.go.jp", "jeita.or.jp", "smrj.go.jp", "nedo.go.jp", "monodukuri.com"] },
+  { re: /LINE予約|ネット予約|予約|顧客管理|CRM|POS|キャッシュレス|飲食店|外食|店舗/, domains: ["maff.go.jp", "meti.go.jp", "soumu.go.jp", "jfnet.or.jp", "jf-net.or.jp", "gaishoku.or.jp"] },
+  { re: /IP|知的財産|ライセンス|アニメ|コンテンツ|製作委員会|収益分配/, domains: ["bunka.go.jp", "meti.go.jp", "vipo.or.jp", "jetro.go.jp", "aja.gr.jp", "unijapan.org"] },
+];
+
+/**
+ * テーマ文字列を「検索キーワード候補」へ拡張する（extractThemeTerms の結果 + 関連語辞書）。
+ * @param {string|null|undefined} theme
+ * @returns {string[]}
+ */
+function expandThemeKeywords(theme) {
+  const t = String(theme || "");
+  const base = extractThemeTerms(theme);
+  const seen = new Set();
+  const out = [];
+  const add = (w) => {
+    const s = String(w || "").trim();
+    if (!s || seen.has(s)) return;
+    seen.add(s);
+    out.push(s);
+  };
+  base.forEach(add);
+  for (const { re, terms } of THEME_KEYWORD_EXPANSIONS) {
+    if (re.test(t)) terms.forEach(add);
+  }
+  return out;
+}
+
+/**
+ * テーマ文字列に対応する preferred domains（政府・業界団体等）の候補を返す。
+ * @param {string|null|undefined} theme
+ * @returns {string[]}
+ */
+function preferredDomainsForTheme(theme) {
+  const t = String(theme || "");
+  const set = new Set();
+  for (const { re, domains } of PREFERRED_DOMAINS) {
+    if (re.test(t)) domains.forEach((d) => set.add(d));
+  }
+  return [...set];
+}
+
+// 会社固有クエリで拾いたくない語（求人・評判・比較まとめ等）。Tavily basic search は
+// `-語` の除外構文を確実にはサポートしないため、クエリ文字列には入れず、SearchQuerySpec の
+// excludeTerms 候補として返す（Phase57 STEP2 で provider 側フィルタに使う）。
+const COMPANY_QUERY_EXCLUDE_TERMS = [
+  "求人", "採用", "転職", "就活", "新卒", "中途採用", "アルバイト",
+  "評判", "口コミ", "ランキング", "おすすめ", "比較", "年収", "面接",
+];
+
 /**
  * profile から「市場クエリの主語」を作る（会社名は入れない）。
  * Phase56 STEP9-D（P2）: profile.opportunityTheme があれば、市場クエリの主語をテーマ側へ寄せる。
@@ -230,7 +315,32 @@ function buildQueries(profileOrName) {
     typeof profileOrName === "string" ? { companyName: profileOrName } : profileOrName || {};
   const companyName = (profile.companyName || "").trim() || "対象企業";
   const locality = profile.cityWard || profile.prefecture || "";
+  const domain = (profile.domain || "").trim();
   const marketSubject = deriveMarketSubject(profile);
+
+  // Phase57 STEP1: テーマ主導モードの判定は deriveMarketSubject と同じ（テーマ語 2 件以上）。
+  const themeMode = extractThemeTerms(profile.opportunityTheme).length >= 2;
+  const expanded = themeMode ? expandThemeKeywords(profile.opportunityTheme) : [];
+  // 統計・業界クエリはサブ市場（外観検査・予知保全 等）に寄せるため拡張語も使う。
+  const statSubject = expanded.length >= 2 ? expanded.slice(0, 4).join(" ") : marketSubject;
+  const industrySubject = expanded.length >= 3 ? expanded.slice(0, 5).join(" ") : marketSubject;
+  const preferredDomains = themeMode ? preferredDomainsForTheme(profile.opportunityTheme) : [];
+
+  // Phase57 STEP1: SEO listicle を避け、一次情報・調査・報道へ寄せる観点語。
+  // 既存テストが要求するキーワード族（補助金/支援制度・市場規模/統計・業界動向・
+  // トレンド/課題・最新動向）は必ず残す（追加のみ）。
+  const govSuffix = themeMode ? "補助金 支援制度 支援事業 経済産業省 2026" : "補助金 支援制度 2026";
+  const statSuffix = themeMode ? "市場規模 統計 出荷額 市場調査レポート 予測 2026" : "市場規模 統計 2026";
+  const industrySuffix = themeMode ? "業界動向 業界団体 実態調査 2026" : "業界動向 2026";
+  const trendSuffix = themeMode ? "市場 トレンド 課題 技術動向 導入状況" : "市場 トレンド 課題";
+  const newsSuffix = themeMode ? "最新動向 プレスリリース 発表 2026" : "最新動向 2026";
+
+  // 会社固有クエリ: ドメイン + 事業内容 で公式サイトへ寄せる（求人・評判系を拾いにくくする）。
+  const companyQuery = themeMode
+    ? joinQuery([companyName, locality, domain, "会社概要 事業内容"])
+    : joinQuery([companyName, locality, "会社概要"]);
+
+  const withDomains = (spec) => (preferredDomains.length ? { ...spec, preferredDomains } : spec);
 
   return [
     // 会社固有（同名衝突を所在地で抑える）。category は news（fetch-news.js が拾う）にし、
@@ -238,45 +348,46 @@ function buildQueries(profileOrName) {
     // company/directory/news へ振り分ける。
     {
       category: "news",
-      query: joinQuery([companyName, locality, "会社概要"]),
+      query: companyQuery,
       sourceType: "news",
       sourceRole: "company_fact",
+      ...(themeMode ? { excludeTerms: COMPANY_QUERY_EXCLUDE_TERMS } : {}),
     },
     // 市場: 補助金・支援制度（政策）
-    {
+    withDomains({
       category: "government",
-      query: joinQuery([marketSubject, "補助金 支援制度 2026"]),
+      query: joinQuery([marketSubject, govSuffix]),
       sourceType: "government",
       sourceRole: "market_change",
-    },
+    }),
     // 市場: 規模・統計
-    {
+    withDomains({
       category: "statistics",
-      query: joinQuery([marketSubject, "市場規模 統計 2026"]),
+      query: joinQuery([statSubject, statSuffix]),
       sourceType: "statistics",
       sourceRole: "industry_trend",
-    },
+    }),
     // 市場: 業界動向
-    {
+    withDomains({
       category: "industry",
-      query: joinQuery([marketSubject, "業界動向 2026"]),
+      query: joinQuery([industrySubject, industrySuffix]),
       sourceType: "industry_association",
       sourceRole: "industry_trend",
-    },
+    }),
     // 市場: 技術・トレンド・課題
-    {
+    withDomains({
       category: "industry",
-      query: joinQuery([marketSubject, "市場 トレンド 課題"]),
+      query: joinQuery([statSubject, trendSuffix]),
       sourceType: "technology",
       sourceRole: "industry_trend",
-    },
+    }),
     // 市場: 最新動向（報道）
-    {
+    withDomains({
       category: "news",
-      query: joinQuery([marketSubject, "最新動向 2026"]),
+      query: joinQuery([marketSubject, newsSuffix]),
       sourceType: "news",
       sourceRole: "evidence",
-    },
+    }),
   ];
 }
 
@@ -297,4 +408,7 @@ module.exports = {
   companyNameCores,
   deriveMarketSubject,
   extractThemeTerms,
+  expandThemeKeywords,
+  preferredDomainsForTheme,
+  COMPANY_QUERY_EXCLUDE_TERMS,
 };
