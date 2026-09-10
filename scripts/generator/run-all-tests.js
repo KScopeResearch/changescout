@@ -265,6 +265,11 @@ async function checkDashboardSmoke() {
     if (dashStaleApi.status !== 200 || !dashStaleApi.body.includes("published_stale")) {
       return { ok: false, detail: `/api/dashboard/stale-reports が期待どおりではない（status: ${dashStaleApi.status}）` };
     }
+    // Phase58 STEP8: Remediation Plan API（read-only）の疎通。
+    const dashRemedApi = await httpGet("localhost", port, "/api/dashboard/remediation-plan", { auth: `${adminUser}:${adminPassword}` });
+    if (dashRemedApi.status !== 200 || !dashRemedApi.body.includes("recommended_republish")) {
+      return { ok: false, detail: `/api/dashboard/remediation-plan が期待どおりではない（status: ${dashRemedApi.status}）` };
+    }
 
     // Phase52 STEP9: System UI（画面 + 既存 /api/health・/api/dashboard/health の再利用）の疎通。
     const systemPage = await httpGet("localhost", port, "/system.html", { auth: `${adminUser}:${adminPassword}` });
@@ -299,7 +304,7 @@ async function checkDashboardSmoke() {
     return {
       ok: true,
       detail:
-        "未認証401・認証済み200・/api/reports・/api/jobs・/dashboard.html・/api/dashboard・/leads.html・/api/leads・/deliveries.html・/api/deliveries・/suppressions.html・/api/suppressions・/reports.html・/api/dashboard/reports・/api/dashboard/operational-health・/api/dashboard/stale-reports・/system.html・/api/health・/operations.htmlの応答を確認しました",
+        "未認証401・認証済み200・/api/reports・/api/jobs・/dashboard.html・/api/dashboard・/leads.html・/api/leads・/deliveries.html・/api/deliveries・/suppressions.html・/api/suppressions・/reports.html・/api/dashboard/reports・/api/dashboard/operational-health・/api/dashboard/stale-reports・/api/dashboard/remediation-plan・/system.html・/api/health・/operations.htmlの応答を確認しました",
     };
   } catch (err) {
     return { ok: false, detail: `Dashboard確認中にエラー: ${err.message}` };

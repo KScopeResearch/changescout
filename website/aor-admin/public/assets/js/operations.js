@@ -109,14 +109,84 @@
     return rs.length ? rs.join(", ") : "—";
   }
 
+  // ---- Phase58 STEP8: Remediation（推奨対応の表示のみ）----
+  // risk（success / warning / danger）→ 既存 status-pill クラス（新 CSS なし）。
+  var RISK_PILL = { success: "status-approved", warning: "status-needs_revision", danger: "status-rejected" };
+
+  function riskBadge(risk) {
+    var cls = RISK_PILL[risk] || "status-pending_review";
+    return '<span class="status-pill ' + cls + '">' + esc(risk || "—") + "</span>";
+  }
+
+  /** remediation-plan レスポンスから slug → item の索引を作る。 */
+  function remediationIndex(remediation) {
+    var idx = {};
+    var items = remediation && !isSectionError(remediation) && remediation.ok !== false && Array.isArray(remediation.items) ? remediation.items : [];
+    items.forEach(function (it) {
+      if (it && it.slug) idx[it.slug] = it;
+    });
+    return idx;
+  }
+
+  /**
+   * §5 Remediation Summary カード（Operations 最上部）。
+   * @param {Object|undefined} remediation - GET /api/dashboard/remediation-plan のレスポンス
+   */
+  function renderRemediationSummary(remediation) {
+    if (!remediation || isSectionError(remediation) || remediation.ok === false) return "";
+    var s = remediation.summary || {};
+    var num = function (v) {
+      return v == null ? 0 : v;
+    };
+    var stale = num(s.published_stale);
+    var orphan = num(s.published_orphan);
+    var republish = num(s.recommended_republish);
+    var unpublish = num(s.recommended_unpublish);
+    return (
+      '<section class="card"><h2>Published Artifact Remediation Summary</h2>' +
+      '<div class="field-row">' +
+      '<div class="field"><div class="label">Published Stale</div><div class="value' + (stale > 0 ? " tone-warn" : "") + '">' + esc(stale) + "</div></div>" +
+      '<div class="field"><div class="label">Published Orphan</div><div class="value' + (orphan > 0 ? " tone-bad" : "") + '">' + esc(orphan) + "</div></div>" +
+      '<div class="field"><div class="label">Recommended Re-publish</div><div class="value' + (republish > 0 ? " tone-warn" : "") + '">' + esc(republish) + "</div></div>" +
+      '<div class="field"><div class="label">Recommended Unpublish</div><div class="value' + (unpublish > 0 ? " tone-bad" : "") + '">' + esc(unpublish) + "</div></div>" +
+      "</div></section>"
+    );
+  }
+
+  /** §6 推奨アクションの説明パネル（Operations 下部・静的）。 */
+  function renderRemediationExplanation() {
+    var actions = [
+      "Approve current report then publish",
+      "Complete review before publish",
+      "Fix report quality then regenerate",
+      "Unpublish stale artifact",
+      "Rebuild unreadable artifact",
+    ];
+    return (
+      '<section class="card"><h2>Recommended actions</h2>' +
+      '<ul class="plain-list">' +
+      actions
+        .map(function (a) {
+          return "<li>" + esc(a) + "</li>";
+        })
+        .join("") +
+      "</ul>" +
+      '<div class="dash-note">これは推奨対応の説明です。Operations 画面から Publish / Unpublish / Approve / Regenerate / Deploy は実行できません' +
+      "（誤操作防止のため、対象を特定できる既存画面で行います）。</div></section>"
+    );
+  }
+
   /**
    * Published Artifact Health セクション（§4）。
    * @param {Object|undefined} data - GET /api/dashboard/stale-reports のレスポンス
    *   （{ok, generated_at, published_stale, published_orphan, items} または {status:"error"}）
    */
-  function renderPublishedArtifactHealth(data) {
+  function renderPublishedArtifactHealth(data, remediation) {
     var d = data || {};
     var head = '<section class="card" id="published-artifact-health"><h2>Published Artifact Health</h2>';
+    // Phase58 STEP8: remediation-plan があれば「Recommended Action / Risk」列を足す（無ければ従来どおり）。
+    var rem = remediationIndex(remediation);
+    var hasRem = Object.keys(rem).length > 0;
 
     if (isSectionError(d) || d.ok === false) {
       return (
@@ -145,6 +215,10 @@
     var rows = items
       .map(function (it) {
         var slug = (it && it.slug) || "";
+        var r = hasRem ? rem[slug] : null;
+        var remCols = hasRem
+          ? "<td>" + esc((r && r.action_label) || "—") + "</td>" + "<td>" + (r ? riskBadge(r.risk) : "—") + "</td>"
+          : "";
         return (
           "<tr>" +
           "<td>" + esc(slug || "—") + "</td>" +
@@ -153,18 +227,21 @@
           "<td>" + esc((it && it.evaluation_status) || "—") + "</td>" +
           "<td>" + (it && it.published === true ? "YES" : "NO") + "</td>" +
           "<td>" + esc(reasonText(it)) + "</td>" +
+          remCols +
           '<td><a href="/reports.html?slug=' + encodeURIComponent(slug) + '">View Report</a></td>' +
           "</tr>"
         );
       })
       .join("");
 
+    var remHead = hasRem ? "<th>Recommended Action</th><th>Risk</th>" : "";
+
     return (
       head +
       counts +
       '<div class="dash-alert tone-warn">Some published artifacts are stale or orphaned. Review them before the next deployment.</div>' +
       '<div class="dash-table-wrap"><table class="dash-table"><thead><tr>' +
-      "<th>Slug</th><th>Classification</th><th>Review</th><th>Evaluation</th><th>Published</th><th>Reason</th><th></th>" +
+      "<th>Slug</th><th>Classification</th><th>Review</th><th>Evaluation</th><th>Published</th><th>Reason</th>" + remHead + "<th></th>" +
       "</tr></thead><tbody>" + rows + "</tbody></table></div></section>"
     );
   }
@@ -282,11 +359,14 @@
   function renderOperations(payload, uiState) {
     var st = uiState || {};
     var reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
+    var remediation = payload && payload.remediationPlan;
     return (
+      renderRemediationSummary(remediation) +
       renderSystemStatus(payload) +
-      renderPublishedArtifactHealth(payload && payload.staleReports) +
+      renderPublishedArtifactHealth(payload && payload.staleReports, remediation) +
       renderPublishTable(reports, st.submittingKey) +
-      renderActionableLinks(payload)
+      renderActionableLinks(payload) +
+      renderRemediationExplanation()
     );
   }
 
@@ -294,7 +374,7 @@
   // ブラウザ側（mutation フロー）
   // -------------------------------------------------------------------------
 
-  var state = { reports: [], health: {}, dashboard: {}, staleReports: {}, submittingKey: null, modalOp: null };
+  var state = { reports: [], health: {}, dashboard: {}, staleReports: {}, remediationPlan: {}, submittingKey: null, modalOp: null };
 
   function $(id) {
     return document.getElementById(id);
@@ -315,7 +395,7 @@
   function renderAll() {
     var container = $("operations-container");
     if (container) {
-      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports, staleReports: state.staleReports }, { submittingKey: state.submittingKey });
+      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports, staleReports: state.staleReports, remediationPlan: state.remediationPlan }, { submittingKey: state.submittingKey });
       wireOpButtons(container);
     }
     renderModal();
@@ -394,6 +474,7 @@
       AdminApi.getDashboard(),
       AdminApi.getHealth(),
       AdminApi.getDashboardStaleReports(),
+      AdminApi.getDashboardRemediationPlan(),
     ]);
 
     var authFailed = settled.some(function (r) {
@@ -416,6 +497,7 @@
     state.dashboard = settled[1].status === "fulfilled" ? settled[1].value : { status: "error", message: (settled[1].reason && settled[1].reason.message) || String(settled[1].reason) };
     state.health = settled[2].status === "fulfilled" ? settled[2].value : { status: "error", message: (settled[2].reason && settled[2].reason.message) || String(settled[2].reason) };
     state.staleReports = settled[3].status === "fulfilled" ? settled[3].value : { status: "error", message: (settled[3].reason && settled[3].reason.message) || String(settled[3].reason) };
+    state.remediationPlan = settled[4].status === "fulfilled" ? settled[4].value : { status: "error", message: (settled[4].reason && settled[4].reason.message) || String(settled[4].reason) };
 
     renderAll();
     container.removeAttribute("aria-busy");
@@ -449,6 +531,9 @@
       renderOperations: renderOperations,
       renderPublishedArtifactHealth: renderPublishedArtifactHealth,
       classificationLabel: classificationLabel,
+      renderRemediationSummary: renderRemediationSummary,
+      renderRemediationExplanation: renderRemediationExplanation,
+      riskBadge: riskBadge,
     };
   } else {
     init();

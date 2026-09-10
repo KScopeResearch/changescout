@@ -749,6 +749,11 @@ async function handleApi(req, res, url, session, ip) {
     return true;
   }
 
+  if (pathname === "/api/dashboard/remediation-plan" && req.method === "GET") {
+    await handleDashboardRemediationPlan(res);
+    return true;
+  }
+
   // --- Delivery API（Phase52 STEP6。GET / read-only。Lead.history から配信イベントを抽出） ---
   if (pathname === "/api/deliveries" && req.method === "GET") {
     await handleDeliveries(res);
@@ -947,6 +952,138 @@ async function handleDashboardStaleReports(res) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Phase58 STEP8: Published Artifact Health Remediation（read-only の推奨アクション表示）
+// ---------------------------------------------------------------------------
+
+/**
+ * classification → 推奨アクション（純粋なマッピングのみ。判定ロジックではない）。
+ * action_label / risk / reason はすべてこの表から引く。
+ */
+const REMEDIATION_MAP = {
+  [RECONCILIATION_CLASS.STALE_AFTER_REGENERATION]: {
+    recommended_action: "REPUBLISH_AFTER_APPROVAL",
+    action_label: "Approve current report then publish",
+    risk: "warning",
+    reason: "Current report is newer than the approved published artifact.",
+  },
+  [RECONCILIATION_CLASS.STALE_UNAPPROVED]: {
+    recommended_action: "COMPLETE_REVIEW_FIRST",
+    action_label: "Complete review before publish",
+    risk: "warning",
+    reason: "Published artifact exists but the current report has no completed review.",
+  },
+  [RECONCILIATION_CLASS.STALE_UNPUBLISHABLE]: {
+    recommended_action: "FIX_REPORT_AND_REGENERATE",
+    action_label: "Fix report quality then regenerate",
+    risk: "warning",
+    reason: "Current report is not publishable (review rejected or evaluation FAIL).",
+  },
+  [RECONCILIATION_CLASS.STALE_ORPHAN]: {
+    recommended_action: "UNPUBLISH_ARTIFACT",
+    action_label: "Unpublish stale artifact",
+    risk: "danger",
+    reason: "Published artifact exists but there is no current report or review.",
+  },
+  [RECONCILIATION_CLASS.STALE_UNREADABLE]: {
+    recommended_action: "REBUILD_PUBLISHED_ARTIFACT",
+    action_label: "Rebuild unreadable artifact",
+    risk: "danger",
+    reason: "Published artifact JSON could not be parsed.",
+  },
+  [RECONCILIATION_CLASS.DEPLOY_ELIGIBLE]: {
+    recommended_action: "NONE",
+    action_label: "No action needed",
+    risk: "success",
+    reason: "Published artifact matches the current approved report.",
+  },
+};
+
+const REMEDIATION_DEFAULT = {
+  recommended_action: "NONE",
+  action_label: "No action needed",
+  risk: "success",
+  reason: "",
+};
+
+/** @param {string} classification @returns {{recommended_action:string, action_label:string, risk:string, reason:string}} */
+function remediationForClassification(classification) {
+  return REMEDIATION_MAP[classification] || REMEDIATION_DEFAULT;
+}
+
+/**
+ * /api/dashboard/remediation-plan の items（read-only・DI 可能）。
+ * buildStaleReportItems() の結果に、classification → 推奨アクションの純粋マップを付けるだけ。
+ * @param {Array<Object>} reportsCache
+ * @param {string[]} staleSlugs
+ * @param {string[]} orphanSlugs
+ * @param {Object} deps - buildStaleReportItems と同じ DI
+ * @returns {Promise<Array<Object>>}
+ */
+async function buildRemediationItems(reportsCache, staleSlugs, orphanSlugs, deps) {
+  const base = await buildStaleReportItems(reportsCache, staleSlugs, orphanSlugs, deps);
+  return base.map((b) => {
+    const m = remediationForClassification(b.classification);
+    return {
+      slug: b.slug,
+      classification: b.classification,
+      recommended_action: m.recommended_action,
+      action_label: m.action_label,
+      risk: m.risk,
+      reason: m.reason,
+      current_publishable: b.publishable,
+      published: b.published,
+      published_at: b.published_at,
+      generated_at: b.generated_at,
+      reviewed_at: b.reviewed_at,
+    };
+  });
+}
+
+/**
+ * remediation-plan セクションを組み立てる。
+ * @returns {Promise<{summary:Object, items:Array<Object>}>}
+ */
+async function buildRemediationPlanSection() {
+  const publishedResult = await awsStatus.listPublishedBackendSlugs();
+  const publishedBackendSlugs = Array.isArray(publishedResult) ? publishedResult : null;
+  const summary = dashboardAggregates.collectReportSummary({ reportsCache, publishedBackendSlugs });
+  const items = await buildRemediationItems(reportsCache, summary.stale_slugs, summary.orphan_slugs, {
+    classify: (slug) => classifyPublishedArtifact(slug),
+    loadReport: (slug) => reportStore.loadReport(slug),
+    loadPublished: (slug) => publishedStore.loadPublished(slug),
+  });
+  return {
+    summary: {
+      published_stale: summary.published_stale,
+      published_orphan: summary.published_orphan,
+      recommended_unpublish: items.filter((i) => i.recommended_action === "UNPUBLISH_ARTIFACT").length,
+      recommended_republish: items.filter((i) => i.recommended_action === "REPUBLISH_AFTER_APPROVAL").length,
+    },
+    items,
+  };
+}
+
+/**
+ * GET /api/dashboard/remediation-plan — Phase58 STEP8。stale / orphan な Published artifact の
+ * 推奨対応（表示専用・実行機能なし）。classification → action の純粋マッピングのみ。
+ */
+async function handleDashboardRemediationPlan(res) {
+  try {
+    const section = await buildRemediationPlanSection();
+    sendJson(res, 200, { ok: true, generated_at: new Date().toISOString(), ...section });
+  } catch (err) {
+    logger.error(`/api/dashboard/remediation-plan の組み立てに失敗しました: ${err.stack || err.message}`);
+    sendJson(res, 200, {
+      ok: false,
+      generated_at: new Date().toISOString(),
+      error: err.message,
+      summary: { published_stale: 0, published_orphan: 0, recommended_unpublish: 0, recommended_republish: 0 },
+      items: [],
+    });
+  }
+}
+
 /**
  * GET /api/deliveries — Lead.history 由来の配信イベント一覧 + 集計。
  * deliveries は「1行=1配信イベント」（delivery-log.js）、summary は Dashboard と共通の
@@ -1022,7 +1159,13 @@ async function buildReportSummarySection() {
 // Phase58 STEP7: server 起動とは独立に、純粋関数（DI 可能）をテストから require できるよう
 // 常時エクスポートする。startServer() 完了後に server / listCompanySummaries / loadCompany を
 // Object.assign で追加する（従来の module.exports の内容は不変）。
-module.exports = { buildStaleReportItems, reasonTokensForClassification };
+module.exports = {
+  buildStaleReportItems,
+  reasonTokensForClassification,
+  buildRemediationItems,
+  remediationForClassification,
+  REMEDIATION_MAP,
+};
 
 // Phase58 STEP7: `node website/aor-admin/server.js`（および child_process.spawn による
 // 既存の HTTP テスト）で直接実行されたときだけ起動する。ユニットテストが require したときは
