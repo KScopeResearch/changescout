@@ -166,6 +166,100 @@
     );
   }
 
+  // Phase59 STEP8: Published Artifact Health / Audit Summary（Dashboard STEP5 / Operations
+  // STEP6 / Reports STEP7 と同じ意味を持つ status-pill 色分け。success/warning/danger → 既存
+  // status-pill クラス（新 CSS なし）。
+  var PUBLISHED_ARTIFACT_STATUS_PILL = { success: "status-approved", warning: "status-needs_revision", danger: "status-rejected" };
+
+  function publishedArtifactStatusBadge(status) {
+    var cls = PUBLISHED_ARTIFACT_STATUS_PILL[status] || "status-pending_review";
+    return '<span class="status-pill ' + cls + '">' + esc(status || "—") + "</span>";
+  }
+
+  /**
+   * Phase59 STEP8: 「Published Artifact Health」カード（System Status＝Application カードの直後）。
+   * AdminApi.getDashboardOperationalHealth() の summary をそのまま表示する（§1: 再計算禁止）。
+   * Deploy Ready 判定は System 側では一切計算しない（§2）。
+   * generated_reports/approved_reports/published_reports または status が無い（legacy）場合は
+   * "" を返し、カード自体を出さない（§4）。
+   * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス（redact 済み）
+   * @returns {string}
+   */
+  function renderPublishedArtifactHealth(operationalHealth) {
+    if (!operationalHealth || isSectionError(operationalHealth) || operationalHealth.ok === false) return "";
+    if (typeof operationalHealth.status !== "string") return "";
+    var summary = operationalHealth.summary;
+    if (!summary || typeof summary !== "object") return "";
+    if (summary.generated_reports === undefined || summary.approved_reports === undefined || summary.published_reports === undefined) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+
+    var status = operationalHealth.status;
+    var toneClass = status === "danger" ? "tone-bad" : status === "warning" ? "tone-warn" : "tone-good";
+    // §2: Banner 文言はこの画面専用の固定文言（summary.status をそのまま使うのみ。独自判定なし）。
+    var message =
+      status === "danger"
+        ? "Orphan published artifacts detected."
+        : status === "warning"
+        ? "Published artifacts require remediation before deployment."
+        : "All published artifacts are synchronized.";
+
+    return (
+      '<section class="card"><h2>Published Artifact Health</h2>' +
+      '<div class="dash-alert ' + toneClass + '">' + esc(message) + "</div>" +
+      fieldRows([
+        { label: "Generated Reports", value: show(summary.generated_reports) },
+        { label: "Approved Reports", value: show(summary.approved_reports) },
+        { label: "Published Reports", value: show(summary.published_reports) },
+        { label: "Published Stale", value: show(summary.published_stale) },
+        { label: "Published Orphan", value: show(summary.published_orphan) },
+      ]) +
+      "</section>"
+    );
+  }
+
+  /**
+   * Phase59 STEP8: 「Published Artifact Audit Summary」カード（Published Artifact Health の直後）。
+   * Dashboard STEP5 / Operations STEP6 / Reports STEP7 と完全に同じ 4 項目・同じ判定ルールを使う
+   * （generated_reports/approved_reports/published_reports/status の比較・転記のみ。§3: 判定再実装禁止）。
+   * legacy（additive フィールド無し）の場合は "" を返す。
+   * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス（redact 済み）
+   * @returns {string}
+   */
+  function renderPublishedArtifactAuditSummary(operationalHealth) {
+    if (!operationalHealth || isSectionError(operationalHealth) || operationalHealth.ok === false) return "";
+    if (typeof operationalHealth.status !== "string") return "";
+    var summary = operationalHealth.summary;
+    if (!summary || typeof summary !== "object") return "";
+    if (summary.generated_reports === undefined || summary.approved_reports === undefined || summary.published_reports === undefined) {
+      return "";
+    }
+
+    var reviewedStatus = summary.generated_reports === summary.approved_reports ? "success" : "warning";
+    var publishedStatus = summary.approved_reports === summary.published_reports ? "success" : "warning";
+    var syncStatus = operationalHealth.status; // サーバー computed 済みの success/warning/danger をそのまま使う
+    var reconciliationStatus = operationalHealth.status; // 同上（独自判定はしない）
+
+    var rows = [
+      ["Generated reports reviewed", reviewedStatus],
+      ["Approved reports published", publishedStatus],
+      ["Published artifacts synchronized", syncStatus],
+      ["Deploy reconciliation clean", reconciliationStatus],
+    ]
+      .map(function (row) {
+        return "<tr><td>" + esc(row[0]) + "</td><td>" + publishedArtifactStatusBadge(row[1]) + "</td></tr>";
+      })
+      .join("");
+
+    return (
+      '<section class="card"><h2>Published Artifact Audit Summary</h2>' +
+      '<div class="dash-table-wrap"><table class="dash-table">' +
+      "<thead><tr><th>Check</th><th>Status</th></tr></thead>" +
+      "<tbody>" + rows + "</tbody></table></div>" +
+      "</section>"
+    );
+  }
+
   // ---- Application / Health（GET /api/health）----
   function renderApplication(health, session) {
     if (isSectionError(health)) return '<section class="card"><h2>Application</h2>' + sectionError("Application / Health", health) + "</section>";
@@ -323,8 +417,10 @@
 
   /**
    * System 画面全体（純粋関数）。
-   * @param {{health:Object, dashHealth:Object, reports:Object, session:Object}} payload
+   * @param {{health:Object, dashHealth:Object, reports:Object, session:Object, operationalHealth?:Object}} payload
    *   各値は API レスポンス、または {status:"error", message} 。redact 済みが渡る前提。
+   *   operationalHealth: GET /api/dashboard/operational-health の生レスポンス（Phase59 STEP8。
+   *   無ければ legacy 扱いで Published Artifact Health / Audit Summary セクションを出さない）。
    * @returns {string}
    */
   function renderSystem(payload) {
@@ -333,9 +429,14 @@
     var dashHealth = p.dashHealth || {};
     var reports = p.reports || {};
     var session = p.session || {};
+    var operationalHealth = p.operationalHealth;
 
+    // §5: 表示順序固定 — System Status（Application） → Published Artifact Health →
+    // Published Artifact Audit Summary → その他既存セクション。既存順序は変更しない。
     return (
       renderApplication(health, session) +
+      renderPublishedArtifactHealth(operationalHealth) +
+      renderPublishedArtifactAuditSummary(operationalHealth) +
       renderHealthChecks(health) +
       renderPipeline(reports) +
       renderDelivery(dashHealth) +
@@ -371,6 +472,7 @@
       AdminApi.getDashboardHealth(),
       AdminApi.getDashboardReports(),
       AdminApi.getSession(),
+      AdminApi.getDashboardOperationalHealth(), // Phase59 STEP8: Published Artifact Health カード用
     ]);
 
     var authFailed = settled.some(function (r) {
@@ -400,6 +502,7 @@
       dashHealth: toSection(settled[1]),
       reports: toSection(settled[2]),
       session: settled[3].status === "fulfilled" ? redact(settled[3].value) : {},
+      operationalHealth: toSection(settled[4]), // Phase59 STEP8
       fetchedAt: new Date().toISOString(),
     });
     container.removeAttribute("aria-busy");
@@ -436,6 +539,8 @@
       renderStorage: renderStorage,
       renderConfiguration: renderConfiguration,
       renderSystem: renderSystem,
+      renderPublishedArtifactHealth: renderPublishedArtifactHealth,
+      renderPublishedArtifactAuditSummary: renderPublishedArtifactAuditSummary,
     };
   } else {
     init();
