@@ -18,6 +18,7 @@ const {
   collectSuppressionSummary,
   collectReportSummary,
   collectOperationalHealth,
+  isOperationalReportSlug,
   findLatestHistory,
 } = require("../shared/dashboard-aggregates");
 
@@ -204,7 +205,7 @@ test("collectReportSummary: publishedBackendSlugs 未取得時は reportsCache.p
 
 test("Case A: published=false + current approved/publishable → stale=0, orphan=0", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "a.example.com", review_status: "approved", published: false, publishable: true }],
+    reportsCache: [{ id: "a.example.jp", review_status: "approved", published: false, publishable: true }],
     publishedBackendSlugs: [],
     webDeployedSlugs: null,
   });
@@ -216,8 +217,8 @@ test("Case A: published=false + current approved/publishable → stale=0, orphan
 
 test("Case B: published=true + current approved/publishable → stale=0, orphan=0（正常公開）", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "a.example.com", review_status: "approved", published: true, publishable: true }],
-    publishedBackendSlugs: ["a.example.com"],
+    reportsCache: [{ id: "a.example.jp", review_status: "approved", published: true, publishable: true }],
+    publishedBackendSlugs: ["a.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_backend, 1);
@@ -228,33 +229,33 @@ test("Case B: published=true + current approved/publishable → stale=0, orphan=
 
 test("Case C: published=true + current report exists + review missing/HOLD (publishable=false) → published_stale=1 / published_backend=1 / approved=0", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "kscope.example.com", review_status: "pending_review", published: true, publishable: false }],
-    publishedBackendSlugs: ["kscope.example.com"],
+    reportsCache: [{ id: "kscope.example.jp", review_status: "pending_review", published: true, publishable: false }],
+    publishedBackendSlugs: ["kscope.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_backend, 1);
   assert.equal(s.approved, 0);
   assert.equal(s.published_stale, 1);
-  assert.deepEqual(s.stale_slugs, ["kscope.example.com"]);
+  assert.deepEqual(s.stale_slugs, ["kscope.example.jp"]);
   assert.equal(s.published_orphan, 0);
 });
 
 test("Case D: published=true + review rejected (publishable=false) → published_stale=1", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "a.example.com", review_status: "rejected", published: true, publishable: false }],
-    publishedBackendSlugs: ["a.example.com"],
+    reportsCache: [{ id: "a.example.jp", review_status: "rejected", published: true, publishable: false }],
+    publishedBackendSlugs: ["a.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_stale, 1);
-  assert.deepEqual(s.stale_slugs, ["a.example.com"]);
+  assert.deepEqual(s.stale_slugs, ["a.example.jp"]);
 });
 
 test("Case E: published=true + evaluation FAIL → publishable=false → published_stale=1", () => {
   const s = collectReportSummary({
     reportsCache: [
-      { id: "a.example.com", review_status: "approved", evaluation_status: "FAIL", published: true, publishable: false },
+      { id: "a.example.jp", review_status: "approved", evaluation_status: "FAIL", published: true, publishable: false },
     ],
-    publishedBackendSlugs: ["a.example.com"],
+    publishedBackendSlugs: ["a.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_stale, 1);
@@ -262,12 +263,12 @@ test("Case E: published=true + evaluation FAIL → publishable=false → publish
 
 test("Case F: published/ backend に artifact あり + current report missing → published_orphan=1, published_stale=0", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "a.example.com", review_status: "approved", published: true, publishable: true }],
-    publishedBackendSlugs: ["a.example.com", "gone.example.com"],
+    reportsCache: [{ id: "a.example.jp", review_status: "approved", published: true, publishable: true }],
+    publishedBackendSlugs: ["a.example.jp", "gone.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_orphan, 1);
-  assert.deepEqual(s.orphan_slugs, ["gone.example.com"]);
+  assert.deepEqual(s.orphan_slugs, ["gone.example.jp"]);
   assert.equal(s.published_stale, 0);
 });
 
@@ -275,18 +276,18 @@ test("Case G: published=true + review approved だが freshness fail (publishabl
   // toSummary は freshness fail 時 publishable=false を返す（review-engine.isPublishable の仕様）。
   const s = collectReportSummary({
     reportsCache: [
-      { id: "a.example.com", review_status: "approved", published: true, publishable: false },
+      { id: "a.example.jp", review_status: "approved", published: true, publishable: false },
     ],
-    publishedBackendSlugs: ["a.example.com"],
+    publishedBackendSlugs: ["a.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_stale, 1);
-  assert.deepEqual(s.stale_slugs, ["a.example.com"]);
+  assert.deepEqual(s.stale_slugs, ["a.example.jp"]);
 });
 
 test("published_orphan は publishedBackendSlugs（S3 一覧）が取れないときは 0（検出不能）", () => {
   const s = collectReportSummary({
-    reportsCache: [{ id: "a.example.com", review_status: "pending_review", published: true, publishable: false }],
+    reportsCache: [{ id: "a.example.jp", review_status: "pending_review", published: true, publishable: false }],
     publishedBackendSlugs: null,
     webDeployedSlugs: null,
   });
@@ -299,12 +300,12 @@ test("published_orphan は publishedBackendSlugs（S3 一覧）が取れない�
 test("既存 collectReportSummary の意味は不変（publishable 無しの旧 reportsCache 形状でも regression なし）", () => {
   const s = collectReportSummary({
     reportsCache: [
-      { id: "a.example.com", review_status: "approved", published: true },
-      { id: "b.example.com", review_status: "approved", published: true },
-      { id: "c.example.com", review_status: "pending_review", published: false },
+      { id: "a.example.jp", review_status: "approved", published: true },
+      { id: "b.example.jp", review_status: "approved", published: true },
+      { id: "c.example.jp", review_status: "pending_review", published: false },
     ],
-    publishedBackendSlugs: ["a.example.com", "b.example.com"],
-    webDeployedSlugs: ["a.example.com", "company-01-manufacturing"],
+    publishedBackendSlugs: ["a.example.jp", "b.example.jp"],
+    webDeployedSlugs: ["a.example.jp", "company-01-manufacturing"],
   });
   // 既存フィールドの値は Phase58 STEP5 前と同じ
   assert.equal(s.generated, 3);
@@ -312,7 +313,7 @@ test("既存 collectReportSummary の意味は不変（publishable 無しの旧 
   assert.equal(s.published_backend, 2);
   assert.equal(s.web_deployed, 2);
   assert.equal(s.deploy_pending, 1);
-  assert.deepEqual(s.pending_slugs, ["b.example.com"]);
+  assert.deepEqual(s.pending_slugs, ["b.example.jp"]);
   // 新フィールドは additive。publishable 未指定なので stale は 0（安全側）
   assert.equal(s.published_stale, 0);
   assert.equal(s.published_orphan, 0);
@@ -321,18 +322,18 @@ test("既存 collectReportSummary の意味は不変（publishable 無しの旧 
 test("複数 slug 混在: stale / orphan / 正常 が同時に数えられる", () => {
   const s = collectReportSummary({
     reportsCache: [
-      { id: "ok.example.com", review_status: "approved", published: true, publishable: true },
-      { id: "stale1.example.com", review_status: "pending_review", published: true, publishable: false },
-      { id: "stale2.example.com", review_status: "rejected", published: true, publishable: false },
-      { id: "notpublished.example.com", review_status: "pending_review", published: false, publishable: false },
+      { id: "ok.example.jp", review_status: "approved", published: true, publishable: true },
+      { id: "stale1.example.jp", review_status: "pending_review", published: true, publishable: false },
+      { id: "stale2.example.jp", review_status: "rejected", published: true, publishable: false },
+      { id: "notpublished.example.jp", review_status: "pending_review", published: false, publishable: false },
     ],
-    publishedBackendSlugs: ["ok.example.com", "stale1.example.com", "stale2.example.com", "orphan.example.com"],
+    publishedBackendSlugs: ["ok.example.jp", "stale1.example.jp", "stale2.example.jp", "orphan.example.jp"],
     webDeployedSlugs: null,
   });
   assert.equal(s.published_stale, 2);
-  assert.deepEqual(s.stale_slugs, ["stale1.example.com", "stale2.example.com"]);
+  assert.deepEqual(s.stale_slugs, ["stale1.example.jp", "stale2.example.jp"]);
   assert.equal(s.published_orphan, 1);
-  assert.deepEqual(s.orphan_slugs, ["orphan.example.com"]);
+  assert.deepEqual(s.orphan_slugs, ["orphan.example.jp"]);
   assert.equal(s.approved, 1);
   assert.equal(s.published_backend, 4);
 });
@@ -385,10 +386,10 @@ const noPublished = async () => null;
 test("collectOperationalHealth: healthy（stale/orphan なし）は items 空", async () => {
   const r = await collectOperationalHealth({
     reportsCache: [
-      { id: "a.example.com", company_name: "A", published: true, publishable: true },
-      { id: "b.example.com", company_name: "B", published: false, publishable: false },
+      { id: "a.example.jp", company_name: "A", published: true, publishable: true },
+      { id: "b.example.jp", company_name: "B", published: false, publishable: false },
     ],
-    publishedBackendSlugs: ["a.example.com"],
+    publishedBackendSlugs: ["a.example.jp"],
     loadPublished: noPublished,
   });
   assert.deepEqual(r.items, []);
@@ -400,20 +401,20 @@ test("collectOperationalHealth: stale は published===true && publishable===fals
   const r = await collectOperationalHealth({
     reportsCache: [
       {
-        id: "x.example.com",
+        id: "x.example.jp",
         company_name: "X Co",
         published: true,
         publishable: false,
         publishable_reasons: ["review.statusが\"approved\"ではありません（実際: pending_review）"],
       },
     ],
-    publishedBackendSlugs: ["x.example.com"],
+    publishedBackendSlugs: ["x.example.jp"],
     loadPublished: async () => ({ meta: { published_at: "2026-09-10T12:00:00.000Z" } }),
   });
   assert.equal(r.stale_count, 1);
   assert.equal(r.orphan_count, 0);
   assert.deepEqual(r.items[0], {
-    slug: "x.example.com",
+    slug: "x.example.jp",
     company_name: "X Co",
     state: "published_stale",
     reason: "review.statusが\"approved\"ではありません（実際: pending_review）",
@@ -423,14 +424,14 @@ test("collectOperationalHealth: stale は published===true && publishable===fals
 
 test("collectOperationalHealth: orphan は publishedBackendSlugs にあり reportsCache に id が無いもの", async () => {
   const r = await collectOperationalHealth({
-    reportsCache: [{ id: "a.example.com", company_name: "A", published: true, publishable: true }],
-    publishedBackendSlugs: ["a.example.com", "gone.example.com"],
+    reportsCache: [{ id: "a.example.jp", company_name: "A", published: true, publishable: true }],
+    publishedBackendSlugs: ["a.example.jp", "gone.example.jp"],
     loadPublished: noPublished,
   });
   assert.equal(r.orphan_count, 1);
   assert.equal(r.stale_count, 0);
   assert.deepEqual(r.items[0], {
-    slug: "gone.example.com",
+    slug: "gone.example.jp",
     company_name: null,
     state: "published_orphan",
     reason: "current report/review not found",
@@ -440,7 +441,7 @@ test("collectOperationalHealth: orphan は publishedBackendSlugs にあり repor
 
 test("collectOperationalHealth: publishedBackendSlugs 未取得（null）なら orphan は検出しない（stale は検出できる）", async () => {
   const r = await collectOperationalHealth({
-    reportsCache: [{ id: "x.example.com", company_name: "X", published: true, publishable: false, review_status: "rejected" }],
+    reportsCache: [{ id: "x.example.jp", company_name: "X", published: true, publishable: false, review_status: "rejected" }],
     publishedBackendSlugs: null,
     loadPublished: noPublished,
   });
@@ -452,22 +453,22 @@ test("collectOperationalHealth: publishedBackendSlugs 未取得（null）なら 
 test("collectOperationalHealth: stale ×2 + orphan ×1 が順序どおり（stale が先、reportsCache 順）", async () => {
   const r = await collectOperationalHealth({
     reportsCache: [
-      { id: "s1.example.com", company_name: "S1", published: true, publishable: false, evaluation_status: "FAIL", review_status: "approved" },
-      { id: "ok.example.com", company_name: "OK", published: true, publishable: true },
-      { id: "s2.example.com", company_name: "S2", published: true, publishable: false, review_status: "needs_revision" },
+      { id: "s1.example.jp", company_name: "S1", published: true, publishable: false, evaluation_status: "FAIL", review_status: "approved" },
+      { id: "ok.example.jp", company_name: "OK", published: true, publishable: true },
+      { id: "s2.example.jp", company_name: "S2", published: true, publishable: false, review_status: "needs_revision" },
     ],
-    publishedBackendSlugs: ["s1.example.com", "ok.example.com", "s2.example.com", "orphan.example.com"],
+    publishedBackendSlugs: ["s1.example.jp", "ok.example.jp", "s2.example.jp", "orphan.example.jp"],
     loadPublished: noPublished,
   });
-  assert.deepEqual(r.items.map((i) => i.slug), ["s1.example.com", "s2.example.com", "orphan.example.com"]);
+  assert.deepEqual(r.items.map((i) => i.slug), ["s1.example.jp", "s2.example.jp", "orphan.example.jp"]);
   assert.deepEqual(r.items.map((i) => i.state), ["published_stale", "published_stale", "published_orphan"]);
   assert.equal(r.items[0].reason, "evaluation status is FAIL");
 });
 
 test("collectOperationalHealth: loadPublished が例外を投げても published_at は null（集計は止めない）", async () => {
   const r = await collectOperationalHealth({
-    reportsCache: [{ id: "x.example.com", company_name: "X", published: true, publishable: false, review_status: "pending_review" }],
-    publishedBackendSlugs: ["x.example.com"],
+    reportsCache: [{ id: "x.example.jp", company_name: "X", published: true, publishable: false, review_status: "pending_review" }],
+    publishedBackendSlugs: ["x.example.jp"],
     loadPublished: async () => {
       throw new Error("S3 outage");
     },
@@ -478,9 +479,100 @@ test("collectOperationalHealth: loadPublished が例外を投げても published
 
 test("collectOperationalHealth: company_name が無ければ null（UI 側で slug フォールバック）", async () => {
   const r = await collectOperationalHealth({
-    reportsCache: [{ id: "x.example.com", published: true, publishable: false, review_status: "pending_review" }],
+    reportsCache: [{ id: "x.example.jp", published: true, publishable: false, review_status: "pending_review" }],
     publishedBackendSlugs: [],
     loadPublished: noPublished,
   });
   assert.equal(r.items[0].company_name, null);
+});
+
+// ---------------------------------------------------------------------------
+// Phase59 STEP2 — isOperationalReportSlug / stale・orphan からの予約テストドメイン除外
+// generated / approved / published_backend 等の既存メトリクスには影響しない。
+// deploy-aor-web.js の RESERVED_TEST_DOMAIN_RE をそのまま再利用（重複実装しない）。
+// ---------------------------------------------------------------------------
+
+test("isOperationalReportSlug: RFC2606/IANA 予約テストドメインは false、実会社 slug は true", () => {
+  assert.equal(isOperationalReportSlug("example.com"), false);
+  assert.equal(isOperationalReportSlug("sub.example.com"), false);
+  assert.equal(isOperationalReportSlug("example.net"), false);
+  assert.equal(isOperationalReportSlug("example.org"), false);
+  assert.equal(isOperationalReportSlug("x.example"), false);
+  assert.equal(isOperationalReportSlug("y.test"), false);
+  assert.equal(isOperationalReportSlug("z.invalid"), false);
+  assert.equal(isOperationalReportSlug("localhost"), false);
+  assert.equal(isOperationalReportSlug("ab-i.jp"), true);
+  assert.equal(isOperationalReportSlug("kscope.co.jp"), true);
+  assert.equal(isOperationalReportSlug("illegame.com"), true);
+  assert.equal(isOperationalReportSlug(""), false);
+  assert.equal(isOperationalReportSlug(null), false);
+  assert.equal(isOperationalReportSlug(undefined), false);
+});
+
+test("Case A: example.com のみ stale → published_backend は維持、published_stale/stale_slugs は 0/空", () => {
+  const s = collectReportSummary({
+    reportsCache: [{ id: "example.com", review_status: "approved", published: true, publishable: false }],
+    publishedBackendSlugs: ["example.com"],
+    webDeployedSlugs: null,
+  });
+  assert.equal(s.generated, 1, "generated は維持");
+  assert.equal(s.approved, 1, "approved は維持");
+  assert.equal(s.published_backend, 1, "published_backend は維持");
+  assert.equal(s.published_stale, 0);
+  assert.deepEqual(s.stale_slugs, []);
+});
+
+test("Case B: ab-i.jp のみ stale → published_stale=1 / stale_slugs=[\"ab-i.jp\"]", () => {
+  const s = collectReportSummary({
+    reportsCache: [{ id: "ab-i.jp", review_status: "approved", published: true, publishable: false }],
+    publishedBackendSlugs: ["ab-i.jp"],
+    webDeployedSlugs: null,
+  });
+  assert.equal(s.published_stale, 1);
+  assert.deepEqual(s.stale_slugs, ["ab-i.jp"]);
+});
+
+test("Case C: example.com + ab-i.jp 混在 stale → example.com だけ除外され published_stale=1", () => {
+  const s = collectReportSummary({
+    reportsCache: [
+      { id: "example.com", review_status: "approved", published: true, publishable: false },
+      { id: "ab-i.jp", review_status: "approved", published: true, publishable: false },
+    ],
+    publishedBackendSlugs: ["example.com", "ab-i.jp"],
+    webDeployedSlugs: null,
+  });
+  assert.equal(s.published_backend, 2, "published_backend は example.com を含めたまま維持");
+  assert.equal(s.published_stale, 1);
+  assert.deepEqual(s.stale_slugs, ["ab-i.jp"]);
+});
+
+test("orphan も同様に予約テストドメインを除外する（generated-e2e-*.example.com 相当）", () => {
+  const s = collectReportSummary({
+    reportsCache: [{ id: "ab-i.jp", review_status: "approved", published: true, publishable: true }],
+    publishedBackendSlugs: ["ab-i.jp", "e2e-task29-test.example.com", "gone-real.co.jp"],
+    webDeployedSlugs: null,
+  });
+  // e2e-task29-test.example.com は reportsCache に無い（orphan 候補）が予約ドメインなので除外
+  // gone-real.co.jp は reportsCache に無い実ドメインなので orphan としてカウントされる
+  assert.equal(s.published_orphan, 1);
+  assert.deepEqual(s.orphan_slugs, ["gone-real.co.jp"]);
+  assert.equal(s.published_backend, 3, "published_backend は3件のまま維持（除外しない）");
+});
+
+test("collectOperationalHealth: 予約テストドメインの stale/orphan は items に出ない（generated/approved は対象外の関数だが件数の一貫性を確認）", async () => {
+  const oh = await collectOperationalHealth({
+    reportsCache: [
+      { id: "example.com", company_name: "Example Domain", published: true, publishable: false },
+      { id: "ab-i.jp", company_name: "ABI", published: true, publishable: false },
+    ],
+    publishedBackendSlugs: ["example.com", "ab-i.jp", "orphan-test.example.net"],
+    loadPublished: async () => null,
+  });
+  assert.deepEqual(
+    oh.items.map((i) => i.slug),
+    ["ab-i.jp"],
+    "example.com（stale）と orphan-test.example.net（orphan）は予約ドメインなので出ない"
+  );
+  assert.equal(oh.stale_count, 1);
+  assert.equal(oh.orphan_count, 0);
 });

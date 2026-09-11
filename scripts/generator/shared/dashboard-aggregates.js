@@ -18,8 +18,33 @@
 
 const { listLeads, isDeliveryBlocked } = require("../leads/lead-store");
 const publishedStore = require("../published-store"); // Phase59: operational health detail の published_at 取得（read-only）
+const { RESERVED_TEST_DOMAIN_RE } = require("../deploy-aor-web"); // Phase59 STEP2: 予約テストドメイン判定を deploy-aor-web.js と共有（重複実装しない）
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Phase59 STEP2: 「運用メトリクス（stale / orphan）へ含める Published artifact か」を判定する。
+ *
+ * RFC2606 / IANA 予約テストドメイン（example.com / *.example.com / example.net / example.org /
+ * *.example / *.test / *.invalid / localhost）を false にする。判定ロジックは
+ * deploy-aor-web.js の RESERVED_TEST_DOMAIN_RE をそのまま再利用し、意味を一致させる
+ * （§3: 重複実装禁止）。
+ *
+ * 【適用範囲】generated / approved / published_backend / web_deployed / deploy_pending 等の
+ * 既存メトリクスには適用しない（§4: 意味を維持）。published_stale / published_orphan /
+ * stale_slugs / orphan_slugs、および collectOperationalHealth() の items にのみ適用する。
+ *
+ * 【Deploy Reconciliation とは独立】deploy-aor-web.js の reconcilePublishedReports() /
+ * classifyPublishedArtifact() は一切変更しない。example.com は引き続き
+ * STALE_AFTER_REGENERATION に分類され、deploy 前ゲートは従来どおり機能する
+ * （Dashboard の運用メトリクスから見えなくなるだけ）。
+ *
+ * @param {string} slug
+ * @returns {boolean}
+ */
+function isOperationalReportSlug(slug) {
+  return typeof slug === "string" && slug.length > 0 && !RESERVED_TEST_DOMAIN_RE.test(slug);
+}
 
 /**
  * 対象 Lead 配列を得る。options.leads が渡されればそれを使い（テスト用の依存性注入。
@@ -244,8 +269,10 @@ function collectReportSummary(input = {}) {
 
   // Phase58 STEP5: published_stale — current report/review が存在するのに今は公開不可。
   // publishable が明示的に false のもののみ数える（undefined は「不明」として除外＝安全側）。
+  // Phase59 STEP2: 運用メトリクスなので RFC2606 予約テストドメイン（例: example.com）は除外する
+  // （generated/approved/published_backend 等の既存メトリクスには適用しない。§4）。
   const stale_slugs = reportsCache
-    .filter((r) => r && r.published === true && r.publishable === false)
+    .filter((r) => r && r.published === true && r.publishable === false && isOperationalReportSlug(r.id))
     .map((r) => r.id)
     .filter(Boolean)
     .sort();
@@ -253,9 +280,10 @@ function collectReportSummary(input = {}) {
 
   // Phase58 STEP5: published_orphan — published/ backend に artifact があるが current 側に無い。
   // S3 の published/ 一覧が取れているときのみ検出できる（取れなければ 0）。
+  // Phase59 STEP2: 同様に予約テストドメインは運用メトリクスから除外する。
   const cacheIds = new Set(reportsCache.map((r) => r && r.id).filter(Boolean));
   const orphan_slugs = publishedBackendSlugs
-    ? [...backendSet].filter((slug) => !cacheIds.has(slug)).sort()
+    ? [...backendSet].filter((slug) => !cacheIds.has(slug) && isOperationalReportSlug(slug)).sort()
     : [];
   const published_orphan = orphan_slugs.length;
 
@@ -314,8 +342,9 @@ async function collectOperationalHealth(input = {}) {
   const items = [];
 
   // stale: current report/review はある（reportsCache に載っている）が今は公開不可
+  // Phase59 STEP2: RFC2606 予約テストドメインは運用メトリクスから除外する（isOperationalReportSlug）。
   for (const r of reportsCache) {
-    if (!r || r.published !== true || r.publishable !== false) continue;
+    if (!r || r.published !== true || r.publishable !== false || !isOperationalReportSlug(r.id)) continue;
     items.push({
       slug: r.id,
       company_name: r.company_name || null,
@@ -326,9 +355,10 @@ async function collectOperationalHealth(input = {}) {
   }
 
   // orphan: published/ backend に artifact はあるが current report/review が無い
+  // Phase59 STEP2: 同様に予約テストドメインは除外する。
   if (publishedBackendSlugs) {
     for (const slug of publishedBackendSlugs) {
-      if (cacheIds.has(slug)) continue;
+      if (cacheIds.has(slug) || !isOperationalReportSlug(slug)) continue;
       items.push({
         slug,
         company_name: null,
@@ -385,6 +415,7 @@ module.exports = {
   collectReportSummary,
   collectOperationalHealth,
   classifySuppression,
+  isOperationalReportSlug,
   // テスト用に公開
   findLatestHistory,
   staleReason,

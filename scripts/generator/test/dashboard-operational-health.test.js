@@ -15,6 +15,7 @@ const path = require("path");
 
 const server = require(path.join(__dirname, "..", "..", "..", "website", "aor-admin", "server.js"));
 const ui = require(path.join(__dirname, "..", "..", "..", "website", "aor-admin", "public", "assets", "js", "dashboard.js"));
+const dashboardAggregates = require("../shared/dashboard-aggregates"); // Phase59 STEP2: drift cleanup の集計側
 
 const { operationalHealthStatus, buildOperationalHealthChecks } = server;
 
@@ -43,6 +44,50 @@ test("Case5: legacy summary fallback（undefined/null 入力でも例外を投�
   assert.equal(operationalHealthStatus(undefined, undefined), "success");
   assert.equal(operationalHealthStatus(null, null), "success");
   assert.equal(operationalHealthStatus(), "success");
+});
+
+// ===========================================================================
+// Phase59 STEP2 — Drift Cleanup 統合確認
+// dashboardAggregates.collectReportSummary()（RFC2606 予約テストドメイン除外済み）の
+// published_stale / published_orphan を operationalHealthStatus() へそのまま渡した結果。
+// status 判定ロジック・deploy_ready ロジック自体は STEP9 から不変（§5）。
+// ===========================================================================
+
+test("Case D: example.com のみ stale（予約テストドメイン）→ collectReportSummary 経由で status=success / deploy_ready=true", () => {
+  const summary = dashboardAggregates.collectReportSummary({
+    reportsCache: [{ id: "example.com", review_status: "approved", published: true, publishable: false }],
+    publishedBackendSlugs: ["example.com"],
+  });
+  assert.equal(summary.published_stale, 0, "example.com は運用メトリクスから除外される");
+  const status = operationalHealthStatus(summary.published_stale, summary.published_orphan);
+  const deploy_ready = summary.published_stale === 0 && summary.published_orphan === 0;
+  assert.equal(status, "success");
+  assert.equal(deploy_ready, true);
+});
+
+test("Case E: ab-i.jp（実運用 slug）が stale → collectReportSummary 経由で status=warning / deploy_ready=false", () => {
+  const summary = dashboardAggregates.collectReportSummary({
+    reportsCache: [{ id: "ab-i.jp", review_status: "approved", published: true, publishable: false }],
+    publishedBackendSlugs: ["ab-i.jp"],
+  });
+  assert.equal(summary.published_stale, 1, "実運用 slug は除外されない");
+  const status = operationalHealthStatus(summary.published_stale, summary.published_orphan);
+  const deploy_ready = summary.published_stale === 0 && summary.published_orphan === 0;
+  assert.equal(status, "warning");
+  assert.equal(deploy_ready, false);
+});
+
+test("Drift Cleanup: example.com + ab-i.jp 混在でも実運用 slug の stale だけが status に反映される", () => {
+  const summary = dashboardAggregates.collectReportSummary({
+    reportsCache: [
+      { id: "example.com", review_status: "approved", published: true, publishable: false },
+      { id: "ab-i.jp", review_status: "approved", published: true, publishable: true },
+    ],
+    publishedBackendSlugs: ["example.com", "ab-i.jp"],
+  });
+  // ab-i.jp は publishable=true なので stale ではない。example.com は除外。→ 全体 success。
+  assert.equal(summary.published_stale, 0);
+  assert.equal(operationalHealthStatus(summary.published_stale, summary.published_orphan), "success");
 });
 
 // ===========================================================================
