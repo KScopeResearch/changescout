@@ -394,7 +394,97 @@
         `</ul>`
       : "";
 
-    return deployBanner + counts + link + checksHtml;
+    return deployBanner + counts + link + checksHtml + renderPublishedArtifactAudit(data);
+  }
+
+  /**
+   * Phase59 STEP5 — Operational Health Card 内の「Published Artifact Audit」小セクション。
+   * generated_reports/approved_reports/published_reports（STEP5 additive フィールド）を表示する。
+   * これらが summary に無い（legacy レスポンス）場合は "" を返し、何も追加しない（§6）。
+   *
+   * 判定は既存の data.status（サーバー側 operationalHealthStatus() が published_stale/
+   * published_orphan から computed 済み）をそのまま使う。ここで新しい判定は行わない。
+   * 件数のみ表示し、slug 一覧は出さない（既存カードと同じ方針）。
+   *
+   * @param {Object} data - GET /api/dashboard/operational-health の生レスポンス
+   * @returns {string}
+   */
+  function renderPublishedArtifactAudit(data) {
+    const summary = (data && data.summary) || {};
+    if (
+      summary.generated_reports === undefined ||
+      summary.approved_reports === undefined ||
+      summary.published_reports === undefined
+    ) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+    const num = (v) => (v == null ? 0 : v);
+    const toneClass = data.status === "danger" ? "tone-bad" : data.status === "warning" ? "tone-warn" : "tone-good";
+    const message =
+      data.status === "danger"
+        ? "Some published artifacts are orphaned. Resolve before the next deployment."
+        : data.status === "warning"
+        ? "Some published artifacts are stale. Review before the next deployment."
+        : "All published artifacts are synchronized.";
+
+    const counts = metricGrid([
+      { label: "Generated Reports", value: num(summary.generated_reports) },
+      { label: "Approved Reports", value: num(summary.approved_reports) },
+      { label: "Published Reports", value: num(summary.published_reports) },
+      { label: "Published Stale", value: num(summary.published_stale), tone: summary.published_stale > 0 ? "warn" : undefined },
+      { label: "Published Orphan", value: num(summary.published_orphan), tone: summary.published_orphan > 0 ? "bad" : undefined },
+    ]);
+
+    return `<h3>Published Artifact Audit</h3><div class="dash-alert ${toneClass}">${esc(message)}</div>${counts}`;
+  }
+
+  /**
+   * Phase59 STEP5 — 「Published Artifact Audit Summary」テーブル（Operational Health Detail の下）。
+   * 4 つの固定チェック項目を、既存 summary の値の比較だけで success/warning/danger 表示する
+   * （§4: 判定は既存 summary を使う。独自判定禁止＝新しい公開可否・鮮度・レビュー判定は行わない）。
+   *
+   * - "Generated reports reviewed": generated_reports と approved_reports の一致比較のみ
+   * - "Approved reports published": approved_reports と published_reports の一致比較のみ
+   * - "Published artifacts synchronized" / "Deploy reconciliation clean": どちらも
+   *   data.status（サーバー側で published_stale/published_orphan から computed 済み）をそのまま使う
+   *
+   * generated_reports 等が無い（legacy）場合は "" を返し、セクション自体を出さない。
+   *
+   * @param {Object|undefined} data - GET /api/dashboard/operational-health の生レスポンス
+   * @returns {string}
+   */
+  function renderPublishedArtifactAuditSummary(data) {
+    if (data === undefined || data === null) return "";
+    if (isSectionError(data)) return sectionErrorHtml("Published Artifact Audit Summary", data);
+    if (typeof data.status !== "string") return ""; // legacy
+    const summary = data.summary || {};
+    if (
+      summary.generated_reports === undefined ||
+      summary.approved_reports === undefined ||
+      summary.published_reports === undefined
+    ) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+
+    const reviewedStatus = summary.generated_reports === summary.approved_reports ? "success" : "warning";
+    const publishedStatus = summary.approved_reports === summary.published_reports ? "success" : "warning";
+    const syncStatus = data.status; // success/warning/danger をそのまま使う
+    const reconciliationStatus = data.status; // 同上（既存判定の再利用のみ）
+
+    const rows = [
+      ["Generated reports reviewed", reviewedStatus],
+      ["Approved reports published", publishedStatus],
+      ["Published artifacts synchronized", syncStatus],
+      ["Deploy reconciliation clean", reconciliationStatus],
+    ]
+      .map(([label, status]) => `<tr><td>${esc(label)}</td><td>${healthStatusBadge(status)}</td></tr>`)
+      .join("");
+
+    return (
+      `<div class="dash-table-wrap"><table class="dash-table">` +
+      `<thead><tr><th>Check</th><th>Status</th></tr></thead>` +
+      `<tbody>${rows}</tbody></table></div>`
+    );
   }
 
   /**
@@ -438,6 +528,7 @@
 
     const opHealthCardHtml = renderOperationalHealthCard(opHealthRaw);
     const opHealthHtml = renderOperationalHealthDetail(operationalHealth);
+    const auditSummaryHtml = renderPublishedArtifactAuditSummary(opHealthRaw);
 
     return (
       `<div class="dash-overview">` +
@@ -451,6 +542,9 @@
       `<section class="card"><h2>Report Summary</h2>${renderReportSummary(reports)}</section>` +
       (opHealthCardHtml ? `<section class="card"><h2>Operational Health</h2>${opHealthCardHtml}</section>` : "") +
       (opHealthHtml ? `<section class="card"><h2>Operational Health Detail</h2>${opHealthHtml}</section>` : "") +
+      (auditSummaryHtml
+        ? `<section class="card"><h2>Published Artifact Audit Summary</h2>${auditSummaryHtml}</section>`
+        : "") +
       `<section class="card"><h2>System Health</h2>` +
       renderSesHealth(ses) +
       renderLambdaHealth(lambda) +
@@ -529,6 +623,8 @@
       renderReportSummary,
       renderOperationalHealthDetail,
       renderOperationalHealthCard,
+      renderPublishedArtifactAudit,
+      renderPublishedArtifactAuditSummary,
       healthStatusBadge,
       renderSesHealth,
       renderLambdaHealth,

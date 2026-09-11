@@ -415,3 +415,85 @@ test("STEP7: stale=0 / orphan=0 のときは Operations 導線を出さない", 
   assert.ok(!html.includes("View details in Operations"));
   assert.ok(!html.includes("published-artifact-health"));
 });
+
+// ===========================================================================
+// Phase59 STEP5 — Published Artifact Audit（Audit Card / Audit Summary 描画確認）
+// 詳細な行別ステータス判定は dashboard-operational-health.test.js 側で検証済み。
+// ここでは renderOperationalHealthCard / renderPublishedArtifactAuditSummary が
+// 正しく描画・非描画を切り替えることのみ確認する。
+// ===========================================================================
+
+function opHealthOk(overrides) {
+  return Object.assign(
+    {
+      ok: true,
+      status: "success",
+      summary: {
+        published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0,
+        deploy_blocked: false, deploy_ready: true,
+        generated_reports: 9, approved_reports: 5, published_reports: 4,
+      },
+      checks: [],
+    },
+    overrides || {}
+  );
+}
+
+test("Audit Card描画: Operational Health Card に Published Artifact Audit の件数（Generated/Approved/Published Reports）が出る", () => {
+  const html = ui.renderOperationalHealthCard(opHealthOk());
+  assert.match(html, /Published Artifact Audit/);
+  assert.match(html, /Generated Reports/);
+  assert.match(html, /Approved Reports/);
+  assert.match(html, /Published Reports/);
+});
+
+test("Audit Summary描画: renderPublishedArtifactAuditSummary は 4 行の Check テーブルを返す", () => {
+  const html = ui.renderPublishedArtifactAuditSummary(opHealthOk());
+  const rows = ["Generated reports reviewed", "Approved reports published", "Published artifacts synchronized", "Deploy reconciliation clean"];
+  for (const label of rows) {
+    assert.match(html, new RegExp(`<td>${label}</td>`));
+  }
+  assert.ok(!html.includes("example.com"), "slug 一覧は出さない（件数/判定のみ）");
+});
+
+test("legacy fallback: generated_reports 等が無い旧レスポンスでは Audit Card 拡張も Audit Summary も出ない", () => {
+  const legacy = {
+    ok: true,
+    status: "success",
+    summary: { published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0, deploy_blocked: false, deploy_ready: true },
+    checks: [],
+  };
+  const card = ui.renderOperationalHealthCard(legacy);
+  assert.ok(!card.includes("Published Artifact Audit"));
+  assert.equal(ui.renderPublishedArtifactAuditSummary(legacy), "");
+});
+
+test("warning表示: published_stale>0（status=warning）は Audit Card が tone-warn、Audit Summary の synchronized 行が warning", () => {
+  const data = opHealthOk({
+    status: "warning",
+    summary: {
+      published_stale: 1, published_orphan: 0, recommended_republish: 1, recommended_unpublish: 0,
+      deploy_blocked: true, deploy_ready: false,
+      generated_reports: 9, approved_reports: 5, published_reports: 4,
+    },
+  });
+  const card = ui.renderOperationalHealthCard(data);
+  assert.match(card, /dash-alert tone-warn">Some published artifacts are stale\./);
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-needs_revision">🟡 warning<\/span><\/td>/);
+});
+
+test("danger表示: published_orphan>0（status=danger）は Audit Card が tone-bad、Audit Summary の synchronized 行が danger", () => {
+  const data = opHealthOk({
+    status: "danger",
+    summary: {
+      published_stale: 0, published_orphan: 1, recommended_republish: 0, recommended_unpublish: 1,
+      deploy_blocked: true, deploy_ready: false,
+      generated_reports: 9, approved_reports: 5, published_reports: 4,
+    },
+  });
+  const card = ui.renderOperationalHealthCard(data);
+  assert.match(card, /dash-alert tone-bad">Some published artifacts are orphaned\./);
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-rejected">🔴 danger<\/span><\/td>/);
+});

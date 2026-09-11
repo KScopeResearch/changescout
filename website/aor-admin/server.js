@@ -942,6 +942,11 @@ function buildOperationalHealthChecks(input) {
  * Phase58 STEP9: operational-health の status/summary/checks を組み立てる。
  * collectReportSummary() / remediation-plan の summary をそのまま使う（deploy reconciliation の
  * 再実行はしない）。deploy readiness は published_stale/published_orphan が 0 かどうかだけで決まる。
+ *
+ * Phase59 STEP5: summary に generated_reports/approved_reports/published_reports を additive で
+ * 追加する（Published Artifact Audit 用）。値は collectReportSummary() の generated/approved/
+ * published_backend をそのまま転記するだけで、再計算はしない（§2: 既存 aggregate を利用）。
+ * 既存フィールド（published_stale 等）・checks 配列・status の意味は一切変更しない。
  * @returns {Promise<{status:string, summary:Object, checks:Array<Object>}>}
  */
 async function buildOperationalHealthStatusSection() {
@@ -950,6 +955,12 @@ async function buildOperationalHealthStatusSection() {
   const deploy_ready = published_stale === 0 && published_orphan === 0;
   const status = operationalHealthStatus(published_stale, published_orphan);
   const hasUnreadable = remediation.items.some((item) => item.classification === RECONCILIATION_CLASS.STALE_UNREADABLE);
+
+  // Phase59 STEP5: Published Artifact Audit 用の generated/approved/published カウント。
+  // collectReportSummary() を再利用するのみで、独自の集計ロジックは持たない。
+  const publishedResult = await awsStatus.listPublishedBackendSlugs();
+  const publishedBackendSlugs = Array.isArray(publishedResult) ? publishedResult : null;
+  const reportSummary = dashboardAggregates.collectReportSummary({ reportsCache, publishedBackendSlugs });
 
   return {
     status,
@@ -960,6 +971,10 @@ async function buildOperationalHealthStatusSection() {
       recommended_unpublish,
       deploy_blocked: !deploy_ready,
       deploy_ready,
+      // Phase59 STEP5: additive フィールド（既存フィールドは変更しない）
+      generated_reports: reportSummary.generated,
+      approved_reports: reportSummary.approved,
+      published_reports: reportSummary.published_backend,
     },
     checks: buildOperationalHealthChecks({
       published_stale,
