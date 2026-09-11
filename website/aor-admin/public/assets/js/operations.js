@@ -154,7 +154,91 @@
       link = '<div class="dash-note"><a href="#published-artifact-health">View Published Artifact Remediation Plan</a></div>';
     }
 
-    return head + fields + alert + link + "</section>";
+    return head + fields + alert + link + renderPublishedArtifactAudit(payload) + "</section>";
+  }
+
+  /**
+   * Phase59 STEP6: Deploy Readiness カード内の「Published Artifact Audit」小セクション
+   * （Dashboard STEP5 の renderOperationalHealthCard 内セクションと同じ 5 項目）。
+   * operationalHealth.summary の値をそのまま表示するのみで、再計算はしない（§2）。
+   * generated_reports/approved_reports/published_reports が無い（legacy）場合は "" を返す。
+   * @param {Object} payload - renderOperations と同じ payload（operationalHealth を含む）
+   * @returns {string}
+   */
+  function renderPublishedArtifactAudit(payload) {
+    var opHealth = payload && payload.operationalHealth;
+    if (!opHealth || isSectionError(opHealth) || opHealth.ok === false) return "";
+    var summary = opHealth.summary;
+    if (!summary || typeof summary !== "object") return "";
+    if (summary.generated_reports === undefined || summary.approved_reports === undefined || summary.published_reports === undefined) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+    var stale = summary.published_stale == null ? 0 : summary.published_stale;
+    var orphan = summary.published_orphan == null ? 0 : summary.published_orphan;
+
+    var toneClass = opHealth.status === "danger" ? "tone-bad" : opHealth.status === "warning" ? "tone-warn" : "tone-good";
+    var message =
+      opHealth.status === "danger"
+        ? "Some published artifacts are orphaned. Resolve before the next deployment."
+        : opHealth.status === "warning"
+        ? "Some published artifacts are stale. Review before the next deployment."
+        : "All published artifacts are synchronized.";
+
+    return (
+      "<h3>Published Artifact Audit</h3>" +
+      '<div class="dash-alert ' + toneClass + '">' + esc(message) + "</div>" +
+      '<div class="field-row">' +
+      '<div class="field"><div class="label">Generated Reports</div><div class="value">' + esc(countOrDash(summary.generated_reports)) + "</div></div>" +
+      '<div class="field"><div class="label">Approved Reports</div><div class="value">' + esc(countOrDash(summary.approved_reports)) + "</div></div>" +
+      '<div class="field"><div class="label">Published Reports</div><div class="value">' + esc(countOrDash(summary.published_reports)) + "</div></div>" +
+      '<div class="field"><div class="label">Published Stale</div><div class="value' + (stale > 0 ? " tone-warn" : "") + '">' + esc(countOrDash(summary.published_stale)) + "</div></div>" +
+      '<div class="field"><div class="label">Published Orphan</div><div class="value' + (orphan > 0 ? " tone-bad" : "") + '">' + esc(countOrDash(summary.published_orphan)) + "</div></div>" +
+      "</div>"
+    );
+  }
+
+  /**
+   * Phase59 STEP6: 「Published Artifact Audit Summary」カード（Deploy Readiness カードの下）。
+   * Dashboard STEP5 の renderPublishedArtifactAuditSummary() と完全に同じ判定ルールを使う
+   * （generated_reports/approved_reports/published_reports/status の比較・転記のみ。
+   * 独自の公開可否・鮮度・レビュー判定は行わない）。
+   * generated_reports 等が無い（legacy）場合は "" を返し、セクション自体を出さない。
+   * @param {Object} payload - renderOperations と同じ payload（operationalHealth を含む）
+   * @returns {string}
+   */
+  function renderPublishedArtifactAuditSummary(payload) {
+    var opHealth = payload && payload.operationalHealth;
+    if (!opHealth || isSectionError(opHealth) || opHealth.ok === false) return "";
+    if (typeof opHealth.status !== "string") return "";
+    var summary = opHealth.summary;
+    if (!summary || typeof summary !== "object") return "";
+    if (summary.generated_reports === undefined || summary.approved_reports === undefined || summary.published_reports === undefined) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+
+    var reviewedStatus = summary.generated_reports === summary.approved_reports ? "success" : "warning";
+    var publishedStatus = summary.approved_reports === summary.published_reports ? "success" : "warning";
+    var syncStatus = opHealth.status; // サーバー computed 済みの success/warning/danger をそのまま使う
+    var reconciliationStatus = opHealth.status; // 同上（独自判定はしない）
+
+    var rows = [
+      ["Generated reports reviewed", reviewedStatus],
+      ["Approved reports published", publishedStatus],
+      ["Published artifacts synchronized", syncStatus],
+      ["Deploy reconciliation clean", reconciliationStatus],
+    ]
+      .map(function (row) {
+        return "<tr><td>" + esc(row[0]) + "</td><td>" + riskBadge(row[1]) + "</td></tr>";
+      })
+      .join("");
+
+    return (
+      '<section class="card"><h2>Published Artifact Audit Summary</h2>' +
+      '<div class="dash-table-wrap"><table class="dash-table">' +
+      "<thead><tr><th>Check</th><th>Status</th></tr></thead>" +
+      "<tbody>" + rows + "</tbody></table></div>" +
+      "</section>"
+    );
   }
 
   // ---- System status サマリ（read-only。既存 GET を再利用）----
@@ -456,6 +540,7 @@
     var remediation = payload && payload.remediationPlan;
     return (
       renderDeployReadiness(payload) +
+      renderPublishedArtifactAuditSummary(payload) +
       renderRemediationSummary(remediation) +
       renderSystemStatus(payload) +
       renderPublishedArtifactHealth(payload && payload.staleReports, remediation) +
@@ -632,6 +717,8 @@
       renderRemediationExplanation: renderRemediationExplanation,
       riskBadge: riskBadge,
       renderDeployReadiness: renderDeployReadiness,
+      renderPublishedArtifactAudit: renderPublishedArtifactAudit,
+      renderPublishedArtifactAuditSummary: renderPublishedArtifactAuditSummary,
     };
   } else {
     init();

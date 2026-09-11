@@ -234,3 +234,32 @@ test("UI: renderOperations に Published Artifact Health セクションが含�
   assert.match(html, /Published Artifact Health/);
   assert.ok(html.indexOf("System Status") < html.indexOf("Published Artifact Health"));
 });
+
+// Phase59 STEP6: Published Artifact Audit Summary（新セクション）と、Phase58 STEP7 由来の
+// Published Artifact Health（個社詳細）セクションが共存し、順序が壊れないことを確認する
+// （このファイルは Published Artifact Health の順序を扱う唯一のテストファイルのため、
+// STEP6 の新セクションとの同期確認をここに 1 件追加する）。
+test("UI: renderOperations — Published Artifact Audit Summary（STEP6）は Published Artifact Health（STEP7）より前に出る", () => {
+  const html = ops.renderOperations({
+    health: { status: "ok" },
+    dashboard: { report_summary: {}, lead_summary: {} },
+    reports: [],
+    staleReports: { ok: true, published_stale: 0, published_orphan: 0, items: [] },
+    remediationPlan: { ok: true, summary: { published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 }, items: [] },
+    operationalHealth: {
+      ok: true,
+      status: "success",
+      summary: {
+        deploy_ready: true, deploy_blocked: false, published_stale: 0, published_orphan: 0,
+        recommended_republish: 0, recommended_unpublish: 0,
+        generated_reports: 9, approved_reports: 5, published_reports: 4,
+      },
+    },
+  });
+  assert.match(html, /Published Artifact Audit Summary/);
+  assert.match(html, /Published Artifact Health/);
+  assert.ok(
+    html.indexOf("Published Artifact Audit Summary") < html.indexOf("Published Artifact Health"),
+    "Audit Summary（STEP6）は既存の Published Artifact Health（STEP7）より前に出る"
+  );
+});

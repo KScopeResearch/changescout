@@ -223,3 +223,142 @@ test("renderOperations: operationalHealth 未取得（legacy）でも他セク�
   assert.match(html, /Report Publish \/ Unpublish/);
   assert.ok(!html.includes("undefined") && !html.includes("NaN"));
 });
+
+// ===========================================================================
+// Phase59 STEP6 — Published Artifact Audit（Dashboard STEP5 を Operations に同期）
+// renderDeployReadiness 内の Audit Card 拡張、および renderPublishedArtifactAuditSummary の
+// 独立カード。判定は operationalHealth.summary / status の比較・転記のみ（独自判定禁止）。
+// ===========================================================================
+
+function auditPayload(summaryOverrides, status) {
+  return {
+    operationalHealth: {
+      ok: true,
+      generated_at: "2026-09-11T00:00:00Z",
+      status: status || "success",
+      summary: Object.assign(
+        {
+          deploy_ready: true,
+          deploy_blocked: false,
+          published_stale: 0,
+          published_orphan: 0,
+          recommended_republish: 0,
+          recommended_unpublish: 0,
+          generated_reports: 9,
+          approved_reports: 9,
+          published_reports: 9,
+        },
+        summaryOverrides || {}
+      ),
+    },
+  };
+}
+
+test("Audit Case A (Ready): 全件一致・stale/orphan=0 → Audit Card / Audit Summary とも success", () => {
+  const payload = auditPayload();
+  const card = ui.renderDeployReadiness(payload);
+  assert.match(card, /Published Artifact Audit/);
+  assert.match(card, /Generated Reports/);
+  assert.match(card, /Approved Reports/);
+  assert.match(card, /Published Reports/);
+  assert.match(card, /dash-alert tone-good">All published artifacts are synchronized\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Approved reports published<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+});
+
+test("Audit Case B (Warning/stale): published_stale>0・status=warning → synchronized/reconciliation が warning", () => {
+  const payload = auditPayload(
+    { deploy_ready: false, deploy_blocked: true, published_stale: 1, published_orphan: 0, recommended_republish: 1 },
+    "warning"
+  );
+  const card = ui.renderDeployReadiness(payload);
+  assert.match(card, /dash-alert tone-warn">Some published artifacts are stale\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+});
+
+test("Audit Case C (Danger/orphan): published_orphan>0・status=danger → synchronized/reconciliation が danger（赤）", () => {
+  const payload = auditPayload(
+    { deploy_ready: false, deploy_blocked: true, published_stale: 0, published_orphan: 1, recommended_unpublish: 1 },
+    "danger"
+  );
+  const card = ui.renderDeployReadiness(payload);
+  assert.match(card, /dash-alert tone-bad">Some published artifacts are orphaned\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-rejected">danger<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-rejected">danger<\/span><\/td>/);
+});
+
+test("Audit Case D (Generated != Approved): 'Generated reports reviewed' のみ warning", () => {
+  const payload = auditPayload({ generated_reports: 9, approved_reports: 5, published_reports: 5 });
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Approved reports published<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+});
+
+test("Audit Case E (Approved != Published): 'Approved reports published' も warning（実データ相当 9/5/4）", () => {
+  const payload = auditPayload({ generated_reports: 9, approved_reports: 5, published_reports: 4 });
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Approved reports published<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  const card = ui.renderDeployReadiness(payload);
+  assert.match(card, /value">9<\/div>/); // Generated Reports
+  assert.match(card, /value">5<\/div>/); // Approved Reports
+  assert.match(card, /value">4<\/div>/); // Published Reports
+});
+
+test("Audit Case F (Legacy response): summary/generated_reports/approved_reports/published_reports/status が無ければ Audit 拡張を描画しない", () => {
+  const noStep5Fields = ui.renderDeployReadiness(
+    opHealthPayload({ deploy_ready: true, deploy_blocked: false, published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 })
+  );
+  assert.ok(!noStep5Fields.includes("Published Artifact Audit"), "STEP5 additive フィールドが無ければ Audit Card 拡張を出さない");
+  assert.equal(ui.renderPublishedArtifactAuditSummary(opHealthPayload({ deploy_ready: true })), "", "status が無ければ Audit Summary を出さない");
+
+  const noSummary = ui.renderDeployReadiness({ operationalHealth: { ok: true, status: "success" } });
+  assert.ok(!noSummary.includes("Published Artifact Audit"));
+  assert.equal(ui.renderPublishedArtifactAuditSummary({ operationalHealth: { ok: true, status: "success" } }), "");
+
+  const noOpHealth = ui.renderDeployReadiness({});
+  assert.ok(!noOpHealth.includes("Published Artifact Audit"));
+  assert.equal(ui.renderPublishedArtifactAuditSummary({}), "");
+  assert.ok(!noOpHealth.includes("undefined") && !noOpHealth.includes("NaN"));
+});
+
+test("Audit Case G (Audit Summary表示): 4 行固定・順序固定・slug 一覧は出さない", () => {
+  const payload = auditPayload({ generated_reports: 9, approved_reports: 5, published_reports: 4 });
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(payload);
+  assert.match(summaryHtml, /<h2>Published Artifact Audit Summary<\/h2>/);
+  const order = ["Generated reports reviewed", "Approved reports published", "Published artifacts synchronized", "Deploy reconciliation clean"];
+  let lastIdx = -1;
+  for (const label of order) {
+    const idx = summaryHtml.indexOf(label);
+    assert.ok(idx > lastIdx, `${label} の順序が正しくない`);
+    lastIdx = idx;
+  }
+  assert.ok(!summaryHtml.includes("example.com") && !summaryHtml.includes("ab-i.jp"), "slug 一覧は出さない");
+});
+
+test("renderOperations: Published Artifact Audit Summary は Deploy Readiness の直後に出る", () => {
+  const payload = {
+    health: HEALTH,
+    dashboard: DASHBOARD,
+    reports: [rep()],
+    remediationPlan: { ok: true, summary: { published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 }, items: [] },
+    operationalHealth: auditPayload({ generated_reports: 9, approved_reports: 5, published_reports: 4 }).operationalHealth,
+  };
+  const html = ui.renderOperations(payload, {});
+  const iDeploy = html.indexOf("Deploy Readiness");
+  const iAuditSummary = html.indexOf("Published Artifact Audit Summary");
+  const iRemSummary = html.indexOf("Published Artifact Remediation Summary");
+  const iSystem = html.indexOf("System Status");
+  assert.ok(iDeploy < iAuditSummary, "Audit Summary は Deploy Readiness の後");
+  assert.ok(iAuditSummary < iRemSummary, "Audit Summary は既存 Remediation Summary の前");
+  assert.ok(iAuditSummary < iSystem, "Audit Summary は System Status の前");
+});
