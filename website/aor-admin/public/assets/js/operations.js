@@ -63,6 +63,100 @@
     };
   }
 
+  // ---- Deploy Readiness カード（Phase58 STEP10。Operations 最上部・read-only 表示のみ）----
+  // GET /api/dashboard/operational-health の summary（Phase58 STEP9 で追加された
+  // deploy_ready / deploy_blocked / published_stale / published_orphan /
+  // recommended_republish / recommended_unpublish）をそのまま表示する。
+  // ここでは publishable / isPublished / stale / orphan / review.status / evaluation の
+  // 判定を一切行わない（§7）。
+
+  /** summary から deploy readiness セクションの値を取り出す（legacy 判定含む）。 */
+  function deployReadinessData(payload) {
+    var opHealth = payload && payload.operationalHealth;
+    if (!opHealth || isSectionError(opHealth) || opHealth.ok === false) return null;
+    var summary = opHealth.summary;
+    if (!summary || typeof summary !== "object") return null;
+    // legacy: deploy_ready / deploy_blocked / published_stale / published_orphan の
+    // いずれも無ければ「未対応 API」として legacy 扱いにする（§6）。
+    var hasAnyField =
+      summary.deploy_ready !== undefined ||
+      summary.deploy_blocked !== undefined ||
+      summary.published_stale !== undefined ||
+      summary.published_orphan !== undefined;
+    if (!hasAnyField) return null;
+    return summary;
+  }
+
+  /** Yes/No/— の三値表示（§6: フィールド欠落時は — にする。true/false 以外を勝手に埋めない）。 */
+  function yesNoDash(v) {
+    if (v === true) return "Yes";
+    if (v === false) return "No";
+    return "—";
+  }
+
+  function countOrDash(v) {
+    return v == null ? "—" : v;
+  }
+
+  /**
+   * §3 Deploy Readiness カード。
+   * @param {Object} payload - renderOperations と同じ payload（operationalHealth を含む）
+   */
+  function renderDeployReadiness(payload) {
+    var summary = deployReadinessData(payload);
+    var head = '<section class="card"><h2>Deploy Readiness</h2>';
+
+    if (!summary) {
+      // legacy: — 表示のみ。Alert・Link は出さない（§6）。
+      return (
+        head +
+        '<div class="field-row">' +
+        '<div class="field"><div class="label">Deploy Ready</div><div class="value">—</div></div>' +
+        '<div class="field"><div class="label">Published Stale</div><div class="value">—</div></div>' +
+        '<div class="field"><div class="label">Published Orphan</div><div class="value">—</div></div>' +
+        '<div class="field"><div class="label">Recommended Re-publish</div><div class="value">—</div></div>' +
+        '<div class="field"><div class="label">Recommended Unpublish</div><div class="value">—</div></div>' +
+        "</div></section>"
+      );
+    }
+
+    var stale = summary.published_stale == null ? 0 : summary.published_stale;
+    var orphan = summary.published_orphan == null ? 0 : summary.published_orphan;
+    var deployReady = summary.deploy_ready === true;
+
+    // §3 表示色: Ready → 緑 / Blocked → 黄 / Orphan存在 → 赤（既存 tone クラスのみ）。
+    var readyTone = deployReady ? "ok" : orphan > 0 ? "bad" : "warn";
+
+    var fields =
+      '<div class="field-row">' +
+      '<div class="field"><div class="label">Deploy Ready</div><div class="value tone-' + readyTone + '">' + esc(yesNoDash(summary.deploy_ready)) + "</div></div>" +
+      '<div class="field"><div class="label">Published Stale</div><div class="value' + (stale > 0 ? " tone-warn" : "") + '">' + esc(countOrDash(summary.published_stale)) + "</div></div>" +
+      '<div class="field"><div class="label">Published Orphan</div><div class="value' + (orphan > 0 ? " tone-bad" : "") + '">' + esc(countOrDash(summary.published_orphan)) + "</div></div>" +
+      '<div class="field"><div class="label">Recommended Re-publish</div><div class="value">' + esc(countOrDash(summary.recommended_republish)) + "</div></div>" +
+      '<div class="field"><div class="label">Recommended Unpublish</div><div class="value">' + esc(countOrDash(summary.recommended_unpublish)) + "</div></div>" +
+      "</div>";
+
+    var alert = "";
+    var link = "";
+    if (summary.deploy_ready === false) {
+      // §4 Health Summary Alert（deploy_ready=false のときのみ）。slug 一覧は出さない。
+      var alertTone = orphan > 0 ? "tone-bad" : "tone-warn";
+      alert =
+        '<div class="dash-alert ' + alertTone + '">' +
+        "<strong>Warning</strong><br>" +
+        "Deployment is currently blocked.<br>" +
+        "Resolve stale or orphan published artifacts before running deploy-aor-web.js." +
+        '<div class="field-row" style="margin-top:8px">' +
+        '<div class="field"><div class="label">Stale</div><div class="value">' + esc(stale) + "</div></div>" +
+        '<div class="field"><div class="label">Orphan</div><div class="value">' + esc(orphan) + "</div></div>" +
+        "</div></div>";
+      // §5: 既存 Remediation セクションへのスクロールリンク（同一ページ内。新規ページは作らない）。
+      link = '<div class="dash-note"><a href="#published-artifact-health">View Published Artifact Remediation Plan</a></div>';
+    }
+
+    return head + fields + alert + link + "</section>";
+  }
+
   // ---- System status サマリ（read-only。既存 GET を再利用）----
   function renderSystemStatus(payload) {
     var health = payload && payload.health;
@@ -361,6 +455,7 @@
     var reports = Array.isArray(payload && payload.reports) ? payload.reports : [];
     var remediation = payload && payload.remediationPlan;
     return (
+      renderDeployReadiness(payload) +
       renderRemediationSummary(remediation) +
       renderSystemStatus(payload) +
       renderPublishedArtifactHealth(payload && payload.staleReports, remediation) +
@@ -374,7 +469,7 @@
   // ブラウザ側（mutation フロー）
   // -------------------------------------------------------------------------
 
-  var state = { reports: [], health: {}, dashboard: {}, staleReports: {}, remediationPlan: {}, submittingKey: null, modalOp: null };
+  var state = { reports: [], health: {}, dashboard: {}, staleReports: {}, remediationPlan: {}, operationalHealth: {}, submittingKey: null, modalOp: null };
 
   function $(id) {
     return document.getElementById(id);
@@ -395,7 +490,7 @@
   function renderAll() {
     var container = $("operations-container");
     if (container) {
-      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports, staleReports: state.staleReports, remediationPlan: state.remediationPlan }, { submittingKey: state.submittingKey });
+      container.innerHTML = renderOperations({ health: state.health, dashboard: state.dashboard, reports: state.reports, staleReports: state.staleReports, remediationPlan: state.remediationPlan, operationalHealth: state.operationalHealth }, { submittingKey: state.submittingKey });
       wireOpButtons(container);
     }
     renderModal();
@@ -475,6 +570,7 @@
       AdminApi.getHealth(),
       AdminApi.getDashboardStaleReports(),
       AdminApi.getDashboardRemediationPlan(),
+      AdminApi.getDashboardOperationalHealth(),
     ]);
 
     var authFailed = settled.some(function (r) {
@@ -498,6 +594,7 @@
     state.health = settled[2].status === "fulfilled" ? settled[2].value : { status: "error", message: (settled[2].reason && settled[2].reason.message) || String(settled[2].reason) };
     state.staleReports = settled[3].status === "fulfilled" ? settled[3].value : { status: "error", message: (settled[3].reason && settled[3].reason.message) || String(settled[3].reason) };
     state.remediationPlan = settled[4].status === "fulfilled" ? settled[4].value : { status: "error", message: (settled[4].reason && settled[4].reason.message) || String(settled[4].reason) };
+    state.operationalHealth = settled[5].status === "fulfilled" ? settled[5].value : { status: "error", message: (settled[5].reason && settled[5].reason.message) || String(settled[5].reason) };
 
     renderAll();
     container.removeAttribute("aria-busy");
@@ -534,6 +631,7 @@
       renderRemediationSummary: renderRemediationSummary,
       renderRemediationExplanation: renderRemediationExplanation,
       riskBadge: riskBadge,
+      renderDeployReadiness: renderDeployReadiness,
     };
   } else {
     init();

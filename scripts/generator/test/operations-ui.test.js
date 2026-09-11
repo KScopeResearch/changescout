@@ -128,3 +128,98 @@ test("renderOperations: 全セクション（System Status / Publish table / 他
   assert.match(html, /Report Publish \/ Unpublish/);
   assert.match(html, /他の操作（既存画面へ）/);
 });
+
+// ---------------------------------------------------------------------------
+// Phase58 STEP10 — Deploy Readiness カード（renderDeployReadiness）
+// GET /api/dashboard/operational-health の summary をそのまま表示する。
+// publishable / isPublished / stale / orphan / review.status / evaluation の判定は行わない。
+// ---------------------------------------------------------------------------
+
+function opHealthPayload(summary) {
+  return { operationalHealth: { ok: true, generated_at: "2026-09-11T00:00:00Z", summary } };
+}
+
+test("Case A: deploy_ready=true → Ready 表示・Alert なし", () => {
+  const html = ui.renderDeployReadiness(
+    opHealthPayload({ deploy_ready: true, deploy_blocked: false, published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 })
+  );
+  assert.match(html, /Deploy Readiness/);
+  assert.match(html, /Deploy Ready/);
+  assert.match(html, />Yes</);
+  assert.match(html, /tone-ok">Yes/);
+  assert.ok(!html.includes("dash-alert"), "Ready のときは Warning Alert を出さない");
+  assert.ok(!html.includes("View Published Artifact Remediation Plan"));
+});
+
+test("Case B: deploy_ready=false / stale=1 → Warning Alert・stale件数・remediationリンク", () => {
+  const html = ui.renderDeployReadiness(
+    opHealthPayload({ deploy_ready: false, deploy_blocked: true, published_stale: 1, published_orphan: 0, recommended_republish: 1, recommended_unpublish: 0 })
+  );
+  assert.match(html, />No</);
+  assert.match(html, /dash-alert tone-warn/);
+  assert.match(html, /Deployment is currently blocked\./);
+  assert.match(html, /Resolve stale or orphan published artifacts before running deploy-aor-web\.js\./);
+  assert.match(html, /<a href="#published-artifact-health">View Published Artifact Remediation Plan<\/a>/);
+  // stale 件数が表示される（Alert 内 + フィールド行）
+  const staleCount = (html.match(/>1</g) || []).length;
+  assert.ok(staleCount >= 1);
+});
+
+test("Case C: deploy_ready=false / orphan=1 → Danger 表示（赤）・orphan件数", () => {
+  const html = ui.renderDeployReadiness(
+    opHealthPayload({ deploy_ready: false, deploy_blocked: true, published_stale: 0, published_orphan: 1, recommended_republish: 0, recommended_unpublish: 1 })
+  );
+  assert.match(html, /tone-bad">No/); // Deploy Ready が赤
+  assert.match(html, /value tone-bad">1/); // Published Orphan が赤
+  assert.match(html, /dash-alert tone-bad/); // Alert 自体も赤（orphan 存在）
+  assert.match(html, /Published Orphan/);
+});
+
+test("Case D: legacy summary（deploy_ready 等が無い）→ — 表示、Alert なし、Link なし", () => {
+  const htmlEmptySummary = ui.renderDeployReadiness(opHealthPayload({}));
+  const htmlNoOpHealth = ui.renderDeployReadiness({});
+  const htmlSectionError = ui.renderDeployReadiness({ operationalHealth: { status: "error", message: "boom" } });
+  for (const html of [htmlEmptySummary, htmlNoOpHealth, htmlSectionError]) {
+    assert.match(html, /Deploy Readiness/);
+    assert.match(html, />—</);
+    assert.ok(!html.includes("dash-alert"), "legacy では Alert を出さない");
+    assert.ok(!html.includes("View Published Artifact Remediation Plan"), "legacy では Link を出さない");
+    assert.ok(!html.includes("undefined") && !html.includes("NaN"));
+  }
+});
+
+test("Case E: stale=2 orphan=3 → 件数表示のみ（slug 一覧は出さない）", () => {
+  const html = ui.renderDeployReadiness(
+    opHealthPayload({ deploy_ready: false, deploy_blocked: true, published_stale: 2, published_orphan: 3, recommended_republish: 1, recommended_unpublish: 2 })
+  );
+  assert.match(html, /value tone-warn">2/); // Published Stale
+  assert.match(html, /value tone-bad">3/); // Published Orphan
+  assert.ok(!html.includes("<table"), "Deploy Readiness カードにテーブル（slug 一覧）を出さない");
+  assert.ok(!html.includes("<li>"), "Deploy Readiness カードに slug の list-item も出さない");
+  assert.ok(!html.includes(".example") && !html.includes(".co.jp"), "slug らしき文字列を含まない");
+});
+
+test("renderOperations: Deploy Readiness カードが最上部（他の既存カードより前）に出る", () => {
+  const payload = {
+    health: HEALTH,
+    dashboard: DASHBOARD,
+    reports: [rep()],
+    remediationPlan: { ok: true, summary: { published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 }, items: [] },
+    operationalHealth: { ok: true, summary: { deploy_ready: true, deploy_blocked: false, published_stale: 0, published_orphan: 0, recommended_republish: 0, recommended_unpublish: 0 } },
+  };
+  const html = ui.renderOperations(payload, {});
+  const iDeploy = html.indexOf("Deploy Readiness");
+  const iSystem = html.indexOf("System Status");
+  const iRemSummary = html.indexOf("Published Artifact Remediation Summary");
+  assert.ok(html.startsWith('<section class="card"><h2>Deploy Readiness</h2>'), "Deploy Readiness セクションが HTML の先頭にある");
+  assert.ok(iDeploy < iSystem, "Deploy Readiness は System Status より前");
+  assert.ok(iDeploy < iRemSummary, "Deploy Readiness は既存 Remediation Summary より前");
+});
+
+test("renderOperations: operationalHealth 未取得（legacy）でも他セクションは壊れない", () => {
+  const html = ui.renderOperations({ health: HEALTH, dashboard: DASHBOARD, reports: [rep()] }, {});
+  assert.match(html, /Deploy Readiness/);
+  assert.match(html, /System Status/);
+  assert.match(html, /Report Publish \/ Unpublish/);
+  assert.ok(!html.includes("undefined") && !html.includes("NaN"));
+});
