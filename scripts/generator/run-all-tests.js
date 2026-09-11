@@ -260,6 +260,10 @@ async function checkDashboardSmoke() {
     if (dashOpHealthApi.status !== 200 || !dashOpHealthApi.body.includes("operational_health")) {
       return { ok: false, detail: `/api/dashboard/operational-health が期待どおりではない（status: ${dashOpHealthApi.status}）` };
     }
+    // Phase58 STEP9: additive な status/summary/checks（Deploy Readiness 集約）の疎通。
+    if (!dashOpHealthApi.body.includes('"checks"') || !dashOpHealthApi.body.includes("deploy_ready")) {
+      return { ok: false, detail: `/api/dashboard/operational-health に STEP9 の status/summary/checks が含まれていない` };
+    }
     // Phase58 STEP7: Published Artifact Health API（read-only）の疎通。
     const dashStaleApi = await httpGet("localhost", port, "/api/dashboard/stale-reports", { auth: `${adminUser}:${adminPassword}` });
     if (dashStaleApi.status !== 200 || !dashStaleApi.body.includes("published_stale")) {

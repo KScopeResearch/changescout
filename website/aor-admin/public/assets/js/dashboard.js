@@ -340,6 +340,63 @@
     );
   }
 
+  // risk/status（success/warning/danger）→ 既存 status-pill クラス（operations.js と同じマップ。新 CSS なし）。
+  const HEALTH_STATUS_PILL = { success: "status-approved", warning: "status-needs_revision", danger: "status-rejected" };
+  const HEALTH_STATUS_ICON = { success: "🟢", warning: "🟡", danger: "🔴" };
+
+  function healthStatusBadge(status) {
+    const cls = HEALTH_STATUS_PILL[status] || "status-pending_review";
+    const icon = HEALTH_STATUS_ICON[status] || "⚪";
+    return `<span class="status-pill ${cls}">${icon} ${esc(status || "—")}</span>`;
+  }
+
+  /**
+   * Phase58 STEP9 — Operational Health Card（Deploy Readiness + Published Artifact Health 件数 +
+   * Health Checks + Operations への導線）。API（GET /api/dashboard/operational-health）が返す
+   * status/summary/checks をそのまま表示する（判定はしない）。一覧表示はしない（§4。個社の内訳は
+   * 「Operational Health Detail」セクション、または Operations の Published Artifact Health を見る）。
+   *
+   * @param {Object|undefined} data - GET /api/dashboard/operational-health の生レスポンス
+   *   （{ok, status, summary, checks, operational_health, ...} または {status:"error"} または
+   *   legacy＝status/summary/checks を持たないレスポンス）
+   * @returns {string} HTML（legacy 時は "" ＝ カードを描画しない）
+   */
+  function renderOperationalHealthCard(data) {
+    if (data === undefined || data === null) return "";
+    if (isSectionError(data)) return sectionErrorHtml("Operational Health", data);
+    if (typeof data.status !== "string") return ""; // legacy: STEP9 のフィールドが無い
+
+    const summary = data.summary || {};
+    const checks = Array.isArray(data.checks) ? data.checks : [];
+    const deployReady = summary.deploy_ready === true;
+    const num = (v) => (v == null ? 0 : v);
+
+    const deployBanner = deployReady
+      ? `<div class="dash-alert tone-good"><strong>✅ Ready for Deploy</strong></div>`
+      : `<div class="dash-alert tone-warn"><strong>⚠️ Deployment Blocked</strong></div>`;
+
+    const counts = metricGrid([
+      { label: "Stale", value: num(summary.published_stale), tone: summary.published_stale > 0 ? "warn" : undefined },
+      { label: "Orphan", value: num(summary.published_orphan), tone: summary.published_orphan > 0 ? "bad" : undefined },
+      { label: "Re-publish needed", value: num(summary.recommended_republish) },
+      { label: "Unpublish needed", value: num(summary.recommended_unpublish) },
+    ]);
+
+    const link = deployReady
+      ? ""
+      : `<div class="dash-note"><a href="operations.html#published-artifact-health">View remediation plan →</a></div>`;
+
+    const checksHtml = checks.length
+      ? `<ul class="plain-list">` +
+        checks
+          .map((c) => `<li>${healthStatusBadge(c && c.status)} <strong>${esc(c && c.title)}</strong> — ${esc(c && c.detail)}</li>`)
+          .join("") +
+        `</ul>`
+      : "";
+
+    return deployBanner + counts + link + checksHtml;
+  }
+
   /**
    * Dashboard 全体の HTML を組み立てる（純粋関数）。
    * @param {{summary:Object, reports:Object, health:Object, operationalHealth?:Object}} payload
@@ -379,6 +436,7 @@
       (!healthErr && health.generated_at) ||
       null;
 
+    const opHealthCardHtml = renderOperationalHealthCard(opHealthRaw);
     const opHealthHtml = renderOperationalHealthDetail(operationalHealth);
 
     return (
@@ -391,6 +449,7 @@
       `<section class="card"><h2>Delivery Summary</h2>${renderDeliverySummary(delivery)}</section>` +
       `<section class="card"><h2>Suppression Summary</h2>${renderSuppressionSummary(suppression)}</section>` +
       `<section class="card"><h2>Report Summary</h2>${renderReportSummary(reports)}</section>` +
+      (opHealthCardHtml ? `<section class="card"><h2>Operational Health</h2>${opHealthCardHtml}</section>` : "") +
       (opHealthHtml ? `<section class="card"><h2>Operational Health Detail</h2>${opHealthHtml}</section>` : "") +
       `<section class="card"><h2>System Health</h2>` +
       renderSesHealth(ses) +
@@ -469,6 +528,8 @@
       renderSuppressionSummary,
       renderReportSummary,
       renderOperationalHealthDetail,
+      renderOperationalHealthCard,
+      healthStatusBadge,
       renderSesHealth,
       renderLambdaHealth,
       renderCloudFrontHealth,

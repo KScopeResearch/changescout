@@ -830,8 +830,145 @@ async function handleDashboardReports(res) {
  * current internal state（reportsCache + reviewEngine.isPublishable の結果）を SSOT とする。
  */
 async function handleDashboardOperationalHealth(res) {
+  // Phase59 STEP3 互換: operational_health（items/stale_count/orphan_count）は形・意味とも不変。
   const section = await settleSection(buildOperationalHealthSection());
-  sendJson(res, 200, { generated_at: new Date().toISOString(), operational_health: section });
+
+  // Phase58 STEP9: additive な集約フィールド（status/summary/checks）。
+  let statusPayload;
+  try {
+    statusPayload = await buildOperationalHealthStatusSection();
+  } catch (err) {
+    logger.error(`/api/dashboard/operational-health のステータス集計に失敗しました: ${err.stack || err.message}`);
+    statusPayload = {
+      status: "danger",
+      summary: {
+        published_stale: 0,
+        published_orphan: 0,
+        recommended_republish: 0,
+        recommended_unpublish: 0,
+        deploy_blocked: true,
+        deploy_ready: false,
+      },
+      checks: [],
+      error: err.message,
+    };
+  }
+
+  sendJson(res, 200, {
+    ok: !statusPayload.error,
+    generated_at: new Date().toISOString(),
+    status: statusPayload.status,
+    summary: statusPayload.summary,
+    checks: statusPayload.checks,
+    operational_health: section,
+    ...(statusPayload.error ? { error: statusPayload.error } : {}),
+  });
+}
+
+/**
+ * Phase58 STEP9: classification 別件数 → success/warning/danger（§3 の固定マッピング。判定ロジック追加禁止）。
+ * @param {number} publishedStale
+ * @param {number} publishedOrphan
+ * @returns {"success"|"warning"|"danger"}
+ */
+function operationalHealthStatus(publishedStale, publishedOrphan) {
+  if ((publishedOrphan || 0) > 0) return "danger";
+  if ((publishedStale || 0) > 0) return "warning";
+  return "success";
+}
+
+/**
+ * Phase58 STEP9: Dashboard の Health Checks（§6、順序固定・5件）を組み立てる（純粋関数・I/O なし）。
+ * 既に計算済みの値だけを使う（deploy reconciliation の再実行はしない）。
+ * @param {{published_stale?:number, published_orphan?:number, deploy_ready?:boolean,
+ *   has_unreadable?:boolean, deploy_configured?:boolean}} input
+ * @returns {Array<{id:string, status:string, title:string, detail:string}>}
+ */
+function buildOperationalHealthChecks(input) {
+  const i = input || {};
+  const publishedStale = i.published_stale || 0;
+  const publishedOrphan = i.published_orphan || 0;
+  const deployReady = i.deploy_ready === true;
+  const hasUnreadable = i.has_unreadable === true;
+  const deployConfigured = i.deploy_configured === true;
+  const overall = operationalHealthStatus(publishedStale, publishedOrphan);
+
+  const publishedDetail =
+    publishedStale === 0 && publishedOrphan === 0
+      ? "No stale or orphan published artifacts detected."
+      : [
+          publishedStale > 0 ? `${publishedStale} stale published artifact${publishedStale === 1 ? "" : "s"} detected.` : null,
+          publishedOrphan > 0 ? `${publishedOrphan} orphan published artifact${publishedOrphan === 1 ? "" : "s"} detected.` : null,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+  return [
+    { id: "published-artifacts", status: overall, title: "Published Artifact Health", detail: publishedDetail },
+    {
+      id: "deploy-readiness",
+      status: deployReady ? "success" : "warning",
+      title: "Deploy Readiness",
+      detail: deployReady
+        ? "Deployment is not blocked by published artifact health."
+        : "Deployment is blocked until stale published artifacts are resolved.",
+    },
+    {
+      id: "public-report-contract",
+      status: hasUnreadable ? "danger" : "success",
+      title: "Public Report Contract",
+      detail: hasUnreadable
+        ? "One or more published artifacts could not be parsed (Public Report Contract violation)."
+        : "Published artifacts follow the Public Report Contract (internal fields excluded).",
+    },
+    {
+      id: "dashboard-aggregates",
+      status: "success",
+      title: "Dashboard Aggregates",
+      detail: "Report summary aggregation completed successfully.",
+    },
+    {
+      id: "deployment-configuration",
+      status: deployConfigured ? "success" : "warning",
+      title: "Deployment Configuration",
+      detail: deployConfigured
+        ? "Deploy target (S3 bucket) is configured."
+        : "Deploy target is not configured; deploy-aor-web.js runs in dry-run only.",
+    },
+  ];
+}
+
+/**
+ * Phase58 STEP9: operational-health の status/summary/checks を組み立てる。
+ * collectReportSummary() / remediation-plan の summary をそのまま使う（deploy reconciliation の
+ * 再実行はしない）。deploy readiness は published_stale/published_orphan が 0 かどうかだけで決まる。
+ * @returns {Promise<{status:string, summary:Object, checks:Array<Object>}>}
+ */
+async function buildOperationalHealthStatusSection() {
+  const remediation = await buildRemediationPlanSection(); // Phase58 STEP8（collectReportSummary + classifyPublishedArtifact を再利用）
+  const { published_stale, published_orphan, recommended_unpublish, recommended_republish } = remediation.summary;
+  const deploy_ready = published_stale === 0 && published_orphan === 0;
+  const status = operationalHealthStatus(published_stale, published_orphan);
+  const hasUnreadable = remediation.items.some((item) => item.classification === RECONCILIATION_CLASS.STALE_UNREADABLE);
+
+  return {
+    status,
+    summary: {
+      published_stale,
+      published_orphan,
+      recommended_republish,
+      recommended_unpublish,
+      deploy_blocked: !deploy_ready,
+      deploy_ready,
+    },
+    checks: buildOperationalHealthChecks({
+      published_stale,
+      published_orphan,
+      deploy_ready,
+      has_unreadable: hasUnreadable,
+      deploy_configured: !!process.env.AOR_WEB_S3_BUCKET,
+    }),
+  };
 }
 
 /**
@@ -1165,6 +1302,8 @@ module.exports = {
   buildRemediationItems,
   remediationForClassification,
   REMEDIATION_MAP,
+  operationalHealthStatus,
+  buildOperationalHealthChecks,
 };
 
 // Phase58 STEP7: `node website/aor-admin/server.js`（および child_process.spawn による
