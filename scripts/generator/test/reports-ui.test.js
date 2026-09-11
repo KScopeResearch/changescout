@@ -194,3 +194,128 @@ test("XSS: company_name / id / meta / pending_slugs / evaluation の悪性文字
 
   assert.doesNotMatch(ui.metaTable({ k: evil }), /<script>alert\(1\)<\/script>/);
 });
+
+// ===========================================================================
+// Phase59 STEP7 — Published Artifact Status / Audit Summary
+// AdminApi.getDashboardOperationalHealth() の生レスポンスを、再計算せずそのまま表示する。
+// ===========================================================================
+
+function opHealth(summaryOverrides, status) {
+  return {
+    ok: true,
+    generated_at: "2026-09-11T00:00:00Z",
+    status: status || "success",
+    summary: Object.assign(
+      {
+        deploy_ready: true,
+        deploy_blocked: false,
+        published_stale: 0,
+        published_orphan: 0,
+        recommended_republish: 0,
+        recommended_unpublish: 0,
+        generated_reports: 9,
+        approved_reports: 9,
+        published_reports: 9,
+      },
+      summaryOverrides || {}
+    ),
+    checks: [],
+  };
+}
+
+test("Case A: Ready（stale/orphan=0・status=success）→ Banner緑・Audit Summary全項目success", () => {
+  const data = opHealth();
+  const statusHtml = ui.renderPublishedArtifactStatus(data);
+  assert.match(statusHtml, /dash-alert tone-good">All published artifacts are synchronized\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
+  assert.match(summaryHtml, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Approved reports published<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+});
+
+test("Case B: Warning（published_stale>0・status=warning）→ Banner黄・synchronized/reconciliation行がwarning", () => {
+  const data = opHealth({ deploy_ready: false, deploy_blocked: true, published_stale: 1, recommended_republish: 1 }, "warning");
+  const statusHtml = ui.renderPublishedArtifactStatus(data);
+  assert.match(statusHtml, /dash-alert tone-warn">Published artifacts require remediation before deployment\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+});
+
+test("Case C: Danger（published_orphan>0・status=danger）→ Banner赤・synchronized/reconciliation行がdanger", () => {
+  const data = opHealth({ deploy_ready: false, deploy_blocked: true, published_orphan: 1, recommended_unpublish: 1 }, "danger");
+  const statusHtml = ui.renderPublishedArtifactStatus(data);
+  assert.match(statusHtml, /dash-alert tone-bad">Orphan published artifacts detected\./);
+
+  const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
+  assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-rejected">danger<\/span><\/td>/);
+  assert.match(summaryHtml, /<td>Deploy reconciliation clean<\/td><td><span class="status-pill status-rejected">danger<\/span><\/td>/);
+});
+
+test("Case D: Legacy（summary/generated_reports/status が無い）→ Published Artifact Status カード非表示", () => {
+  assert.equal(ui.renderPublishedArtifactStatus(undefined), "");
+  assert.equal(ui.renderPublishedArtifactStatus(null), "");
+  assert.equal(ui.renderPublishedArtifactStatus({}), "");
+  assert.equal(ui.renderPublishedArtifactStatus({ ok: true, status: "success", summary: { deploy_ready: true } }), "", "generated_reports 等が無ければ legacy");
+  assert.equal(ui.renderPublishedArtifactStatus({ ok: true, summary: opHealth().summary }), "", "status が無ければ legacy");
+  assert.equal(ui.renderPublishedArtifactStatus({ status: "error", message: "boom" }), "");
+
+  assert.equal(ui.renderPublishedArtifactAuditSummary(undefined), "");
+  assert.equal(ui.renderPublishedArtifactAuditSummary({}), "");
+  assert.equal(ui.renderPublishedArtifactAuditSummary({ ok: true, status: "success", summary: { deploy_ready: true } }), "");
+
+  // Reports 一覧自体は operationalHealth 欠落でも従来通り描画される。
+  const html = ui.renderPage({ summary: SUMMARY }, { review: "all", publishable: "all", published: "all", deploy: "all" });
+  assert.match(html, /Report Summary/);
+  assert.match(html, />Reports</);
+  assert.ok(!html.includes("Published Artifact Status"));
+  assert.ok(!html.includes("Published Artifact Audit Summary"));
+});
+
+test("Case E: Summary数値表示 — Generated/Approved/Published Reports と Stale/Orphan がそのまま出る（再計算なし）", () => {
+  const data = opHealth({ generated_reports: 9, approved_reports: 5, published_reports: 4, published_stale: 0, published_orphan: 0 });
+  const html = ui.renderPublishedArtifactStatus(data);
+  assert.match(html, /dash-metric-value">9<\/div><div class="dash-metric-label">Generated Reports/);
+  assert.match(html, /dash-metric-value">5<\/div><div class="dash-metric-label">Approved Reports/);
+  assert.match(html, /dash-metric-value">4<\/div><div class="dash-metric-label">Published Reports/);
+  assert.match(html, /dash-metric-value">0<\/div><div class="dash-metric-label">Published Stale/);
+  assert.match(html, /dash-metric-value">0<\/div><div class="dash-metric-label">Published Orphan/);
+});
+
+test("Case F: Banner切替 — success/warning/danger の3状態で文言とtoneクラスが切り替わる", () => {
+  const ready = ui.renderPublishedArtifactStatus(opHealth());
+  const warn = ui.renderPublishedArtifactStatus(opHealth({ published_stale: 1 }, "warning"));
+  const danger = ui.renderPublishedArtifactStatus(opHealth({ published_orphan: 1 }, "danger"));
+  assert.match(ready, /tone-good/);
+  assert.match(warn, /tone-warn/);
+  assert.match(danger, /tone-bad/);
+  assert.ok(!ready.includes("tone-warn") && !ready.includes("tone-bad"));
+  assert.ok(!warn.includes("tone-good") && !warn.includes("tone-bad"));
+  assert.ok(!danger.includes("tone-good") && !danger.includes("tone-warn"));
+});
+
+test("Case G: Audit Summary判定 — generated!=approved / approved!=published を個別に検出（独自判定なし・比較のみ）", () => {
+  const genVsApproved = ui.renderPublishedArtifactAuditSummary(opHealth({ generated_reports: 9, approved_reports: 5, published_reports: 5 }));
+  assert.match(genVsApproved, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(genVsApproved, /<td>Approved reports published<\/td><td><span class="status-pill status-approved">success<\/span><\/td>/);
+
+  const approvedVsPublished = ui.renderPublishedArtifactAuditSummary(opHealth({ generated_reports: 9, approved_reports: 5, published_reports: 4 }));
+  assert.match(approvedVsPublished, /<td>Generated reports reviewed<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+  assert.match(approvedVsPublished, /<td>Approved reports published<\/td><td><span class="status-pill status-needs_revision">warning<\/span><\/td>/);
+});
+
+test("Case H: undefined / NaN 表示禁止 — legacy・0値いずれのケースでも undefined/NaN 文字列を出さない", () => {
+  const legacy = ui.renderPage({ summary: SUMMARY }, { review: "all", publishable: "all", published: "all", deploy: "all" });
+  assert.ok(!legacy.includes("undefined") && !legacy.includes("NaN"));
+
+  const withAudit = ui.renderPage(
+    { summary: SUMMARY, operationalHealth: opHealth({ generated_reports: 9, approved_reports: 5, published_reports: 4 }) },
+    { review: "all", publishable: "all", published: "all", deploy: "all" }
+  );
+  assert.ok(!withAudit.includes("undefined") && !withAudit.includes("NaN"));
+  assert.match(withAudit, /Published Artifact Status/);
+  assert.match(withAudit, /Published Artifact Audit Summary/);
+});
