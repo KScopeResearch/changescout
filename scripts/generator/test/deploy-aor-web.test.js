@@ -30,6 +30,7 @@ const {
   isProductionReportArtifact,
   RECONCILIATION_CLASS,
   RESERVED_TEST_DOMAIN_RE,
+  isReservedTestDomain,
 } = require("../deploy-aor-web");
 const { writeJson } = require("../shared/json-file");
 const { OUTPUT_DIR } = require("../shared/paths");
@@ -371,6 +372,29 @@ test("RESERVED_TEST_DOMAIN_RE: RFC 2606 / IANA 予約ドメインにマッチす
   ["ab-i.jp", "kscope.co.jp", "example.co.jp", "notexample.com"].forEach((d) =>
     assert.doesNotMatch(d, RESERVED_TEST_DOMAIN_RE)
   );
+});
+
+// Phase59 STEP4: isReservedTestDomain は RESERVED_TEST_DOMAIN_RE を .test() するだけの
+// SSOT wrapper で、dashboard-aggregates.js の isOperationalReportSlug が呼び出す唯一の関数。
+// export regression: RESERVED_TEST_DOMAIN_RE.test() と完全一致することを確認する。
+test("isReservedTestDomain: RESERVED_TEST_DOMAIN_RE.test() と完全一致する（SSOT export regression）", () => {
+  const domains = [
+    "example.com",
+    "sub.example.com",
+    "example.net",
+    "example.org",
+    "x.example",
+    "y.test",
+    "z.invalid",
+    "localhost",
+    "ab-i.jp",
+    "kscope.co.jp",
+    "example.co.jp",
+    "notexample.com",
+  ];
+  for (const d of domains) {
+    assert.equal(isReservedTestDomain(d), RESERVED_TEST_DOMAIN_RE.test(d), `slug=${d}`);
+  }
 });
 
 test("Test1: 正常（published + current report + approved review + eval PASS + fresh）→ DEPLOY_ELIGIBLE", async (t) => {

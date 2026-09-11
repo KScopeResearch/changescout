@@ -21,6 +21,7 @@ const {
   isOperationalReportSlug,
   findLatestHistory,
 } = require("../shared/dashboard-aggregates");
+const { isReservedTestDomain } = require("../deploy-aor-web"); // Phase59 STEP4: SSOT一致テスト用
 
 /** @param {Partial<Object>} o */
 function lead(o = {}) {
@@ -489,7 +490,8 @@ test("collectOperationalHealth: company_name が無ければ null（UI 側で sl
 // ---------------------------------------------------------------------------
 // Phase59 STEP2 — isOperationalReportSlug / stale・orphan からの予約テストドメイン除外
 // generated / approved / published_backend 等の既存メトリクスには影響しない。
-// deploy-aor-web.js の RESERVED_TEST_DOMAIN_RE をそのまま再利用（重複実装しない）。
+// deploy-aor-web.js の isReservedTestDomain()（RESERVED_TEST_DOMAIN_RE の SSOT）をそのまま
+// 呼び出す（Phase59 STEP4: 重複実装しない）。
 // ---------------------------------------------------------------------------
 
 test("isOperationalReportSlug: RFC2606/IANA 予約テストドメインは false、実会社 slug は true", () => {
@@ -507,6 +509,30 @@ test("isOperationalReportSlug: RFC2606/IANA 予約テストドメインは false
   assert.equal(isOperationalReportSlug(""), false);
   assert.equal(isOperationalReportSlug(null), false);
   assert.equal(isOperationalReportSlug(undefined), false);
+});
+
+// Phase59 STEP4: SSOT 一本化の意味的回帰テスト。
+// isOperationalReportSlug（Dashboard 側）と isReservedTestDomain（Deploy 側 SSOT）が
+// 常に否定関係で一致すること（= Dashboard が独自に判定ロジックを再実装していないこと）を
+// 直接突き合わせて確認する。
+test("SSOT一致: isOperationalReportSlug は isReservedTestDomain の否定と完全一致する", () => {
+  const slugs = [
+    "ab-i.jp",
+    "kscope.co.jp",
+    "illegame.com",
+    "example.com",
+    "foo.example.com",
+    "foo.test",
+    "foo.invalid",
+    "localhost",
+  ];
+  for (const slug of slugs) {
+    assert.equal(
+      isOperationalReportSlug(slug),
+      !isReservedTestDomain(slug),
+      `slug=${slug}: isOperationalReportSlug と !isReservedTestDomain が不一致`
+    );
+  }
 });
 
 test("Case A: example.com のみ stale → published_backend は維持、published_stale/stale_slugs は 0/空", () => {

@@ -18,7 +18,7 @@
 
 const { listLeads, isDeliveryBlocked } = require("../leads/lead-store");
 const publishedStore = require("../published-store"); // Phase59: operational health detail の published_at 取得（read-only）
-const { RESERVED_TEST_DOMAIN_RE } = require("../deploy-aor-web"); // Phase59 STEP2: 予約テストドメイン判定を deploy-aor-web.js と共有（重複実装しない）
+const { isReservedTestDomain } = require("../deploy-aor-web"); // Phase59 STEP4: 予約テストドメイン判定を deploy-aor-web.js の SSOT 関数に一本化（regexを再定義しない）
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -27,8 +27,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *
  * RFC2606 / IANA 予約テストドメイン（example.com / *.example.com / example.net / example.org /
  * *.example / *.test / *.invalid / localhost）を false にする。判定ロジックは
- * deploy-aor-web.js の RESERVED_TEST_DOMAIN_RE をそのまま再利用し、意味を一致させる
- * （§3: 重複実装禁止）。
+ * deploy-aor-web.js の isReservedTestDomain()（RESERVED_TEST_DOMAIN_RE の SSOT）をそのまま
+ * 呼び出し、意味を一致させる（Phase59 STEP4: regexを再定義しない・重複実装禁止）。
  *
  * 【適用範囲】generated / approved / published_backend / web_deployed / deploy_pending 等の
  * 既存メトリクスには適用しない（§4: 意味を維持）。published_stale / published_orphan /
@@ -43,7 +43,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * @returns {boolean}
  */
 function isOperationalReportSlug(slug) {
-  return typeof slug === "string" && slug.length > 0 && !RESERVED_TEST_DOMAIN_RE.test(slug);
+  return typeof slug === "string" && slug.length > 0 && !isReservedTestDomain(slug);
 }
 
 /**

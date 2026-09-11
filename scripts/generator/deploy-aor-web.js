@@ -90,6 +90,13 @@ const PUBLISHED_DATA_DIR = "data";
 // 既存コメントでも example.com 系を「予約テストドメイン」として明示的に扱っている）。
 const RESERVED_TEST_DOMAIN_RE = /(^|\.)(example\.(com|net|org)|example|test|invalid|localhost)$/i;
 
+// Phase59 STEP4: 「slug が RFC 2606 / IANA 予約テストドメインか」を判定する唯一の関数（SSOT）。
+// isProductionReportArtifact() と dashboard-aggregates.js の isOperationalReportSlug() は、
+// どちらも RESERVED_TEST_DOMAIN_RE を直接 .test() せず、この関数を経由する（重複実装しない）。
+function isReservedTestDomain(slug) {
+  return RESERVED_TEST_DOMAIN_RE.test(slug);
+}
+
 // Phase58 STEP4: reconciliation の分類ラベル。
 const RECONCILIATION_CLASS = Object.freeze({
   DEPLOY_ELIGIBLE: "DEPLOY_ELIGIBLE",
@@ -253,7 +260,7 @@ function buildDeployPlan(config, relativeKeys) {
 function isProductionReportArtifact(slug, publishedJson) {
   const id = publishedJson && typeof publishedJson.id === "string" ? publishedJson.id : "";
   if (!id.startsWith("generated-")) return false;
-  if (RESERVED_TEST_DOMAIN_RE.test(slug)) return false;
+  if (isReservedTestDomain(slug)) return false;
   return true;
 }
 
@@ -606,4 +613,6 @@ module.exports = {
   isProductionReportArtifact,
   RECONCILIATION_CLASS,
   RESERVED_TEST_DOMAIN_RE,
+  // Phase59 STEP4: 予約テストドメイン判定の SSOT（dashboard-aggregates.js から共通利用）
+  isReservedTestDomain,
 };
