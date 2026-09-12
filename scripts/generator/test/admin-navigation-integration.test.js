@@ -1,14 +1,14 @@
 /**
- * admin-navigation-integration.test.js — Phase59 STEP11 / STEP14で拡張。
+ * admin-navigation-integration.test.js — Phase59 STEP11 / STEP14 / Phase60 STEP3で拡張。
  *
- * website/aor-admin/public/{dashboard,operations,reports,system}.html の4画面（STEP11）に加え、
- * STEP14で同じ v2 世代（module.exports ベース・単体テスト有り）と判明した leads.html /
- * deliveries.html / suppressions.html にも同様に #admin-operational-health-badge コンテナと
+ * website/aor-admin/public/{dashboard,operations,reports,system}.html の4画面（STEP11）、
+ * leads.html / deliveries.html / suppressions.html（Phase59 STEP14）、jobs.html（Phase60 STEP3、
+ * v1→v2 migration 後）の計8画面すべてに #admin-operational-health-badge コンテナと
  * app.js の <script> 読み込みが配線されていること、および app.js の描画関数がそのコンテナへ
  * 正しくバッジを挿入する（legacy では挿入しない）ことを確認する。
  *
- * index.html / jobs.html / detail.html（Task番号ベースの旧世代・フロントエンド単体テスト無し）は
- * STEP14監査の結果、今回は対象外と判断したため配線していない（別STEPで判断）。
+ * index.html（Task番号ベースの旧世代・フロントエンド単体テスト無し、Migration Boundary）と
+ * detail.html（Navigation Health対象外）は今回も配線していない（別STEPで判断）。
  *
  * 【テスト方針】このリポジトリのテストスイートは jsdom 等のブラウザ環境を持たない（node --test
  * のみ、DOM 非依存）。そのため:
@@ -58,6 +58,22 @@ const PAGES = [
 // 既存ナビの意味・順序を変更しないことを確認するため、専用のリンクセットで検証する。
 const LEADS_LINKS = [
   '<a href="/dashboard.html">Dashboard</a>',
+  '<a href="/deliveries.html">Deliveries</a>',
+  '<a href="/reports.html">Reports</a>',
+  '<a href="/suppressions.html">Suppression</a>',
+  '<a href="/jobs.html">Jobs</a>',
+  '<a href="/system.html">System</a>',
+  '<a href="/operations.html">Operations</a>',
+  '<a href="/logout">ログアウト</a>',
+  '<a href="/index.html">← 一覧に戻る</a>',
+];
+
+// Phase60 STEP3: jobs.html も同じ v2 世代（jobs.js は Phase60 STEP2 で IIFE + module.exports 化
+// 済み）だが、リンクセットは leads.html とも異なる（"Reviews" 自己リンクが無い点は共通だが、
+// "Jobs" 自己リンクは持つ。末尾に "← 一覧に戻る" が付く点は leads.html と同じ）。
+const JOBS_LINKS = [
+  '<a href="/dashboard.html">Dashboard</a>',
+  '<a href="/leads.html">Leads</a>',
   '<a href="/deliveries.html">Deliveries</a>',
   '<a href="/reports.html">Reports</a>',
   '<a href="/suppressions.html">Suppression</a>',
@@ -158,6 +174,46 @@ test("Leads header: 既存ナビリンク（Reviews自己リンク無し・末�
   assert.ok(iLast < iContainer, "コンテナは最後のナビリンク（← 一覧に戻る）の直後にある");
   // "Reviews" 自己リンクは元々leads.htmlに存在しない（追加していないことの確認）
   assert.ok(!html.includes('<a href="/index.html">Reviews</a>'), "leads.html に Reviews リンクを新規追加していない");
+});
+
+// Phase60 STEP3: jobs.html は v1→v2 migration（STEP2）完了後の追加配線対象。
+// leads.html と同じ理由（byte-identical ではない独自リンクセット）で専用ブロックで検証する。
+test("Jobs header: #admin-operational-health-badge コンテナが存在する", () => {
+  const html = readPage("jobs.html");
+  assert.match(html, /<div id="admin-operational-health-badge"><\/div>/, "jobs.html にコンテナが無い");
+});
+
+test("Jobs header: app.js が <script> 読み込みされている（api.js/status.js より後、jobs.js より前）", () => {
+  const html = readPage("jobs.html");
+  const iApi = html.indexOf('<script src="/assets/js/api.js"></script>');
+  const iStatus = html.indexOf('<script src="/assets/js/status.js"></script>');
+  const iApp = html.indexOf('<script src="/assets/js/app.js"></script>');
+  const iJobs = html.indexOf('<script src="/assets/js/jobs.js"></script>');
+  assert.ok(iApi !== -1 && iStatus !== -1 && iApp !== -1 && iJobs !== -1, "jobs.html に必要なスクリプト読み込みが揃っていない");
+  assert.ok(iApi < iApp && iStatus < iApp && iApp < iJobs, "jobs.html のスクリプト順序が api.js/status.js → app.js → jobs.js になっていない");
+});
+
+test("Jobs header: 既存ナビリンク（Reviews自己リンク無し・末尾に「← 一覧に戻る」）の文言・順序・hrefは変更されていない", () => {
+  const html = readPage("jobs.html");
+  let lastIdx = -1;
+  for (const link of JOBS_LINKS) {
+    const idx = html.indexOf(link);
+    assert.ok(idx !== -1, `jobs.html にリンク ${link} が見つからない`);
+    assert.ok(idx > lastIdx, `jobs.html のリンク順序が変わっている: ${link}`);
+    lastIdx = idx;
+  }
+  const iLast = html.indexOf('<a href="/index.html">← 一覧に戻る</a>');
+  const iContainer = html.indexOf('<div id="admin-operational-health-badge"></div>');
+  assert.ok(iLast < iContainer, "コンテナは最後のナビリンク（← 一覧に戻る）の直後にある");
+  // "Reviews" 自己リンクは元々jobs.htmlに存在しない（追加していないことの確認）
+  assert.ok(!html.includes('<a href="/index.html">Reviews</a>'), "jobs.html に Reviews リンクを新規追加していない");
+});
+
+test("Jobs header: live-indicator / live-label（SSE接続状態表示）が既存のまま維持されている", () => {
+  const html = readPage("jobs.html");
+  assert.match(html, /<span id="live-indicator" class="live-dot off"><\/span>/, "live-indicator が変更されている");
+  assert.match(html, /<span id="live-label">接続中…<\/span>/, "live-label が変更されている");
+  assert.match(html, /<main id="jobs-container">/, "jobs-container が変更されている");
 });
 
 test("badgeがrenderされる: renderNavigationHealthInto はコンテナへバッジ（success/warning/danger）を実際に挿入する", () => {

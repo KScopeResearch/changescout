@@ -235,21 +235,22 @@ test("jobs.html: 既存ナビリンクの文言・順序・hrefは変更され�
   }
 });
 
-test("jobs.html: Health Badgeコンテナ・app.jsは今回追加していない（STEP60-2ではまだ追加しない）", () => {
-  assert.ok(!jobsHtml.includes("admin-operational-health-badge"), "STEP60-2ではHealth Badgeを追加しない");
-  assert.ok(!jobsHtml.includes("/assets/js/app.js"), "STEP60-2ではapp.jsを読み込まない");
+test("jobs.html: Health Badgeコンテナ・app.jsが追加されている（Phase60 STEP3）。Health計算ロジック自体はここでは検証しない（app.js/admin-navigation-integration.test.jsの責務）", () => {
+  assert.ok(jobsHtml.includes('<div id="admin-operational-health-badge"></div>'), "Phase60 STEP3でHealth Badgeコンテナが配線されているはず");
+  assert.ok(jobsHtml.includes('<script src="/assets/js/app.js"></script>'), "Phase60 STEP3でapp.jsが読み込まれているはず");
 });
 
 // ===========================================================================
 // Test 10 — script order
 // ===========================================================================
 
-test("jobs.html: script読み込み順序が api.js → status.js → jobs.js のまま維持されている", () => {
+test("jobs.html: script読み込み順序が api.js → status.js → app.js → jobs.js になっている（Phase60 STEP3でapp.js追加）", () => {
   const iApi = jobsHtml.indexOf('<script src="/assets/js/api.js"></script>');
   const iStatus = jobsHtml.indexOf('<script src="/assets/js/status.js"></script>');
+  const iApp = jobsHtml.indexOf('<script src="/assets/js/app.js"></script>');
   const iJobs = jobsHtml.indexOf('<script src="/assets/js/jobs.js"></script>');
-  assert.ok(iApi !== -1 && iStatus !== -1 && iJobs !== -1, "必要なscript読み込みが揃っていない");
-  assert.ok(iApi < iStatus && iStatus < iJobs, "script順序が api.js → status.js → jobs.js になっていない");
+  assert.ok(iApi !== -1 && iStatus !== -1 && iApp !== -1 && iJobs !== -1, "必要なscript読み込みが揃っていない");
+  assert.ok(iApi < iStatus && iStatus < iApp && iApp < iJobs, "script順序が api.js → status.js → app.js → jobs.js になっていない");
 });
 
 // ===========================================================================
