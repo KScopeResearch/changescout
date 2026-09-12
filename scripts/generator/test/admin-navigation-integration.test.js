@@ -1,14 +1,16 @@
 /**
- * admin-navigation-integration.test.js — Phase59 STEP11 / STEP14 / Phase60 STEP3で拡張。
+ * admin-navigation-integration.test.js — Phase59 STEP11 / STEP14 / Phase60 STEP3・STEP5で拡張。
  *
  * website/aor-admin/public/{dashboard,operations,reports,system}.html の4画面（STEP11）、
  * leads.html / deliveries.html / suppressions.html（Phase59 STEP14）、jobs.html（Phase60 STEP3、
- * v1→v2 migration 後）の計8画面すべてに #admin-operational-health-badge コンテナと
- * app.js の <script> 読み込みが配線されていること、および app.js の描画関数がそのコンテナへ
- * 正しくバッジを挿入する（legacy では挿入しない）ことを確認する。
+ * v1→v2 migration 後）、index.html（Phase60 STEP4でv2 migration・STEP5で配線）の計9画面すべてに
+ * #admin-operational-health-badge コンテナと app.js の <script> 読み込みが配線されていること、
+ * および app.js の描画関数がそのコンテナへ正しくバッジを挿入する（legacy では挿入しない）ことを
+ * 確認する。
  *
- * index.html（Task番号ベースの旧世代・フロントエンド単体テスト無し、Migration Boundary）と
- * detail.html（Navigation Health対象外）は今回も配線していない（別STEPで判断）。
+ * detail.html（Navigation Health対象外・Jobs/Logout/戻るのみの簡易ナビ）のみ今回も配線して
+ * いない（Phase59 STEP14/STEP15で設計判断として固定済み）。これでAdmin Operational Health
+ * Navigationの対象ページ（9ページ）とMigration Boundaryはすべて解消された。
  *
  * 【テスト方針】このリポジトリのテストスイートは jsdom 等のブラウザ環境を持たない（node --test
  * のみ、DOM 非依存）。そのため:
@@ -82,6 +84,21 @@ const JOBS_LINKS = [
   '<a href="/operations.html">Operations</a>',
   '<a href="/logout">ログアウト</a>',
   '<a href="/index.html">← 一覧に戻る</a>',
+];
+
+// Phase60 STEP5: index.html はそれ自身が Reviews 画面のため "Reviews" 自己リンクを持たず、
+// leads.html/jobs.html と違い「← 一覧に戻る」も持たない（index.html 自身が一覧そのものの
+// ため）。既存の独自リンクセットを変更しないことを確認するため専用リストで検証する。
+const INDEX_LINKS = [
+  '<a href="/dashboard.html">Dashboard</a>',
+  '<a href="/leads.html">Leads</a>',
+  '<a href="/deliveries.html">Deliveries</a>',
+  '<a href="/reports.html">Reports</a>',
+  '<a href="/suppressions.html">Suppression</a>',
+  '<a href="/jobs.html">Jobs</a>',
+  '<a href="/system.html">System</a>',
+  '<a href="/operations.html">Operations</a>',
+  '<a href="/logout">ログアウト</a>',
 ];
 
 function readPage(file) {
@@ -214,6 +231,48 @@ test("Jobs header: live-indicator / live-label（SSE接続状態表示）が既�
   assert.match(html, /<span id="live-indicator" class="live-dot off"><\/span>/, "live-indicator が変更されている");
   assert.match(html, /<span id="live-label">接続中…<\/span>/, "live-label が変更されている");
   assert.match(html, /<main id="jobs-container">/, "jobs-container が変更されている");
+});
+
+// Phase60 STEP5: index.html は v1→v2 migration（STEP4）完了後の追加配線対象。
+// leads.html/jobs.html と同じ理由（byte-identical ではない独自リンクセット）で専用ブロックで検証する。
+test("Index header: #admin-operational-health-badge コンテナが存在する", () => {
+  const html = readPage("index.html");
+  assert.match(html, /<div id="admin-operational-health-badge"><\/div>/, "index.html にコンテナが無い");
+});
+
+test("Index header: app.js が <script> 読み込みされている（api.js/status.js より後、list.js より前）", () => {
+  const html = readPage("index.html");
+  const iApi = html.indexOf('<script src="/assets/js/api.js"></script>');
+  const iStatus = html.indexOf('<script src="/assets/js/status.js"></script>');
+  const iApp = html.indexOf('<script src="/assets/js/app.js"></script>');
+  const iList = html.indexOf('<script src="/assets/js/list.js"></script>');
+  assert.ok(iApi !== -1 && iStatus !== -1 && iApp !== -1 && iList !== -1, "index.html に必要なスクリプト読み込みが揃っていない");
+  assert.ok(iApi < iApp && iStatus < iApp && iApp < iList, "index.html のスクリプト順序が api.js/status.js → app.js → list.js になっていない");
+});
+
+test("Index header: 既存ナビリンク（Reviews自己リンク無し・戻るリンク無し）の文言・順序・hrefは変更されていない", () => {
+  const html = readPage("index.html");
+  let lastIdx = -1;
+  for (const link of INDEX_LINKS) {
+    const idx = html.indexOf(link);
+    assert.ok(idx !== -1, `index.html にリンク ${link} が見つからない`);
+    assert.ok(idx > lastIdx, `index.html のリンク順序が変わっている: ${link}`);
+    lastIdx = idx;
+  }
+  const iLast = html.indexOf('<a href="/logout">ログアウト</a>');
+  const iContainer = html.indexOf('<div id="admin-operational-health-badge"></div>');
+  assert.ok(iLast < iContainer, "コンテナは最後のナビリンク（ログアウト）の直後にある");
+  // "Reviews" 自己リンク・「← 一覧に戻る」は元々index.htmlに存在しない（追加していないことの確認）
+  assert.ok(!html.includes('<a href="/index.html">Reviews</a>'), "index.html に Reviews リンクを新規追加していない");
+  assert.ok(!html.includes("← 一覧に戻る"), "index.html に戻るリンクを新規追加していない");
+});
+
+test("Index header: live-indicator / live-label / system-status-bar / list-container が既存のまま維持されている", () => {
+  const html = readPage("index.html");
+  assert.match(html, /<span id="live-indicator" class="live-dot off"><\/span>/, "live-indicator が変更されている");
+  assert.match(html, /<span id="live-label">接続中…<\/span>/, "live-label が変更されている");
+  assert.match(html, /class="system-status-bar"/, "system-status-bar が変更されている");
+  assert.match(html, /<div id="list-container">/, "list-container が変更されている");
 });
 
 test("badgeがrenderされる: renderNavigationHealthInto はコンテナへバッジ（success/warning/danger）を実際に挿入する", () => {
