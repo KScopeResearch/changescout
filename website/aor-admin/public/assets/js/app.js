@@ -48,6 +48,10 @@
    * §4 legacy 判定: summary が無い／status が文字列でない／summary.generated_reports が
    * 無い（Phase59 STEP5 の additive フィールド）のいずれかに該当すれば legacy とみなす。
    * STEP6〜9 の Published Artifact Audit 系セクションと同じ legacy ガード規約を踏襲する。
+   *
+   * Phase59 STEP12: deploy_ready / published_stale / published_orphan のいずれかが欠落して
+   * いる場合も legacy として扱う（不完全なレスポンスで Badge/Tooltip/Popover を出さない。
+   * §STEP12-B）。値そのものの再判定・再計算は行わず、フィールドの存在確認のみ追加する。
    * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス
    * @returns {boolean}
    */
@@ -58,6 +62,9 @@
     var summary = operationalHealth.summary;
     if (!summary || typeof summary !== "object") return true;
     if (summary.generated_reports === undefined) return true;
+    if (summary.deploy_ready === undefined) return true;
+    if (summary.published_stale === undefined) return true;
+    if (summary.published_orphan === undefined) return true;
     return false;
   }
 

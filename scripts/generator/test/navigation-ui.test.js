@@ -200,3 +200,58 @@ test("STEP11 Case H: popover values — success/warning/danger いずれでも P
   assert.ok(!readyHtml.includes("undefined") && !readyHtml.includes("NaN"));
   assert.ok(!warnHtml.includes("undefined") && !warnHtml.includes("NaN"));
 });
+
+// ===========================================================================
+// Phase59 STEP12 — Navigation Consistency Finalization
+// ===========================================================================
+
+test("STEP12-B: deploy_ready / published_stale / published_orphan のいずれかが欠落していても Badge/Summary/Popover を完全に非表示にする", () => {
+  function withoutField(field) {
+    const data = opHealth();
+    delete data.summary[field];
+    return data;
+  }
+  for (const field of ["deploy_ready", "published_stale", "published_orphan"]) {
+    const data = withoutField(field);
+    assert.equal(nav.renderHealthBadge(data), "", `${field} 欠落時に Badge が非表示にならない`);
+    assert.equal(nav.renderNavigationHealthSummary(data), "", `${field} 欠落時に Summary が非表示にならない`);
+    assert.equal(nav.renderNavigationHealthPopover(data), "", `${field} 欠落時に Popover が非表示にならない`);
+    assert.equal(nav.isLegacy(data), true, `${field} 欠落時に isLegacy が true を返さない`);
+  }
+});
+
+test("STEP12-C: initNavigationHealth は AdminApi.getDashboardOperationalHealth() を1回だけ呼ぶ", async () => {
+  let callCount = 0;
+  const container = { innerHTML: "" };
+  global.document = { getElementById: (id) => (id === "admin-operational-health-badge" ? container : null) };
+  global.AdminApi = {
+    getDashboardOperationalHealth: () => {
+      callCount++;
+      return Promise.resolve(opHealth());
+    },
+  };
+  try {
+    nav.initNavigationHealth();
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(callCount, 1, "Navigation Health wiring は API を1回だけ呼ぶべき");
+    assert.match(container.innerHTML, /🟢 Healthy/);
+  } finally {
+    delete global.document;
+    delete global.AdminApi;
+  }
+});
+
+test("STEP12-E: API由来の値（published_stale等）にHTML/scriptが混じっていてもエスケープされ、DOM注入されない", () => {
+  const evil = opHealth({ published_stale: "<script>alert(1)</script>" });
+  const summaryHtml = nav.renderNavigationHealthSummary(evil);
+  const popoverHtml = nav.renderNavigationHealthPopover(evil);
+  assert.doesNotMatch(summaryHtml, /<script>alert\(1\)<\/script>/);
+  assert.match(summaryHtml, /&lt;script&gt;/);
+  assert.doesNotMatch(popoverHtml, /<script>alert\(1\)<\/script>/);
+  assert.match(popoverHtml, /&lt;script&gt;/);
+
+  // status は固定マッピングのキー参照のみに使われるため、未知/悪性値は単にバッジ非表示になる
+  const evilStatus = opHealth();
+  evilStatus.status = "<script>alert(2)</script>";
+  assert.equal(nav.renderHealthBadge(evilStatus), "", "未知の status 値は固定マッピングに無いため非表示（判定ロジックの追加なし）");
+});
