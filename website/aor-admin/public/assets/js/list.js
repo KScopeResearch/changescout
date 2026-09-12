@@ -6,7 +6,26 @@
  * ○=publishable true、△=publishable false かつ review_status===needs_revision（対応中）、
  * ×=publishable false かつそれ以外（未着手/却下）。isPublishable()の判定ロジックを
  * ここで再実装することはしない（Task14要件④）。
+ *
+ * Phase60 STEP4: dashboard.js 等の既存 Admin v2 ページと同じ IIFE + module.exports 構造へ
+ * 移行した。既存コードの構文・ロジック・実行順序・SSE（/api/events）の挙動は一切変更していない
+ * （囲む IIFE と末尾の module.exports 分岐のみを追加）。
+ *
+ * renderList() のみ、DOM 依存箇所（document.getElementById("list-container")）を最小限の
+ * DI（第2引数 container、省略時は従来どおり document から取得）に変更した。ブラウザ側の
+ * 呼び出し（init() 内・SSE コールバック内）はいずれも引数無しの renderList(summaries) の
+ * ままで、動作は完全に維持している。行クリック時の遷移配線（tr.row-link）は
+ * container.querySelectorAll が使える場合のみ実行し（実ブラウザでは常に true）、
+ * Node からのユニットテストで querySelectorAll を持たない簡易オブジェクトを渡しても
+ * 例外を投げないようにしている。
+ *
+ * 純粋関数（escapeHtml/fmtDate/publishableIcon/statusPill/renderList）のみ module.exports へ
+ * 公開し、Node からユニットテストする（DOM に触れる init/setLiveIndicator はブラウザ専用の
+ * まま非公開とする — dashboard.js 等の既存パターンと同じ）。
  */
+
+(function () {
+"use strict";
 
 /** @param {Object} summary - GET /api/reports の1要素 */
 function publishableIcon(summary) {
@@ -30,9 +49,14 @@ function statusPill(label, statusValue) {
   return `<span class="status-pill status-${statusValue || "unknown"}">${label || "—"}</span>`;
 }
 
-/** @param {Object[]} summaries */
-function renderList(summaries) {
-  const container = document.getElementById("list-container");
+/**
+ * @param {Object[]} summaries
+ * @param {HTMLElement} [container] - 省略時は document.getElementById("list-container")
+ *   （Phase60 STEP4: Node からのユニットテストのための最小限 DI。ブラウザ側の呼び出しは
+ *   引数無しのままで挙動は完全に維持する）
+ */
+function renderList(summaries, container) {
+  container = container || document.getElementById("list-container");
 
   if (!summaries.length) {
     container.innerHTML = '<div class="empty-state">scripts/generator/output/ にレポートがまだありません。</div>';
@@ -77,11 +101,13 @@ function renderList(summaries) {
     </table>
   `;
 
-  container.querySelectorAll("tr.row-link").forEach((tr) => {
-    tr.addEventListener("click", () => {
-      window.location.href = `/detail.html?company=${encodeURIComponent(tr.dataset.id)}`;
+  if (typeof container.querySelectorAll === "function") {
+    container.querySelectorAll("tr.row-link").forEach((tr) => {
+      tr.addEventListener("click", () => {
+        window.location.href = `/detail.html?company=${encodeURIComponent(tr.dataset.id)}`;
+      });
     });
-  });
+  }
 }
 
 /** @param {string} s */
@@ -120,4 +146,15 @@ async function init() {
   source.onerror = () => setLiveIndicator(false);
 }
 
-init();
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    escapeHtml,
+    fmtDate,
+    publishableIcon,
+    statusPill,
+    renderList,
+  };
+} else {
+  init();
+}
+})();
