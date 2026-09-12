@@ -472,7 +472,21 @@
     return AdminApi.getDashboardOperationalHealth();
   }
 
-  async function load() {
+  /**
+   * Phase61 STEP3: init() が既に取得した /api/session の Promise を再利用できるようにする。
+   * sessionResult が Promise（thenable）ならそのまま使い、そうでなければ（例えば
+   * "system-refresh" ボタンの click ハンドラから直接呼ばれ、DOM の Event オブジェクトが
+   * 渡ってきた場合や、sessionResult 省略時）は従来どおり新しく AdminApi.getSession() を呼ぶ。
+   * これにより、初回ページロードでは /api/session が1回だけ呼ばれ、Refresh ボタン押下時は
+   * 従来どおり最新のセッション状態を取り直す（古いセッション結果を固定してしまわない）。
+   * @param {*} [sessionResult]
+   * @returns {Promise}
+   */
+  function resolveSessionPromise(sessionResult) {
+    return sessionResult && typeof sessionResult.then === "function" ? sessionResult : AdminApi.getSession();
+  }
+
+  async function load(sessionResult) {
     var container = $("system-container");
     if (!container) return;
     var btn = $("system-refresh");
@@ -484,7 +498,7 @@
       AdminApi.getHealth(),
       AdminApi.getDashboardHealth(),
       AdminApi.getDashboardReports(),
-      AdminApi.getSession(),
+      resolveSessionPromise(sessionResult), // Phase61 STEP3: init() の /api/session 取得結果を再利用（重複fetch解消）
       fetchOperationalHealthShared(), // Phase59 STEP8: Published Artifact Health カード用 / Phase61 STEP2: fetch共有
     ]);
 
@@ -523,16 +537,19 @@
   }
 
   async function init() {
+    // Phase61 STEP3: /api/session は init() が1回だけ取得し、その Promise を load() へ渡して
+    // 再利用する（load() が独自に AdminApi.getSession() をもう一度呼ばないようにする）。
+    var sessionPromise = AdminApi.getSession();
     try {
-      var session = await AdminApi.getSession();
+      var session = await sessionPromise;
       var el = $("user-label");
       if (el) el.textContent = session.username + " でログイン中";
     } catch (e) {
       // 表示上の情報。致命的ではない
     }
     var btn = $("system-refresh");
-    if (btn) btn.addEventListener("click", load);
-    await load();
+    if (btn) btn.addEventListener("click", load); // Refresh クリック時は sessionResult 省略＝新規fetch
+    await load(sessionPromise);
   }
 
   if (typeof module !== "undefined" && module.exports) {
@@ -555,6 +572,9 @@
       renderPublishedArtifactHealth: renderPublishedArtifactHealth,
       renderPublishedArtifactAuditSummary: renderPublishedArtifactAuditSummary,
       fetchOperationalHealthShared: fetchOperationalHealthShared,
+      resolveSessionPromise: resolveSessionPromise,
+      load: load,
+      init: init,
     };
   } else {
     init();
