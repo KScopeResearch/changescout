@@ -651,6 +651,125 @@ test("published-store.jsのisPublished()がfalseを返せば、website/aor/data/
 });
 
 // ---------------------------------------------------------------------------
+// Phase64 STEP8: メール本文生成がGate判定と同じCanonical Published Store
+// （published-store.js の loadPublished()）を使うことの確認。
+// isPublished()同様、published-store.js自体をモックしてS3等の別backendを模す
+// （実AWSへは一切接続しない）。「sendEmailが呼ばれた」だけでなく、実際に渡された
+// subject/text/htmlの中身（Opportunity Theme・会社名）までassertする。
+// ---------------------------------------------------------------------------
+
+test("TEST A/B/D: website/aor/data/にローカルファイルが無くても、loadPublished()が返すreportのOpportunity Themeがメール本文（subject/text/html）に反映される", async (t) => {
+  withSiteConfig(t);
+  const lead = await createReportGeneratedLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  // publishTestCompanyData()を呼ばない = website/aor/data/にはローカルファイルが存在しない
+  // （Lambda実行環境でwebsite/を含まないbundleを想定した状態）。
+
+  const publishedStore = require("../published-store");
+  const originalIsPublished = publishedStore.isPublished;
+  const originalLoadPublished = publishedStore.loadPublished;
+  publishedStore.isPublished = async () => true; // Gate: S3等、他backendでcanonicalがtrueな状況を模す
+  publishedStore.loadPublished = async () => ({
+    company_profile: { name: "カノニカル株式会社", industry_label: "情報サービス業" },
+    human_review: { status: "approved", reviewed_at: "2026-09-08T00:00:00.000Z" },
+    free_opportunity: {
+      title: "カノニカルストア経由のビジネスチャンス検証サービスの立ち上げ",
+      why_now: "テスト用のwhy_nowです。",
+      why_company: "テスト用のwhy_companyです。",
+      market_change: "テスト用のmarket_changeです。",
+      first_action: "テスト用のfirst_actionです。",
+      extended_analysis: { priority: "", confidence_note: "" },
+    },
+  });
+  t.after(() => {
+    publishedStore.isPublished = originalIsPublished;
+    publishedStore.loadPublished = originalLoadPublished;
+  });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  assert.equal(result.ok, true, "loadPublished()からOpportunityが取得できれば送信は成功するはず");
+  assert.equal(calls.length, 1);
+  const sent = calls[0];
+  assert.match(sent.subject, /カノニカル株式会社/, "件名に会社名（Canonical Published Store由来）が入るはず");
+  assert.ok(
+    sent.text.includes("カノニカルストア経由のビジネスチャンス検証サービスの立ち上げ"),
+    "本文（text）にOpportunity Theme（Canonical Published Store由来）が入るはず"
+  );
+  assert.ok(
+    sent.html.includes("カノニカルストア経由のビジネスチャンス検証サービスの立ち上げ"),
+    "本文（html）にOpportunity Theme（Canonical Published Store由来）が入るはず"
+  );
+  assert.doesNotMatch(sent.text + sent.html, /ご担当者様/, "company_profile.nameが取れているため、宛名フォールバックにならないはず");
+});
+
+test("TEST C: loadPublished()が返すreport titleを変えれば、メールsubject/text/htmlの内容も追従して変わる", async (t) => {
+  withSiteConfig(t);
+  const publishedStore = require("../published-store");
+  const originalIsPublished = publishedStore.isPublished;
+  const originalLoadPublished = publishedStore.loadPublished;
+  publishedStore.isPublished = async () => true;
+  t.after(() => {
+    publishedStore.isPublished = originalIsPublished;
+    publishedStore.loadPublished = originalLoadPublished;
+  });
+
+  async function sendWithTitle(title) {
+    const lead = await createReportGeneratedLead();
+    t.after(() => cleanupLead(lead.lead_id));
+    publishedStore.loadPublished = async () => ({
+      company_profile: { name: "タイトル差替株式会社" },
+      human_review: { status: "approved", reviewed_at: "2026-09-08T00:00:00.000Z" },
+      free_opportunity: {
+        title,
+        why_now: "why_now",
+        why_company: "why_company",
+        market_change: "market_change",
+        first_action: "first_action",
+      },
+    });
+    const { fn, calls } = fakeSendEmail();
+    const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+    assert.equal(result.ok, true);
+    return calls[0];
+  }
+
+  const sentA = await sendWithTitle("フィクスチャA向けビジネスチャンスの立ち上げ");
+  const sentB = await sendWithTitle("フィクスチャB向けビジネスチャンスの立ち上げ");
+
+  assert.ok(sentA.text.includes("フィクスチャA向けビジネスチャンスの立ち上げ"));
+  assert.ok(!sentA.text.includes("フィクスチャB向けビジネスチャンスの立ち上げ"));
+  assert.ok(sentB.text.includes("フィクスチャB向けビジネスチャンスの立ち上げ"));
+  assert.ok(!sentB.text.includes("フィクスチャA向けビジネスチャンスの立ち上げ"));
+});
+
+test("TEST E: loadPublished()がnullを返す（Published reportを取得できない）場合でも、既存の安全なfallbackで例外にならない", async (t) => {
+  withSiteConfig(t);
+  const lead = await createReportGeneratedLead();
+  t.after(() => cleanupLead(lead.lead_id));
+
+  const publishedStore = require("../published-store");
+  const originalIsPublished = publishedStore.isPublished;
+  const originalLoadPublished = publishedStore.loadPublished;
+  publishedStore.isPublished = async () => true; // Gateはtrueだが
+  publishedStore.loadPublished = async () => null; // 実データが取得できない矛盾したケースを模す
+  t.after(() => {
+    publishedStore.isPublished = originalIsPublished;
+    publishedStore.loadPublished = originalLoadPublished;
+  });
+
+  const { fn, calls } = fakeSendEmail();
+  const result = await sendInitialReportForLead(lead.lead_id, { sendEmail: fn });
+
+  // 既存のフォールバック仕様（publishedData = (await loadPublished(...)) || {}）どおり、
+  // 例外にはならず、空のteaser（宛名フォールバック等）で送信自体は継続する。
+  assert.equal(result.ok, true, "既存の空フォールバック仕様により、例外にはならず送信は継続するはず");
+  assert.equal(calls.length, 1);
+  assert.doesNotMatch(calls[0].text + calls[0].html, /undefined|null|\[object Object\]/);
+});
+
+// ---------------------------------------------------------------------------
 // AOR_SITE_BASE_URL未設定時の扱い
 // ---------------------------------------------------------------------------
 

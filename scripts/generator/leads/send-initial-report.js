@@ -27,6 +27,14 @@
  * 【PJ2 AOR Phase 3-D-1】isPublished()はpublished-store.js経由（Lambda側の公開判定にも
  * 使えるcanonical state）になり、Promiseを返すようになったためawaitして使う。
  *
+ * 【Phase64 STEP8】メール本文生成用のpublished report取得も、isPublished()と同じ
+ * published-store.js（loadPublished()、PUBLISHED_STORE_BACKEND経由のcanonical state）を
+ * 使うよう統一した。以前はpublish-report.jsのpublishedPathFor()（常にfilesystem固定パス
+ * website/aor/data/<slug>.jsonを返す）+ readJsonSafe()を直接使っており、Gate判定
+ * （isPublished()）とメール本文生成のデータソースが食い違っていた。PUBLISHED_STORE_BACKEND=s3
+ * のLambda実行環境（website/を含まないbundle）ではこのfilesystemパスが物理的に存在せず、
+ * メール本文が常にreport-teaser.jsの空フォールバックになっていた（Phase64 STEP7 RCA参照）。
+ *
  * 【Job Runnerを使わない理由（既存調査の再確認）】jobs/job-store.jsはプロセス内メモリの
  * Mapで状態を保持する設計であり、website/aor-admin/server.js（常駐プロセス）内で動かす
  * 前提の仕組みである。本CLIのような独立した一回実行のスクリプトから無理にenqueue()しても、
@@ -63,8 +71,10 @@
  */
 
 const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked, isDeliveryApproved } = require("./lead-store");
-const { isPublished, publishedPathFor } = require("../publish-report");
-const { readJsonSafe } = require("../shared/json-file");
+// publishedStoreはモジュールオブジェクトごとrequireし、呼び出し時にプロパティ経由で参照する
+// （分割代入で関数を先に取り出すと、テストがpublishedStore.isPublished/loadPublishedを
+// 差し替えても反映されない。publish-report.jsのisPublished()と同じ呼び出しパターン）。
+const publishedStore = require("../published-store");
 const { redactSecrets } = require("../shared/redact");
 const { runCli } = require("../shared/cli-utils");
 const { buildUnsubscribeUrl } = require("./unsubscribe-url");
@@ -156,7 +166,7 @@ async function sendInitialReportForLead(leadId, options = {}) {
       error: `delivery_statusが"${lead.delivery_status}"のため送信対象外です`,
     };
   }
-  if (!(await isPublished(lead.company_slug))) {
+  if (!(await publishedStore.isPublished(lead.company_slug))) {
     return {
       ok: false,
       leadId,
@@ -188,7 +198,14 @@ async function sendInitialReportForLead(leadId, options = {}) {
     if (missingSite.length) {
       throw new Error(`送信に必要な環境変数が設定されていません: ${missingSite.join(", ")}`);
     }
-    const publishedData = readJsonSafe(publishedPathFor(lead.company_slug)) || {};
+    // Phase64 STEP8: isPublished()と同じCanonical Published Store（PUBLISHED_STORE_BACKEND
+    // 経由）からpublished reportを取得する。以前はwebsite/aor/data/<slug>.jsonという
+    // filesystem固定パスを直接読んでいたため、PUBLISHED_STORE_BACKEND=s3のLambda実行環境
+    // （website/を含まないbundle）ではこのファイルが物理的に存在せず、メール本文が常に
+    // report-teaser.jsの空フォールバック（Opportunity非表示・宛名「ご担当者様」）に
+    // なっていた（Gate判定のisPublished()はS3を正しく見るが、本文生成側だけfilesystemの
+    // ままだった不整合。Phase64 STEP7 RCA参照）。
+    const publishedData = (await publishedStore.loadPublished(lead.company_slug)) || {};
     // company_profile.name が取れない場合は company_slug をフォールバック名にする
     if (!publishedData.company_profile || !publishedData.company_profile.name) {
       publishedData.company_profile = Object.assign({}, publishedData.company_profile, {
