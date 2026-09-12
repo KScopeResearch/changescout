@@ -306,3 +306,205 @@ lead_id・report_tokenの組（URL経由）またはCLIでの一意特定（repl
 検証が進んだ工程から順にシステム化する。「先にシステムを作ってから検証する」のではなく、
 「検証しながら、繰り返し発生する工程だけをシステム化する」順序を守る
 （PROJECT.mdの「Automate Everything」「Build Fast」原則に合致）。
+
+## Admin管理画面 Navigation Architecture（Phase59〜61 確定仕様）
+
+**注: このセクションは上記と異なり「将来構想」ではなく、`website/aor-admin/` に実装済みの
+現行仕様を確定記録するものである（Phase59〜61で完成。Phase61 STEP4時点でのRead-only監査結果を
+反映）。**
+
+Admin画面（`website/aor-admin/public/`）には10ページ存在し、うち9ページに
+Operational Health Navigation（Phase59〜60）が統合済み、1ページ（`detail.html`）が対象外である。
+Navigationのリンク構成は意図的に2系統に分かれており、これは不整合ではなく設計判断である。
+
+### A. Navigation Types
+
+#### Standard Navigation（10リンク）
+
+**用途**: 管理・監視・分析画面。
+
+対象ページ: `dashboard.html` / `operations.html` / `reports.html` / `system.html` /
+`deliveries.html` / `suppressions.html`（6ページ）。
+
+リンク順（全ページ byte-identical）:
+
+```text
+1. Dashboard    (/dashboard.html)
+2. Reviews      (/index.html)
+3. Leads        (/leads.html)
+4. Deliveries   (/deliveries.html)
+5. Reports      (/reports.html)
+6. Suppression  (/suppressions.html)
+7. Jobs         (/jobs.html)
+8. System       (/system.html)
+9. Operations   (/operations.html)
+10. ログアウト   (/logout)
+```
+
+自ページへの自己リンク（例: `dashboard.html`から`Dashboard`）も含めて全ページ共通の
+10リンクをそのまま表示する。system-status-bar（Server/Job Runner状態）を持つが、
+live-indicator（SSE接続状態）は持たない（一括fetch＋手動Refreshの静的画面のため）。
+
+#### Operational Navigation（Reviews / Jobs / Leads 専用リンクセット）
+
+**用途**: 日次運用画面（レポート審査・ジョブ監視・リード承認の実作業を行う画面）。
+
+対象ページ: `index.html`（Reviews） / `jobs.html` / `leads.html`（3ページ）。
+
+Standard Navigationと異なり、以下の理由で独自のリンク構成を持つ:
+
+- **Reviews（`index.html`）が"Reviews"自己リンクを持たない理由**: 自分自身のページへの
+  自己リンクは不要なため（Standard Navigationの6ページも同様に自己リンクを含むが、
+  Reviews/Jobs/Leadsは元々Task14〜16時点（v1世代）で個別に構成されたリンクセットを
+  引き継いでおり、"Reviews"という項目自体をリンクとして持たない設計になっている）。
+- **Jobs/Leadsが独自構成である理由**: Jobs（`jobs.html`）とLeads（`leads.html`）は
+  ページ末尾に「← 一覧に戻る」（`/index.html`への戻りリンク）を持つ。これはReviews一覧
+  （`index.html`）を「日次運用のホーム画面」とみなし、そこからJobs監視・Lead承認へ
+  ドリルダウンし、また一覧へ戻ってくるという運用フローを前提にした設計である。
+  Standard Navigationの6ページにはこの「戻る」導線が無い（並列的な管理画面であり、
+  相互の行き来を前提にしていないため）。
+
+リンク構成（3ページで微妙に異なる。詳細は§D「Navigation Ownership」参照）:
+
+```text
+index.html（9リンク、Reviews自己リンク無し・戻るリンク無し）:
+  Dashboard / Leads / Deliveries / Reports / Suppression / Jobs / System / Operations / ログアウト
+
+jobs.html（10リンク、Reviews自己リンク無し・戻るリンク有り）:
+  Dashboard / Leads / Deliveries / Reports / Suppression / Jobs / System / Operations /
+  ログアウト / ← 一覧に戻る
+
+leads.html（9リンク、Reviews自己リンク無し・Leads自己リンク無し・戻るリンク有り）:
+  Dashboard / Deliveries / Reports / Suppression / Jobs / System / Operations /
+  ログアウト / ← 一覧に戻る
+```
+
+`index.html`/`jobs.html`はさらに、SSE（`/api/events`・`/api/jobs/events`）による
+自動更新とlive-indicator（接続状態表示）を持つ。`leads.html`はSSEを持たず、Standard
+Navigationと同じ「一括fetch＋手動Refresh」方式だが、リンク構成はOperational Navigation側
+（自己リンク無し・戻るリンク有り）に分類する（Task14〜16時点の実装が引き継がれたもので、
+運用フロー上もReviews一覧からのドリルダウン先という位置付けが共通するため）。
+
+### B. Design Principle
+
+- **APIが状態を持つ**: Operational Health・Review Status・Publish State・Delivery
+  Approval・Job Snapshotのいずれも、フロントエンドは判定・計算を行わず、APIが返した値を
+  そのまま表示する（Phase61 STEP1監査「State Ownership Audit」で確認済み）。
+- **app.jsがNavigation Health表示だけを担当する**: `app.js`は9ページ共通のOperational
+  Health Badge/Tooltip/Popoverの描画とAPI fetchの共有（Phase61 STEP2）のみを担い、
+  ページ固有のHealth判定ロジックは一切持たない。
+- **Page JSが画面固有責務を持つ**: `dashboard.js`/`operations.js`/`reports.js`/
+  `system.js`はそれぞれ自画面のHealth Card・Publish操作・Report一覧等の固有ロジックを
+  担当し、共通ロジックをコピーしない。
+- **SSEはOperational Navigationページ限定**: `/api/events`（Reviews一覧の自動更新）と
+  `/api/jobs/events`（Jobsの自動更新）は、日次運用で頻繁に状態が変わる2画面のみに
+  限定されている。Standard Navigation側（Dashboard等）は手動Refresh方式で十分と
+  判断されている（変更頻度が低いため）。
+- **Reviews/Jobsは運用フローの入口**: `index.html`（Reviews）と`jobs.html`は、
+  実際にオペレーターが日次でレポート審査・ジョブ監視を行う起点画面であり、
+  「← 一覧に戻る」導線を持つことで、Reviews一覧を中心としたドリルダウン型の運用が
+  できるよう設計されている。
+
+### C. Health Badge Coverage（9ページ + 1 Not Applicable）
+
+| Page | Coverage | 理由 |
+|---|---|---|
+| `dashboard.html` | REQUIRED | Standard Navigation。Deploy Readiness監視の中心画面 |
+| `operations.html` | REQUIRED | Standard Navigation。Publish/Unpublish操作画面 |
+| `reports.html` | REQUIRED | Standard Navigation。レポート一覧・詳細画面 |
+| `system.html` | REQUIRED | Standard Navigation。AWS/システム状態監視画面 |
+| `deliveries.html` | REQUIRED | Standard Navigation。配信履歴画面 |
+| `suppressions.html` | REQUIRED | Standard Navigation。抑制リスト画面 |
+| `index.html`（Reviews） | REQUIRED | Operational Navigation。v1→v2移行完了（Phase60 STEP4）後にBadge統合（STEP5） |
+| `jobs.html` | REQUIRED | Operational Navigation。v1→v2移行完了（Phase60 STEP2）後にBadge統合（STEP3） |
+| `leads.html` | REQUIRED | Operational Navigation。元々v2世代（Phase52 STEP5）のためPhase59 STEP14で直接統合 |
+| `detail.html` | **NOT APPLICABLE** | Navigation自体がJobs/Logout/戻るの3リンクのみで、Dashboard等への通常導線を持たない詳細ドリルダウン専用ページ。共通Health表示はUX上不適切と判断（Phase59 STEP14/STEP15で確定） |
+
+### D. Navigation Ownership
+
+| Responsibility | Owner |
+|---|---|
+| Navigation Health Badge（表示・Tooltip・Popover） | `app.js` |
+| Operational Health Data（計算） | API（`GET /api/dashboard/operational-health`） |
+| Page Health Card（Dashboard/Operations/Reports/System固有） | 各Page JS（`dashboard.js`等） |
+| Live Indicator（SSE接続状態表示） | `list.js`（Reviews） / `jobs.js`（Jobs） |
+| system-status-bar（Server/Job Runner状態） | `status.js`（全ページ共通ポーリング） |
+| Session表示（`#user-label`） | 各Page JSの`init()`（`AdminApi.getSession()`） |
+| Reports一覧の自動更新 | `list.js` + `/api/events`（SSE） |
+| Job一覧の自動更新 | `jobs.js` + `/api/jobs/events`（SSE） |
+| Publish/Unpublish操作 | `operations.js` + `detail.js`（`AdminApi.publish`/`unpublish`） |
+| Lead承認操作 | `leads.js`（`AdminApi.setLeadDeliveryApproval`） |
+
+### E. E2E Flow
+
+#### Reviews Flow
+
+```text
+Reviews一覧（index.html）
+  ↓ 行クリック
+Detail（detail.html?company=<slug>）
+  ↓ Approve / Reject / Revise / Comment / Fix
+（レビュー状態がAPI側で更新される。SSEでReviews一覧が自動反映）
+  ↓ 「← 一覧に戻る」
+Reviews一覧（index.html）
+```
+
+#### Jobs Flow
+
+```text
+Jobs一覧（jobs.html）
+  ↓ Retry / Cancel ボタン
+AdminApi.retryJob() / cancelJob()
+  ↓
+SSE（/api/jobs/events）でスナップショット更新
+  ↓
+Jobs一覧が自動再描画（Queue/Running/Completed/Failed/Cancelled）
+```
+
+#### Publish Flow
+
+```text
+Dashboard（dashboard.html） … Deploy Readiness / Operational Health 監視
+  ↓ 「View remediation plan →」導線
+Operations（operations.html） … Published Artifact Health確認
+  ↓ Publish / Unpublish 操作
+AdminApi.publish() / unpublish()
+```
+
+#### Delivery Flow
+
+```text
+Leads（leads.html） … Lead一覧・Approve判定
+  ↓ setLeadDeliveryApproval()
+Deliveries（deliveries.html） … 配信イベント一覧・Approval状態・タイムライン確認
+```
+
+### F. Admin Navigation 全体構成図
+
+```text
+Admin Navigation
+ │
+ ├─ Standard Navigation（10リンク・byte-identical）
+ │   ├ dashboard.html    （system-status-bar・Health Card）
+ │   ├ operations.html   （system-status-bar・Health Card・Publish操作）
+ │   ├ reports.html      （system-status-bar・Health Card）
+ │   ├ system.html       （system-status-bar・Health Card）
+ │   ├ deliveries.html   （system-status-bar）
+ │   └ suppressions.html （system-status-bar）
+ │
+ ├─ Operational Navigation（独自リンクセット・戻る導線）
+ │   ├ index.html  （Reviews。live-indicator・SSE /api/events）
+ │   ├ jobs.html   （live-indicator・SSE /api/jobs/events）
+ │   └ leads.html  （SSEなし。Reviewsからのドリルダウン先という位置付けを共有）
+ │
+ └─ Not Applicable
+     └ detail.html （Jobs/Logout/戻るのみ。通常Navigation・Health Badgeとも対象外）
+
+           │  （9ページ共通）
+           ▼
+    app.js: Navigation Health Badge / Tooltip / Popover
+           │
+           ▼
+API: GET /api/dashboard/operational-health
+   （status / summary.deploy_ready / published_stale / published_orphan 等を計算）
+```
