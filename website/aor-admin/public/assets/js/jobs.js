@@ -4,7 +4,19 @@
  * Queue/Running/Completed/Failed/Cancelledの一覧と最新履歴を表示し、ジョブの追加・
  * retry・cancelを行える。ロジックはすべてサーバー側（scripts/generator/jobs/job-runner.js）
  * に委譲し、ここでは表示と操作の橋渡しのみを行う。SSE（/api/jobs/events）で自動更新する。
+ *
+ * Phase60 STEP2: dashboard.js 等の既存 Admin v2 ページと同じ IIFE + module.exports 構造へ
+ * 移行した。Task16時点のグローバル関数宣言をそのまま IIFE 内へ移動しただけで、実装内容・
+ * 実行順序・SSE（/api/jobs/events）・retry/cancel の挙動は一切変更していない
+ * （既存コードの構文・ロジックは変更せず、囲む IIFE と末尾の module.exports 分岐のみを追加）。
+ * 純粋関数（escapeHtml/fmtDate/jobDuration/jobRow/renderColumn/renderHistory/
+ * renderJobTypeOptions）のみ module.exports へ公開し、Node からユニットテストする
+ * （DOM に触れる render/loadHistory/wireActions/setLiveIndicator/init はブラウザ専用のまま
+ * 非公開とする — dashboard.js 等の既存パターンと同じ）。
  */
+
+(function () {
+"use strict";
 
 const JOB_TYPE_LABELS = {
   "generate-report": "generate-report（フルパイプライン）",
@@ -224,4 +236,17 @@ async function init() {
   source.onerror = () => setLiveIndicator(false);
 }
 
-init();
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    escapeHtml,
+    fmtDate,
+    jobDuration,
+    jobRow,
+    renderColumn,
+    renderHistory,
+    renderJobTypeOptions,
+  };
+} else {
+  init();
+}
+})();
