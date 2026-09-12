@@ -112,6 +112,90 @@
     return '<span class="nav-health">' + badge + renderNavigationHealthSummary(operationalHealth) + "</span>";
   }
 
+  /**
+   * Phase59 STEP11 STEP6: Badge クリックで開閉する簡易 Summary Popover の中身。
+   * renderNavigationHealthSummary() と同じ値をそのまま表示する（追加計算禁止）。
+   * 新規 CSS は追加せず、既存の card / field-row / field / label / value クラスを再利用する
+   * （operations.js / reports.js / system.js の fieldRows() と同じマークアップパターン）。
+   * legacy の場合は "" を返す（§4/§7）。
+   * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス
+   * @returns {string}
+   */
+  function renderNavigationHealthPopover(operationalHealth) {
+    if (isLegacy(operationalHealth)) return "";
+    var summary = operationalHealth.summary || {};
+    var deployReadyText = summary.deploy_ready === true ? "Yes" : "No";
+    var stale = summary.published_stale == null ? 0 : summary.published_stale;
+    var orphan = summary.published_orphan == null ? 0 : summary.published_orphan;
+    return (
+      '<div class="card">' +
+      '<div class="field-row">' +
+      '<div class="field"><div class="label">Deploy Ready</div><div class="value">' + esc(deployReadyText) + "</div></div>" +
+      '<div class="field"><div class="label">Published Stale</div><div class="value">' + esc(stale) + "</div></div>" +
+      '<div class="field"><div class="label">Published Orphan</div><div class="value">' + esc(orphan) + "</div></div>" +
+      "</div>" +
+      "</div>"
+    );
+  }
+
+  /**
+   * Phase59 STEP11 STEP4/STEP6: バッジ本体 + クリックで開閉する Popover を container へ挿入する。
+   * DOM への書き込みをこの関数に集約する（container は DI 可能 — テストでは innerHTML/
+   * querySelector を持つ簡易オブジェクトを渡せる）。
+   *
+   * - legacy（renderHealthBadge が "" を返す）場合は container を空にするだけで、何も挿入しない（§7）。
+   * - status計算・deploy_ready計算・published_stale計算・summary生成は一切行わない（API値の転記のみ）。
+   *
+   * @param {{innerHTML:string, querySelector:function}} container
+   * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス
+   * @returns {boolean} バッジを描画したら true、legacy で何も描画しなければ false
+   */
+  function renderNavigationHealthInto(container, operationalHealth) {
+    if (!container) return false;
+    var badgeHtml = renderHealthBadge(operationalHealth);
+    if (!badgeHtml) {
+      container.innerHTML = ""; // legacy: バッジ・サマリー・Tooltip とも非表示（§4/§7）
+      return false;
+    }
+    var popoverHtml = renderNavigationHealthPopover(operationalHealth);
+    container.innerHTML = badgeHtml + '<div class="admin-health-popover" hidden>' + popoverHtml + "</div>";
+
+    var badgeEl = container.querySelector && container.querySelector(".nav-health-badge");
+    var popoverEl = container.querySelector && container.querySelector(".admin-health-popover");
+    if (badgeEl && popoverEl && badgeEl.addEventListener) {
+      badgeEl.style.cursor = "pointer";
+      badgeEl.addEventListener("click", function () {
+        popoverEl.hidden = !popoverEl.hidden;
+      });
+    }
+    return true;
+  }
+
+  // -------------------------------------------------------------------------
+  // ブラウザ側配線（Phase59 STEP11 STEP4）
+  // -------------------------------------------------------------------------
+
+  /**
+   * #admin-operational-health-badge コンテナへ Operational Health バッジを配線する。
+   * AdminApi.getDashboardOperationalHealth() を1回だけ呼び、結果をそのまま
+   * renderNavigationHealthInto() へ渡す。API 失敗・コンテナ不在・AdminApi 未定義のいずれでも
+   * 例外を投げず、バッジを非表示のまま終了する（ページ読み込みを止めない。§4）。
+   */
+  function initNavigationHealth() {
+    var container = document.getElementById("admin-operational-health-badge");
+    if (!container) return; // このページにコンテナが無ければ何もしない
+    if (typeof AdminApi === "undefined" || !AdminApi.getDashboardOperationalHealth) return;
+
+    AdminApi.getDashboardOperationalHealth()
+      .then(function (data) {
+        renderNavigationHealthInto(container, data);
+      })
+      .catch(function () {
+        // API 失敗でも例外を投げない。バッジ非表示のまま終了する（§4）。
+        container.innerHTML = "";
+      });
+  }
+
   var api = {
     esc: esc,
     isSectionError: isSectionError,
@@ -120,12 +204,16 @@
     STATUS_TOOLTIP: STATUS_TOOLTIP,
     renderHealthBadge: renderHealthBadge,
     renderNavigationHealthSummary: renderNavigationHealthSummary,
+    renderNavigationHealthPopover: renderNavigationHealthPopover,
+    renderNavigationHealthInto: renderNavigationHealthInto,
     renderNavigationHealth: renderNavigationHealth,
+    initNavigationHealth: initNavigationHealth,
   };
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = api;
   } else {
     window.NavigationHealth = api;
+    initNavigationHealth();
   }
 })();

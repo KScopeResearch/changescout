@@ -98,3 +98,105 @@ test("Case H: undefined / NaN なし — legacy・実データ相当（9/5/4）�
   assert.match(nullish, /Published Stale: 0/);
   assert.match(nullish, /Published Orphan: 0/);
 });
+
+// ===========================================================================
+// Phase59 STEP11 — Navigation Health Badge Wiring（HTML配線 + Popover + API失敗時の安全性）
+// ===========================================================================
+
+test("STEP11 Case A: success badge — renderNavigationHealthInto がコンテナへバッジを挿入する", () => {
+  const container = { innerHTML: "" };
+  const inserted = nav.renderNavigationHealthInto(container, opHealth());
+  assert.equal(inserted, true);
+  assert.match(container.innerHTML, /🟢 Healthy/);
+});
+
+test("STEP11 Case B: warning badge — renderNavigationHealthInto がコンテナへ warning バッジを挿入する", () => {
+  const container = { innerHTML: "" };
+  const inserted = nav.renderNavigationHealthInto(container, opHealth({ deploy_ready: false, deploy_blocked: true, published_stale: 1 }, "warning"));
+  assert.equal(inserted, true);
+  assert.match(container.innerHTML, /🟡 Attention/);
+});
+
+test("STEP11 Case C: danger badge — renderNavigationHealthInto がコンテナへ danger バッジを挿入する", () => {
+  const container = { innerHTML: "" };
+  const inserted = nav.renderNavigationHealthInto(container, opHealth({ deploy_ready: false, deploy_blocked: true, published_orphan: 1 }, "danger"));
+  assert.equal(inserted, true);
+  assert.match(container.innerHTML, /🔴 Blocked/);
+});
+
+test("STEP11 Case D: tooltip — renderNavigationHealthInto 挿入後の HTML に title 属性の静的文言がそのまま残る", () => {
+  const container = { innerHTML: "" };
+  nav.renderNavigationHealthInto(container, opHealth({ deploy_ready: false, deploy_blocked: true, published_stale: 1 }, "warning"));
+  assert.match(container.innerHTML, /title="Published artifacts require remediation before deployment\."/);
+});
+
+test("STEP11 Case E: summary values — Popover の中身（Deploy Ready / Published Stale / Published Orphan）が既存 field-row/field/label/value マークアップで出る", () => {
+  const html = nav.renderNavigationHealthPopover(opHealth({ published_stale: 2, published_orphan: 1, deploy_ready: false, deploy_blocked: true }, "danger"));
+  assert.match(html, /<div class="card">/);
+  assert.match(html, /<div class="field-row">/);
+  assert.match(html, /<div class="label">Deploy Ready<\/div><div class="value">No<\/div>/);
+  assert.match(html, /<div class="label">Published Stale<\/div><div class="value">2<\/div>/);
+  assert.match(html, /<div class="label">Published Orphan<\/div><div class="value">1<\/div>/);
+});
+
+test("STEP11 Case F: legacy hidden — summary/status/generated_reports のいずれかが無ければ renderNavigationHealthInto は container を空にし false を返す", () => {
+  const c1 = { innerHTML: "<span>old</span>" };
+  assert.equal(nav.renderNavigationHealthInto(c1, {}), false);
+  assert.equal(c1.innerHTML, "");
+
+  const c2 = { innerHTML: "<span>old</span>" };
+  assert.equal(nav.renderNavigationHealthInto(c2, { ok: true, status: "success", summary: { deploy_ready: true } }), false);
+  assert.equal(c2.innerHTML, "");
+
+  assert.equal(nav.renderNavigationHealthPopover({}), "");
+  assert.equal(nav.renderNavigationHealthInto(null, opHealth()), false, "container 自体が無い場合も例外を投げない");
+});
+
+test("STEP11 Case G: api failure hidden — initNavigationHealth は AdminApi 失敗時に例外を投げず container を空にする", async () => {
+  const container = { innerHTML: "<span>old</span>" };
+  const fakeDocument = { getElementById: (id) => (id === "admin-operational-health-badge" ? container : null) };
+  const fakeAdminApi = { getDashboardOperationalHealth: () => Promise.reject(new Error("network error")) };
+
+  global.document = fakeDocument;
+  global.AdminApi = fakeAdminApi;
+  try {
+    assert.doesNotThrow(() => nav.initNavigationHealth());
+    // Promise の catch が走るまで1tick待つ
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    assert.equal(container.innerHTML, "", "API失敗時はバッジを非表示のまま終了する");
+  } finally {
+    delete global.document;
+    delete global.AdminApi;
+  }
+});
+
+test("STEP11 Case G-2: api失敗以外にも、コンテナが無いページ・AdminApi未定義でも例外を投げない", () => {
+  global.document = { getElementById: () => null };
+  try {
+    assert.doesNotThrow(() => nav.initNavigationHealth());
+  } finally {
+    delete global.document;
+  }
+
+  global.document = { getElementById: () => ({ innerHTML: "" }) };
+  delete global.AdminApi;
+  try {
+    assert.doesNotThrow(() => nav.initNavigationHealth());
+  } finally {
+    delete global.document;
+  }
+});
+
+test("STEP11 Case H: popover values — success/warning/danger いずれでも Popover は summary の値をそのまま表示する（独自計算なし）", () => {
+  const readyHtml = nav.renderNavigationHealthPopover(opHealth());
+  assert.match(readyHtml, /<div class="label">Deploy Ready<\/div><div class="value">Yes<\/div>/);
+  assert.match(readyHtml, /<div class="label">Published Stale<\/div><div class="value">0<\/div>/);
+  assert.match(readyHtml, /<div class="label">Published Orphan<\/div><div class="value">0<\/div>/);
+
+  const warnHtml = nav.renderNavigationHealthPopover(opHealth({ published_stale: 3, deploy_ready: false, deploy_blocked: true }, "warning"));
+  assert.match(warnHtml, /<div class="label">Deploy Ready<\/div><div class="value">No<\/div>/);
+  assert.match(warnHtml, /<div class="label">Published Stale<\/div><div class="value">3<\/div>/);
+
+  assert.ok(!readyHtml.includes("undefined") && !readyHtml.includes("NaN"));
+  assert.ok(!warnHtml.includes("undefined") && !warnHtml.includes("NaN"));
+});
