@@ -641,6 +641,19 @@
     await load();
   }
 
+  /**
+   * Phase61 STEP2: Operational Health の fetch を Navigation Health Badge（app.js）と共有する。
+   * app.js が同一ページ読み込み中の fetch をメモ化して1回にまとめてくれるため、ここでは
+   * それを利用するだけ（重複実装しない）。NavigationHealth が定義されていない場合のみ、
+   * 従来どおり AdminApi を直接呼ぶ（後方互換のフォールバック。挙動は変えない）。
+   */
+  function fetchOperationalHealthShared() {
+    if (typeof NavigationHealth !== "undefined" && NavigationHealth.fetchOperationalHealthOnce) {
+      return NavigationHealth.fetchOperationalHealthOnce();
+    }
+    return AdminApi.getDashboardOperationalHealth();
+  }
+
   async function load() {
     var container = $("operations-container");
     if (!container) return;
@@ -655,7 +668,7 @@
       AdminApi.getHealth(),
       AdminApi.getDashboardStaleReports(),
       AdminApi.getDashboardRemediationPlan(),
-      AdminApi.getDashboardOperationalHealth(),
+      fetchOperationalHealthShared(),
     ]);
 
     var authFailed = settled.some(function (r) {
@@ -719,6 +732,7 @@
       renderDeployReadiness: renderDeployReadiness,
       renderPublishedArtifactAudit: renderPublishedArtifactAudit,
       renderPublishedArtifactAuditSummary: renderPublishedArtifactAuditSummary,
+      fetchOperationalHealthShared: fetchOperationalHealthShared,
     };
   } else {
     init();

@@ -187,21 +187,50 @@
   }
 
   // -------------------------------------------------------------------------
-  // ブラウザ側配線（Phase59 STEP11 STEP4）
+  // ブラウザ側配線（Phase59 STEP11 STEP4 / Phase61 STEP2で重複fetch解消）
   // -------------------------------------------------------------------------
+
+  // Phase61 STEP2: dashboard/operations/reports/system の4ページは、ページ固有の
+  // Operational Health Card 用に自分自身でも AdminApi.getDashboardOperationalHealth() を
+  // 呼んでいる（Phase58由来）。Navigation Health Badge 用のこの呼び出しと合わせて同一ページ内で
+  // 2回fetchされていたため、ここで「同じページ読み込み中は1回の fetch を共有する」ための
+  // 薄いメモ化ラッパーを追加する。API 仕様・レスポンス内容・エラー処理は一切変更しない
+  // （fetch そのものを1回にまとめるだけ）。
+  //
+  // 解決（成功・失敗いずれか）したら即座にキャッシュを破棄する。これにより:
+  //   - 初回ページロード時（Navigation Badge の同期的な init 呼び出しと、ページ固有 JS の
+  //     Promise.allSettled 呼び出しがほぼ同時に発火する）は同一の Promise を共有し、
+  //     実際の HTTP リクエストは1回だけになる。
+  //   - ページ固有の「Refresh」ボタン等で load() が後から再実行された場合は、キャッシュは
+  //     既に空になっているため新しく fetch する（既存の「毎回最新データを取得する」挙動を
+  //     壊さない）。
+  var _operationalHealthPromise = null;
+  function fetchOperationalHealthOnce() {
+    if (typeof AdminApi === "undefined" || !AdminApi.getDashboardOperationalHealth) {
+      return Promise.reject(new Error("AdminApi.getDashboardOperationalHealth is not available"));
+    }
+    if (!_operationalHealthPromise) {
+      _operationalHealthPromise = AdminApi.getDashboardOperationalHealth();
+      _operationalHealthPromise.then(_clearOperationalHealthCache, _clearOperationalHealthCache);
+    }
+    return _operationalHealthPromise;
+  }
+  function _clearOperationalHealthCache() {
+    _operationalHealthPromise = null;
+  }
 
   /**
    * #admin-operational-health-badge コンテナへ Operational Health バッジを配線する。
-   * AdminApi.getDashboardOperationalHealth() を1回だけ呼び、結果をそのまま
-   * renderNavigationHealthInto() へ渡す。API 失敗・コンテナ不在・AdminApi 未定義のいずれでも
-   * 例外を投げず、バッジを非表示のまま終了する（ページ読み込みを止めない。§4）。
+   * fetchOperationalHealthOnce()（内部で AdminApi.getDashboardOperationalHealth() を呼ぶ）の
+   * 結果をそのまま renderNavigationHealthInto() へ渡す。API 失敗・コンテナ不在・AdminApi 未定義の
+   * いずれでも例外を投げず、バッジを非表示のまま終了する（ページ読み込みを止めない。§4）。
    */
   function initNavigationHealth() {
     var container = document.getElementById("admin-operational-health-badge");
     if (!container) return; // このページにコンテナが無ければ何もしない
     if (typeof AdminApi === "undefined" || !AdminApi.getDashboardOperationalHealth) return;
 
-    AdminApi.getDashboardOperationalHealth()
+    fetchOperationalHealthOnce()
       .then(function (data) {
         renderNavigationHealthInto(container, data);
       })
@@ -223,6 +252,7 @@
     renderNavigationHealthInto: renderNavigationHealthInto,
     renderNavigationHealth: renderNavigationHealth,
     initNavigationHealth: initNavigationHealth,
+    fetchOperationalHealthOnce: fetchOperationalHealthOnce,
   };
 
   if (typeof module !== "undefined" && module.exports) {
