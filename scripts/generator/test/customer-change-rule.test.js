@@ -31,6 +31,17 @@ test("CUSTOMER_SIDE_CHANGE: 近接な顧客変化語を十分に持つ（>= 15 �
   );
 });
 
+test("Phase56 STEP8: B2B・収益構造の顧客痛み語（下請け / 低収益 / 収益分配 / 技能承継 等）が入っている", () => {
+  ["下請け", "多重下請け", "低収益", "収益分配", "IP保有", "受託脱却", "技能承継", "検査待ち"].forEach((w) =>
+    assert.ok(CUSTOMER_SIDE_CHANGE.includes(w), w)
+  );
+});
+
+test("hasCustomerSideChange: B2B 文脈（多重下請けで利益が残らない）を検出する", () => {
+  assert.equal(hasCustomerSideChange("アニメ制作会社は多重下請け構造で受注が増えても利益が残らない。"), true);
+  assert.equal(hasCustomerSideChange("検査員の退職で技能承継が追いつかず、検査待ちで納期遅延が起きている。"), true);
+});
+
 test("businessSizeTier: near / mid / far を分類（RULE-THEME-13）", () => {
   assert.equal(businessSizeTier("商店街の店舗で常連客が減っています"), "near");
   assert.equal(businessSizeTier("顧客の来店数が落ちています"), "near");

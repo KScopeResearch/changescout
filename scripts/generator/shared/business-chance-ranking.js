@@ -35,6 +35,9 @@ const INDUSTRY_CHANGE = [
   "参入", "淘汰", "再編", "縮小", "撤退", "統廃合", "受託依存", "下請け",
   "報酬改定", "法改正", "制度改正", "義務化", "規制", "2024年問題", "2025年問題",
   "トレンド", "普及", "定着", "導入が進", "標準に",
+  // Phase56 STEP8: 製造・現場・B2B の業界変化語
+  "製造業", "検査工程", "検査員", "技能承継", "技能継承", "熟練", "実証", "実用段階",
+  "事例が増え", "導入効果", "逆ザヤ", "二極化", "頭打ち", "機会損失", "統合管理",
 ];
 
 // why_company が会社固有の事実を根拠にしているか
@@ -101,8 +104,17 @@ function scoreCandidate(candidate, companyContext) {
   // First Action concreteness (15)
   b.first_action = passesTomorrowMorningTest(firstAction) ? 15 : includesAny(firstAction, VAGUE_ACTION) ? 0 : 7;
 
-  // Novelty (10): 既知の一般論なら 0
-  b.novelty = includesAny(combined, KNOWN_GENERALITY) ? 0 : 10;
+  // Novelty (10): 既知の一般論なら 0。
+  // ただし RULE-THEME-13 準拠の「参考として世界市場は…／本提案は国内の…に焦点」という
+  // 打ち消しの文脈で一般論句が出るだけなら減点しない（disclaimer は Far 回避の正しい書き方）。
+  const disclaimerCtx = /(参考として|参考:|本提案は|本レポートは|に焦点を当て|に絞っ|とはいえ|ではなく)/;
+  const generalityIsMainClaim =
+    includesAny(combined, KNOWN_GENERALITY) &&
+    !KNOWN_GENERALITY.filter((g) => combined.indexOf(g) !== -1).every((g) => {
+      const at = combined.indexOf(g);
+      return disclaimerCtx.test(combined.slice(Math.max(0, at - 30), at + g.length + 30));
+    });
+  b.novelty = generalityIsMainClaim ? 0 : 10;
 
   // Evidence availability (10)
   const evCount = Array.isArray(c.evidence) ? c.evidence.length : 0;
