@@ -4,7 +4,18 @@
  * report.json / evaluation / review.json を横断表示し、review-engine.jsのPure Functionを
  * サーバー経由で呼び出すapprove/reject/revise/comment/fixの操作フォームを提供する。
  * publishableの真偽値はサーバーが返す値（= isPublishable()の戻り値そのもの）をそのまま表示する。
+ *
+ * Phase62 STEP1: jobs.js/list.js と同じ Admin v2 IIFE + module.exports 構造へ移行した。
+ * 実装ロジック・実行順序・API呼び出し・DOM構造は一切変更していない（既存コードの構文・ロジックは
+ * 変更せず、囲む IIFE と末尾の module.exports 分岐のみを追加）。純粋関数（escapeHtml/fmtDate/
+ * listItems/renderEvidence/renderHistory/renderComments/renderFixes/computeLastUpdatedAt/
+ * publishableBlock/publishBlock）のみ module.exports へ公開し、Node からユニットテストする
+ * （DOM/window/APIに触れる getCompanyId/showToast/render/wireActions はブラウザ専用のまま
+ * 非公開とする — jobs.js 等の既存パターンと同じ）。
  */
+
+(function () {
+"use strict";
 
 function escapeHtml(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -353,4 +364,20 @@ function wireActions(id) {
   });
 }
 
-render();
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    escapeHtml,
+    fmtDate,
+    listItems,
+    renderEvidence,
+    renderHistory,
+    renderComments,
+    renderFixes,
+    computeLastUpdatedAt,
+    publishableBlock,
+    publishBlock,
+  };
+} else {
+  render();
+}
+})();
