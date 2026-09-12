@@ -255,3 +255,29 @@ test("STEP12-E: API由来の値（published_stale等）にHTML/scriptが混じ�
   evilStatus.status = "<script>alert(2)</script>";
   assert.equal(nav.renderHealthBadge(evilStatus), "", "未知の status 値は固定マッピングに無いため非表示（判定ロジックの追加なし）");
 });
+
+test("STEP13-F: 未知/不正な status（文字列だが success/warning/danger 以外）は Badge/Summary/Popover とも一貫して非表示になる", () => {
+  function withStatus(status) {
+    const data = opHealth();
+    data.status = status;
+    return data;
+  }
+  for (const status of ["unknown", "unexpected string", "SUCCESS", "", "Success", "warn", "error"]) {
+    const data = withStatus(status);
+    assert.equal(nav.isLegacy(data), true, `status=${JSON.stringify(status)} は legacy 扱いになるべき`);
+    assert.equal(nav.renderHealthBadge(data), "", `status=${JSON.stringify(status)} で Badge が非表示にならない`);
+    assert.equal(nav.renderNavigationHealthSummary(data), "", `status=${JSON.stringify(status)} で Summary が非表示にならない`);
+    assert.equal(nav.renderNavigationHealthPopover(data), "", `status=${JSON.stringify(status)} で Popover が非表示にならない（STEP13-F 発見の不整合の回帰確認）`);
+  }
+  // 非文字列 status（number/null/undefined）でも例外なく legacy 扱いになる
+  for (const status of [123, null, undefined, {}, []]) {
+    const data = withStatus(status);
+    assert.doesNotThrow(() => nav.renderNavigationHealthPopover(data));
+    assert.equal(nav.renderNavigationHealthPopover(data), "");
+  }
+  // 既知の status は引き続き正常に表示される（過剰に厳しくなっていないことの確認）
+  for (const status of ["success", "warning", "danger"]) {
+    const data = withStatus(status);
+    assert.notEqual(nav.renderHealthBadge(data), "", `status=${status} は表示されるべき`);
+  }
+});

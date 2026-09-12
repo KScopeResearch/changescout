@@ -52,6 +52,13 @@
    * Phase59 STEP12: deploy_ready / published_stale / published_orphan のいずれかが欠落して
    * いる場合も legacy として扱う（不完全なレスポンスで Badge/Tooltip/Popover を出さない。
    * §STEP12-B）。値そのものの再判定・再計算は行わず、フィールドの存在確認のみ追加する。
+   *
+   * Phase59 STEP13-F: status が文字列であっても STATUS_BADGE_LABEL に無い未知の値（例:
+   * "unknown"・空文字・大文字違い等）は Badge 側では既に非表示になっていたが、Popover /
+   * Summary 側はこのチェックを持たず表示されてしまっていた（Badge と Popover の不整合）。
+   * ここで status の既知値チェックを追加し、Badge/Summary/Popover/Tooltip の legacy 判定を
+   * 完全に一致させる（新しい status を追加するものではなく、既存の固定マッピングに無い値を
+   * legacy 扱いにするだけ）。
    * @param {Object} operationalHealth - GET /api/dashboard/operational-health の生レスポンス
    * @returns {boolean}
    */
@@ -59,6 +66,7 @@
     if (!operationalHealth || typeof operationalHealth !== "object") return true;
     if (isSectionError(operationalHealth)) return true;
     if (typeof operationalHealth.status !== "string") return true;
+    if (!Object.prototype.hasOwnProperty.call(STATUS_BADGE_LABEL, operationalHealth.status)) return true;
     var summary = operationalHealth.summary;
     if (!summary || typeof summary !== "object") return true;
     if (summary.generated_reports === undefined) return true;
