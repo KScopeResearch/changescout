@@ -497,3 +497,144 @@ test("danger表示: published_orphan>0（status=danger）は Audit Card が tone
   const summaryHtml = ui.renderPublishedArtifactAuditSummary(data);
   assert.match(summaryHtml, /<td>Published artifacts synchronized<\/td><td><span class="status-pill status-rejected">🔴 danger<\/span><\/td>/);
 });
+
+// ===========================================================================
+// Phase59 STEP9 — Admin Dashboard Consistency Audit
+// Operational Health API の summary 値のみを表示する（再計算禁止・独自判定禁止）。
+// ===========================================================================
+
+test("Case A: Ready表示（stale/orphan=0・status=success・deploy_ready=true）→ 緑Banner・Checklist全項目success", () => {
+  const html = ui.renderConsistencyAudit(opHealthOk());
+  assert.match(html, /dash-alert tone-good">Dashboard state is fully synchronized\./);
+  assert.match(html, /<span class="dash-metric-value">Yes<\/span>|dash-metric-value">Yes</); // Deploy Ready = Yes
+  const order = [
+    "Dashboard summary loaded",
+    "Deploy readiness synchronized",
+    "Published artifact counts synchronized",
+    "Dashboard audit synchronized",
+    "Operations audit synchronized",
+    "Reports audit synchronized",
+  ];
+  for (const label of order) {
+    assert.match(html, new RegExp(`<strong>${label}</strong>`));
+  }
+  assert.ok(!html.includes("🟡") && !html.includes("🔴"), "Ready 状態では warning/danger バッジが出ない");
+});
+
+test("Case B: Warning表示（published_stale>0・status=warning）→ 黄Banner・synchronized系チェックがwarning", () => {
+  const data = opHealthOk({
+    status: "warning",
+    summary: {
+      published_stale: 1, published_orphan: 0, recommended_republish: 1, recommended_unpublish: 0,
+      deploy_blocked: true, deploy_ready: false,
+      generated_reports: 9, approved_reports: 5, published_reports: 4,
+    },
+  });
+  const html = ui.renderConsistencyAudit(data);
+  assert.match(html, /dash-alert tone-warn">Dashboard synchronization requires remediation before deployment\./);
+  const warnCount = (html.match(/🟡 warning/g) || []).length;
+  assert.equal(warnCount, 5, "generated_reports存在チェック以外の5項目がwarning");
+});
+
+test("Case C: Danger表示（published_orphan>0・status=danger）→ 赤Banner・synchronized系チェックがdanger", () => {
+  const data = opHealthOk({
+    status: "danger",
+    summary: {
+      published_stale: 0, published_orphan: 1, recommended_republish: 0, recommended_unpublish: 1,
+      deploy_blocked: true, deploy_ready: false,
+      generated_reports: 9, approved_reports: 5, published_reports: 4,
+    },
+  });
+  const html = ui.renderConsistencyAudit(data);
+  assert.match(html, /dash-alert tone-bad">Dashboard synchronization detected orphan published artifacts\./);
+  const dangerCount = (html.match(/🔴 danger/g) || []).length;
+  assert.equal(dangerCount, 5, "generated_reports存在チェック以外の5項目がdanger");
+});
+
+test("Case D: Legacy（summary/generated_reports/status が無い）→ Consistency Audit セクション非表示", () => {
+  assert.equal(ui.renderConsistencyAudit(undefined), "");
+  assert.equal(ui.renderConsistencyAudit(null), "");
+  assert.equal(ui.renderConsistencyAudit({ ok: true, status: "success", summary: { deploy_ready: true } }), "", "generated_reports 等が無ければ legacy");
+  assert.equal(ui.renderConsistencyAudit({ ok: true, summary: opHealthOk().summary }), "", "status が無ければ legacy");
+  assert.equal(ui.renderConsistencyAudit({ generated_at: "x", operational_health: { items: [], stale_count: 0, orphan_count: 0 } }), "");
+
+  const html = ui.renderDashboard({
+    summary: { generated_at: "2026-09-11T00:00:00Z", lead_summary: {}, delivery_summary: {}, suppression_summary: {} },
+    reports: { generated: 1, approved: 1, published_backend: 1, web_deployed: 1, deploy_pending: 0, pending_slugs: [] },
+    health: { ses: {}, lambda: {}, cloudfront: {}, blastengine: {} },
+    operationalHealth: { generated_at: "x", operational_health: { items: [], stale_count: 0, orphan_count: 0 } },
+  });
+  assert.ok(!html.includes("Admin Dashboard Consistency Audit"));
+  assert.match(html, /Report Summary/);
+  assert.match(html, /System Health/);
+});
+
+test("Case E: Counts表示 — Generated/Approved/Published Reports・Stale/Orphan・Deploy Ready がそのまま出る（再計算なし）", () => {
+  const html = ui.renderConsistencyAudit(opHealthOk());
+  assert.match(html, /dash-metric-value">9<\/div><div class="dash-metric-label">Generated Reports/);
+  assert.match(html, /dash-metric-value">5<\/div><div class="dash-metric-label">Approved Reports/);
+  assert.match(html, /dash-metric-value">4<\/div><div class="dash-metric-label">Published Reports/);
+  assert.match(html, /dash-metric-value">0<\/div><div class="dash-metric-label">Published Stale/);
+  assert.match(html, /dash-metric-value">0<\/div><div class="dash-metric-label">Published Orphan/);
+  assert.match(html, /dash-metric-value">Yes<\/div><div class="dash-metric-label">Deploy Ready/);
+});
+
+test("Case F: Checklist表示 — 6項目固定、順序固定、slug 一覧は出さない", () => {
+  const html = ui.renderConsistencyAudit(opHealthOk());
+  const order = [
+    "Dashboard summary loaded",
+    "Deploy readiness synchronized",
+    "Published artifact counts synchronized",
+    "Dashboard audit synchronized",
+    "Operations audit synchronized",
+    "Reports audit synchronized",
+  ];
+  let lastIdx = -1;
+  for (const label of order) {
+    const idx = html.indexOf(label);
+    assert.ok(idx > lastIdx, `${label} の順序が正しくない`);
+    lastIdx = idx;
+  }
+  assert.ok((html.match(/<li>/g) || []).length === 6, "チェックリストは6項目固定");
+  assert.ok(!html.includes("example.com") && !html.includes("ab-i.jp"), "slug 一覧は出さない");
+});
+
+test("Case G: Banner色切替 — success/warning/danger の3状態で文言とtoneクラスが切り替わる", () => {
+  const ready = ui.renderConsistencyAudit(opHealthOk());
+  const warn = ui.renderConsistencyAudit(opHealthOk({ status: "warning", summary: { published_stale: 1, published_orphan: 0, recommended_republish: 1, recommended_unpublish: 0, deploy_blocked: true, deploy_ready: false, generated_reports: 9, approved_reports: 5, published_reports: 4 } }));
+  const danger = ui.renderConsistencyAudit(opHealthOk({ status: "danger", summary: { published_stale: 0, published_orphan: 1, recommended_republish: 0, recommended_unpublish: 1, deploy_blocked: true, deploy_ready: false, generated_reports: 9, approved_reports: 5, published_reports: 4 } }));
+  assert.match(ready, /tone-good/);
+  assert.match(warn, /tone-warn/);
+  assert.match(danger, /tone-bad/);
+  assert.ok(!ready.includes("tone-warn") && !ready.includes("tone-bad"));
+  assert.ok(!warn.includes("tone-good") && !warn.includes("tone-bad"));
+  assert.ok(!danger.includes("tone-good") && !danger.includes("tone-warn"));
+});
+
+test("Case H: undefined / NaN なし — legacy・実データ相当（9/5/4）いずれのケースでも undefined/NaN 文字列を出さない。表示順序は Operational Health の後・Operational Health Detail の前", () => {
+  const legacyHtml = ui.renderDashboard({
+    summary: { generated_at: "2026-09-11T00:00:00Z", lead_summary: {}, delivery_summary: {}, suppression_summary: {} },
+    reports: { generated: 1, approved: 1, published_backend: 1, web_deployed: 1, deploy_pending: 0, pending_slugs: [] },
+    health: { ses: {}, lambda: {}, cloudfront: {}, blastengine: {} },
+    operationalHealth: { generated_at: "x", operational_health: { items: [], stale_count: 0, orphan_count: 0 } },
+  });
+  assert.ok(!legacyHtml.includes("undefined") && !legacyHtml.includes("NaN"));
+
+  const withAuditHtml = ui.renderDashboard({
+    summary: { generated_at: "2026-09-11T00:00:00Z", lead_summary: {}, delivery_summary: {}, suppression_summary: {} },
+    reports: { generated: 9, approved: 5, published_backend: 4, web_deployed: 10, deploy_pending: 0, pending_slugs: [] },
+    health: { ses: {}, lambda: {}, cloudfront: {}, blastengine: {} },
+    operationalHealth: Object.assign({}, opHealthOk(), { operational_health: { items: [], stale_count: 0, orphan_count: 0 } }),
+  });
+  assert.ok(!withAuditHtml.includes("undefined") && !withAuditHtml.includes("NaN"));
+  assert.match(withAuditHtml, /Admin Dashboard Consistency Audit/);
+
+  // §5: 表示順序 — Operational Health の後、Operational Health Detail の前（既存順序は変更しない）。
+  const iOpHealth = withAuditHtml.indexOf(">Operational Health<");
+  const iConsistency = withAuditHtml.indexOf("Admin Dashboard Consistency Audit");
+  const iDetail = withAuditHtml.indexOf("Operational Health Detail");
+  const iSystem = withAuditHtml.indexOf("System Health");
+  assert.ok(iOpHealth < iConsistency, "Consistency Audit は Operational Health の後");
+  assert.ok(iConsistency < iDetail, "Consistency Audit は Operational Health Detail の前");
+  assert.ok(iDetail < iSystem, "Operational Health Detail は System Health の前（既存順序を維持）");
+});

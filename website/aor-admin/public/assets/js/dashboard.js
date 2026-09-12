@@ -488,6 +488,65 @@
   }
 
   /**
+   * Phase59 STEP9 — 「Admin Dashboard Consistency Audit」セクション（Operational Health の下）。
+   * Operational Health API の summary 値のみを表示する（§1: 計算禁止）。Deploy Ready 判定を
+   * この画面側で再計算しない（§3）。generated_reports/approved_reports/published_reports または
+   * status が無い（legacy）場合は "" を返し、セクション自体を出さない（§4）。
+   * @param {Object} data - GET /api/dashboard/operational-health の生レスポンス
+   * @returns {string}
+   */
+  function renderConsistencyAudit(data) {
+    if (data === undefined || data === null) return "";
+    if (isSectionError(data)) return sectionErrorHtml("Admin Dashboard Consistency Audit", data);
+    if (typeof data.status !== "string") return ""; // legacy
+    const summary = data.summary || {};
+    if (
+      summary.generated_reports === undefined ||
+      summary.approved_reports === undefined ||
+      summary.published_reports === undefined
+    ) {
+      return ""; // legacy: STEP5 の additive フィールドが無い
+    }
+
+    const status = data.status;
+    const toneClass = status === "danger" ? "tone-bad" : status === "warning" ? "tone-warn" : "tone-good";
+    // §2: Banner 文言はこの画面専用の固定文言（summary.status をそのまま使うのみ。独自判定なし）。
+    const message =
+      status === "danger"
+        ? "Dashboard synchronization detected orphan published artifacts."
+        : status === "warning"
+        ? "Dashboard synchronization requires remediation before deployment."
+        : "Dashboard state is fully synchronized.";
+
+    const num = (v) => (v == null ? 0 : v);
+    const counts = metricGrid([
+      { label: "Generated Reports", value: num(summary.generated_reports) },
+      { label: "Approved Reports", value: num(summary.approved_reports) },
+      { label: "Published Reports", value: num(summary.published_reports) },
+      { label: "Published Stale", value: num(summary.published_stale), tone: summary.published_stale > 0 ? "warn" : undefined },
+      { label: "Published Orphan", value: num(summary.published_orphan), tone: summary.published_orphan > 0 ? "bad" : undefined },
+      { label: "Deploy Ready", value: summary.deploy_ready === true ? "Yes" : "No" },
+    ]);
+
+    // §3: 6項目固定チェックリスト。1項目目のみ generated_reports の存在確認（このガード節を
+    // 通過した時点で常に true）、残り5項目はいずれも data.status をそのまま使う（独自判定禁止）。
+    const rows = [
+      ["Dashboard summary loaded", summary.generated_reports !== undefined ? "success" : "danger"],
+      ["Deploy readiness synchronized", status],
+      ["Published artifact counts synchronized", status],
+      ["Dashboard audit synchronized", status],
+      ["Operations audit synchronized", status],
+      ["Reports audit synchronized", status],
+    ];
+    const checklistHtml =
+      `<ul class="plain-list">` +
+      rows.map(([label, s]) => `<li>${healthStatusBadge(s)} <strong>${esc(label)}</strong></li>`).join("") +
+      `</ul>`;
+
+    return `<div class="dash-alert ${toneClass}">${esc(message)}</div>${counts}${checklistHtml}`;
+  }
+
+  /**
    * Dashboard 全体の HTML を組み立てる（純粋関数）。
    * @param {{summary:Object, reports:Object, health:Object, operationalHealth?:Object}} payload
    *   - summary: GET /api/dashboard の結果（または {status:"error"}）
@@ -529,6 +588,7 @@
     const opHealthCardHtml = renderOperationalHealthCard(opHealthRaw);
     const opHealthHtml = renderOperationalHealthDetail(operationalHealth);
     const auditSummaryHtml = renderPublishedArtifactAuditSummary(opHealthRaw);
+    const consistencyAuditHtml = renderConsistencyAudit(opHealthRaw);
 
     return (
       `<div class="dash-overview">` +
@@ -541,6 +601,9 @@
       `<section class="card"><h2>Suppression Summary</h2>${renderSuppressionSummary(suppression)}</section>` +
       `<section class="card"><h2>Report Summary</h2>${renderReportSummary(reports)}</section>` +
       (opHealthCardHtml ? `<section class="card"><h2>Operational Health</h2>${opHealthCardHtml}</section>` : "") +
+      (consistencyAuditHtml
+        ? `<section class="card"><h2>Admin Dashboard Consistency Audit</h2>${consistencyAuditHtml}</section>`
+        : "") +
       (opHealthHtml ? `<section class="card"><h2>Operational Health Detail</h2>${opHealthHtml}</section>` : "") +
       (auditSummaryHtml
         ? `<section class="card"><h2>Published Artifact Audit Summary</h2>${auditSummaryHtml}</section>`
@@ -625,6 +688,7 @@
       renderOperationalHealthCard,
       renderPublishedArtifactAudit,
       renderPublishedArtifactAuditSummary,
+      renderConsistencyAudit,
       healthStatusBadge,
       renderSesHealth,
       renderLambdaHealth,
