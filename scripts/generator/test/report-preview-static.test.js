@@ -3,10 +3,10 @@
  * ブラウザ実行・jsdom は使わない（aor preview 用の JS テスト基盤が無いため、文言・構造が
  * 存在することを確認する軽量方式）。動的な view model は preview-ui / market-stats のテストで担保。
  *
- * Phase56 STEP1: Hero / First-View 全面リデザイン。
- *   Hero V3 → Benefit カード → 上部 CTA → Market Snapshot → Opportunity Card V3
- *   → 根拠(折りたたみ) → 情報源(折りたたみ・最後) → 人による確認 → ほかのテーマ
- *   → Trust → 下部 CTA
+ * Phase66 STEP2: Content SAME / Presentation NEW。
+ *   Hero → Metrics（2-up: 市場の追い風 / 御社との適合） → WHY NOW → WHY YOU
+ *   → THE OPPORTUNITY → FIRST STEP → 根拠(折りたたみ) → 情報源(折りたたみ・最後)
+ *   → ほかのテーマ → Trust → 下部 CTA
  */
 
 const { test } = require("node:test");
@@ -39,45 +39,44 @@ test("report-preview.html: 必要な JS を正しい順で読み込む（guard �
   }
 });
 
-test("report-preview.html: First-View → 結論 → 根拠 → CTA の順（Hero が先頭・source は最後の折りたたみ）", () => {
+test("report-preview.html: Hero → Metrics → Why Now → Why You → Opportunity → First Step → 根拠 → 情報源 → ほかのテーマ → Trust → CTA の順", () => {
   const idx = (id) => {
     const i = html.indexOf(`id="${id}"`);
     assert.ok(i !== -1, `セクション ${id} が無い`);
     return i;
   };
   const iHero = idx("report-hero");
-  const iBenefits = idx("sec-benefits");
-  const iCtaTop = idx("sec-cta-top");
-  const iSnapshot = idx("sec-snapshot");
+  const iMetrics = idx("sec-metrics");
+  const iWhyNow = idx("sec-why-now");
+  const iWhyYou = idx("sec-why-you");
   const iOpp = idx("sec-opportunity");
+  const iFirstStep = idx("sec-first-step");
   const iEvidence = idx("sec-evidence");
   const iSources = idx("sec-sources");
-  const iReview = idx("sec-review");
+  const iLocked = idx("sec-locked");
   const iTrust = idx("sec-trust");
   const iCta = idx("sec-cta");
 
-  assert.ok(iHero < iBenefits, "Hero は Benefit カードより前");
-  assert.ok(iBenefits < iCtaTop && iCtaTop < iSnapshot, "Benefit → 上部CTA → Snapshot の順");
-  assert.ok(iSnapshot < iOpp, "Snapshot は Opportunity より前");
-  assert.ok(iOpp < iEvidence && iEvidence < iSources, "Opportunity → 根拠 → 情報源 の順");
+  assert.ok(iHero < iMetrics, "Hero は Metrics より前");
+  assert.ok(iMetrics < iWhyNow && iWhyNow < iWhyYou, "Metrics → WhyNow → WhyYou の順");
+  assert.ok(iWhyYou < iOpp && iOpp < iFirstStep, "WhyYou → Opportunity → FirstStep の順");
+  assert.ok(iFirstStep < iEvidence && iEvidence < iSources, "FirstStep → 根拠 → 情報源 の順");
   assert.ok(iOpp < iSources, "情報源は Opportunity より後（結論→根拠）");
-  assert.ok(iSources < iReview, "情報源 → 人による確認 の順");
-  assert.ok(iTrust < iCta, "Trust は下部 CTA の直前");
-  assert.ok(iSources < iCta, "情報源 → 下部CTA の順");
+  assert.ok(iSources < iLocked && iLocked < iTrust && iTrust < iCta, "情報源 → ほかのテーマ → Trust → CTA の順");
 });
 
 /* ---------- JS: 描画順・データソース ---------- */
 
-test("report-preview.js: render() が Hero → Benefits → CtaTop → Snapshot → Opportunity → Evidence → Sources → Review → Locked → Trust → CtaBottom の順で呼ぶ", () => {
+test("report-preview.js: render() が Hero → Metrics → WhyNow → WhyYou → Opportunity → FirstStep → Evidence → Sources → Locked → Trust → CtaBottom の順で呼ぶ", () => {
   const seq = [
     "renderHero(",
-    "renderBenefits(",
-    "renderCtaTop(",
-    "renderSnapshot(",
+    "renderMetrics(",
+    "renderWhyNow(",
+    "renderWhyYou(",
     "renderOpportunity(",
+    "renderFirstStep(",
     "renderEvidence(",
     "renderSourcesV2(",
-    "renderReviewSection(",
     "renderLockedThemes(",
     "renderTrust(",
     "renderCtaBottom(",
@@ -117,6 +116,12 @@ test("report-preview.js: evidence 結合には source_pages 全体を使う（ge
   assert.match(js, /getSourceMap\(data\.source_pages\)/);
 });
 
+test("report-preview.js: 情報源ラベルの HTML 数値文字参照をデコードして表示する（&#8211; がそのまま出ない）", () => {
+  assert.match(js, /function decodeHtmlEntities/);
+  assert.match(js, /decodeHtmlEntities\(sp\.label/);
+  assert.match(js, /decodeHtmlEntities\(src\.label/);
+});
+
 /* ---------- CTA: destination 維持・全 CTA が [data-cta] 経由 ---------- */
 
 test("report-preview.js: CTA の href は email-capture.html + 既存クエリ（company/lead/token）を保持する", () => {
@@ -127,21 +132,20 @@ test("report-preview.js: CTA の href は email-capture.html + 既存クエリ�
   assert.match(js, /querySelectorAll\("\[data-cta\]"\)/);
 });
 
-test("report-preview.js: CTA は共有ヘルパー（ctaButton）で組み立て、Hero inline + 上部 + 下部 を [data-cta] で配線", () => {
+test("report-preview.js: CTA は共有ヘルパー（ctaButton）で組み立て、Hero inline + 下部 を [data-cta] で配線", () => {
   assert.match(js, /function ctaButton\(/);
-  // ctaButton の宣言1 + 呼び出し（上部・下部）で 3 回以上「ctaButton(」が出る
+  // ctaButton の宣言1 + 下部 CTA の呼び出しで 2 回以上「ctaButton(」が出る
   const ctaButtonRefs = (js.match(/ctaButton\(/g) || []).length;
-  assert.ok(ctaButtonRefs >= 3, "ctaButton の宣言 + 上部/下部の呼び出し");
-  // data-cta 付与は renderHero の inline CTA と ctaButton ヘルパーの 2 箇所（実行時は 3 要素）
+  assert.ok(ctaButtonRefs >= 2, "ctaButton の宣言 + 下部の呼び出し");
+  // data-cta 付与は renderHero の inline CTA と ctaButton ヘルパーの 2 箇所（実行時は 2 要素）
   const dataCta = (js.match(/setAttribute\("data-cta", ""\)/g) || []).length;
   assert.ok(dataCta >= 2, "Hero inline CTA と ctaButton ヘルパーの両方で data-cta を付与");
   // 全 CTA は querySelectorAll("[data-cta]") 経由で href を配線
   assert.match(js, /querySelectorAll\("\[data-cta\]"\)[\s\S]*?setAttribute\("href", target\)/);
 });
 
-test("report-preview.js: CTA 文言に「無料」が含まれる（上部・中間・下部）", () => {
+test("report-preview.js: CTA 文言に「無料」が含まれる（Hero inline・下部）", () => {
   assert.match(js, /無料でレポートを見る/);
-  assert.match(js, /このビジネスチャンスを詳しく見る/);
   assert.match(js, /御社専用の追加分析を見る（無料）/);
 });
 
@@ -153,17 +157,25 @@ test("report-preview.js: 市場数値は MarketStats（抽出）に委譲し、p
   assert.doesNotMatch(js, /\d+\s*兆円|\d+\s*億円|\d+(\.\d+)?\s*%[^）】]/);
 });
 
-/* ---------- Hero V3 の要素 ---------- */
+test("report-preview.js: 『御社との適合』カードは確信度・why_company の既存フィールドのみを使う（新しいスコアを作らない）", () => {
+  assert.match(js, /function buildFitMetricCard/);
+  assert.match(js, /vm\.confidence\.level/);
+  assert.match(js, /vm\.whyCompany/);
+  assert.doesNotMatch(js, /Math\.random/);
+});
 
-test("report-preview.js: Hero に eyebrow / 宛名 / メインキャッチ(h1) / サブコピー / Pill / 確認済みバッジ / 大型イラストがある", () => {
-  assert.match(js, /report-hero__eyebrow/);
+/* ---------- Hero の要素 ---------- */
+
+test("report-preview.js: Hero に AOR ブランド行 / 宛名 / メインキャッチ(h1) / サブコピー / Pill / 専門家監修バッジ / 大型イラストがある", () => {
+  assert.match(js, /report-hero__brand/);
+  assert.match(js, /BUSINESS OPPORTUNITY REPORT/);
   assert.match(js, /PreviewUI\.salutation\(cp\.name\)/);
   assert.match(js, /report-hero__headline/);
   assert.match(js, /PreviewUI\.heroSubcopy/);
   assert.match(js, /report-hero__pill|report-hero__chip/);
   assert.match(js, /hero-review-badge/);
   assert.match(js, /Illustrations\.hero\(theme\)/);
-  assert.match(js, /人間による確認済み/);
+  assert.match(js, /専門家監修/);
 });
 
 test("report-preview.js: Hero headline は h1（ページ最大の見出し）", () => {
@@ -176,26 +188,28 @@ test("report-preview.js: Hero variant B は市場数値を主語にする（数�
   assert.match(js, /pickHeroVariant/);
 });
 
-/* ---------- Benefit カード / Trust / Snapshot ---------- */
+/* ---------- Metrics / Trust / First Step ---------- */
 
-test("report-preview.js: Benefit カード（なぜ今 / なぜ御社 / 今日できること）を描画する", () => {
-  assert.match(js, /PreviewUI\.benefitCards/);
-  assert.match(js, /benefit-cards/);
-  assert.match(js, /benefit-card__label/);
+test("report-preview.js: Metrics は 2-up カード（市場の追い風 / 御社との適合）+ 数字カード + 比較バー + タイムライン を扱う", () => {
+  assert.match(js, /metrics-2up/);
+  assert.match(js, /市場の追い風/);
+  assert.match(js, /御社との適合/);
+  assert.match(js, /market-stats/);
+  assert.match(js, /market-bar/);
+  assert.match(js, /market-timeline/);
 });
 
-test("report-preview.js: Trust strip（登録不要 / 無料 / 確認済み / 停止可能）を CTA の前に描画する", () => {
+test("report-preview.js: FIRST STEP は今日からできる一歩をロードマップ表示する", () => {
+  assert.match(js, /PreviewUI\.buildFirstActionViewModel/);
+  assert.match(js, /first-action__steps/);
+});
+
+test("report-preview.js: Trust strip（メールアドレス登録だけ / 専門家監修 / 無料版を毎週配信 / 停止可能）を CTA の前に描画する", () => {
   assert.match(js, /PreviewUI\.trustItems/);
   assert.match(js, /trust-strip/);
   const iTrust = js.indexOf("renderTrust(");
   const iCtaBottom = js.indexOf("renderCtaBottom(");
   assert.ok(iTrust !== -1 && iCtaBottom !== -1 && iTrust < iCtaBottom, "renderTrust は renderCtaBottom より前");
-});
-
-test("report-preview.js: Market Snapshot は 数字カード + 比較バー + タイムライン を扱う", () => {
-  assert.match(js, /market-stats/);
-  assert.match(js, /market-bar/);
-  assert.match(js, /market-timeline/);
 });
 
 /* ---------- Responsive / a11y ---------- */
@@ -209,8 +223,9 @@ test("preview-conversion.css: stat-card はモバイルで縦積み（flex-basis
   assert.match(css, /@media[\s\S]*?\.stat-card\s*\{[\s\S]*?flex-basis:\s*100%/);
 });
 
-test("preview-conversion.css: Benefit カードはモバイルで 1 カラム", () => {
-  assert.match(css, /@media[\s\S]*?\.benefit-cards\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+test("preview-conversion.css: Metrics 2-up はモバイルで 1 カラム", () => {
+  assert.match(css, /\.metrics-2up\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*1fr\)/);
+  assert.match(css, /@media[\s\S]*?\.metrics-2up\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
 });
 
 test("preview-conversion.css: CTA V3 はモバイルで全幅、focus-visible のアウトラインがある", () => {

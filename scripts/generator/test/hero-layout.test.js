@@ -1,6 +1,6 @@
 /**
- * hero-layout.test.js — Phase56 STEP1
- * Hero V3 の DOM 構造・順序（First View に何が載るか）を静的に固定する。
+ * hero-layout.test.js — Phase56 STEP1 / Phase66 STEP2
+ * Hero の DOM 構造・順序（First View に何が載るか）を静的に固定する。
  * jsdom は使わず、report-preview.js / html / css の文字列アサーション。
  */
 const { test } = require("node:test");
@@ -19,10 +19,10 @@ test("Hero: header#report-hero がページ最上部（<main> より前）", () 
   assert.ok(iHero !== -1 && iMain !== -1 && iHero < iMain);
 });
 
-test("Hero: renderHero 内で eyebrow → 宛名 → h1 headline → subcopy → pill → badges → inline CTA → illust の順に append", () => {
-  const body = js.slice(js.indexOf("function renderHero("), js.indexOf("function renderBenefits("));
+test("Hero: renderHero 内で ブランド行 → 宛名 → h1 headline → subcopy → pill → badges → inline CTA → illust の順に append", () => {
+  const body = js.slice(js.indexOf("function renderHero("), js.indexOf("function renderMetrics("));
   const order = [
-    "report-hero__eyebrow",
+    "report-hero__brand",
     "report-hero__company",
     'createElement("h1")',
     "report-hero__sub",
@@ -48,7 +48,7 @@ test("Hero: メインキャッチは h1（ページで最大の見出し。Oppor
   assert.equal((js.match(/createElement\("h1"\)/g) || []).length, 1);
 });
 
-test("Hero: 確認済みバッジは position:absolute で右上（CSS）", () => {
+test("Hero: 専門家監修バッジは position:absolute で右上（CSS）", () => {
   assert.match(css, /\.hero-review-badge\s*\{[\s\S]*?position:\s*absolute[\s\S]*?right:/);
 });
 
@@ -57,10 +57,11 @@ test("Hero: 大型イラストは max-width で伸びすぎない・width:100% �
   assert.match(css, /\.hero-illust__svg\s*\{[\s\S]*?width:\s*100%/);
 });
 
-test("Hero: eyebrow に「無料ビジネスチャンスレポート」、pill に「無料」が出る（Opportunity 表記なし）", () => {
-  assert.match(js, /無料ビジネスチャンスレポート/);
+test("Hero: AOR ブランド行に『BUSINESS OPPORTUNITY REPORT』、pill に「無料」が出る", () => {
+  assert.match(js, /report-hero__brand-mark/);
+  assert.match(js, /BUSINESS OPPORTUNITY REPORT/);
   assert.match(js, /"無料", "御社専用分析"/);
-  // 表示コピーに旧「Opportunity」語が出ない
+  // 表示コピーに旧「AI Opportunity Report」語（英語ブランド名の旧表記）が出ない
   const codeOnly = js.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(codeOnly, /"AI Opportunity Report"/);
   assert.doesNotMatch(codeOnly, /"AI Opportunity"/);
@@ -70,4 +71,11 @@ test("Hero: 宛名は company_profile.name ベース（PreviewUI.salutation）�
   assert.match(js, /PreviewUI\.salutation\(cp\.name\)/);
   const codeOnly = js.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
   assert.doesNotMatch(codeOnly, /business_summary/);
+});
+
+test("Hero: 専門家監修の文言は Hero・Trust・下部CTAで統一され、旧『人間による確認済み/運営確認済み』は残らない", () => {
+  const codeOnly = js.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+  assert.doesNotMatch(codeOnly, /人間による確認済み/);
+  assert.doesNotMatch(codeOnly, /運営確認済み/);
+  assert.doesNotMatch(codeOnly, /運営が内容を確認済み/);
 });

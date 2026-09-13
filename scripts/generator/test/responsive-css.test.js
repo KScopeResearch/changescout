@@ -21,9 +21,9 @@ test("長い stat 値の折返し: .stat-card__value に overflow-wrap: anywhere
   assert.match(css, /\.stat-card__value\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
 });
 
-test("Benefit カード: デスクトップは 3 カラム、狭い幅で 1 カラム", () => {
-  assert.match(css, /\.benefit-cards\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3,\s*1fr\)/);
-  assert.match(css, /@media[\s\S]*?\.benefit-cards\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
+test("Metrics 2-up: デスクトップは 2 カラム、狭い幅で 1 カラム", () => {
+  assert.match(css, /\.metrics-2up\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2,\s*1fr\)/);
+  assert.match(css, /@media[\s\S]*?\.metrics-2up\s*\{[\s\S]*?grid-template-columns:\s*1fr/);
 });
 
 test("CTA V3: モバイルで全幅（width: 100%）", () => {
