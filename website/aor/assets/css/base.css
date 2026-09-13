@@ -175,7 +175,7 @@ html, body {
 
 .report-header__correction a { color: var(--color-text-muted); }
 
-/* 人間確認済み表示 */
+/* 専門家監修表示 */
 
 .review-status {
   display: flex;

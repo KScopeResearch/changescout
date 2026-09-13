@@ -367,9 +367,9 @@
   function trustItems(report) {
     var approved = ((report && report.human_review) || {}).status === "approved";
     return [
-      { key: "no_signup", label: "登録不要" },
-      { key: "free", label: "無料で閲覧" },
-      { key: "reviewed", label: approved ? "人間が確認済み" : "運営がレビュー中" },
+      { key: "email_signup", label: "メールアドレス登録だけ" },
+      { key: "reviewed", label: approved ? "専門家監修" : "運営がレビュー中" },
+      { key: "weekly_free", label: "無料版を毎週配信" },
       { key: "unsub", label: "配信はいつでも停止可" },
     ];
   }

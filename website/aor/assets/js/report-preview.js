@@ -2,7 +2,7 @@
  * AOR report-preview.html — Phase56 STEP2（Business Chance Report）
  *
  * Email → Preview → CTA の導線を LP 品質へ。ファーストビューで
- * 「御社にどんなビジネスチャンスがあるのか」「なぜ御社か」「無料・人間確認済み」を伝える。
+ * 「御社にどんなビジネスチャンスがあるのか」「なぜ御社か」「専門家監修・無料版を毎週配信」を伝える。
  *
  * 描画順:
  *   Hero V3（宛名〔会社名+経営者様〕/ ビジネスチャンス見出し / なぜ御社 / 数字バッジ / 確認済みバッジ / 大型イラスト）
@@ -11,7 +11,7 @@
  *   → 新しい市場の動き（数字カード / 比較バー / タイムライン。世界市場は末尾・参考データ表示）
  *   → Business Chance Card V2（一言でいうと → なぜ今 → なぜ御社 → 期待できること → 今日からできる一歩）→ 中CTA
  *   → 根拠(折りたたみ) → 情報源(折りたたみ・最後) → 人による確認 → ほかのテーマ
- *   → Trust（登録不要 / 無料 / 人間確認済み / 停止可能） → 下部 CTA
+ *   → Trust（メールアドレス登録だけ / 専門家監修 / 無料版を毎週配信 / 停止可能） → 下部 CTA
  *
  * データは published JSON（common.js の fetchCompanyData）のみ。API 連携・LLM なし。
  * pure な view model 変換は preview-ui.js / market-stats.js、図は illustrations.js。
