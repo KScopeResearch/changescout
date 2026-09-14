@@ -94,19 +94,61 @@ body { overflow-x: hidden; }
   margin: 0 0 8px;
 }
 .report-hero__headline {
-  font-size: 1.9rem;
-  line-height: 1.4;
+  font-size: 2.05rem;
+  line-height: 1.35;
   font-weight: 800;
   color: var(--color-text);
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   letter-spacing: 0.01em;
 }
+.report-hero__headline-line { display: inline-block; }
+.report-hero__opp-title {
+  font-size: 1.14rem;
+  font-weight: 800;
+  line-height: 1.6;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 14px;
+}
+.report-hero__desc {
+  font-size: 0.94rem;
+  line-height: 1.8;
+  color: var(--color-text-muted);
+  margin: 0 0 10px;
+}
 .report-hero__sub {
-  font-size: 1rem;
+  font-size: 0.94rem;
   line-height: 1.8;
   color: var(--color-text);
   margin: 0 0 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--color-primary-border);
 }
+
+/* Hero Trust Bar（4項目横並び） */
+.hero-trust-bar {
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
+.hero-trust-bar__item {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hero-trust-bar__item span[aria-hidden] { color: #0d9488; font-weight: 800; }
 .report-hero__pill {
   display: flex;
   flex-wrap: wrap;
@@ -166,11 +208,46 @@ body { overflow-x: hidden; }
 .hero-cta-inline:hover { text-decoration: underline; }
 
 .hero-illust {
-  margin: 6px auto 0;
+  position: relative;
+  margin: 10px auto 0;
   color: var(--color-primary);
   width: 100%;
-  max-width: 300px;
+  max-width: 480px;
+  padding: 12px;
 }
+.hero-illust::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  z-index: -1;
+  background:
+    radial-gradient(60% 60% at 30% 20%, var(--color-primary-bg) 0%, transparent 70%),
+    radial-gradient(50% 50% at 80% 80%, var(--color-primary-border) 0%, transparent 70%);
+  border-radius: 50%;
+  opacity: 0.8;
+}
+.hero-illust::after {
+  content: "";
+  position: absolute;
+  top: 6%;
+  right: 4%;
+  width: 34px;
+  height: 34px;
+  border: 2px solid var(--color-primary-border);
+  border-radius: 50%;
+  z-index: -1;
+}
+.hero-illust__dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  opacity: 0.5;
+  z-index: -1;
+}
+.hero-illust__dot--a { bottom: 10%; left: 2%; }
+.hero-illust__dot--b { top: 18%; left: 14%; width: 6px; height: 6px; }
 .hero-illust__svg { width: 100%; height: auto; display: block; color: var(--color-primary); }
 /* Phase56 STEP2: 具体シーンの3レイヤー（前景/中景/背景で濃淡） */
 .hero-illust__svg .hi-a { color: var(--color-primary-dark); }
@@ -211,6 +288,48 @@ body { overflow-x: hidden; }
   margin-top: 4px;
   overflow-wrap: anywhere;
 }
+.metric-card__insight {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--color-primary-border);
+}
+.metric-card__value--pair { font-size: 1.06rem; }
+.metric-card__x { color: var(--color-text-muted); font-weight: 700; }
+.metric-card__confidence {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+
+/* 3指標インジケーター（市場変化 / 補助金 / 節目の年） */
+.momentum-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0 4px;
+}
+.momentum-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.momentum-item__icon { color: var(--color-primary); display: inline-flex; }
 
 /* ============ Reason カード（WHY NOW / WHY YOU 全文） ============ */
 .reason-card {
@@ -223,6 +342,60 @@ body { overflow-x: hidden; }
   margin: 0;
   font-size: 0.96rem;
   line-height: 1.85;
+  color: var(--color-text);
+}
+.reason-card--feature {
+  position: relative;
+  padding: 20px 20px 18px 60px;
+}
+.reason-card__icon {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-radius: 9px;
+}
+.reason-card__highlight {
+  margin: 0 0 10px;
+  font-size: 1.04rem;
+  font-weight: 800;
+  line-height: 1.7;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.reason-card--feature .reason-card__text { color: var(--color-text-muted); }
+
+/* WHY YOU: 企業紹介カード */
+.company-intro-card {
+  display: grid;
+  gap: 10px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.company-intro-card__row { display: grid; gap: 2px; }
+.company-intro-card__label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--color-primary-dark);
+}
+.company-intro-card__value {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.7;
   color: var(--color-text);
 }
 
@@ -251,6 +424,15 @@ body { overflow-x: hidden; }
 }
 .cta-v3__btn-arrow { transition: transform 0.12s ease; }
 .cta-v3__btn:hover .cta-v3__btn-arrow { transform: translateX(3px); }
+.cta-v3__btn--hero {
+  display: inline-flex;
+  min-height: 52px;
+  width: 100%;
+  font-size: 1.05rem;
+  padding: 16px 24px;
+  margin-top: 4px;
+}
+.cta-v3__btn--hero:hover { text-decoration: none; }
 .cta-v3__sub {
   font-size: 0.8rem;
   color: var(--color-text-muted);
@@ -266,6 +448,31 @@ body { overflow-x: hidden; }
   color: var(--color-text-muted);
 }
 .cta-v2__proof span::before { content: "✓ "; color: #0d9488; font-weight: 700; }
+
+/* 下部 CTA（STEP11: LP仕様） */
+.cta-final {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 32px 24px;
+  box-shadow: 0 20px 40px -28px rgba(0, 0, 0, 0.3);
+}
+.cta-final__title {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--color-text);
+}
+.cta-final__desc {
+  margin: 0 0 18px;
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+}
+.cta-final__note {
+  margin: 10px 0 0;
+  font-size: 0.76rem;
+  color: var(--color-text-muted);
+}
 
 /* ============ Trust strip ============ */
 .trust-strip {
@@ -416,6 +623,14 @@ body { overflow-x: hidden; }
   border-radius: 14px;
   padding: 22px 22px 20px;
 }
+.oppv2__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
 .oppv2__eyebrow {
   display: inline-block;
   font-size: 0.7rem;
@@ -425,7 +640,11 @@ body { overflow-x: hidden; }
   background: var(--color-primary);
   border-radius: 6px;
   padding: 3px 8px;
-  margin: 0 0 10px;
+}
+.oppv2__stars {
+  font-size: 0.92rem;
+  letter-spacing: 0.08em;
+  color: #f5a623;
 }
 .oppv2__title {
   font-size: 1.28rem;
@@ -471,6 +690,32 @@ body { overflow-x: hidden; }
   font-size: 0.88rem;
   line-height: 1.75;
   color: var(--color-text-muted);
+}
+
+/* 期待できること: 導入しやすさ / 市場性 / 顧客ニーズ の3カード */
+.opp-triad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+.opp-triad__card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 13px;
+}
+.opp-triad__label {
+  margin: 0 0 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+}
+.opp-triad__text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--color-text);
 }
 .oppv2__block--action {
   background: var(--color-primary-bg);
@@ -523,6 +768,60 @@ body { overflow-x: hidden; }
 .first-action__step p { margin: 0; font-size: 0.92rem; line-height: 1.75; }
 .first-action__single { font-size: 0.92rem; line-height: 1.75; margin: 6px 0 0; }
 
+/* 横タイムライン表示（デスクトップ）。狭幅では通常の縦ステップに戻す（下部 responsive） */
+.first-action__steps--timeline {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  counter-reset: none;
+}
+.first-action__steps--timeline .first-action__step {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 16px 18px;
+  margin: 0;
+  border-left: none;
+  border-top: 3px solid var(--color-primary-border);
+  background: var(--color-surface);
+  border-radius: 10px;
+  position: relative;
+}
+.first-action__steps--timeline .first-action__step::before { content: none; }
+.first-action__steps--timeline .first-action__step:not(:last-child)::after {
+  content: "→";
+  position: absolute;
+  right: -14px;
+  top: 16px;
+  color: var(--color-primary-border);
+  font-weight: 800;
+  z-index: 1;
+}
+.first-action__steps--timeline .first-action__step + .first-action__step { margin-left: 18px; }
+.first-action__step-badge {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.first-action__done-badge {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border: 1px dashed var(--color-primary-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+}
+
 /* ============ 折りたたみ（Evidence / Sources） ============ */
 .disclosure { border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); }
 .disclosure > summary {
@@ -557,6 +856,48 @@ body { overflow-x: hidden; }
 .source-group__list li { margin-bottom: 3px; }
 .source-group__list a { color: var(--color-primary); }
 
+/* Sources: Accordion Card 化 */
+.source-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+.source-card {
+  display: block;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  text-decoration: none;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+.source-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px -14px rgba(0, 0, 0, 0.35);
+  border-color: var(--color-primary-border);
+}
+.source-card__badge {
+  display: inline-block;
+}
+.source-card__title {
+  margin: 6px 0 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+.source-card__role {
+  margin: 4px 0 0;
+  font-size: 0.72rem;
+  color: var(--color-text-muted);
+}
+.badge-cat--gov-border { border-left: 3px solid #3730a3; }
+.badge-cat--industry-border { border-left: 3px solid #065f46; }
+.badge-cat--company-border { border-left: 3px solid var(--color-primary); }
+.badge-cat--research-border { border-left: 3px solid #9a3412; }
+.badge-cat--news-border { border-left: 3px solid #6b7280; }
+
 .evi-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .evi-item { border-left: 3px solid var(--color-border); padding: 6px 0 6px 12px; }
 .evi-item--company { border-left-color: var(--color-primary); }
@@ -576,14 +917,214 @@ body { overflow-x: hidden; }
 .evi-item__src { font-size: 0.74rem; margin: 2px 0 0; }
 .evi-item__src a { color: var(--color-primary); }
 
-/* locked themes */
+/* バッジ配色（Evidence / Sources 共通のカテゴリ色。source_type から機械的に決定） */
+.badge-cat {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-bottom: 6px;
+}
+.badge-cat--gov { background: #eef2ff; color: #3730a3; }
+.badge-cat--industry { background: #ecfdf5; color: #065f46; }
+.badge-cat--company { background: var(--color-primary-bg); color: var(--color-primary-dark); }
+.badge-cat--research { background: #fff7ed; color: #9a3412; }
+.badge-cat--news { background: #f3f4f6; color: #374151; }
+
+/* Evidence: カードデザイン */
+.evi-list--card { gap: 12px; }
+.evi-card {
+  border-left: none;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.evi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -14px rgba(0, 0, 0, 0.35); }
+.evi-item__title { margin: 0 0 4px; font-size: 0.9rem; font-weight: 700; color: var(--color-text); }
+
+/* locked themes（STEP10: 高級化。base.css の .opp-card--locked / .cards を preview-conversion.css で上書き） */
 #sec-locked .locked-panel { margin-top: 0; }
+#sec-locked .cards--locked-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+#sec-locked .opp-card--locked {
+  position: relative;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 18px 18px 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.15) 100%),
+    var(--color-locked-bg);
+  border: 1px solid var(--color-locked-border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+#sec-locked .opp-card--locked::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(0.4px);
+  pointer-events: none;
+}
+#sec-locked .opp-card--locked:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 28px -16px rgba(0, 0, 0, 0.4);
+  border-color: var(--color-primary-border);
+}
+#sec-locked .opp-card--locked .opp-card__lock-icon { font-size: 1.1rem; }
+.opp-card--locked__note {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-top: 2px;
+}
+.locked-panel__highlight {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--color-primary-dark);
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+/* ============ Footer（STEP12: ブランド化） ============ */
+.report-footer__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.report-footer__brand-mark {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+.report-footer__brand-doctype {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+.report-footer__tagline { margin: 0 0 10px; font-size: 0.78rem; color: var(--color-text-muted); }
+.report-footer__links { margin: 0 0 6px; }
+.report-footer__links a { color: var(--color-text-muted); text-decoration: underline; }
+.report-footer__date { margin: 0; font-size: 0.74rem; color: var(--color-text-muted); }
+
+/* ============ STEP13: CSS 品質向上（Shadow統一 / Radius / Hover / 余白 / 控えめな演出） ============ */
+.section {
+  margin-top: 72px;
+  animation: aor-fade-up 0.5s ease both;
+}
+.section:first-of-type { margin-top: 32px; }
+
+@keyframes aor-fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Radius / Shadow の統一（既存カードを上書き。数値・構造は変えない） */
+.oppv2,
+.reason-card,
+.cta-final,
+.company-intro-card,
+.first-step-card,
+.evi-card,
+.source-card,
+#sec-locked .opp-card--locked {
+  border-radius: 20px;
+}
+.oppv2,
+.reason-card,
+.cta-final {
+  box-shadow: 0 18px 36px -28px rgba(0, 0, 0, 0.35);
+}
+.metric-card,
+.stat-card,
+.hero-trust-bar,
+.report-hero__opp-title {
+  border-radius: 16px;
+}
+.report-hero { border-radius: 22px; }
+
+/* Hover Lift + わずかな拡大（カード群共通） */
+.metric-card,
+.opp-triad__card,
+.momentum-item {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.metric-card:hover,
+.opp-triad__card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.3);
+}
+.evi-card:hover,
+.source-card:hover {
+  transform: translateY(-2px) scale(1.01);
+}
+.cta-v3__btn:hover { transform: translateY(-1px) scale(1.01); }
+
+@media (prefers-reduced-motion: reduce) {
+  .section { animation: none; }
+  .metric-card:hover,
+  .opp-triad__card:hover,
+  .evi-card:hover,
+  .source-card:hover,
+  #sec-locked .opp-card--locked:hover { transform: none; }
+}
 
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
   .metrics-2up { grid-template-columns: 1fr; }
 }
+@media (max-width: 768px) {
+  .opp-triad { grid-template-columns: 1fr; }
+  #sec-locked .cards--locked-grid { grid-template-columns: repeat(2, 1fr); }
+  .first-action__steps--timeline {
+    flex-direction: column;
+  }
+  .first-action__steps--timeline .first-action__step {
+    border-top: none;
+    border-left: 3px solid var(--color-primary-border);
+    border-radius: 0 10px 10px 0;
+  }
+  .first-action__steps--timeline .first-action__step + .first-action__step { margin-left: 0; margin-top: 10px; }
+  .first-action__steps--timeline .first-action__step:not(:last-child)::after {
+    content: "↓";
+    right: auto;
+    left: 14px;
+    top: auto;
+    bottom: -14px;
+  }
+}
 @media (max-width: 480px) {
+  .opp-triad { grid-template-columns: 1fr; }
+  #sec-locked .cards--locked-grid { grid-template-columns: 1fr; }
+  .source-card-grid { grid-template-columns: 1fr; }
+  .hero-trust-bar { gap: 6px 10px; padding: 8px 10px; }
+  .hero-trust-bar__item { font-size: 0.7rem; }
+  .section { margin-top: 48px; }
+  .company-intro-card { padding: 12px 14px; }
   .report-hero { padding: 22px 16px 20px; border-radius: 14px; }
   .report-hero__brand { margin-right: 76px; }
   .report-hero__eyebrow { margin-right: 76px; }

@@ -45,6 +45,8 @@
     agriculture: '<path d="M12 22V9M12 9c-1-3-4-4-6-4 0 3 2 6 6 6zM12 12c1-3 4-5 7-5 0 4-3 6-7 6z"/>',
     tourism: '<path d="M12 2l2 6h6l-5 4 2 7-5-4-5 4 2-7-5-4h6z"/>',
     generic_insight: '<path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-10"/>',
+    // Phase66 STEP6: Metrics の3指標インジケーター（節目の年）用。カレンダー+フラグ。
+    milestone: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M12 12v5l3-1.5z"/>',
   };
   var THEMES = Object.keys(GLYPHS);
 
