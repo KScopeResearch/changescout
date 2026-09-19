@@ -85,7 +85,7 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   badge.className = "hero-review-badge" + (review.approved ? "" : " hero-review-badge--pending");
   const bi = document.createElement("span");
   bi.setAttribute("aria-hidden", "true");
-  bi.textContent = review.approved ? "✓" : "⚠";
+  bi.innerHTML = Illustrations.glyph(review.approved ? "shield_check" : "search", { size: 14 });
   const bt = document.createElement("span");
   bt.textContent = review.approved ? "専門家監修" : "運営がレビュー中";
   badge.append(bi, " ", bt);
@@ -148,7 +148,7 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
     li.className = "hero-trust-bar__item";
     const icon = document.createElement("span");
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "✓";
+    icon.innerHTML = Illustrations.glyph("check_circle", { size: 13 });
     li.append(icon, " " + it.label);
     trustBar.appendChild(li);
   });
@@ -164,6 +164,21 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
     pill.appendChild(c);
   });
   body.appendChild(pill);
+
+  // Confidence Badge（確信度: 高/中/低。既存の confidence_note 由来の level をそのまま表示）
+  if (vm.confidence && vm.confidence.level) {
+    const level = vm.confidence.level;
+    const confKey = level === "高" ? "high" : level === "低" ? "low" : "mid";
+    const conf = document.createElement("p");
+    conf.className = "confidence-badge confidence-badge--" + confKey;
+    const ci = document.createElement("span");
+    ci.setAttribute("aria-hidden", "true");
+    ci.innerHTML = Illustrations.glyph("target", { size: 14 });
+    const ct = document.createElement("span");
+    ct.textContent = "確信度 " + level;
+    conf.append(ci, ct);
+    body.appendChild(conf);
+  }
 
   // Market Badge（経営者に近い数字1〜2件・無ければ非表示）
   const heroStats = snapshot.stats.filter((s) => !s.isWorld);
@@ -255,6 +270,27 @@ function renderMetrics(data, vm, theme, snapshot) {
       row.appendChild(item);
     });
     el.appendChild(row);
+  }
+
+  // 「今回わかったこと」インサイトカード3枚（市場 / 御社 / 今動く理由）。
+  // 既存フィールド（market_change / why_company / why_now）の要約のみで新しい事実は作らない。
+  const insights = buildInsightCards(vm);
+  if (insights.length) {
+    const ic = document.createElement("div");
+    ic.className = "insight-cards";
+    insights.forEach((it) => {
+      const c = document.createElement("div");
+      c.className = "insight-card";
+      const icon = document.createElement("span");
+      icon.className = "insight-card__icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = Illustrations.glyph(it.glyph, { size: 18 });
+      c.appendChild(icon);
+      c.appendChild(textP("insight-card__label", it.label));
+      c.appendChild(textP("insight-card__text", it.text));
+      ic.appendChild(c);
+    });
+    el.appendChild(ic);
   }
 
   if (snapshot.worldOnly) {
@@ -349,15 +385,38 @@ function buildFitMetricCard(data, vm) {
     industry && core
       ? `${escapeText(industry)} <span class="metric-card__x" aria-hidden="true">×</span> ${escapeText(core)}`
       : escapeText(industry || core);
+  const ring = vm.confidence && vm.confidence.level ? confidenceRing(vm.confidence.level) : "";
   card.innerHTML =
     `<div class="metric-card__label">御社との適合度</div>` +
-    (valueHtml ? `<div class="metric-card__value metric-card__value--pair">${valueHtml}</div>` : "") +
+    (ring
+      ? `<div class="metric-card__ring-row">` +
+        `<div class="metric-card__ring" aria-hidden="true">${ring}</div>` +
+        `<div class="metric-card__ring-body">` +
+        (valueHtml ? `<div class="metric-card__value metric-card__value--pair">${valueHtml}</div>` : "") +
+        `<div class="metric-card__confidence">確信度 ${escapeText(vm.confidence.level)}</div>` +
+        `</div></div>`
+      : (valueHtml ? `<div class="metric-card__value metric-card__value--pair">${valueHtml}</div>` : "")) +
     `<div class="metric-card__note">今回の提案は御社の既存事業と接続できます。</div>` +
-    (vm.confidence && vm.confidence.level
-      ? `<div class="metric-card__confidence">確信度 ${escapeText(vm.confidence.level)}</div>`
-      : "") +
     (note ? `<div class="metric-card__insight">${escapeText(note)}</div>` : "");
   return card;
+}
+
+// 確信度（高/中/低）をリングチャートの円弧割合へ機械的に変換するだけの表示補助（★変換と同じ位置づけ）。
+// 高=88割 中=62割 低=35割 の固定割当て。新しい判定・数値は作らない。
+function confidenceRing(level) {
+  const pct = level === "高" ? 88 : level === "低" ? 35 : 62;
+  const r = 15;
+  const c = 2 * Math.PI * r;
+  const dash = (c * pct) / 100;
+  return (
+    `<svg width="44" height="44" viewBox="0 0 36 36" aria-hidden="true">` +
+    `<circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--color-primary-border)" stroke-width="4"/>` +
+    `<circle cx="18" cy="18" r="${r}" fill="none" stroke="currentColor" stroke-width="4" ` +
+    `stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}" ` +
+    `transform="rotate(-90 18 18)"/>` +
+    `<text x="18" y="21" text-anchor="middle" font-size="9" font-weight="800" fill="currentColor" stroke="none">${pct}%</text>` +
+    `</svg>`
+  );
 }
 
 // Opportunity title から「の立ち上げ」等の定型語尾を取り除いた中核フレーズを返す
@@ -383,6 +442,19 @@ function momentumIndicators(vm, snapshot) {
     out.push({ glyph: "milestone", label: `${snapshot.years[0]}年が節目` });
   }
   return out.slice(0, 3);
+}
+
+// 「今回わかったこと」3枚: 市場（market_change）/ 御社（why_company）/ 今動く理由（why_now）。
+// いずれも既存フィールドの要約のみ（summarizeSentence）。データが無い項目は出さない。
+function buildInsightCards(vm) {
+  const out = [];
+  const market = PreviewUI.summarizeSentence(vm.marketChange, 56);
+  if (market) out.push({ glyph: "line_chart", label: "市場", text: market });
+  const company = PreviewUI.summarizeSentence(vm.whyCompany, 56);
+  if (company) out.push({ glyph: "building", label: "御社", text: company });
+  const now = PreviewUI.summarizeSentence(vm.whyNow, 56);
+  if (now) out.push({ glyph: "sparkles", label: "今動く理由", text: now });
+  return out;
 }
 
 /* ==================== WHY NOW（STEP5: Feature Card 化） ==================== */
@@ -436,7 +508,8 @@ function renderWhyYou(data, vm, theme) {
   const intro = document.createElement("div");
   intro.className = "company-intro-card";
   const rows = [
-    ["事業内容", cp.industry_label || ""],
+    ["会社名", cp.name || ""],
+    ["業種", cp.industry_label || ""],
     ["強み", firstSentence],
     ["今回つながる理由", restSentences || firstSentence],
   ].filter(([, v]) => v);
@@ -592,7 +665,12 @@ function renderFirstStep(data, theme) {
 
     const doneBadge = document.createElement("p");
     doneBadge.className = "first-action__done-badge";
-    doneBadge.textContent = "今日30分で始められます";
+    const dbIcon = document.createElement("span");
+    dbIcon.setAttribute("aria-hidden", "true");
+    dbIcon.innerHTML = Illustrations.glyph("rocket", { size: 14 });
+    const dbText = document.createElement("span");
+    dbText.textContent = "今日30分で始められます";
+    doneBadge.append(dbIcon, " ", dbText);
     card.appendChild(doneBadge);
   }
   el.appendChild(card);
@@ -797,7 +875,7 @@ function renderTrust(data) {
     const icon = document.createElement("span");
     icon.className = "trust-strip__icon";
     icon.setAttribute("aria-hidden", "true");
-    icon.textContent = "✓";
+    icon.innerHTML = Illustrations.glyph("check_circle", { size: 14 });
     const t = document.createElement("span");
     t.textContent = it.label;
     li.append(icon, " ", t);

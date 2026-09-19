@@ -47,6 +47,17 @@
     generic_insight: '<path d="M4 20h16"/><path d="M7 20v-6M12 20V8M17 20v-10"/>',
     // Phase66 STEP6: Metrics の3指標インジケーター（節目の年）用。カレンダー+フラグ。
     milestone: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M12 12v5l3-1.5z"/>',
+    // Phase67 STEP15: Premium UI 共通アイコン（Emoji 不使用・SVG のみ）
+    shield_check: '<path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6z"/><path d="M9 12l2 2 4-4"/>',
+    building: '<path d="M4 21V6l8-3 8 3v15"/><path d="M4 21h16M9 9h2M13 9h2M9 13h2M13 13h2M9 17h2M13 17h2"/>',
+    brain_circuit: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="1.2" fill="currentColor" stroke="none"/><circle cx="16" cy="14" r="1.2" fill="currentColor" stroke="none"/><path d="M12 7v2M8 14l2.5-2M16 14l-2.5-2"/>',
+    line_chart: '<path d="M3 20h18"/><path d="M3 20V4"/><path d="M5 16l4-5 4 3 6-8"/>',
+    rocket: '<path d="M12 2c3 2 5 6 4 11l-4 4-4-4c-1-5 1-9 4-11z"/><circle cx="12" cy="9" r="1.6"/><path d="M8.5 16.5L6 21l4.5-2M15.5 16.5L18 21l-4.5-2"/>',
+    target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
+    sparkles: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
+    check_circle: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/>',
   };
   var THEMES = Object.keys(GLYPHS);
 
@@ -183,8 +194,48 @@
     generic_insight: [["chartUp", 44, 88, 2.6, "hi-a"], ["dashboard", 160, 80, 1.6, "hi-b"], ["person", 200, 150, 1.7, "hi-c"]],
   };
 
+  // Phase67 STEP4: Business Intelligence 背景レイヤー（建物のシルエット・AIノード＋接続線・
+  // 円形チャート・光るポイント）。deterministic な固定レイアウト（乱数・時刻は使わない）。
+  // 既存の業種別シーン（SCENES）の背後に重ね、テーマの具象性は保ったまま高級感を足す。
+  function biBackdrop() {
+    var nodes = [
+      [40, 40], [96, 26], [230, 34], [268, 66], [30, 150], [258, 168], [60, 208], [220, 210],
+    ];
+    var links = [
+      [0, 1], [1, 2], [2, 3], [0, 4], [3, 5], [4, 6], [5, 7], [1, 4], [2, 5],
+    ];
+    var lines = links
+      .map(function (l) {
+        var a = nodes[l[0]], b = nodes[l[1]];
+        return '<line class="hi-bi__link" x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '"/>';
+      })
+      .join("");
+    var dots = nodes
+      .map(function (n, i) {
+        var r = i % 3 === 0 ? 3 : 2;
+        return '<circle class="hi-bi__node" cx="' + n[0] + '" cy="' + n[1] + '" r="' + r + '" fill="currentColor" stroke="none"/>';
+      })
+      .join("");
+    var glow = [[96, 26], [230, 34], [30, 150], [220, 210]]
+      .map(function (n) {
+        return '<circle class="hi-bi__glow" cx="' + n[0] + '" cy="' + n[1] + '" r="9" fill="currentColor" stroke="none"/>';
+      })
+      .join("");
+    return (
+      '<g class="hi-bi" aria-hidden="true">' +
+      '<circle class="hi-bi__ring" cx="150" cy="120" r="86" stroke-dasharray="4 7"/>' +
+      '<circle class="hi-bi__ring hi-bi__ring--chart" cx="150" cy="120" r="70" stroke-dasharray="130 350"/>' +
+      lines +
+      dots +
+      glow +
+      "</g>"
+    );
+  }
+
   /**
    * Hero 用の大型シーン。theme のオブジェクトを配置した具体イラスト。
+   * 背景に Business Intelligence レイヤー（ノード網・円形チャート・光点）、
+   * 前景に業種別の具体シーン（建物・人物・チャート等）を重ねる。
    * @param {string} theme
    * @returns {string}
    */
@@ -203,6 +254,7 @@
       "</defs>" +
       '<rect x="10" y="14" width="280" height="212" rx="22" fill="url(#hiBg)" stroke="none"/>' +
       '<ellipse class="hi-shadow" cx="150" cy="214" rx="120" ry="10" fill="currentColor" stroke="none" opacity="0.06"/>' +
+      biBackdrop() +
       scene +
       "</svg>"
     );
