@@ -109,17 +109,17 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   // 宛名（会社名 + 経営者様）
   body.appendChild(textP("report-hero__company", PreviewUI.salutation(cp.name)));
 
-  // メインキャッチ（ページ最大要素・h1は1つだけ）: 固定リード見出し
+  // メインキャッチ（ページ最大要素・h1は1つだけ）: Hero Variant A/B で内容を切替
   const headline = document.createElement("h1");
   headline.className = "report-hero__headline";
   headline.id = "hero-headline";
-  const lead1 = document.createElement("span");
-  lead1.className = "report-hero__headline-line";
-  lead1.textContent = "御社に今ある";
-  const lead2 = document.createElement("span");
-  lead2.className = "report-hero__headline-line";
-  lead2.textContent = "ビジネスチャンスを見つけました";
-  headline.append(lead1, document.createElement("br"), lead2);
+  const nonWorld = snapshot.stats.filter((s) => !s.isWorld);
+  if (variant === "B" && nonWorld.length) {
+    const s = nonWorld[0];
+    headline.textContent = `${labelWithScope(s)}が ${s.value}。御社に取れる一手があります。`;
+  } else {
+    headline.textContent = PreviewUI.oneLineSummary(vm.title) || vm.headline || vm.title;
+  }
   body.appendChild(headline);
 
   // Opportunity Title（見つけたテーマそのもの。h1ではなく強調段落として表示）
@@ -186,9 +186,19 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
     body.appendChild(badges);
   }
 
-  // 大型 CTA ボタン（高さ52px以上。data-cta 配線・hero-cta-inline は既存の配線ロジックと互換のため維持）
-  const cta = ctaButton("無料の追加分析を見る");
-  cta.classList.add("hero-cta-inline", "cta-v3__btn--hero");
+  // 大型 CTA ボタン（高さ52px以上。Hero 独自に data-cta を付与し、既存の CTA 計測契約を維持）
+  const cta = document.createElement("a");
+  cta.className = "hero-cta-inline cta-v3__btn cta-v3__btn--hero";
+  cta.href = "#";
+  cta.setAttribute("data-cta", "");
+  const ctaText = document.createElement("span");
+  ctaText.className = "cta-v3__btn-text";
+  ctaText.textContent = "無料でレポートを見る";
+  const ctaArrow = document.createElement("span");
+  ctaArrow.className = "cta-v3__btn-arrow";
+  ctaArrow.setAttribute("aria-hidden", "true");
+  ctaArrow.textContent = "→";
+  cta.append(ctaText, ctaArrow);
   body.appendChild(cta);
 
   el.appendChild(body);
