@@ -71,8 +71,54 @@ function render(data, slug) {
   renderTrust(data);
   renderCtaBottom();
   renderFooter(data);
+  renderPrintChrome(data);
   wireCtas(slug);
   initScrollReveal();
+}
+
+// Phase68 STEP2 STEP13: 印刷専用ヘッダー・フッター（全ページ共通）。
+// position:fixed で用意し、画面表示では .print-only が隠す。ページ番号は
+// ブラウザの印刷ダイアログが提供する「ヘッダーとフッター」設定に委ねる
+// （CSS Paged Media の @page 余白ボックスは主要ブラウザが未実装のため）。
+function renderPrintChrome(data) {
+  document.querySelectorAll(".print-chrome").forEach((el) => el.remove());
+
+  const cp = (data && data.company_profile) || {};
+  const gen = formatDate(data.meta && data.meta.generated_at);
+
+  const header = document.createElement("div");
+  header.className = "print-only print-chrome print-header";
+  header.innerHTML =
+    `<span class="print-header__brand">AOR BUSINESS OPPORTUNITY REPORT</span>` +
+    (cp.name ? `<span class="print-header__company">${escapeText(cp.name)}</span>` : "");
+  document.body.appendChild(header);
+
+  const footer = document.createElement("div");
+  footer.className = "print-only print-chrome print-footer";
+  footer.innerHTML =
+    `<span>aor.changescout.jp</span>` +
+    (gen ? `<span>分析日: ${escapeText(gen)}</span>` : "") +
+    `<span>© ${new Date().getFullYear()} AOR</span>`;
+  document.body.appendChild(footer);
+}
+
+// Phase68 STEP2 STEP1: 印刷時は折りたたみ（Evidence/Sources の <details>）を強制的に開く。
+// ネイティブ要素の折りたたみは CSS だけでは確実に解除できないため、beforeprint で開き、
+// afterprint で画面表示の状態へ戻す（ユーザーが操作していた open/closed は変えない）。
+if (typeof window !== "undefined" && window.addEventListener) {
+  let printReopened = [];
+  window.addEventListener("beforeprint", () => {
+    printReopened = Array.from(document.querySelectorAll("details.disclosure:not([open])"));
+    printReopened.forEach((d) => {
+      d.open = true;
+    });
+  });
+  window.addEventListener("afterprint", () => {
+    printReopened.forEach((d) => {
+      d.open = false;
+    });
+    printReopened = [];
+  });
 }
 
 // Phase67 STEP14: Intersection Observer による軽量アニメーション（Fade + 16px Up）。
@@ -1278,6 +1324,23 @@ function renderCtaBottom() {
     proof.appendChild(s);
   });
   wrap.appendChild(proof);
+
+  // Phase68 STEP2 STEP12: 印刷専用 CTA（ボタンではなく URL 文字列 + QR風プレースホルダー）。
+  // 画面には出さない（.print-only は @media print のみ表示）。QR コードは生成しない。
+  const printCta = document.createElement("div");
+  printCta.className = "print-only cta-print";
+  const qr = document.createElement("div");
+  qr.className = "cta-print__qr";
+  qr.setAttribute("aria-hidden", "true");
+  qr.innerHTML = Illustrations.glyph("cta_arrow", { size: 20 });
+  printCta.appendChild(qr);
+  printCta.appendChild(textP("cta-print__note", "ブラウザ版で続きを確認できます。"));
+  const url = document.createElement("p");
+  url.className = "cta-print__url";
+  url.textContent = typeof window !== "undefined" && window.location ? window.location.href : "";
+  printCta.appendChild(url);
+  wrap.appendChild(printCta);
+
   el.appendChild(wrap);
 }
 

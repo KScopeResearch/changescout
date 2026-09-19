@@ -1889,3 +1889,265 @@ body { overflow-x: hidden; }
     max-width: 720px;
   }
 }
+
+/* =====================================================================
+ * Phase68 STEP2: Print / PDF Edition — A4 Executive Report
+ * 画面表示（@media screen / 無条件ルール）には一切影響しない。印刷時のみ適用。
+ * A4 本文幅（約178mm≈673px）は既存の max-width:768/900px 系ブレークポイントに
+ * 収まるため、Dashboard 2-up・Timeline 縦積み・カードの1カラム化などは
+ * 既存の狭幅レスポンシブ CSS がそのまま働く。ここでは印刷固有の差分のみ書く。
+ * ===================================================================== */
+
+.print-only { display: none; }
+
+@page {
+  size: A4 portrait;
+  margin: 16mm 16mm 18mm 16mm;
+}
+
+@media print {
+  /* ---- STEP1: Print Mode 基盤リセット ---- */
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    box-shadow: none !important;
+  }
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+    line-height: 1.5;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-only { display: block; }
+  /* Fade/Scale reveal は印刷では常に「表示済み」状態にする（Animation停止） */
+  .reveal, .reveal.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .hero-illust__svg .hi-bi__glow { animation: none !important; opacity: 0.5 !important; }
+  /* 画面専用の装飾的な固定要素は解除（印刷ヘッダー・フッター自身は除く） */
+  .state-message { display: none !important; }
+
+  a { color: #000 !important; text-decoration: none !important; }
+  .page { max-width: none; padding: 0; margin: 0; }
+  main { padding-top: 0; }
+
+  /* ---- STEP13: 印刷ヘッダー・フッター（全ページ固定・CSS Counter は主要ブラウザ未実装のため
+   * ページ番号はブラウザの印刷ダイアログ「ヘッダーとフッター」設定に委ねる） ---- */
+  .print-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 8pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #64748b !important;
+    padding-bottom: 4mm;
+    border-bottom: 0.4mm solid #cbd5e1;
+  }
+  .print-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt;
+    color: #64748b !important;
+    padding-top: 3mm;
+    border-top: 0.4mm solid #cbd5e1;
+  }
+  main { margin-top: 10mm; }
+
+  /* ---- STEP3: Report Cover（1ページ目専用。ブラウザ版 Hero とは別 CSS） ---- */
+  .report-hero {
+    background: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 6mm 4mm 10mm !important;
+    break-after: page;
+    page-break-after: always;
+  }
+  .report-hero::after {
+    /* 細い Gold ライン（表紙下部に移動） */
+    top: auto;
+    bottom: 0;
+    height: 1mm;
+  }
+  .hero-cover-badge {
+    color: var(--aor-navy) !important;
+    background: #fff !important;
+    border-color: var(--aor-navy) !important;
+  }
+  .hero-cover-badge--free { background: var(--aor-gold) !important; border-color: var(--aor-gold) !important; }
+  .hero-review-badge { background: #fff !important; border-color: var(--aor-emerald) !important; color: var(--aor-emerald-dark) !important; }
+  .report-hero__brand-mark { background: var(--aor-navy) !important; color: #fff !important; }
+  .report-hero__doctype,
+  .report-hero__company,
+  .report-hero__variant-line,
+  .report-hero__sub,
+  .report-hero__chip,
+  .report-hero__badges-label,
+  .market-badge__label,
+  .hero-cover-meta dt { color: #475569 !important; }
+  .report-hero__headline { color: var(--aor-navy) !important; }
+  .market-badge__value,
+  .hero-cover-meta dd { color: #000 !important; }
+  .market-badge { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+  .hero-cover-meta { border-top-color: #cbd5e1 !important; }
+  .hero-illust__svg { color: var(--aor-navy) !important; }
+  .hero-illust__svg .hi-a,
+  .hero-illust__svg .hi-b { color: var(--aor-navy) !important; }
+  .hero-illust__svg .hi-c { color: var(--aor-gold) !important; }
+  .hero-illust__svg .hi-shadow { display: none; }
+  .hero-cta-inline { display: none !important; } /* Cover に紙用ボタンは出さない */
+
+  /* ---- STEP4: Executive Summary を2ページ目上部固定・カード分割禁止 ---- */
+  #sec-exec-summary { break-before: page; page-break-before: always; }
+  .exec-summary { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border-color: #cbd5e1 !important; }
+  .exec-snapshot { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+
+  /* ---- STEP5: カード単位のページ内分割禁止（セクション全体ではなくカード単位） ---- */
+  .kpi-card,
+  .metric-card,
+  .stat-card,
+  .insight-card,
+  .reason-card,
+  .company-snapshot,
+  .strength-card,
+  .opportunity-fit-card,
+  .oppv2,
+  .canvas-layer,
+  .why-matters-card,
+  .first-action__step,
+  .evi-card,
+  .source-card,
+  .opp-card--locked,
+  .cta-final {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .sec-head { break-after: avoid; page-break-after: avoid; }
+
+  /* ---- STEP6: Dashboard 印刷最適化（KPI 4→2×2・色に依存しない） ---- */
+  .kpi-row { grid-template-columns: repeat(2, 1fr) !important; gap: 3mm !important; }
+  .kpi-card { background: #f8fafc !important; border: 0.3mm solid #cbd5e1; color: #000 !important; }
+  .kpi-card__label, .kpi-card__note { color: #475569 !important; }
+  .kpi-card__value { color: var(--aor-navy) !important; }
+  .kpi-card__icon { background: #fff !important; border: 0.3mm solid var(--aor-gold); color: var(--aor-gold) !important; }
+  .momentum-item {
+    background: #f8fafc !important;
+    border: 0.3mm solid #cbd5e1;
+    border-left: 2mm solid var(--aor-navy);
+    color: #000 !important;
+  }
+  .momentum-item:nth-child(2) { border-left-color: var(--aor-emerald-dark); }
+  .momentum-item:nth-child(3) { border-left-color: var(--aor-gold); }
+  .momentum-item__icon { color: var(--aor-navy) !important; }
+  .why-this-matters { background: #f8fafc !important; border-left-color: var(--aor-gold); }
+
+  /* ---- STEP7: WHY NOW / WHY YOU 印刷最適化（左右解除・縦積み・アイコン縮小） ---- */
+  .reason-card__icon svg,
+  .company-snapshot__title svg,
+  .strength-card svg,
+  .why-matters-card__icon svg { width: 4mm !important; height: 4mm !important; }
+  .reason-card__icon { background: var(--aor-navy) !important; }
+  .reason-card__highlight { background: #f8fafc !important; border-left-color: var(--aor-navy); color: #000 !important; }
+  .reason-card__highlight strong { color: var(--aor-navy) !important; }
+  .company-snapshot { border-color: #cbd5e1 !important; }
+  .company-snapshot__connection { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+  .strength-card { background: #fff !important; border-color: #cbd5e1 !important; }
+  .strength-card__text { color: var(--aor-navy) !important; }
+  .opportunity-fit-card { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+
+  /* ---- STEP8: Opportunity Canvas 印刷最適化 ---- */
+  .oppv2::before { background: var(--aor-navy) !important; }
+  .canvas-layer { background: #fff !important; border-color: #cbd5e1 !important; }
+  .canvas-layer--impact { background: #f8fafc !important; }
+  .canvas-layer--outcome {
+    background: #f8fafc !important;
+    color: #000 !important;
+    border: 0.3mm solid var(--aor-navy);
+  }
+  .canvas-layer--outcome .canvas-layer__kicker { color: var(--aor-navy) !important; }
+  .opp-triad__card { background: #fff !important; border-color: #cbd5e1 !important; }
+
+  /* ---- STEP9: First Action Timeline 印刷最適化（矢印はSVGのまま・カード分割禁止） ---- */
+  .first-action__step { background: #fff !important; border-color: #cbd5e1 !important; box-shadow: none !important; }
+  .first-action__step-num { color: #cbd5e1 !important; }
+  .first-action__step-badge { background: var(--aor-navy) !important; }
+  .first-action__done-badge { background: #f0fdf4 !important; border-color: var(--aor-emerald) !important; color: var(--aor-emerald-dark) !important; break-inside: avoid; }
+
+  /* ---- STEP10: Evidence / Sources 印刷品質 ---- */
+  .disclosure { border-color: #cbd5e1 !important; box-shadow: none !important; }
+  .evi-card { background: #fff !important; border: 0.3mm solid #cbd5e1 !important; }
+  .evi-item__num { background: var(--aor-navy) !important; }
+  .evi-item__quote { border-left: 1mm solid var(--aor-gold); padding-left: 2mm; }
+  /* Evidence 出典リンクは印刷では押せないため URL を文字で併記する */
+  .evi-item__src a[href]::after { content: " (" attr(href) ")"; font-size: 7.5pt; color: #475569; word-break: break-all; }
+  .source-card-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .source-card { background: #fff !important; border: 0.3mm solid #cbd5e1 !important; }
+  /* Source Library は URL を表示しない（カテゴリ・タイトル・利用目的のみ） */
+
+  /* ---- STEP11: Locked Opportunities 印刷版（ぼかし削除・薄いグレー背景） ---- */
+  #sec-locked .opp-card--locked {
+    background: #f8fafc !important;
+    border: 0.3mm solid #cbd5e1 !important;
+  }
+  #sec-locked .opp-card--locked::after { display: none; } /* グラデーション境界の疑似要素を簡略化 */
+  #sec-locked .opp-card--locked::before { color: #fff !important; background: var(--aor-navy) !important; }
+  .locked-panel__highlight { background: #f8fafc !important; border-color: #cbd5e1 !important; color: #000 !important; }
+
+  /* ---- STEP12: CTA 印刷版（ボタンではなく URL 文字列 + QR風プレースホルダー） ---- */
+  .cta-final { background: #fff !important; border: 0.3mm solid #cbd5e1 !important; color: #000 !important; }
+  .cta-final::before { display: none; }
+  .cta-final__title, .cta-final__desc, .cta-final__note, .cta-v3__sub { color: #000 !important; }
+  .cta-final .cta-v2__proof { color: #475569 !important; }
+  .cta-final .cta-v2__proof span::before { color: var(--aor-emerald-dark) !important; }
+  .cta-final .cta-v3__btn { display: none !important; } /* 紙ではボタンにしない */
+  .cta-print {
+    display: flex;
+    align-items: center;
+    gap: 4mm;
+    margin-top: 5mm;
+    padding-top: 5mm;
+    border-top: 0.3mm dashed #cbd5e1;
+  }
+  .cta-print__qr {
+    flex: none;
+    width: 18mm;
+    height: 18mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.4mm dashed var(--aor-navy);
+    border-radius: 2mm;
+    color: var(--aor-navy);
+    background-image:
+      repeating-linear-gradient(0deg, #cbd5e1 0, #cbd5e1 0.4mm, transparent 0.4mm, transparent 2mm),
+      repeating-linear-gradient(90deg, #cbd5e1 0, #cbd5e1 0.4mm, transparent 0.4mm, transparent 2mm);
+  }
+  .cta-print__note { margin: 0 0 2mm; font-weight: 700; color: #000 !important; }
+  .cta-print__url { margin: 0; font-size: 8pt; color: #475569 !important; word-break: break-all; }
+  .trust-strip { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+  .trust-strip__item { color: #000 !important; }
+
+  /* ---- STEP13: Footer（本文側） ---- */
+  .report-footer { background: #fff !important; color: #000 !important; border: none !important; }
+  .report-footer__brand-mark { background: var(--aor-navy) !important; color: #fff !important; }
+  .report-footer__brand-doctype,
+  .report-footer__tagline,
+  .report-footer__meta,
+  .report-footer__copyright { color: #475569 !important; }
+  .report-footer__links a { color: #000 !important; text-decoration: underline !important; }
+
+  /* ---- STEP15: Print Accessibility ---- */
+  .source-card__title, .evi-item__title { text-decoration: none; }
+}
