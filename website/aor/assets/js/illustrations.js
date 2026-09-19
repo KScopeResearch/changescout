@@ -69,6 +69,11 @@
       '<path d="M12 2c3 2 5 6 4 11l-4 4-4-4c-1-5 1-9 4-11z"/><circle cx="12" cy="9" r="1.6"/><path d="M3 21l4-1M21 21l-4-1"/>',
     evidence_stack:
       '<rect x="5" y="7" width="14" height="4" rx="1"/><rect x="5" y="13" width="14" height="4" rx="1"/><path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>',
+    // Phase68 STEP15: Locked カード用の Premium ロック（common.js の 🔒 絵文字置き換え）
+    lock_premium:
+      '<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.4" fill="currentColor" stroke="none"/>',
+    // Phase68 STEP15: CTA 矢印（→ テキストの代替として使える SVG）
+    cta_arrow: '<path d="M5 12h14M13 5l7 7-7 7"/>',
   };
   var THEMES = Object.keys(GLYPHS);
 
