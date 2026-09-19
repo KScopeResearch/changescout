@@ -18,8 +18,12 @@ body { overflow-x: hidden; }
   --aor-emerald-bg: #ecfdf5;
   --aor-emerald-border: #a7f3d0;
   --aor-gray-bg: #f4f6f9;
+  --aor-gold: #c9a24b;
+  --aor-border: #e8edf4;
+  --aor-bg-slate: #f8fafc;
   --surface-glass: rgba(255, 255, 255, 0.7);
   --shadow-xl: 0 30px 64px -28px rgba(11, 28, 51, 0.38);
+  --shadow-soft: 0 16px 40px -24px rgba(15, 23, 42, 0.22);
   --radius-xl: 24px;
 }
 
@@ -34,35 +38,37 @@ body { overflow-x: hidden; }
   border-radius: 6px;
 }
 
-/* ============ Hero V3 → Phase67 STEP3: Report Cover Premium ============ */
+/* ============ Hero → Phase67 STEP1: Report Cover（表紙）Premium ============
+ * 白背景 + Navy帯ではなく、Cover 全面を Navy グラデーションにする。
+ * 上端に細い金ラインを引き、「紙の表紙」感を出す。 */
 .report-hero {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(120% 90% at 85% 0%, var(--color-primary-bg) 0%, transparent 60%),
-    var(--color-surface);
-  border: 1px solid var(--color-border);
+    radial-gradient(120% 90% at 85% -10%, rgba(255, 255, 255, 0.08) 0%, transparent 55%),
+    linear-gradient(155deg, var(--aor-navy) 0%, var(--aor-navy-soft) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-xl);
-  padding: 68px 26px 26px;
+  padding: 40px 28px 32px;
   margin-top: 24px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   box-shadow: var(--shadow-xl);
 }
-/* Report Cover masthead（Navy 全幅バー。AOR ブランド行をここへ乗せる） */
-.report-hero::before {
+/* 細い金ライン（表紙の縁取り） */
+.report-hero::after {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
-  height: 52px;
-  background: linear-gradient(100deg, var(--aor-navy) 0%, var(--aor-navy-soft) 100%);
-  z-index: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, var(--aor-gold) 20%, var(--aor-gold) 80%, transparent 100%);
+  z-index: 2;
 }
 .hero-review-badge {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 16px;
+  right: 16px;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -80,31 +86,50 @@ body { overflow-x: hidden; }
   color: var(--color-pending-text);
   border-color: var(--color-pending-border);
 }
-.hero-body { position: relative; z-index: 1; max-width: 100%; }
-.report-hero__brand {
+/* Cover バッジ列（CONFIDENTIAL / FREE EDITION。専門家監修バッジの左に並べる） */
+.hero-cover-badge {
   position: absolute;
-  top: -50px;
-  left: 0;
+  top: 16px;
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 5px 9px;
+  border-radius: 999px;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+}
+.hero-cover-badge--confidential { left: 16px; }
+.hero-cover-badge--free {
+  left: 130px;
+  color: var(--aor-navy);
+  background: var(--aor-gold);
+  border-color: var(--aor-gold);
+}
+.hero-body { position: relative; z-index: 1; max-width: 100%; margin-top: 30px; text-align: center; }
+.report-hero__brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin: 0;
-  z-index: 2;
+  margin: 0 0 20px;
 }
 .report-hero__brand-mark {
   font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.08em;
   color: var(--aor-navy);
-  background: #fff;
+  background: var(--aor-gold);
   border-radius: 5px;
   padding: 2px 8px;
 }
 .report-hero__doctype {
   font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
-  color: rgba(255, 255, 255, 0.86);
+  letter-spacing: 0.16em;
+  color: rgba(255, 255, 255, 0.72);
   text-transform: uppercase;
 }
 .report-hero__eyebrow {
@@ -121,17 +146,27 @@ body { overflow-x: hidden; }
 }
 .report-hero__eyebrow-sep { opacity: 0.5; }
 .report-hero__company {
-  font-size: 0.92rem;
-  color: var(--color-text-muted);
-  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  margin: 0 0 6px;
+}
+/* Cover タグライン（表紙のキャッチ・固定コピー） */
+.report-hero__cover-lede {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--aor-gold);
+  margin: 0 0 10px;
 }
 .report-hero__headline {
-  font-size: 2.05rem;
-  line-height: 1.35;
+  font-size: 2.1rem;
+  line-height: 1.32;
   font-weight: 800;
-  color: var(--color-text);
-  margin: 0 0 10px;
-  letter-spacing: 0.01em;
+  color: #fff;
+  margin: 0 0 12px;
+  letter-spacing: 0.005em;
 }
 .report-hero__headline-line { display: inline-block; }
 .report-hero__opp-title {
@@ -145,69 +180,50 @@ body { overflow-x: hidden; }
   padding: 10px 14px;
   margin: 0 0 14px;
 }
-.report-hero__desc {
-  font-size: 0.94rem;
-  line-height: 1.8;
-  color: var(--color-text-muted);
-  margin: 0 0 10px;
+/* Variant 行（Hero Variant A/B の文。h1 の直下の小さなキャプション） */
+.report-hero__variant-line {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.68);
+  margin: 0 auto 16px;
+  max-width: 46em;
 }
 .report-hero__sub {
-  font-size: 0.94rem;
-  line-height: 1.8;
-  color: var(--color-text);
-  margin: 0 0 14px;
-  padding-left: 10px;
-  border-left: 2px solid var(--color-primary-border);
+  font-size: 0.86rem;
+  line-height: 1.75;
+  color: rgba(255, 255, 255, 0.62);
+  margin: 0 auto 18px;
+  padding-left: 12px;
+  border-left: 2px solid var(--aor-gold);
+  max-width: 42em;
+  text-align: left;
 }
-
-/* Hero Trust Bar（4項目横並び） */
-.hero-trust-bar {
-  list-style: none;
-  margin: 0 0 16px;
-  padding: 10px 12px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 10px;
-}
-.hero-trust-bar__item {
-  font-size: 0.76rem;
-  font-weight: 700;
-  color: var(--color-primary-dark);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.hero-trust-bar__item span[aria-hidden] { color: #0d9488; font-weight: 800; }
 .report-hero__pill {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 14px;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 0 16px;
 }
 .report-hero__chip {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: var(--color-primary-dark);
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-border);
-  border-radius: 999px;
-  padding: 4px 10px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.72);
 }
+.report-hero__chip:not(:last-child)::after { content: "・"; margin-left: 10px; color: rgba(255, 255, 255, 0.35); }
 .report-hero__badges {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 8px;
   align-items: center;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
 }
 .report-hero__badges-label {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 800;
-  color: var(--color-text-muted);
+  color: rgba(255, 255, 255, 0.55);
   width: 100%;
   margin-bottom: 2px;
 }
@@ -215,20 +231,46 @@ body { overflow-x: hidden; }
   display: inline-flex;
   flex-direction: column;
   align-items: flex-start;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 10px;
   padding: 7px 12px;
   line-height: 1.2;
   max-width: 100%;
 }
 .market-badge__value {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 800;
-  color: var(--color-primary-dark);
+  color: #fff;
   overflow-wrap: anywhere;
 }
-.market-badge__label { font-size: 0.68rem; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.market-badge__label { font-size: 0.66rem; color: rgba(255, 255, 255, 0.6); overflow-wrap: anywhere; }
+
+/* Cover Meta 行（作成日 / 分析対象 / 分析ソース数 / 確信度） */
+.hero-cover-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px 28px;
+  margin: 4px 0 24px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+.hero-cover-meta dt {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 3px;
+}
+.hero-cover-meta dd {
+  font-size: 0.94rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
 .hero-cta-inline {
   display: inline-block;
   margin-top: 4px;
@@ -238,42 +280,16 @@ body { overflow-x: hidden; }
   text-decoration: none;
 }
 .hero-cta-inline:hover { text-decoration: underline; }
-
-/* Confidence Badge（STEP3④: 確信度 高/中/低・色分け） */
-.confidence-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  width: fit-content;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  border-radius: 999px;
-  padding: 5px 11px;
-  margin: 0 0 12px;
-  border: 1px solid transparent;
-}
-.confidence-badge span[aria-hidden] { display: inline-flex; }
-.confidence-badge--high {
-  background: var(--aor-emerald-bg);
-  color: var(--aor-emerald-dark);
-  border-color: var(--aor-emerald-border);
-}
-.confidence-badge--mid {
-  background: var(--color-primary-bg);
-  color: var(--color-primary-dark);
-  border-color: var(--color-primary-border);
-}
-.confidence-badge--low {
-  background: var(--color-locked-bg);
-  color: var(--color-locked-text);
-  border-color: var(--color-locked-border);
+.report-hero .cta-v3__btn--hero {
+  background: linear-gradient(135deg, var(--aor-gold) 0%, #a8842f 100%);
+  color: var(--aor-navy);
+  box-shadow: 0 14px 30px -12px rgba(0, 0, 0, 0.5);
 }
 
 .hero-illust {
   position: relative;
   margin: 10px auto 0;
-  color: var(--color-primary);
+  color: rgba(255, 255, 255, 0.85);
   width: 100%;
   max-width: 480px;
   padding: 12px;
@@ -284,10 +300,10 @@ body { overflow-x: hidden; }
   inset: -10%;
   z-index: -1;
   background:
-    radial-gradient(60% 60% at 30% 20%, var(--color-primary-bg) 0%, transparent 70%),
-    radial-gradient(50% 50% at 80% 80%, var(--color-primary-border) 0%, transparent 70%);
+    radial-gradient(60% 60% at 30% 20%, rgba(201, 162, 75, 0.18) 0%, transparent 70%),
+    radial-gradient(50% 50% at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
   border-radius: 50%;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 .hero-illust::after {
   content: "";
@@ -296,7 +312,7 @@ body { overflow-x: hidden; }
   right: 4%;
   width: 34px;
   height: 34px;
-  border: 2px solid var(--color-primary-border);
+  border: 2px solid rgba(255, 255, 255, 0.18);
   border-radius: 50%;
   z-index: -1;
 }
@@ -305,18 +321,18 @@ body { overflow-x: hidden; }
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-primary);
-  opacity: 0.5;
+  background: var(--aor-gold);
+  opacity: 0.6;
   z-index: -1;
 }
 .hero-illust__dot--a { bottom: 10%; left: 2%; }
 .hero-illust__dot--b { top: 18%; left: 14%; width: 6px; height: 6px; }
-.hero-illust__svg { width: 100%; height: auto; display: block; color: var(--color-primary); }
-/* Phase56 STEP2: 具体シーンの3レイヤー（前景/中景/背景で濃淡） */
-.hero-illust__svg .hi-a { color: var(--color-primary-dark); }
-.hero-illust__svg .hi-b { color: var(--color-primary); }
-.hero-illust__svg .hi-c { color: var(--color-primary); opacity: 0.6; }
-.hero-illust__svg .hi-shadow { color: var(--color-text); }
+.hero-illust__svg { width: 100%; height: auto; display: block; color: rgba(255, 255, 255, 0.85); }
+/* Phase56 STEP2: 具体シーンの3レイヤー（前景/中景/背景で濃淡。Navy Cover 向けに白〜金トーン） */
+.hero-illust__svg .hi-a { color: #fff; }
+.hero-illust__svg .hi-b { color: rgba(255, 255, 255, 0.82); }
+.hero-illust__svg .hi-c { color: var(--aor-gold); opacity: 0.85; }
+.hero-illust__svg .hi-shadow { color: #000; }
 
 /* Phase67 STEP4: Business Intelligence 背景レイヤー（ノード網・円形チャート・光点） */
 .hero-illust__svg .hi-bi__link { stroke: currentColor; stroke-width: 1; opacity: 0.22; }
@@ -993,16 +1009,18 @@ body { overflow-x: hidden; }
   position: relative;
 }
 .first-action__steps--timeline .first-action__step::before { content: none; }
-.first-action__steps--timeline .first-action__step:not(:last-child)::after {
-  content: "→";
-  position: absolute;
-  right: -14px;
-  top: 16px;
-  color: var(--color-primary-border);
-  font-weight: 800;
-  z-index: 1;
-}
 .first-action__steps--timeline .first-action__step + .first-action__step { margin-left: 18px; }
+.first-action__steps--timeline .first-action__step-arrow {
+  display: flex;
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  background: var(--color-bg);
+  border-radius: 50%;
+  padding: 2px;
+}
 .first-action__step-badge {
   display: inline-block;
   align-self: flex-start;
@@ -1265,20 +1283,292 @@ body { overflow-x: hidden; }
   text-transform: uppercase;
 }
 .report-footer__tagline { margin: 0 0 14px; font-size: 0.8rem; color: rgba(255, 255, 255, 0.72); }
-.report-footer__links { margin: 0 0 6px; font-size: 0.82rem; }
+.report-footer__links { margin: 0 0 10px; font-size: 0.82rem; }
 .report-footer__links a { color: rgba(255, 255, 255, 0.78); text-decoration: underline; }
 .report-footer__date { margin: 0; font-size: 0.74rem; color: rgba(255, 255, 255, 0.55); }
+/* Phase67 STEP12: Footer ブランドページ化の追加項目 */
+.report-footer__meta {
+  margin: 0 0 14px;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.55);
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+.report-footer__copyright { margin: 0; font-size: 0.7rem; color: rgba(255, 255, 255, 0.4); }
+
+/* ============ Phase67 STEP2: Executive Summary ============ */
+.exec-summary {
+  background: #fff;
+  border: 1px solid var(--aor-border);
+  border-radius: var(--radius-xl);
+  padding: 28px 26px;
+  box-shadow: var(--shadow-soft);
+}
+.exec-summary__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--aor-border);
+}
+.exec-summary__title-wrap { display: flex; align-items: center; gap: 8px; }
+.exec-summary__icon { display: inline-flex; color: var(--color-primary); }
+.exec-summary__title { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--aor-navy); }
+.exec-summary__badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--aor-emerald-dark);
+  background: var(--aor-emerald-bg);
+  border: 1px solid var(--aor-emerald-border);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+.exec-summary__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 24px;
+  margin: 0;
+}
+.exec-summary__label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin: 0 0 3px;
+}
+.exec-summary__value {
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* ============ Phase67 STEP3: Market Intelligence Dashboard KPI ============ */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 4px 0 20px;
+}
+.kpi-card {
+  background: var(--aor-navy);
+  border-radius: 16px;
+  padding: 16px 14px;
+  color: #fff;
+}
+.kpi-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 10px;
+  color: var(--aor-gold);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+}
+.kpi-card__label {
+  margin: 0 0 4px;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: rgba(255, 255, 255, 0.6);
+}
+.kpi-card__value { margin: 0; font-size: 1.24rem; font-weight: 800; overflow-wrap: anywhere; }
+.kpi-card__note { margin: 4px 0 0; font-size: 0.68rem; color: rgba(255, 255, 255, 0.55); }
+
+.why-this-matters {
+  margin: 16px 0 4px;
+  padding: 16px 18px;
+  background: var(--aor-gray-bg);
+  border-left: 3px solid var(--aor-gold);
+  border-radius: 0 12px 12px 0;
+}
+.why-this-matters__label {
+  margin: 0 0 6px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.why-this-matters__quote { margin: 0; font-size: 0.9rem; line-height: 1.75; font-style: italic; color: var(--color-text); }
+
+/* ============ Phase67 STEP4: WHY NOW 雑誌レイアウト（左20% / 右80%） ============ */
+.reason-card--feature { grid-template-columns: minmax(64px, 20%) 1fr; column-gap: 20px; }
+.reason-card__icon-col {
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.reason-card__category {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  writing-mode: horizontal-tb;
+}
+.reason-card__highlight strong { color: var(--aor-navy); }
+
+/* ============ Phase67 STEP5: Company Snapshot / Strength / Connection ============ */
+.company-snapshot__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
+}
+.company-snapshot__title span[aria-hidden] { display: inline-flex; }
+.company-snapshot__verified {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-primary-border);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--aor-emerald-dark);
+}
+.strength-card,
+.connection-card {
+  background: #fff;
+  border: 1px solid var(--aor-border);
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-top: 12px;
+}
+.strength-card__label,
+.connection-card__label {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary-dark);
+}
+.strength-card__text,
+.connection-card__text { margin: 0; font-size: 0.9rem; line-height: 1.75; color: var(--color-text); }
+.connection-card { border-left: 3px solid var(--aor-emerald); }
+
+/* ============ Phase67 STEP6: Opportunity Canvas（3層構造） ============ */
+.opportunity-canvas { display: flex; flex-direction: column; gap: 16px; }
+.opportunity-canvas__kicker {
+  margin: 0 0 4px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.canvas-layer {
+  background: #fff;
+  border: 1px solid var(--aor-border);
+  border-radius: var(--radius-xl);
+  padding: 22px 24px;
+  box-shadow: var(--shadow-soft);
+}
+.canvas-layer__kicker {
+  margin: 0 0 10px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+.canvas-layer--impact { background: var(--aor-gray-bg); }
+.canvas-layer--outcome {
+  background: linear-gradient(155deg, var(--aor-navy) 0%, var(--aor-navy-soft) 100%);
+  color: #fff;
+}
+.canvas-layer--outcome .canvas-layer__kicker { color: var(--aor-gold); }
+.canvas-layer__text { margin: 0; font-size: 0.96rem; line-height: 1.85; }
+
+/* ============ Phase67 STEP7: First Action Roadmap 強化 ============ */
+.first-action__step-num {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-primary-border);
+  margin-bottom: 4px;
+}
+.first-action__step-arrow {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-primary-border);
+  flex: 0 0 auto;
+}
+.first-action__done-badge-tag {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--aor-emerald-dark);
+  border: 1px solid var(--aor-emerald-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+/* ============ Phase67 STEP8: Evidence 番号バッジ ============ */
+.evi-card { position: relative; padding-left: 44px; }
+.evi-item__num {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--aor-navy);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+/* ============ Phase67 STEP9: Sources Library（アイコン + 利用目的） ============ */
+.source-card { position: relative; padding-top: 40px; }
+.source-card__icon {
+  position: absolute;
+  top: 14px;
+  left: 15px;
+  display: inline-flex;
+  color: var(--color-primary);
+}
+.sources-lede { font-size: 0.82rem; color: var(--color-text-muted); margin: 4px 0 16px; line-height: 1.7; }
 
 /* ============ STEP13: CSS 品質向上（Shadow統一 / Radius / Hover / 余白 / 控えめな演出） ============ */
 .section {
   margin-top: 72px;
-  animation: aor-fade-up 0.5s ease both;
 }
 .section:first-of-type { margin-top: 32px; }
 
-@keyframes aor-fade-up {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: none; }
+/* Phase67 STEP14: Intersection Observer によるスクロール連動 Fade + 16px Up（軽量・JS 側で付与） */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
 }
 
 /* Radius / Shadow の統一（既存カードを上書き。数値・構造は変えない） */
@@ -1299,11 +1589,9 @@ body { overflow-x: hidden; }
 }
 .metric-card,
 .stat-card,
-.hero-trust-bar,
 .report-hero__opp-title {
   border-radius: 16px;
 }
-.report-hero { border-radius: 22px; }
 
 /* Hover Lift + わずかな拡大（カード群共通） */
 .metric-card,
@@ -1334,10 +1622,16 @@ body { overflow-x: hidden; }
 /* ============ Responsive ============ */
 @media (max-width: 900px) {
   .metrics-2up { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .exec-summary__grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
   .opp-triad { grid-template-columns: 1fr; }
   #sec-locked .cards--locked-grid { grid-template-columns: repeat(2, 1fr); }
+  .reason-card--feature { grid-template-columns: 1fr; row-gap: 12px; }
+  .reason-card__icon-col { flex-direction: row; justify-content: flex-start; text-align: left; }
+  .reason-card__highlight,
+  .reason-card--feature .reason-card__text { grid-column: 1; }
   .first-action__steps--timeline {
     flex-direction: column;
   }
@@ -1347,30 +1641,30 @@ body { overflow-x: hidden; }
     border-radius: 0 10px 10px 0;
   }
   .first-action__steps--timeline .first-action__step + .first-action__step { margin-left: 0; margin-top: 10px; }
-  .first-action__steps--timeline .first-action__step:not(:last-child)::after {
-    content: "↓";
+  .first-action__steps--timeline .first-action__step-arrow {
     right: auto;
-    left: 14px;
+    left: 18px;
     top: auto;
-    bottom: -14px;
+    bottom: -16px;
+    transform: rotate(90deg);
   }
 }
 @media (max-width: 480px) {
   .opp-triad { grid-template-columns: 1fr; }
   #sec-locked .cards--locked-grid { grid-template-columns: 1fr; }
   .source-card-grid { grid-template-columns: 1fr; }
-  .hero-trust-bar { gap: 6px 10px; padding: 8px 10px; }
-  .hero-trust-bar__item { font-size: 0.7rem; }
   .section { margin-top: 48px; }
   .company-intro-card { padding: 12px 14px; }
-  .report-hero { padding: 56px 16px 20px; border-radius: 16px; }
-  .report-hero::before { height: 44px; }
-  .report-hero__brand { top: -38px; max-width: calc(100% - 100px); overflow: hidden; }
+  .report-hero { padding: 56px 16px 24px; border-radius: 16px; }
+  .hero-body { margin-top: 34px; }
+  .hero-cover-badge { font-size: 0.54rem; padding: 4px 7px; top: 12px; }
+  .hero-cover-badge--free { left: 108px; }
+  .hero-review-badge { top: 12px; right: 12px; font-size: 0.66rem; padding: 4px 8px; }
   .report-hero__doctype { min-width: 0; flex: 1 1 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .report-hero__eyebrow { margin-right: 76px; }
-  .report-hero__headline { font-size: 1.42rem; }
-  .report-hero__sub { font-size: 0.95rem; }
-  .hero-review-badge { font-size: 0.66rem; padding: 4px 8px; }
+  .report-hero__headline { font-size: 1.5rem; }
+  .report-hero__sub { font-size: 0.82rem; }
+  .hero-cover-meta { gap: 14px 20px; }
   .oppv2 { padding: 18px 16px; }
   .oppv2__title { font-size: 1.15rem; }
   .stat-card { flex-basis: 100%; }
@@ -1379,6 +1673,12 @@ body { overflow-x: hidden; }
   .metric-card__value { font-size: 1.18rem; }
   .cta-v3__btn { display: flex; width: 100%; padding: 15px 18px; }
   .market-timeline__year { font-size: 0.68rem; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-card { padding: 13px 12px; }
+  .kpi-card__value { font-size: 1.05rem; }
+  .exec-summary,
+  .canvas-layer { padding: 20px 18px; }
+  .exec-summary__grid { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1388,20 +1688,34 @@ body { overflow-x: hidden; }
   .cta-v3__btn:hover { transform: none; }
 }
 
-/* ============ Phase67 STEP16: Typography（タブレット・デスクトップでの拡大） ============
+/* ============ Phase67 STEP13: Typography Premium（タブレット・デスクトップでの拡大） ============
  * モバイル（<=480px）は既存の可読サイズを維持し、768px 以上で段階的に拡大する。
- * Hero Title 44〜52px / Section Title 32px / Card Number 40px。 */
+ * H1 48〜60px / H2(Section Title) 32px / H3 26px / Body 16〜18px / Caption 14px。 */
 @media (min-width: 768px) {
-  .report-hero__headline { font-size: 2.75rem; line-height: 1.28; }
-  .sec-head__title { font-size: 1.7rem; }
+  .report-hero { padding: 56px 40px 44px; }
+  .exec-summary,
+  .canvas-layer,
+  .oppv2,
+  .reason-card,
+  .cta-final { padding: 32px 34px; }
+  .section { margin-top: 88px; }
+  .section:first-of-type { margin-top: 40px; }
+  .report-hero__headline { font-size: 3rem; line-height: 1.26; }
+  .sec-head__title { font-size: 2rem; }
+  .oppv2__title { font-size: 1.625rem; }
   .stat-card__value { font-size: 2rem; }
   .metric-card__value { font-size: 1.7rem; }
-  .oppv2__title { font-size: 1.5rem; }
+  .kpi-row { gap: 16px; }
+  .kpi-card__value { font-size: 1.5rem; }
+  body { font-size: 17px; }
 }
 @media (min-width: 1024px) {
-  .report-hero__headline { font-size: 3.25rem; line-height: 1.22; }
+  .report-hero { padding: 64px 56px 48px; }
+  .report-hero__headline { font-size: 3.5rem; line-height: 1.2; }
   .sec-head__title { font-size: 2rem; }
   .stat-card__value { font-size: 2.5rem; }
   .metric-card__value { font-size: 2rem; }
+  .kpi-card__value { font-size: 1.7rem; }
+  .section { margin-top: 104px; }
   :root { --max-width: 860px; }
 }

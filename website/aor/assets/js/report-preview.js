@@ -5,9 +5,9 @@
  * （published JSON）のフィールドのみ。新しい数値・事実は一切作らない。
  * 数字・事実はすべて既存フィールドから取り出す／言い換えるだけで、LLM も乱数も使わない。
  *
- * 描画順（Phase66 STEP2 から変更なし。中身のみ LP 品質へ強化）:
- *   Hero → Metrics → WHY NOW → WHY YOU → THE OPPORTUNITY → FIRST STEP
- *   → EVIDENCE → SOURCE → MORE OPPORTUNITIES → CTA → Footer
+ * 描画順（Phase67 STEP2: Executive Summary を Hero 直後に追加。以降は変更なし）:
+ *   Hero → Executive Summary → Metrics(Dashboard) → WHY NOW → WHY YOU → THE OPPORTUNITY
+ *   → FIRST STEP → EVIDENCE → SOURCE → MORE OPPORTUNITIES → CTA → Footer
  *
  * データは published JSON（common.js の fetchCompanyData）のみ。API 連携・LLM なし。
  * pure な view model 変換は preview-ui.js / market-stats.js、図は illustrations.js。
@@ -58,6 +58,7 @@ function render(data, slug) {
   const snapshot = PreviewUI.marketSnapshot(data);
 
   renderHero(data, vm, variant, theme, review, snapshot);
+  renderExecutiveSummary(data, vm, snapshot);
   renderMetrics(data, vm, theme, snapshot);
   renderWhyNow(vm, theme);
   renderWhyYou(data, vm, theme);
@@ -70,6 +71,49 @@ function render(data, slug) {
   renderCtaBottom();
   renderFooter(data);
   wireCtas(slug);
+  initScrollReveal();
+}
+
+// Phase67 STEP14: Intersection Observer による軽量アニメーション（Fade + 16px Up）。
+// prefers-reduced-motion では即表示。IntersectionObserver 非対応環境でも即表示にフォールバック。
+function initScrollReveal() {
+  const ids = [
+    "report-hero",
+    "sec-exec-summary",
+    "sec-metrics",
+    "sec-why-now",
+    "sec-why-you",
+    "sec-opportunity",
+    "sec-first-step",
+    "sec-evidence",
+    "sec-sources",
+    "sec-locked",
+    "sec-cta",
+  ];
+  const targets = ids.map((id) => document.getElementById(id)).filter(Boolean);
+  const reduceMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  if (reduceMotion || typeof IntersectionObserver === "undefined") {
+    targets.forEach((el) => el.classList.add("reveal", "is-visible"));
+    return;
+  }
+
+  targets.forEach((el) => el.classList.add("reveal"));
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    { threshold: 0.12, rootMargin: "0px 0px -80px 0px" }
+  );
+  targets.forEach((el) => observer.observe(el));
 }
 
 /* ==================== Hero（STEP3: LP 品質へアップグレード） ==================== */
@@ -80,7 +124,18 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   el.setAttribute("aria-labelledby", "hero-headline");
   const cp = data.company_profile || {};
 
-  // 専門家監修バッジ（右上固定）
+  // Phase67 STEP2: Report Cover バッジ列（CONFIDENTIAL / FREE EDITION / 専門家監修）
+  // 各バッジは独立に絶対配置（.hero-review-badge の既存の配置契約は変更しない）。
+  const confidential = document.createElement("span");
+  confidential.className = "hero-cover-badge hero-cover-badge--confidential";
+  confidential.textContent = "CONFIDENTIAL";
+  el.appendChild(confidential);
+
+  const freeEdition = document.createElement("span");
+  freeEdition.className = "hero-cover-badge hero-cover-badge--free";
+  freeEdition.textContent = "FREE EDITION";
+  el.appendChild(freeEdition);
+
   const badge = document.createElement("p");
   badge.className = "hero-review-badge" + (review.approved ? "" : " hero-review-badge--pending");
   const bi = document.createElement("span");
@@ -109,52 +164,33 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   // 宛名（会社名 + 経営者様）
   body.appendChild(textP("report-hero__company", PreviewUI.salutation(cp.name)));
 
-  // メインキャッチ（ページ最大要素・h1は1つだけ）: Hero Variant A/B で内容を切替
+  // Cover タグライン（固定コピー。会社固有の数値・事実は含まない）
+  body.appendChild(textP("report-hero__cover-lede", "御社に見つかった新しいビジネスチャンス"));
+
+  // メインキャッチ（ページ最大要素・h1は1つだけ）: 巨大タイトルとして Opportunity（vm.title）を表示
   const headline = document.createElement("h1");
   headline.className = "report-hero__headline";
   headline.id = "hero-headline";
-  const nonWorld = snapshot.stats.filter((s) => !s.isWorld);
-  if (variant === "B" && nonWorld.length) {
-    const s = nonWorld[0];
-    headline.textContent = `${labelWithScope(s)}が ${s.value}。御社に取れる一手があります。`;
-  } else {
-    headline.textContent = PreviewUI.oneLineSummary(vm.title) || vm.headline || vm.title;
-  }
+  headline.textContent = vm.title || PreviewUI.oneLineSummary(vm.title) || vm.headline || "";
   body.appendChild(headline);
 
-  // Opportunity Title（見つけたテーマそのもの。h1ではなく強調段落として表示）
-  if (vm.title) {
-    body.appendChild(textP("report-hero__opp-title", vm.title));
+  // Variant 行（A: 提案サマリ文 / B: 市場数値を主語にした文）。Hero Variant ロジックは維持。
+  const nonWorld = snapshot.stats.filter((s) => !s.isWorld);
+  const variantLine = document.createElement("p");
+  variantLine.className = "report-hero__variant-line";
+  if (variant === "B" && nonWorld.length) {
+    const s = nonWorld[0];
+    variantLine.textContent = `${labelWithScope(s)}が ${s.value}。御社に取れる一手があります。`;
+  } else {
+    variantLine.textContent = PreviewUI.oneLineSummary(vm.title) || vm.headline || vm.title;
   }
-
-  // サービス説明（固定のリード文。会社ごとの数値・事実は含まない）
-  body.appendChild(
-    textP(
-      "report-hero__desc",
-      "専門家が公開情報・市場動向・企業情報を分析し、御社向けに整理した無料レポートです。"
-    )
-  );
+  if (variantLine.textContent) body.appendChild(variantLine);
 
   // リード文（Why You・1〜2文。会社固有の根拠）
   const sub = PreviewUI.heroSubcopy(vm.whyCompany);
   if (sub) body.appendChild(textP("report-hero__sub", sub));
 
-  // Hero Trust Bar（4項目・横並び）
-  const trustBar = document.createElement("ul");
-  trustBar.className = "hero-trust-bar";
-  trustBar.setAttribute("aria-label", "このレポートについて");
-  PreviewUI.trustItems(data).forEach((it) => {
-    const li = document.createElement("li");
-    li.className = "hero-trust-bar__item";
-    const icon = document.createElement("span");
-    icon.setAttribute("aria-hidden", "true");
-    icon.innerHTML = Illustrations.glyph("check_circle", { size: 13 });
-    li.append(icon, " " + it.label);
-    trustBar.appendChild(li);
-  });
-  body.appendChild(trustBar);
-
-  // Pill（無料 / 御社専用分析）
+  // Pill（無料 / 御社専用分析。Cover 内では控えめなキャプションとして表示）
   const pill = document.createElement("p");
   pill.className = "report-hero__pill";
   ["無料", "御社専用分析"].forEach((t) => {
@@ -164,21 +200,6 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
     pill.appendChild(c);
   });
   body.appendChild(pill);
-
-  // Confidence Badge（確信度: 高/中/低。既存の confidence_note 由来の level をそのまま表示）
-  if (vm.confidence && vm.confidence.level) {
-    const level = vm.confidence.level;
-    const confKey = level === "高" ? "high" : level === "低" ? "low" : "mid";
-    const conf = document.createElement("p");
-    conf.className = "confidence-badge confidence-badge--" + confKey;
-    const ci = document.createElement("span");
-    ci.setAttribute("aria-hidden", "true");
-    ci.innerHTML = Illustrations.glyph("target", { size: 14 });
-    const ct = document.createElement("span");
-    ct.textContent = "確信度 " + level;
-    conf.append(ci, ct);
-    body.appendChild(conf);
-  }
 
   // Market Badge（経営者に近い数字1〜2件・無ければ非表示）
   const heroStats = snapshot.stats.filter((s) => !s.isWorld);
@@ -199,6 +220,21 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
       badges.appendChild(b);
     });
     body.appendChild(badges);
+  }
+
+  // Cover Meta 行（作成日 / 分析対象 / 分析ソース数 / 確信度。すべて既存フィールドから）
+  const metaItems = heroCoverMeta(data, vm, cp);
+  if (metaItems.length) {
+    const meta = document.createElement("dl");
+    meta.className = "hero-cover-meta";
+    metaItems.forEach((m) => {
+      const dt = document.createElement("dt");
+      dt.textContent = m.label;
+      const dd = document.createElement("dd");
+      dd.textContent = m.value;
+      meta.append(dt, dd);
+    });
+    body.appendChild(meta);
   }
 
   // 大型 CTA ボタン（高さ52px以上。Hero 独自に data-cta を付与し、既存の CTA 計測契約を維持）
@@ -231,6 +267,84 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   el.appendChild(illust);
 }
 
+// Report Cover 下部メタ行: 作成日 / 分析対象 / 分析ソース数 / 確信度。
+// 既存フィールド（meta.generated_at / company_profile / source_pages・top_sources /
+// confidence_note 由来の level）のみを使い、値が無い項目は出さない。
+function heroCoverMeta(data, vm, cp) {
+  const out = [];
+  const gen = formatDate(data.meta && data.meta.generated_at);
+  if (gen) out.push({ label: "作成日", value: gen });
+  const target = cp.name || cp.domain;
+  if (target) out.push({ label: "分析対象", value: target });
+  const count = sourceCount(data);
+  if (count) out.push({ label: "分析ソース数", value: count + "件" });
+  if (vm.confidence && vm.confidence.level) out.push({ label: "確信度", value: vm.confidence.level });
+  return out;
+}
+
+// top_sources 優先・無ければ source_pages（renderSourcesV2 と同じ優先順位）の件数。
+function sourceCount(data) {
+  const list =
+    Array.isArray(data.top_sources) && data.top_sources.length ? data.top_sources : data.source_pages || [];
+  const hidden = typeof data.hidden_sources_count === "number" ? data.hidden_sources_count : 0;
+  return list.length + hidden;
+}
+
+/* ==================== Executive Summary（Phase67 STEP2: 新設） ==================== */
+// 「30秒で読める要約」カード。新しい文章は生成せず、既存フィールドの先頭抜粋のみを使う。
+function renderExecutiveSummary(data, vm, snapshot) {
+  const el = document.getElementById("sec-exec-summary");
+  el.innerHTML = "";
+  if (!vm.title && !vm.whyNow && !vm.whyCompany) return;
+
+  const card = document.createElement("div");
+  card.className = "exec-summary";
+
+  const head = document.createElement("div");
+  head.className = "exec-summary__head";
+  const titleWrap = document.createElement("div");
+  titleWrap.className = "exec-summary__title-wrap";
+  const hIcon = document.createElement("span");
+  hIcon.className = "exec-summary__icon";
+  hIcon.setAttribute("aria-hidden", "true");
+  hIcon.innerHTML = Illustrations.glyph("intelligence_dashboard", { size: 20 });
+  const h = document.createElement("h2");
+  h.className = "exec-summary__title";
+  h.textContent = "Executive Summary";
+  titleWrap.append(hIcon, h);
+  head.appendChild(titleWrap);
+  const badge = document.createElement("span");
+  badge.className = "exec-summary__badge";
+  badge.textContent = "30秒で読める要約";
+  head.appendChild(badge);
+  card.appendChild(head);
+
+  const rows = [
+    ["今回の結論", vm.title],
+    ["なぜ今", PreviewUI.summarizeSentence(vm.whyNow, 70)],
+    ["なぜ御社", PreviewUI.summarizeSentence(vm.whyCompany, 70)],
+    ["確信度", vm.confidence && vm.confidence.level],
+    ["ソース数", sourceCount(data) ? sourceCount(data) + "件" : ""],
+    ["市場変化数値", snapshot.stats[0] ? `${snapshot.stats[0].value}（${labelWithScope(snapshot.stats[0])}）` : ""],
+  ].filter(([, v]) => v);
+  if (!rows.length) return;
+
+  const dl = document.createElement("dl");
+  dl.className = "exec-summary__grid";
+  rows.forEach(([label, value]) => {
+    const dt = document.createElement("dt");
+    dt.className = "exec-summary__label";
+    dt.textContent = label;
+    const dd = document.createElement("dd");
+    dd.className = "exec-summary__value";
+    dd.textContent = value;
+    dl.append(dt, dd);
+  });
+  card.appendChild(dl);
+
+  el.appendChild(card);
+}
+
 /* ==================== Metrics（STEP4: 経営ダッシュボード化） ==================== */
 
 function renderMetrics(data, vm, theme, snapshot) {
@@ -241,7 +355,29 @@ function renderMetrics(data, vm, theme, snapshot) {
   const fitCard = buildFitMetricCard(data, vm);
   if (!marketCard && !fitCard && !snapshot.stats.length && !snapshot.years.length) return;
 
-  el.appendChild(secHead("市場の動きと御社との適合", theme));
+  el.appendChild(secHead("Market Intelligence Dashboard", theme));
+
+  // Phase67 STEP3: 上段 KPI 4カード（市場の追い風 / 補助金・制度 / 節目の年 / 確信度）。
+  // いずれも既存フィールドから確認できた項目のみ表示（捏造しない）。
+  const kpis = buildKpiCards(vm, snapshot);
+  if (kpis.length) {
+    const kpiRow = document.createElement("div");
+    kpiRow.className = "kpi-row";
+    kpis.forEach((k) => {
+      const c = document.createElement("div");
+      c.className = "kpi-card";
+      const icon = document.createElement("span");
+      icon.className = "kpi-card__icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = Illustrations.glyph(k.glyph, { size: 18 });
+      c.appendChild(icon);
+      c.appendChild(textP("kpi-card__label", k.label));
+      c.appendChild(textP("kpi-card__value", k.value));
+      if (k.note) c.appendChild(textP("kpi-card__note", k.note));
+      kpiRow.appendChild(c);
+    });
+    el.appendChild(kpiRow);
+  }
 
   if (marketCard || fitCard) {
     const grid = document.createElement("div");
@@ -270,6 +406,19 @@ function renderMetrics(data, vm, theme, snapshot) {
       row.appendChild(item);
     });
     el.appendChild(row);
+
+    // Phase67 STEP3: Why this matters（既存本文冒頭からの引用のみ。新しい文章は作らない）
+    const why = PreviewUI.summarizeSentence(vm.whyNow, 90);
+    if (why) {
+      const wtm = document.createElement("div");
+      wtm.className = "why-this-matters";
+      wtm.appendChild(textP("why-this-matters__label", "Why this matters"));
+      const q = document.createElement("p");
+      q.className = "why-this-matters__quote";
+      q.textContent = why;
+      wtm.appendChild(q);
+      el.appendChild(wtm);
+    }
   }
 
   // 「今回わかったこと」インサイトカード3枚（市場 / 御社 / 今動く理由）。
@@ -444,6 +593,28 @@ function momentumIndicators(vm, snapshot) {
   return out.slice(0, 3);
 }
 
+// Phase67 STEP3: 上段 KPI 4カード（市場の追い風 / 補助金・制度 / 節目の年 / 確信度）。
+// snapshot / vm の既存フィールドのみを使い、確認できない項目は出さない（捏造しない）。
+function buildKpiCards(vm, snapshot) {
+  const out = [];
+  const nonWorld = snapshot.stats.filter((s) => !s.isWorld);
+  const top = nonWorld.length ? nonWorld[0] : snapshot.stats[0];
+  if (top) out.push({ glyph: "line_chart", label: "市場の追い風", value: top.value, note: labelWithScope(top) });
+
+  if (/補助金|助成金/.test(String(vm.whyNow || "") + String(vm.marketChange || ""))) {
+    out.push({ glyph: "subsidy_policy", label: "補助金・制度", value: "あり", note: "" });
+  }
+
+  if (snapshot.years && snapshot.years.length) {
+    out.push({ glyph: "milestone", label: "節目の年", value: snapshot.years[0] + "年", note: "" });
+  }
+
+  if (vm.confidence && vm.confidence.level) {
+    out.push({ glyph: "target", label: "確信度", value: vm.confidence.level, note: "" });
+  }
+  return out;
+}
+
 // 「今回わかったこと」3枚: 市場（market_change）/ 御社（why_company）/ 今動く理由（why_now）。
 // いずれも既存フィールドの要約のみ（summarizeSentence）。データが無い項目は出さない。
 function buildInsightCards(vm) {
@@ -468,18 +639,26 @@ function renderWhyNow(vm, theme) {
   const card = document.createElement("div");
   card.className = "reason-card reason-card--feature";
 
+  const iconCol = document.createElement("div");
+  iconCol.className = "reason-card__icon-col";
   const icon = document.createElement("span");
   icon.className = "reason-card__icon";
   icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = Illustrations.glyph(theme, { size: 24 });
-  card.appendChild(icon);
+  icon.innerHTML = Illustrations.glyph(theme, { size: 28 });
+  iconCol.appendChild(icon);
+  iconCol.appendChild(textP("reason-card__category", "MARKET CHANGE"));
+  card.appendChild(iconCol);
 
   const first = (String(vm.whyNow).match(/^[\s\S]*?。/) || [vm.whyNow])[0];
   const rest = String(vm.whyNow).slice(first.length).trim();
 
   const highlight = document.createElement("p");
   highlight.className = "reason-card__highlight";
-  highlight.textContent = first;
+  // 数字部分のみ太字化（表示上の強調。文章・事実は変えない）
+  highlight.innerHTML = escapeText(first).replace(
+    /([0-9０-９][0-9０-９.,]*(?:%|％|倍|件|年|兆|億|万)?)/g,
+    "<strong>$1</strong>"
+  );
   card.appendChild(highlight);
 
   if (rest) {
@@ -494,6 +673,8 @@ function renderWhyNow(vm, theme) {
 
 /* ==================== WHY YOU（STEP5: 企業紹介カード追加・全文表示は維持） ==================== */
 
+// Phase67 STEP5: WHY YOU を企業診断カード化（Company Snapshot / Why You / Connection / Strength）。
+// いずれも既存フィールド（company_profile / why_company）のみ。新しい事実は作らない。
 function renderWhyYou(data, vm, theme) {
   const el = document.getElementById("sec-why-you");
   el.innerHTML = "";
@@ -505,13 +686,22 @@ function renderWhyYou(data, vm, theme) {
   const firstSentence = (wc.match(/^[\s\S]*?。/) || [wc])[0];
   const restSentences = wc.slice(firstSentence.length).trim();
 
+  // Company Snapshot（会社名 / 業種 / 分析対象 / 公開情報確認済み）
   const intro = document.createElement("div");
-  intro.className = "company-intro-card";
+  intro.className = "company-intro-card company-snapshot";
+  const snapTitle = document.createElement("p");
+  snapTitle.className = "company-snapshot__title";
+  const snapIcon = document.createElement("span");
+  snapIcon.setAttribute("aria-hidden", "true");
+  snapIcon.innerHTML = Illustrations.glyph("company_profile", { size: 15 });
+  const snapText = document.createElement("span");
+  snapText.textContent = "Company Snapshot";
+  snapTitle.append(snapIcon, " ", snapText);
+  intro.appendChild(snapTitle);
   const rows = [
     ["会社名", cp.name || ""],
     ["業種", cp.industry_label || ""],
-    ["強み", firstSentence],
-    ["今回つながる理由", restSentences || firstSentence],
+    ["分析対象", cp.domain || cp.name || ""],
   ].filter(([, v]) => v);
   rows.forEach(([label, text]) => {
     const row = document.createElement("div");
@@ -520,9 +710,18 @@ function renderWhyYou(data, vm, theme) {
     row.appendChild(textP("company-intro-card__value", text));
     intro.appendChild(row);
   });
+  const verified = document.createElement("p");
+  verified.className = "company-snapshot__verified";
+  const vIcon = document.createElement("span");
+  vIcon.setAttribute("aria-hidden", "true");
+  vIcon.innerHTML = Illustrations.glyph("check_circle", { size: 14 });
+  const vText = document.createElement("span");
+  vText.textContent = "公開情報確認済み";
+  verified.append(vIcon, " ", vText);
+  intro.appendChild(verified);
   if (rows.length) el.appendChild(intro);
 
-  // 全文表示は維持
+  // Why You（全文表示は維持）
   const card = document.createElement("div");
   card.className = "reason-card";
   const p = document.createElement("p");
@@ -530,6 +729,25 @@ function renderWhyYou(data, vm, theme) {
   p.textContent = vm.whyCompany;
   card.appendChild(p);
   el.appendChild(card);
+
+  // Strength（強み・冒頭一文のみ）
+  if (firstSentence) {
+    const strength = document.createElement("div");
+    strength.className = "strength-card";
+    strength.appendChild(textP("strength-card__label", "Strength"));
+    strength.appendChild(textP("strength-card__text", firstSentence));
+    el.appendChild(strength);
+  }
+
+  // Connection（今回つながる理由のみ）
+  const connection = restSentences || firstSentence;
+  if (connection) {
+    const conn = document.createElement("div");
+    conn.className = "connection-card";
+    conn.appendChild(textP("connection-card__label", "Connection — 今回つながる理由"));
+    conn.appendChild(textP("connection-card__text", connection));
+    el.appendChild(conn);
+  }
 }
 
 /* ==================== THE OPPORTUNITY（STEP6: 強化） ==================== */
@@ -539,8 +757,15 @@ function renderOpportunity(data, vm, theme, snapshot) {
   el.innerHTML = "";
   el.appendChild(secHead("今回見つけたビジネスチャンス", theme));
 
+  const canvas = document.createElement("div");
+  canvas.className = "opportunity-canvas";
+  const canvasKicker = document.createElement("p");
+  canvasKicker.className = "opportunity-canvas__kicker";
+  canvasKicker.textContent = "Opportunity Canvas";
+  canvas.appendChild(canvasKicker);
+
   const card = document.createElement("article");
-  card.className = "oppv2";
+  card.className = "oppv2 opportunity-canvas__layer opportunity-canvas__layer--1";
 
   const head = document.createElement("div");
   head.className = "oppv2__head";
@@ -572,26 +797,6 @@ function renderOpportunity(data, vm, theme, snapshot) {
     card.appendChild(s);
   }
 
-  // このチャンスで期待できること（導入しやすさ / 市場性 / 顧客ニーズ）
-  const triad = opportunityTriad(data, vm, snapshot);
-  if (triad.length) {
-    const b = document.createElement("section");
-    b.className = "oppv2__block oppv2__block--benefit";
-    b.appendChild(textP("oppv2__block-label", "このチャンスで期待できること"));
-    const grid = document.createElement("div");
-    grid.className = "opp-triad";
-    triad.forEach((t) => {
-      const c = document.createElement("div");
-      c.className = "opp-triad__card";
-      c.appendChild(textP("opp-triad__label", t.label));
-      c.appendChild(textP("opp-triad__text", t.text));
-      grid.appendChild(c);
-    });
-    b.appendChild(grid);
-    if (vm.impact) b.appendChild(textP("oppv2__benefit-note", vm.impact));
-    card.appendChild(b);
-  }
-
   if (vm.confidence && (vm.confidence.level || vm.confidence.caveat)) {
     const c = document.createElement("p");
     c.className = "oppv2__confidence";
@@ -601,7 +806,38 @@ function renderOpportunity(data, vm, theme, snapshot) {
     card.appendChild(c);
   }
 
-  el.appendChild(card);
+  canvas.appendChild(card);
+
+  // Layer2: Business Impact（導入しやすさ / 市場性 / 顧客ニーズ。既存データのみ）
+  const triad = opportunityTriad(data, vm, snapshot);
+  if (triad.length) {
+    const layer2 = document.createElement("section");
+    layer2.className = "canvas-layer canvas-layer--impact opportunity-canvas__layer opportunity-canvas__layer--2";
+    layer2.appendChild(textP("canvas-layer__kicker", "Layer 2 — Business Impact"));
+    layer2.appendChild(textP("oppv2__block-label", "このチャンスで期待できること"));
+    const grid = document.createElement("div");
+    grid.className = "opp-triad";
+    triad.forEach((t) => {
+      const c = document.createElement("div");
+      c.className = "opp-triad__card";
+      c.appendChild(textP("opp-triad__label", t.label));
+      c.appendChild(textP("opp-triad__text", t.text));
+      grid.appendChild(c);
+    });
+    layer2.appendChild(grid);
+    canvas.appendChild(layer2);
+  }
+
+  // Layer3: Expected Outcome（期待できること全文。既存 extended_analysis.priority のみ）
+  if (vm.impact) {
+    const layer3 = document.createElement("section");
+    layer3.className = "canvas-layer canvas-layer--outcome opportunity-canvas__layer opportunity-canvas__layer--3";
+    layer3.appendChild(textP("canvas-layer__kicker", "Layer 3 — Expected Outcome"));
+    layer3.appendChild(textP("canvas-layer__text", vm.impact));
+    canvas.appendChild(layer3);
+  }
+
+  el.appendChild(canvas);
 }
 
 // 確信度（高/中/低）を★の数へ機械的に変換するだけの表示補助。新しい判定は行わない。
@@ -653,12 +889,24 @@ function renderFirstStep(data, theme) {
     steps.forEach((st, i) => {
       const li = document.createElement("li");
       li.className = "first-action__step";
+      const num = document.createElement("span");
+      num.className = "first-action__step-num";
+      num.setAttribute("aria-hidden", "true");
+      num.textContent = String(i + 1).padStart(2, "0");
       const badge = document.createElement("span");
       badge.className = "first-action__step-badge";
       badge.textContent = "STEP" + (i + 1);
       const p = document.createElement("p");
       p.textContent = st;
-      li.append(badge, p);
+      li.append(num, badge, p);
+      if (i < steps.length - 1) {
+        const arrow = document.createElement("span");
+        arrow.className = "first-action__step-arrow";
+        arrow.setAttribute("aria-hidden", "true");
+        arrow.innerHTML =
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+        li.appendChild(arrow);
+      }
       ol.appendChild(li);
     });
     card.appendChild(ol);
@@ -668,9 +916,12 @@ function renderFirstStep(data, theme) {
     const dbIcon = document.createElement("span");
     dbIcon.setAttribute("aria-hidden", "true");
     dbIcon.innerHTML = Illustrations.glyph("rocket", { size: 14 });
+    const dbLabel = document.createElement("span");
+    dbLabel.className = "first-action__done-badge-tag";
+    dbLabel.textContent = "START TODAY";
     const dbText = document.createElement("span");
     dbText.textContent = "今日30分で始められます";
-    doneBadge.append(dbIcon, " ", dbText);
+    doneBadge.append(dbIcon, " ", dbLabel, " ", dbText);
     card.appendChild(doneBadge);
   }
   el.appendChild(card);
@@ -713,19 +964,24 @@ function renderEvidence(data, sourceMap) {
 
   const body = document.createElement("div");
   body.className = "disclosure__body";
-  body.appendChild(secHead("今回の提案の根拠", "generic_insight"));
+  body.appendChild(secHead("今回の提案の根拠", "evidence_stack"));
   body.appendChild(
     textP("disclosure__lede", "公開情報・市場データ・企業情報を組み合わせて分析しました。")
   );
 
   const ul = document.createElement("ul");
   ul.className = "evi-list evi-list--card";
-  evidence.forEach((ev) => {
+  evidence.forEach((ev, i) => {
     const src = sourceMap.get(ev.source_id) || {};
     const colorKey = BADGE_COLOR_KEY[src.source_type] || "research";
     const badgeLabel = EVIDENCE_BADGE_LABEL[src.source_type] || "参考";
     const li = document.createElement("li");
     li.className = "evi-item evi-item--" + (src.source_type || "other") + " evi-card";
+    const num = document.createElement("span");
+    num.className = "evi-item__num";
+    num.setAttribute("aria-hidden", "true");
+    num.textContent = String(i + 1);
+    li.appendChild(num);
     const chip = document.createElement("span");
     chip.className = "evi-item__chip badge-cat badge-cat--" + colorKey;
     chip.textContent = badgeLabel;
@@ -772,7 +1028,19 @@ const SOURCE_BADGE_LABEL = {
   directory: "企業公式",
   review: "調査会社",
 };
+const SOURCE_ICON = {
+  company: "building",
+  directory: "building",
+  government: "shield_check",
+  statistics: "line_chart",
+  technology: "line_chart",
+  industry_association: "line_chart",
+  news: "search",
+  review: "search",
+};
 
+// Phase67 STEP9: Sources Library（Accordion 廃止・常時表示のカードライブラリ化）。
+// データソースは従来通り top_sources 優先／無ければ source_pages（変更なし）。
 function renderSourcesV2(data) {
   const el = document.getElementById("sec-sources");
   el.innerHTML = "";
@@ -781,19 +1049,11 @@ function renderSourcesV2(data) {
   if (!list.length) return;
   const hidden = typeof data.hidden_sources_count === "number" ? data.hidden_sources_count : 0;
 
-  const details = document.createElement("details");
-  details.className = "disclosure";
-  const summary = document.createElement("summary");
-  summary.textContent =
-    `今回の分析で確認した情報源（${list.length}件${hidden > 0 ? " ＋ ほか " + hidden + " 件" : ""}）`;
-  details.appendChild(summary);
-
-  const body = document.createElement("div");
-  body.className = "disclosure__body";
-  body.appendChild(
+  el.appendChild(secHead("今回の分析で確認した情報源", "market_network"));
+  el.appendChild(
     textP(
-      "disclosure__lede",
-      "この提案は、以下の公開情報を照合して組み立てています。数値はいずれも情報源に記載の表現です。"
+      "sources-lede",
+      `今回の分析で確認した情報源（${list.length}件${hidden > 0 ? " ＋ ほか " + hidden + " 件" : ""}）。数値はいずれも情報源に記載の表現です。`
     )
   );
 
@@ -807,6 +1067,11 @@ function renderSourcesV2(data) {
     card.href = sp.url;
     card.target = "_blank";
     card.rel = "noopener noreferrer";
+    const icon = document.createElement("span");
+    icon.className = "source-card__icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = Illustrations.glyph(SOURCE_ICON[sp.source_type] || "search", { size: 18 });
+    card.appendChild(icon);
     const badge = document.createElement("span");
     badge.className = "source-card__badge badge-cat badge-cat--" + colorKey;
     badge.textContent = badgeLabel;
@@ -818,14 +1083,12 @@ function renderSourcesV2(data) {
     if (sp.source_role) {
       const role = document.createElement("p");
       role.className = "source-card__role";
-      role.textContent = SOURCE_ROLE_LABELS[sp.source_role] || sp.source_role;
+      role.textContent = "利用目的: " + (SOURCE_ROLE_LABELS[sp.source_role] || sp.source_role);
       card.appendChild(role);
     }
     grid.appendChild(card);
   });
-  body.appendChild(grid);
-  details.appendChild(body);
-  el.appendChild(details);
+  el.appendChild(grid);
 }
 
 /* ==================== ほかの検討テーマ（STEP10: 高級化） ==================== */
@@ -854,7 +1117,7 @@ function renderLockedThemes(lockedOpportunities) {
 
   const highlight = document.createElement("p");
   highlight.className = "locked-panel__highlight";
-  highlight.textContent = `他にも${items.length}件あります。`;
+  highlight.textContent = "詳細分析版で確認できます。";
   panel.appendChild(highlight);
 
   el.appendChild(panel);
@@ -893,12 +1156,14 @@ function renderCtaBottom() {
   wrap.className = "cta-v3 cta-v3--bottom cta-final";
 
   wrap.appendChild(textP("cta-final__title", "無料版を毎週メールで受け取る"));
-  wrap.appendChild(textP("cta-final__desc", "毎週、御社専用のビジネスチャンスを無料でお届けします。"));
+  wrap.appendChild(
+    textP("cta-final__desc", "メールアドレス登録だけで、御社専用の無料版レポートを毎週配信します。")
+  );
 
   wrap.appendChild(ctaButton("御社専用の追加分析を見る（無料）"));
   wrap.appendChild(textP("cta-v3__sub", "市場規模・競合・リスク分析を確認できます。"));
   wrap.appendChild(
-    textP("cta-final__note", "営業電話はいたしません。気になる企業だけ無料で継続配信します。")
+    textP("cta-final__note", "営業電話はいたしません。公開情報をもとに分析したレポートのみ配信します。")
   );
 
   const proof = document.createElement("div");
@@ -933,6 +1198,7 @@ function renderFooter(data) {
     linkRow("プライバシー", "privacy.html"),
   ];
   const gen = formatDate(data.meta && data.meta.generated_at);
+  const count = sourceCount(data);
 
   const linkRowEl = document.createElement("p");
   linkRowEl.className = "report-footer__links";
@@ -942,7 +1208,16 @@ function renderFooter(data) {
   });
   el.appendChild(linkRowEl);
 
-  if (gen) el.appendChild(textP("report-footer__date", `このレポートの分析日: ${gen}`));
+  const metaLine = document.createElement("p");
+  metaLine.className = "report-footer__meta";
+  const metaParts = [];
+  if (gen) metaParts.push(`分析日: ${gen}`);
+  if (count) metaParts.push(`分析ソース数: ${count}件`);
+  metaLine.textContent = metaParts.join(" ・ ");
+  if (metaParts.length) el.appendChild(metaLine);
+
+  const year = new Date().getFullYear();
+  el.appendChild(textP("report-footer__copyright", `© ${year} AOR — Business Opportunity Report`));
 }
 
 /* ==================== CTA 配線（destination は既存仕様を維持） ==================== */

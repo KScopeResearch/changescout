@@ -58,6 +58,17 @@
     search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
     calendar: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/>',
     check_circle: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9"/>',
+    // Phase67 STEP2 STEP15: 追加アイコン（Dashboard / Network / Profile / Milestone / Stack）
+    intelligence_dashboard:
+      '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/><path d="M7 13v3M12 12v4M17 14v2"/>',
+    market_network:
+      '<circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="M6.6 7.2L10.6 11M17.4 7.2L13.4 11M6.6 16.8L10.6 13M17.4 16.8L13.4 13"/>',
+    company_profile:
+      '<rect x="3" y="10" width="7" height="11"/><path d="M10 21V5l8-2v18"/><path d="M6 14h1M6 17h1M14 8h1M14 12h1M14 16h1"/>',
+    rocket_milestone:
+      '<path d="M12 2c3 2 5 6 4 11l-4 4-4-4c-1-5 1-9 4-11z"/><circle cx="12" cy="9" r="1.6"/><path d="M3 21l4-1M21 21l-4-1"/>',
+    evidence_stack:
+      '<rect x="5" y="7" width="14" height="4" rx="1"/><rect x="5" y="13" width="14" height="4" rx="1"/><path d="M8 7V5a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>',
   };
   var THEMES = Object.keys(GLYPHS);
 
