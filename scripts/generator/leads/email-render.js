@@ -225,7 +225,9 @@ function renderPremiumInitialHtml(t, o) {
     : "配信停止をご希望の場合は、本メールに直接ご返信ください。";
 
   var hero =
-    '<tr><td style="background:' +
+    '<tr><td bgcolor="' +
+    AOR_NAVY +
+    '" style="background:' +
     AOR_NAVY +
     ';padding:0;">' +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
@@ -242,7 +244,7 @@ function renderPremiumInitialHtml(t, o) {
     AOR_GOLD +
     ';">FREE EDITION</td><td style="width:8px;font-size:0;">&nbsp;</td>' +
     '<td style="padding:4px 10px;border:1px solid rgba(255,255,255,0.25);border-radius:20px;font-size:10px;font-weight:700;color:#ffffff;">CONFIDENTIAL</td><td style="width:8px;font-size:0;">&nbsp;</td>' +
-    '<td style="padding:4px 10px;background:rgba(5,150,105,0.18);border-radius:20px;font-size:10px;font-weight:700;color:#34d399;">' +
+    '<td bgcolor="#0d3b2e" style="padding:4px 10px;background:rgba(5,150,105,0.18);border-radius:20px;font-size:10px;font-weight:700;color:#34d399;">' +
     reviewBadge +
     "</td></tr></table>" +
     '<p style="font-size:13px;color:rgba(255,255,255,0.75);margin:22px 0 6px;">' +
