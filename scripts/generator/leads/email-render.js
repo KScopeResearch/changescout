@@ -462,10 +462,289 @@ function renderPremiumInitialHtml(t, o) {
   );
 }
 
+// ---------- Phase71 STEP3: Premium Weekly Email（HTML のみ・kind==="weekly" 限定） ----------
+// Initial（renderPremiumInitialHtml）と同じトークン・同じ pmCard/pmRow/pmGoldButton を再利用する。
+// Weekly 固有の違いは「FREE EDITION / CONFIDENTIAL」→「WEEKLY UPDATE」、
+// 「無料版を毎週メールで受け取る」→「毎週、新しいビジネスチャンスを確認する」等の文言のみ。
+function renderPremiumWeeklyHtml(t, o) {
+  var greet = esc(t.salutation || (t.hasCompanyName ? t.companyName + " 経営者様" : "ご担当者様"));
+  var reviewBadge = t.reviewApproved ? "専門家監修" : "運営がレビュー中";
+  var ctaHref = esc(t.reportUrl);
+  var reassure =
+    '<p style="font-size:12px;line-height:1.7;color:' +
+    AOR_MUTED +
+    ";background:" +
+    AOR_GRAY_BG +
+    ';border-radius:6px;padding:10px 12px;margin:14px 0 0;">このレポートは無料です。<br>メールアドレス以外の登録は不要です。</p>';
+  var unsubHtml = o.unsubscribeUrl
+    ? '配信停止をご希望の場合は<a href="' +
+      esc(o.unsubscribeUrl) +
+      '" style="color:' +
+      AOR_MUTED +
+      ';">こちら</a>から手続きいただけます（本メールへの直接のご返信でも承ります）。'
+    : "配信停止をご希望の場合は、本メールに直接ご返信ください。";
+
+  var hero =
+    '<tr><td bgcolor="' +
+    AOR_NAVY +
+    '" style="background:' +
+    AOR_NAVY +
+    ';padding:0;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+    '<td style="height:4px;line-height:4px;font-size:0;background:' +
+    AOR_GOLD +
+    ';">&nbsp;</td></tr></table>' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:32px 28px 28px;">' +
+    '<div style="font-size:13px;font-weight:800;letter-spacing:0.16em;color:' +
+    AOR_GOLD +
+    ';">AOR</div>' +
+    '<div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:#ffffff;opacity:0.85;margin-top:2px;">BUSINESS OPPORTUNITY REPORT</div>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0 0;"><tr>' +
+    '<td style="padding:4px 10px;border:1px solid rgba(201,162,75,0.5);border-radius:20px;font-size:10px;font-weight:700;color:' +
+    AOR_GOLD +
+    ';">WEEKLY UPDATE</td><td style="width:8px;font-size:0;">&nbsp;</td>' +
+    '<td bgcolor="#0d3b2e" style="padding:4px 10px;background:rgba(5,150,105,0.18);border-radius:20px;font-size:10px;font-weight:700;color:#34d399;">' +
+    reviewBadge +
+    "</td></tr></table>" +
+    '<p style="font-size:13px;color:rgba(255,255,255,0.75);margin:22px 0 6px;">' +
+    greet +
+    "</p>" +
+    (t.hasOpportunity
+      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">今週見つかった新しいビジネスチャンスがあります。</p>' +
+        '<p style="font-size:19px;font-weight:800;color:' +
+        AOR_GOLD +
+        ';line-height:1.6;margin:0;">' +
+        esc(t.opportunityTitle) +
+        "</p>"
+      : '<p style="font-size:20px;font-weight:800;color:#ffffff;line-height:1.5;margin:0;">御社向けのビジネスチャンスレポートを、最新の内容に更新しました。</p>') +
+    '<p style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8;margin:16px 0 0;">公開情報をもとに専門家監修で整理し、最新の内容に更新した御社専用ビジネスチャンスレポートです。</p>' +
+    '<div style="margin:22px 0 4px;">' +
+    pmGoldButton(ctaHref, "レポートを見る") +
+    "</div>" +
+    "</td></tr></table>" +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
+    '<td style="height:4px;line-height:4px;font-size:0;background:' +
+    AOR_GOLD +
+    ';">&nbsp;</td></tr></table>' +
+    "</td></tr>";
+
+  var execSummary = "";
+  var dashboard = "";
+  var thisWeek = "";
+  var firstStepBlock = "";
+  if (t.hasOpportunity) {
+    var execCells = [];
+    if (t.whyNow) execCells.push(pmCard("WHY NOW", esc(t.whyNow)));
+    if (t.whyCompany) execCells.push(pmCard("WHY YOU", esc(t.whyCompany)));
+    if (t.firstStep) execCells.push(pmCard("今週のポイント", esc(t.firstStep)));
+    if (execCells.length) {
+      execSummary =
+        '<tr><td style="padding:26px 24px 4px;">' +
+        '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:' +
+        AOR_NAVY +
+        ';margin:0 0 12px;">EXECUTIVE SUMMARY</div>' +
+        pmRow(execCells, execCells.length) +
+        "</td></tr>";
+    }
+
+    var kpiCells = [];
+    if (t.marketStats && t.marketStats.length) {
+      var m0 = t.marketStats[0];
+      kpiCells.push(
+        pmCard(
+          "市場の追い風" + (m0.worldOnly ? "（参考）" : ""),
+          '<span style="font-size:16px;font-weight:800;color:' +
+            AOR_NAVY +
+            ';">' +
+            esc(m0.value) +
+            "</span>" +
+            (m0.label ? '<div style="font-size:11px;color:' + AOR_MUTED + ';margin-top:2px;">' + esc(m0.label) + "</div>" : "")
+        )
+      );
+    }
+    if (t.expectedBenefit && t.expectedBenefit.length) {
+      kpiCells.push(
+        pmCard(
+          "期待できる効果",
+          '<span style="font-size:16px;font-weight:800;color:' + AOR_NAVY + ';">' + esc(t.expectedBenefit.join("・")) + "</span>"
+        )
+      );
+    }
+    if (kpiCells.length) {
+      dashboard =
+        '<tr><td style="padding:8px 24px 4px;">' +
+        '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:' +
+        AOR_NAVY +
+        ';margin:12px 0;">MARKET INTELLIGENCE</div>' +
+        pmRow(kpiCells, kpiCells.length) +
+        "</td></tr>";
+    }
+
+    thisWeek =
+      '<tr><td style="padding:8px 24px;">' +
+      '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" ' +
+      'style="border:1px solid ' +
+      AOR_BORDER +
+      ";border-left:4px solid " +
+      AOR_GOLD +
+      ';border-radius:12px;"><tr><td style="padding:18px;">' +
+      '<div style="font-size:10px;font-weight:800;letter-spacing:0.05em;color:' +
+      AOR_GOLD +
+      ';">THIS WEEK\'S OPPORTUNITY</div>' +
+      '<div style="font-size:17px;font-weight:800;color:' +
+      AOR_NAVY +
+      ';margin:8px 0 6px;line-height:1.5;">' +
+      esc(t.opportunityTitle) +
+      "</div>" +
+      (t.chanceSummary
+        ? '<div style="font-size:13px;font-weight:700;color:' +
+          AOR_GOLD +
+          ';margin:0 0 8px;">一言でいうと: ' +
+          esc(t.chanceSummary) +
+          "</div>"
+        : "") +
+      (t.whyNow
+        ? '<div style="font-size:11px;font-weight:800;color:' +
+          AOR_NAVY +
+          ';margin-top:10px;">WHY NOW</div>' +
+          '<div style="font-size:12px;color:' +
+          AOR_INK +
+          ';line-height:1.7;">' +
+          esc(t.whyNow) +
+          "</div>"
+        : "") +
+      (t.whyCompany
+        ? '<div style="font-size:11px;font-weight:800;color:' +
+          AOR_NAVY +
+          ';margin-top:10px;">WHY YOU</div>' +
+          '<div style="font-size:12px;color:' +
+          AOR_INK +
+          ';line-height:1.7;">' +
+          esc(t.whyCompany) +
+          "</div>"
+        : "") +
+      "</td></tr></table></td></tr>";
+
+    if (t.firstStep) {
+      firstStepBlock =
+        '<tr><td style="padding:8px 24px;">' +
+        '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:' +
+        AOR_NAVY +
+        ';margin:12px 0;">FIRST STEP</div>' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>' +
+        '<td width="30" valign="top">' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td width="22" height="22" bgcolor="' +
+        AOR_EMERALD +
+        '" style="border-radius:11px;text-align:center;font-size:11px;font-weight:800;color:#ffffff;line-height:22px;">1</td>' +
+        "</tr></table></td>" +
+        '<td style="padding-left:10px;">' +
+        '<span style="display:inline-block;padding:2px 8px;background:#ecfdf5;color:' +
+        AOR_EMERALD_DARK +
+        ';font-size:9px;font-weight:800;border-radius:10px;">TODAY</span>' +
+        '<div style="font-size:13px;color:' +
+        AOR_INK +
+        ';line-height:1.7;margin-top:6px;">' +
+        esc(t.firstStep) +
+        "</div></td>" +
+        "</tr></table></td></tr>";
+    }
+  }
+
+  var trust =
+    '<tr><td style="padding:18px 24px 4px;">' +
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:' +
+    AOR_GRAY_BG +
+    ';border-radius:12px;"><tr><td style="padding:14px 16px;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0">' +
+    ["メールアドレス登録だけで無料版を毎週配信", reviewBadge, "無料版を毎週配信", "配信はいつでも停止可"]
+      .map(function (line) {
+        return (
+          '<tr><td style="padding:3px 0;font-size:11px;color:' +
+          AOR_MUTED +
+          ';">✓ ' +
+          esc(line) +
+          "</td></tr>"
+        );
+      })
+      .join("") +
+    "</table></td></tr></table></td></tr>";
+
+  var bottomCta =
+    '<tr><td align="center" style="padding:22px 24px 8px;">' +
+    '<p style="font-size:14px;font-weight:800;color:' +
+    AOR_NAVY +
+    ';margin:0 0 6px;">毎週、新しいビジネスチャンスを確認する</p>' +
+    reassure +
+    '<div style="margin:14px 0 0;">' +
+    pmGoldButton(ctaHref, "レポートを見る") +
+    "</div>" +
+    (t.reviewApproved
+      ? '<p style="font-size:11px;color:#065f46;background:#ecfdf5;border:1px solid #a7f3d0;' +
+        'border-radius:6px;padding:8px 10px;margin:10px 0 0;">✓ ' +
+        esc(t.reviewLine) +
+        "</p>"
+      : "") +
+    '<p style="font-size:11px;color:' +
+    AOR_MUTED +
+    ';margin:14px 0 0;">' +
+    unsubHtml +
+    "</p>" +
+    "</td></tr>";
+
+  var footer =
+    '<tr><td style="padding:20px 24px 26px;border-top:1px solid ' +
+    AOR_BORDER +
+    ';">' +
+    '<div style="font-size:11px;font-weight:800;letter-spacing:0.1em;color:' +
+    AOR_NAVY +
+    ';">AOR</div>' +
+    '<div style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:' +
+    AOR_MUTED +
+    ';margin-top:2px;">BUSINESS OPPORTUNITY REPORT</div>' +
+    '<div style="font-size:10px;color:' +
+    AOR_MUTED +
+    ';margin-top:8px;">専門家監修・公開情報分析レポート</div>' +
+    '<p style="font-size:11px;color:' +
+    AOR_MUTED +
+    ';margin:8px 0 0;">無料ビジネスチャンスレポート 運営事務局</p>' +
+    "</td></tr>";
+
+  return (
+    '<!doctype html><html lang="ja"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1"></head>' +
+    '<body style="margin:0;padding:0;background:' +
+    AOR_GRAY_BG +
+    ';">' +
+    '<span style="display:none!important;visibility:hidden;opacity:0;height:0;width:0;overflow:hidden;">' +
+    esc(o.preheader || "") +
+    "</span>" +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:' +
+    AOR_GRAY_BG +
+    ';"><tr><td align="center" style="padding:24px 12px;">' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="640" ' +
+    'style="max-width:640px;width:100%;background:#ffffff;border:1px solid ' +
+    AOR_BORDER +
+    ';border-radius:16px;overflow:hidden;' +
+    "font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Yu Gothic','Segoe UI',sans-serif;\">" +
+    hero +
+    execSummary +
+    dashboard +
+    thisWeek +
+    firstStepBlock +
+    trust +
+    bottomCta +
+    footer +
+    "</table>" +
+    "</td></tr></table></body></html>"
+  );
+}
+
 function renderHtml(t, opts) {
   var o = opts || {};
   var kind = o.kind || "initial";
   if (kind === "initial") return renderPremiumInitialHtml(t, o);
+  if (kind === "weekly") return renderPremiumWeeklyHtml(t, o);
   var accent = accentFor(t.theme);
   var greet = esc(t.salutation || (t.hasCompanyName ? t.companyName + " 経営者様" : "ご担当者様"));
   var intro =
