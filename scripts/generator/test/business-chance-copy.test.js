@@ -173,7 +173,7 @@ test("expectedBenefit: 売上/集客/リピート/採用・定着/利益率/業�
 
 /* ---------- Illustration: 20 テーマすべて SVG ---------- */
 
-test("Illustrations: 全 THEMES で glyph が SVG・hero が Executive Cover SVG（Phase72 STEP2: 人物シーン廃止）", () => {
+test("Illustrations: 全 THEMES で glyph が SVG・hero が business_radar SVG（Phase72 STEP2: 人物シーン廃止）", () => {
   const I = require(path.join(WEB, "assets", "js", "illustrations.js"));
   assert.ok(I.THEMES.length >= 20, "20 テーマ以上: " + I.THEMES.length);
   I.THEMES.forEach((th) => {
@@ -181,14 +181,27 @@ test("Illustrations: 全 THEMES で glyph が SVG・hero が Executive Cover SVG
     const h = I.hero(th);
     assert.ok(h.startsWith("<svg") && h.trim().endsWith("</svg>"), th + " hero");
     assert.match(h, /aria-hidden="true"/, th + " aria-hidden");
-    // Phase72 STEP2: 業種別の具体シーン（店舗/人物/スマホ等）は廃止し、全テーマ共通の
-    // Executive Report Cover（KPIカード3枚 + Goldアクセント + biBackdrop の円形チャート/
-    // ネットワークライン）へ統一した。人物パーツは一切含まれない。
-    assert.match(h, /class="hi-kpi"/, th + " kpi cards");
+    // Phase72 STEP2（実メールQA反映）: 業種別の具体シーン（店舗/人物/スマホ等）は廃止し、
+    // 全テーマ共通の「ビジネスチャンス発見レーダー」（business_radar）へ統一した。
+    // レーダー円+発見ポイント+AIネットワーク（hi-radar）、上昇チャート+企業アイコン
+    // （hi-growth）、Goldアクセント（hi-gold-accent）、KPIカード3枚（hi-kpi）を含み、
+    // 人物パーツは一切含まれない。
+    assert.match(h, /class="hi-radar"/, th + " radar");
+    assert.match(h, /class="hi-growth"/, th + " growth chart");
     assert.match(h, /class="hi-gold-accent"/, th + " gold accent");
-    assert.match(h, /class="hi-bi"/, th + " bi backdrop");
+    assert.match(h, /class="hi-kpi"/, th + " kpi cards");
     assert.doesNotMatch(h, /P\.person|hi-person/, th + " no person parts");
   });
+});
+
+test("Illustrations: sectionScene() は4種すべてで整形式の SVG を返す", () => {
+  const I = require(path.join(WEB, "assets", "js", "illustrations.js"));
+  ["trend_signal", "opportunity_network", "ai_growth_dashboard", "market_growth_chart"].forEach((name) => {
+    const s = I.sectionScene(name);
+    assert.ok(s.startsWith("<svg") && s.trim().endsWith("</svg>"), name);
+    assert.match(s, /aria-hidden="true"/, name);
+  });
+  assert.equal(I.sectionScene("no-such-scene"), "");
 });
 
 test("Illustrations: hero は外部画像を読み込まない（<image> / url(http) なし）", () => {

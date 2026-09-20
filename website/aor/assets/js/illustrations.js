@@ -285,18 +285,81 @@
   function executiveGoldAccent() {
     return (
       '<g class="hi-gold-accent">' +
-      '<line x1="16" y1="134" x2="284" y2="134" stroke="#c9a24b" stroke-width="2" stroke-dasharray="1 7"/>' +
-      '<rect x="246" y="32" width="11" height="11" rx="2" fill="none" stroke="#c9a24b" stroke-opacity="0.65" transform="rotate(18 251.5 37.5)"/>' +
-      '<rect x="263" y="56" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-opacity="0.3" transform="rotate(-14 266.5 59.5)"/>' +
+      '<line x1="16" y1="160" x2="284" y2="160" stroke="#c9a24b" stroke-width="2" stroke-dasharray="1 7"/>' +
+      '<rect x="246" y="24" width="11" height="11" rx="2" fill="none" stroke="#c9a24b" stroke-opacity="0.65" transform="rotate(18 251.5 29.5)"/>' +
+      '<rect x="263" y="42" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-opacity="0.3" transform="rotate(-14 266.5 45.5)"/>' +
       "</g>"
     );
   }
 
+  // ---- Phase72 STEP2 実メールQA反映: business_radar（ビジネスチャンス発見レーダー）------
+  // 左: レーダー円（同心円3重 + Gold スイープ楔形）+ 発見ポイント3つ（Emerald）+
+  //     中心からのAIネットワークライン。右: 上昇チャート（Emerald）+ 企業アイコン。
+  function radarScene() {
+    var cx = 85,
+      cy = 95;
+    var rings = [16, 30, 44]
+      .map(function (r) {
+        return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" stroke="currentColor" stroke-opacity="0.28" fill="none"/>';
+      })
+      .join("");
+    // Gold のレーダースイープ（扇形）
+    var sweep =
+      '<path d="M' + cx + " " + cy + " L" + cx + " " + (cy - 44) +
+      " A44 44 0 0 1 " + (cx + 31) + " " + (cy - 31) +
+      ' Z" fill="#c9a24b" fill-opacity="0.18" stroke="none"/>';
+    var discoveries = [
+      [cx + 20, cy - 34],
+      [cx - 30, cy + 10],
+      [cx + 34, cy + 30],
+    ];
+    var links = discoveries
+      .map(function (p) {
+        return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="2 4"/>';
+      })
+      .join("");
+    var points = discoveries
+      .map(function (p) {
+        return (
+          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
+          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>'
+        );
+      })
+      .join("");
+    var centerDot = '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="currentColor" stroke="none"/>';
+    return '<g class="hi-radar">' + rings + sweep + links + points + centerDot + "</g>";
+  }
+
+  function growthChartScene() {
+    var pts = [
+      [185, 140],
+      [207, 118],
+      [229, 128],
+      [251, 94],
+      [270, 62],
+    ];
+    var path = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
+    var lastP = pts[pts.length - 1];
+    var chart =
+      '<path d="' + path + '" stroke="#059669" stroke-width="2.5" fill="none"/>' +
+      '<circle cx="' + lastP[0] + '" cy="' + lastP[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>';
+    var building =
+      '<g class="hi-building" transform="translate(238 92)">' +
+      '<rect x="0" y="0" width="24" height="38" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.45"/>' +
+      '<rect x="5" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="14" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="5" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="14" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="9" y="27" width="6" height="11" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      "</g>";
+    return '<g class="hi-growth">' + chart + building + "</g>";
+  }
+
   /**
-   * Hero 用の Executive Report Cover イラスト（Phase72 STEP2 C案）。
-   * 業種別の具体シーン（人物・店舗等）は廃止し、コンサルティングレポート表紙として
-   * 全テーマ共通のビジュアル（円形チャート・ネットワークライン・KPIカード3枚・
-   * Goldアクセント・幾何学アクセント）に統一する。SVGのみ・人物なし・写真なし。
+   * Hero 用の「ビジネスチャンス発見レーダー」イラスト（business_radar）。
+   * 業種別の具体シーン（人物・店舗等）は廃止し、全テーマ共通のビジュアルへ統一する。
+   * 左: レーダー円+発見ポイント3つ+AIネットワーク。右: 上昇チャート+企業アイコン。
+   * 下段: KPIカード3枚。SVGのみ・人物なし・写真なし・絵文字なし。
    * @param {string} theme - 現在は視覚差分に使わない（API 互換のため引数は維持）
    * @returns {string}
    */
@@ -314,9 +377,104 @@
       "</defs>" +
       '<rect x="10" y="14" width="280" height="212" rx="22" fill="url(#hiBg)" stroke="none"/>' +
       '<ellipse class="hi-shadow" cx="150" cy="214" rx="120" ry="10" fill="currentColor" stroke="none" opacity="0.06"/>' +
-      biBackdrop() +
+      radarScene() +
+      growthChartScene() +
       executiveGoldAccent() +
       executiveKpiCards() +
+      "</svg>"
+    );
+  }
+
+  // ---- Phase72 STEP2 実メールQA反映: セクション見出し用の小型シーン（各章の先頭） ------
+  // 120x64 の小型 viewBox。secHead() の隣に置くため、Hero より一回り小さく単純にする。
+  function trendSignalScene() {
+    // WHY NOW: トレンド矢印 + ニュース片 + 補助金アイコン + 上昇矢印
+    return (
+      '<path d="M8 46l18-14 14 8 22-24" stroke="#059669" stroke-width="2.2" fill="none"/>' +
+      '<path d="M52 16l10-2-2 10" stroke="#059669" stroke-width="2.2" fill="none"/>' +
+      '<rect x="68" y="30" width="30" height="20" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.4"/>' +
+      '<path d="M74 37h18M74 42h12" stroke="currentColor" stroke-opacity="0.4"/>' +
+      '<rect x="4" y="4" width="14" height="14" rx="2" fill="none" stroke="#c9a24b" stroke-opacity="0.7"/>' +
+      '<path d="M11 8v8M7 12h8" stroke="#c9a24b" stroke-opacity="0.7"/>'
+    );
+  }
+
+  function opportunityNetworkScene() {
+    // WHY YOU: 会社・市場・顧客・AI の4ノード + 接続ライン
+    var nodes = { company: [20, 32], market: [60, 12], customer: [60, 52], ai: [100, 32] };
+    var links = [
+      ["company", "market"],
+      ["company", "customer"],
+      ["market", "ai"],
+      ["customer", "ai"],
+      ["company", "ai"],
+    ]
+      .map(function (l) {
+        var a = nodes[l[0]], b = nodes[l[1]];
+        return '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="currentColor" stroke-opacity="0.3"/>';
+      })
+      .join("");
+    var dots = Object.keys(nodes)
+      .map(function (k) {
+        var p = nodes[k];
+        var fill = k === "company" ? "#c9a24b" : k === "ai" ? "#059669" : "currentColor";
+        var opacity = k === "company" || k === "ai" ? "1" : "0.55";
+        return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="6" fill="' + fill + '" fill-opacity="' + opacity + '" stroke="#ffffff" stroke-width="1.2"/>';
+      })
+      .join("");
+    return links + dots;
+  }
+
+  function aiGrowthDashboardScene() {
+    // Opportunity Canvas: KPI / ROI / Growth / Automation の 4 ミニカード
+    var labels = ["KPI", "ROI", "GROWTH", "AUTO"];
+    var heights = [14, 20, 24, 10];
+    var out = "";
+    for (var i = 0; i < 4; i++) {
+      var x = 4 + i * 27;
+      out +=
+        '<rect x="' + x + '" y="4" width="22" height="44" rx="4" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.35"/>' +
+        '<rect x="' + (x + 6) + '" y="' + (40 - heights[i]) + '" width="10" height="' + heights[i] + '" rx="1.5" fill="' +
+        (i === 2 ? "#c9a24b" : "#059669") + '" fill-opacity="0.7" stroke="none"/>';
+    }
+    return out;
+  }
+
+  function marketGrowthChartScene() {
+    // Evidence: 棒グラフ + 折れ線 + 出典マーク（小さな書類アイコン）
+    var bars = [10, 18, 14, 24, 20]
+      .map(function (h, i) {
+        var x = 4 + i * 12;
+        return '<rect x="' + x + '" y="' + (50 - h) + '" width="8" height="' + h + '" rx="1.5" fill="currentColor" fill-opacity="0.35" stroke="none"/>';
+      })
+      .join("");
+    var line = '<path d="M4 40 L16 30 L28 34 L40 20 L52 14 L64 8" stroke="#059669" stroke-width="2" fill="none"/>';
+    var doc =
+      '<rect x="78" y="6" width="24" height="30" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.4"/>' +
+      '<path d="M83 14h14M83 20h14M83 26h9" stroke="currentColor" stroke-opacity="0.4"/>';
+    return bars + line + doc;
+  }
+
+  var SECTION_SCENES = {
+    trend_signal: trendSignalScene,
+    opportunity_network: opportunityNetworkScene,
+    ai_growth_dashboard: aiGrowthDashboardScene,
+    market_growth_chart: marketGrowthChartScene,
+  };
+
+  /**
+   * セクション見出し用の小型説明イラスト（Phase72 STEP2）。
+   * @param {"trend_signal"|"opportunity_network"|"ai_growth_dashboard"|"market_growth_chart"} name
+   * @returns {string}
+   */
+  function sectionScene(name) {
+    var fn = SECTION_SCENES[name];
+    if (!fn) return "";
+    return (
+      '<svg class="sec-scene__svg" viewBox="0 0 110 56" fill="none" ' +
+      'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true" focusable="false">' +
+      fn() +
       "</svg>"
     );
   }
@@ -337,5 +495,12 @@
     );
   }
 
-  return { glyph: glyph, hero: hero, steps: steps, THEMES: THEMES, SCENE_THEMES: Object.keys(SCENES) };
+  return {
+    glyph: glyph,
+    hero: hero,
+    steps: steps,
+    sectionScene: sectionScene,
+    THEMES: THEMES,
+    SCENE_THEMES: Object.keys(SCENES),
+  };
 });

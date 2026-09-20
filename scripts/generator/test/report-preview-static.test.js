@@ -146,7 +146,9 @@ test("report-preview.js: CTA は共有ヘルパー（ctaButton）で組み立て
 
 test("report-preview.js: CTA 文言に「無料」が含まれる（Hero inline・下部）", () => {
   assert.match(js, /無料でレポートを見る/);
-  assert.match(js, /御社専用の追加分析を見る（無料）/);
+  // Phase72 STEP2（実メールQA反映）: 下部CTAボタン文言を「御社専用の追加分析を見る（無料）」
+  // から「無料版を毎週受け取る」へ変更（広告バナー風から、レポートの続き案内へ）。
+  assert.match(js, /無料版を毎週受け取る/);
 });
 
 /* ---------- 数字の捏造禁止 ---------- */

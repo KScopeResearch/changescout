@@ -20,22 +20,22 @@ let isSubmitting = false;
 
 document.addEventListener("DOMContentLoaded", init);
 
-/** エントリポイント。?lead=/?token=を読み取り、確認UIを表示する（POSTは行わない）。 */
+const INVALID_LINK_MESSAGE = "このリンクは期限切れ、または無効です。再度メールから配信停止してください。";
+
+/** エントリポイント。?lead=/?token=を読み取り、確認UIを表示する（POSTは行わない）。
+ * Phase72 STEP2: パラメータ欠落時も「エラー画面」ではなく、配信停止ページ内の
+ * 通常の案内文として表示する（HTTP自体は常に200・内部例外を見せない）。 */
 function init() {
   currentLeadId = getLeadParam();
   currentReportToken = getReportTokenParam();
 
+  showState("page", STATE_IDS);
+
   if (!currentLeadId || !currentReportToken) {
-    showError(
-      document.getElementById("state-error-content"),
-      "リンクが正しくありません。",
-      "メール本文内の配信停止リンクから、URLを変更せずにアクセスしてください。"
-    );
-    showState("state-error", STATE_IDS);
+    showResult(INVALID_LINK_MESSAGE);
     return;
   }
 
-  showState("page", STATE_IDS);
   document.getElementById("confirm-section").hidden = false;
   wireUnsubscribeButton();
 }
@@ -57,11 +57,12 @@ function wireUnsubscribeButton() {
       });
 
       if (res.ok) {
-        showResult("配信停止が完了しました。");
+        showResult("配信停止しました。また登録できます。");
       } else if (res.status === 429) {
         showUnsubscribeError("送信回数が多すぎます。しばらく時間をおいてから再度お試しください。");
       } else {
-        showResult("配信停止処理を完了できませんでした。");
+        // lead_id/token が不一致・失効等（内部エラー詳細は見せない）。
+        showResult(INVALID_LINK_MESSAGE);
       }
     } catch (err) {
       showUnsubscribeError("通信エラーが発生しました。ネットワーク接続をご確認のうえ、再度お試しください。");

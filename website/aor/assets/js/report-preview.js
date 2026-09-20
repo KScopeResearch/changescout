@@ -628,10 +628,24 @@ function buildMarketMetricCard(vm, snapshot) {
   card.className = "metric-card";
   card.innerHTML =
     `<div class="metric-card__label">市場の追い風</div>` +
-    `<div class="metric-card__value">${escapeText(top.value)}</div>` +
+    `<div class="metric-card__value-row">` +
+    `<span class="metric-card__trend-icon" aria-hidden="true">${windTrendIcon()}</span>` +
+    `<span class="metric-card__value">${escapeText(top.value)}</span>` +
+    `</div>` +
     `<div class="metric-card__note">${escapeText(labelWithScope(top))}</div>` +
     (insight ? `<div class="metric-card__insight">${escapeText(insight)}</div>` : "");
   return card;
+}
+
+// 「市場の追い風」カード用の小さな装飾アイコン（円 + 上向き矢印）。数値は一切含まない
+// （円グラフ風に見えるが、確信度リングと違い割合を表現するものではない）。
+function windTrendIcon() {
+  return (
+    '<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">' +
+    '<circle cx="18" cy="18" r="15" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/>' +
+    '<path d="M11 21l7-9 7 9" stroke="#059669" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    "</svg>"
+  );
 }
 
 // 「御社との適合度」カード: 御社の業種（industry_label）× 今回のテーマ（title の中核部分）。
@@ -651,8 +665,9 @@ function buildFitMetricCard(data, vm) {
       ? `${escapeText(industry)} <span class="metric-card__x" aria-hidden="true">×</span> ${escapeText(core)}`
       : escapeText(industry || core);
   const ring = vm.confidence && vm.confidence.level ? confidenceRing(vm.confidence.level) : "";
+  const checkGlyph = Illustrations.glyph("check_circle", { size: 14 });
   card.innerHTML =
-    `<div class="metric-card__label">御社との適合度</div>` +
+    `<div class="metric-card__label">御社との適合度<span class="metric-card__fit-tag">事業適合分析</span></div>` +
     (ring
       ? `<div class="metric-card__ring-row">` +
         `<div class="metric-card__ring" aria-hidden="true">${ring}</div>` +
@@ -661,7 +676,7 @@ function buildFitMetricCard(data, vm) {
         `<div class="metric-card__confidence">確信度 ${escapeText(vm.confidence.level)}</div>` +
         `</div></div>`
       : (valueHtml ? `<div class="metric-card__value metric-card__value--pair">${valueHtml}</div>` : "")) +
-    `<div class="metric-card__note">今回の提案は御社の既存事業と接続できます。</div>` +
+    `<div class="metric-card__note"><span class="metric-card__check" aria-hidden="true">${checkGlyph}</span>今回の提案は御社の既存事業と接続できます。</div>` +
     (note ? `<div class="metric-card__insight">${escapeText(note)}</div>` : "");
   return card;
 }
@@ -751,6 +766,7 @@ function renderWhyNow(vm, theme) {
   el.innerHTML = "";
   if (!vm.whyNow) return;
   el.appendChild(secHead("なぜ今なのか", theme));
+  el.appendChild(sectionSceneEl("trend_signal"));
 
   const card = document.createElement("div");
   card.className = "reason-card reason-card--feature";
@@ -797,6 +813,7 @@ function renderWhyYou(data, vm, theme) {
   el.innerHTML = "";
   if (!vm.whyCompany) return;
   el.appendChild(secHead("なぜ御社なのか", theme));
+  el.appendChild(sectionSceneEl("opportunity_network"));
 
   const cp = (data && data.company_profile) || {};
   const wc = String(vm.whyCompany);
@@ -885,6 +902,7 @@ function renderOpportunity(data, vm, theme, snapshot) {
   const el = document.getElementById("sec-opportunity");
   el.innerHTML = "";
   el.appendChild(secHead("今回見つけたビジネスチャンス", theme));
+  el.appendChild(sectionSceneEl("ai_growth_dashboard"));
 
   const canvas = document.createElement("div");
   canvas.className = "opportunity-canvas";
@@ -1131,6 +1149,7 @@ function renderEvidence(data, sourceMap) {
   const body = document.createElement("div");
   body.className = "disclosure__body";
   body.appendChild(secHead("今回の提案の根拠", "evidence_stack"));
+  body.appendChild(sectionSceneEl("market_growth_chart"));
   body.appendChild(
     textP("disclosure__lede", "公開情報・市場データ・企業情報を組み合わせて分析しました。")
   );
@@ -1324,12 +1343,24 @@ function renderCtaBottom() {
   const wrap = document.createElement("div");
   wrap.className = "cta-v3 cta-v3--bottom cta-final";
 
-  wrap.appendChild(textP("cta-final__title", "無料版を毎週メールで受け取る"));
-  wrap.appendChild(
-    textP("cta-final__desc", "メールアドレス登録だけで、御社専用レポートを毎週お届けします。")
-  );
+  wrap.appendChild(textP("cta-final__title", "このレポートの続き（無料版）を受け取る"));
 
-  wrap.appendChild(ctaButton("御社専用の追加分析を見る（無料）"));
+  const points = document.createElement("ul");
+  points.className = "cta-final__points";
+  ["毎週1回だけ配信", "配信停止はいつでも可能", "営業電話なし"].forEach((t) => {
+    const li = document.createElement("li");
+    const icon = document.createElement("span");
+    icon.className = "cta-final__points-icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = Illustrations.glyph("check_circle", { size: 14 });
+    const label = document.createElement("span");
+    label.textContent = t;
+    li.append(icon, label);
+    points.appendChild(li);
+  });
+  wrap.appendChild(points);
+
+  wrap.appendChild(ctaButton("無料版を毎週受け取る"));
   wrap.appendChild(textP("cta-v3__sub", "市場規模・競合・リスク分析を確認できます。"));
   wrap.appendChild(
     textP("cta-final__note", "営業電話はいたしません。公開情報ベースで分析します。")
@@ -1455,6 +1486,15 @@ function secHead(title, theme) {
   t.textContent = title;
   h.append(g, t);
   return h;
+}
+
+// Phase72 STEP2（実メールQA反映）: 各章先頭の小型説明イラスト（SVGのみ）。
+function sectionSceneEl(name) {
+  const wrap = document.createElement("div");
+  wrap.className = "sec-scene";
+  wrap.setAttribute("aria-hidden", "true");
+  wrap.innerHTML = Illustrations.sectionScene(name);
+  return wrap;
 }
 
 function textP(className, text) {

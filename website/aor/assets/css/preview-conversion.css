@@ -458,6 +458,20 @@ body { overflow-x: hidden; }
 }
 .metric-card__ring { flex: none; color: var(--color-primary); }
 .metric-card__ring-body { min-width: 0; }
+
+/* Phase72 STEP2（実メールQA反映）: Dashboard カードの視覚化強化 */
+.metric-card__value-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.metric-card__trend-icon { flex: none; display: inline-flex; color: var(--aor-navy, currentColor); }
+.metric-card__value-row .metric-card__value { margin-top: 0; }
+.metric-card__fit-tag {
+  display: inline-block;
+  margin-left: 8px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--aor-gold, #c9a24b);
+}
+.metric-card__check { display: inline-flex; color: var(--aor-emerald, #059669); margin-right: 4px; vertical-align: -2px; }
 .metric-card--fit .metric-card__confidence { margin-top: 4px; }
 
 /* 「今回わかったこと」インサイトカード3枚（STEP5: 市場 / 御社 / 今動く理由） */
@@ -722,6 +736,24 @@ body { overflow-x: hidden; }
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.68);
 }
+/* Phase72 STEP2（実メールQA反映）: CTA を「広告バナー」ではなくレポートの続き案内へ */
+.cta-final__points {
+  position: relative;
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cta-final__points li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.86rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+.cta-final__points-icon { display: inline-flex; flex: none; color: #6ee7b7; }
 .cta-final .cta-v3__sub { position: relative; color: rgba(255, 255, 255, 0.82); }
 .cta-final .cta-v2__proof { position: relative; color: rgba(255, 255, 255, 0.82); }
 .cta-final .cta-v2__proof span::before { color: #6ee7b7; }
@@ -767,6 +799,10 @@ body { overflow-x: hidden; }
 }
 .sec-head__glyph { color: var(--aor-navy); display: inline-flex; }
 .sec-head__title { font-size: 1.08rem; font-weight: 800; margin: 0; color: var(--color-text); }
+
+/* Phase72 STEP2（実メールQA反映）: 各章先頭の小型説明イラスト */
+.sec-scene { margin: 0 0 16px; color: var(--aor-navy); }
+.sec-scene__svg { display: block; width: 132px; max-width: 100%; height: auto; }
 
 /* ============ Market Snapshot ============ */
 .market-stats {
