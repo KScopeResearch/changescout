@@ -173,7 +173,7 @@ test("expectedBenefit: 売上/集客/リピート/採用・定着/利益率/業�
 
 /* ---------- Illustration: 20 テーマすべて SVG ---------- */
 
-test("Illustrations: 全 THEMES で glyph が SVG・hero が具体シーン SVG", () => {
+test("Illustrations: 全 THEMES で glyph が SVG・hero が Executive Cover SVG（Phase72 STEP2: 人物シーン廃止）", () => {
   const I = require(path.join(WEB, "assets", "js", "illustrations.js"));
   assert.ok(I.THEMES.length >= 20, "20 テーマ以上: " + I.THEMES.length);
   I.THEMES.forEach((th) => {
@@ -181,8 +181,13 @@ test("Illustrations: 全 THEMES で glyph が SVG・hero が具体シーン SVG"
     const h = I.hero(th);
     assert.ok(h.startsWith("<svg") && h.trim().endsWith("</svg>"), th + " hero");
     assert.match(h, /aria-hidden="true"/, th + " aria-hidden");
-    // 具体パーツ（店舗/人物/スマホ/チャート等）の translate 配置が含まれる
-    assert.match(h, /translate\(/, th + " scene parts");
+    // Phase72 STEP2: 業種別の具体シーン（店舗/人物/スマホ等）は廃止し、全テーマ共通の
+    // Executive Report Cover（KPIカード3枚 + Goldアクセント + biBackdrop の円形チャート/
+    // ネットワークライン）へ統一した。人物パーツは一切含まれない。
+    assert.match(h, /class="hi-kpi"/, th + " kpi cards");
+    assert.match(h, /class="hi-gold-accent"/, th + " gold accent");
+    assert.match(h, /class="hi-bi"/, th + " bi backdrop");
+    assert.doesNotMatch(h, /P\.person|hi-person/, th + " no person parts");
   });
 });
 

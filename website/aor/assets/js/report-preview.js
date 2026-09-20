@@ -221,7 +221,7 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   body.appendChild(textP("report-hero__company", PreviewUI.salutation(cp.name)));
 
   // Cover タグライン（固定コピー。会社固有の数値・事実は含まない）
-  body.appendChild(textP("report-hero__cover-lede", "御社に見つかった新しいビジネスチャンス"));
+  body.appendChild(textP("report-hero__cover-lede", "御社向けのビジネスチャンスがあります！"));
 
   // メインキャッチ（ページ最大要素・h1は1つだけ）: 巨大タイトルとして Opportunity（vm.title）を表示
   const headline = document.createElement("h1");
@@ -292,6 +292,25 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
     });
     body.appendChild(meta);
   }
+
+  // Phase72 STEP2: Executive Cover（C案）Trust 4項目（CTA の直前）。#sec-trust と同じ
+  // .trust-strip クラス（preview-conversion.css）を再利用し、新規 CSS は追加しない。
+  const heroTrust = document.createElement("ul");
+  heroTrust.className = "trust-strip";
+  heroTrust.setAttribute("aria-label", "このレポートについて");
+  PreviewUI.trustItems(data).forEach((it) => {
+    const li = document.createElement("li");
+    li.className = "trust-strip__item";
+    const icon = document.createElement("span");
+    icon.className = "trust-strip__icon";
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = Illustrations.glyph("check_circle", { size: 14 });
+    const t = document.createElement("span");
+    t.textContent = it.label;
+    li.append(icon, " ", t);
+    heroTrust.appendChild(li);
+  });
+  body.appendChild(heroTrust);
 
   // 大型 CTA ボタン（高さ52px以上。Hero 独自に data-cta を付与し、既存の CTA 計測契約を維持）
   const cta = document.createElement("a");

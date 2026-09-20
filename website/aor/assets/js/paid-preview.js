@@ -54,7 +54,7 @@ function render(data, slug) {
   const theme = PreviewUI.pickVisualTheme(data);
   const snapshot = PreviewUI.marketSnapshot(data);
 
-  renderCover(data, vm, theme);
+  renderCover(data, vm, theme, slug);
   renderExecSummary(data, vm, snapshot);
   renderDashboard(data, vm, snapshot, theme);
   renderMarketAnalysis(data, vm, snapshot, theme);
@@ -72,7 +72,7 @@ function render(data, slug) {
 
 /* ==================== SECTION 1: Executive Report Cover ==================== */
 
-function renderCover(data, vm, theme) {
+function renderCover(data, vm, theme, slug) {
   const el = document.getElementById("pp-cover");
   el.innerHTML = "";
   const cp = data.company_profile || {};
@@ -95,7 +95,7 @@ function renderCover(data, vm, theme) {
   const body = document.createElement("div");
   body.className = "hero-body";
   body.appendChild(textP("report-hero__company", PreviewUI.salutation(cp.name)));
-  body.appendChild(textP("report-hero__cover-lede", "詳細分析レポート"));
+  body.appendChild(textP("report-hero__cover-lede", "御社向けのビジネスチャンスがあります！"));
 
   const h1 = document.createElement("h1");
   h1.className = "report-hero__headline";
@@ -104,6 +104,25 @@ function renderCover(data, vm, theme) {
 
   const sub = PreviewUI.oneLineSummary(vm.title);
   if (sub) body.appendChild(textP("report-hero__variant-line", sub));
+
+  // Phase72 STEP2: Executive Cover（C案）Trust 4項目 + Gold CTA（Cover 内に新設）。
+  const heroTrust = document.createElement("ul");
+  heroTrust.className = "trust-strip";
+  heroTrust.setAttribute("aria-label", "このレポートについて");
+  PreviewUI.trustItems(data).forEach((it) => {
+    const li = document.createElement("li");
+    li.className = "trust-strip__item";
+    li.innerHTML = `<span class="trust-strip__icon" aria-hidden="true">${Illustrations.glyph("check_circle", { size: 14 })}</span> ${escapeText(it.label)}`;
+    heroTrust.appendChild(li);
+  });
+  body.appendChild(heroTrust);
+
+  const heroCta = document.createElement("a");
+  heroCta.className = "hero-cta-inline cta-v3__btn cta-v3__btn--hero";
+  heroCta.href = `email-capture.html?company=${encodeURIComponent(slug)}`;
+  const heroCtaArrow = Illustrations.glyph("cta_arrow", { size: 16 });
+  heroCta.innerHTML = `<span class="cta-v3__btn-text">無料版を毎週受け取る</span><span class="cta-v3__btn-arrow" aria-hidden="true">${heroCtaArrow}</span>`;
+  body.appendChild(heroCta);
 
   const metaItems = [
     ["作成日", "calendar", formatDate(data.meta && data.meta.generated_at)],

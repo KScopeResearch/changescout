@@ -188,7 +188,7 @@ function renderCover(data, vm, theme, snapshot) {
   body.className = "hero-body";
 
   body.appendChild(textP("report-hero__company", PreviewUI.salutation(cp.name)));
-  body.appendChild(textP("report-hero__cover-lede", "御社専用追加分析"));
+  body.appendChild(textP("report-hero__cover-lede", "御社向けのビジネスチャンスがあります！"));
 
   const h1 = document.createElement("h1");
   h1.className = "report-hero__headline";
@@ -198,13 +198,7 @@ function renderCover(data, vm, theme, snapshot) {
   const sub = PreviewUI.heroSubcopy(vm.whyCompany) || PreviewUI.oneLineSummary(vm.title);
   if (sub) body.appendChild(textP("report-hero__variant-line", sub));
 
-  const cta = document.createElement("a");
-  cta.className = "hero-cta-inline cta-v3__btn cta-v3__btn--hero";
-  cta.href = "#ec-cta-section";
-  const arrow = Illustrations.glyph("cta_arrow", { size: 16 });
-  cta.innerHTML = `<span class="cta-v3__btn-text">無料版を毎週受け取る</span><span class="cta-v3__btn-arrow" aria-hidden="true">${arrow}</span>`;
-  body.appendChild(cta);
-
+  // Phase72 STEP2: Executive Cover（C案）Trust 4項目を CTA の直前へ（表示順を統一）。
   const trustBar = document.createElement("ul");
   trustBar.className = "hero-cover-trust";
   trustBar.setAttribute("aria-label", "このレポートについて");
@@ -214,6 +208,13 @@ function renderCover(data, vm, theme, snapshot) {
     trustBar.appendChild(li);
   });
   body.appendChild(trustBar);
+
+  const cta = document.createElement("a");
+  cta.className = "hero-cta-inline cta-v3__btn cta-v3__btn--hero";
+  cta.href = "#ec-cta-section";
+  const arrow = Illustrations.glyph("cta_arrow", { size: 16 });
+  cta.innerHTML = `<span class="cta-v3__btn-text">無料版を毎週受け取る</span><span class="cta-v3__btn-arrow" aria-hidden="true">${arrow}</span>`;
+  body.appendChild(cta);
 
   el.appendChild(body);
 

@@ -248,16 +248,60 @@
     );
   }
 
+  // ---- Phase72 STEP2: Executive Report Cover（C案）------------------------------
+  // 3枚の抽象 KPI カード（業種別の具体シーンではなく、コンサルティングレポート表紙の
+  // 定型ビジュアルとして全テーマ共通）。棒の高さは各カードで固定パターン（乱数不使用）。
+  var KPI_CARD_BARS = [
+    [10, 16, 22],
+    [14, 20, 12],
+    [18, 10, 24],
+  ];
+
+  function executiveKpiCards() {
+    var cardW = 62,
+      cardH = 54,
+      cardY = 150,
+      gap = 10,
+      startX = 20;
+    var out = "";
+    for (var i = 0; i < 3; i++) {
+      var x = startX + i * (cardW + gap);
+      out +=
+        '<rect x="' + x + '" y="' + cardY + '" width="' + cardW + '" height="' + cardH +
+        '" rx="8" fill="' + SURFACE + '" fill-opacity="0.92" stroke="currentColor" stroke-opacity="0.32"/>' +
+        '<circle cx="' + (x + cardW - 13) + '" cy="' + (cardY + 13) + '" r="4" fill="#059669" stroke="none"/>';
+      var bars = KPI_CARD_BARS[i];
+      for (var b = 0; b < bars.length; b++) {
+        var h = bars[b];
+        var bx = x + 10 + b * 14;
+        var by = cardY + cardH - 12 - h;
+        out += '<rect x="' + bx + '" y="' + by + '" width="8" height="' + h + '" rx="1.5" fill="currentColor" fill-opacity="0.55" stroke="none"/>';
+      }
+    }
+    return '<g class="hi-kpi">' + out + "</g>";
+  }
+
+  // Gold の水平アクセントライン + 幾何学アクセント（回転した小さな正方形2つ）。
+  function executiveGoldAccent() {
+    return (
+      '<g class="hi-gold-accent">' +
+      '<line x1="16" y1="134" x2="284" y2="134" stroke="#c9a24b" stroke-width="2" stroke-dasharray="1 7"/>' +
+      '<rect x="246" y="32" width="11" height="11" rx="2" fill="none" stroke="#c9a24b" stroke-opacity="0.65" transform="rotate(18 251.5 37.5)"/>' +
+      '<rect x="263" y="56" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-opacity="0.3" transform="rotate(-14 266.5 59.5)"/>' +
+      "</g>"
+    );
+  }
+
   /**
-   * Hero 用の大型シーン。theme のオブジェクトを配置した具体イラスト。
-   * 背景に Business Intelligence レイヤー（ノード網・円形チャート・光点）、
-   * 前景に業種別の具体シーン（建物・人物・チャート等）を重ねる。
-   * @param {string} theme
+   * Hero 用の Executive Report Cover イラスト（Phase72 STEP2 C案）。
+   * 業種別の具体シーン（人物・店舗等）は廃止し、コンサルティングレポート表紙として
+   * 全テーマ共通のビジュアル（円形チャート・ネットワークライン・KPIカード3枚・
+   * Goldアクセント・幾何学アクセント）に統一する。SVGのみ・人物なし・写真なし。
+   * @param {string} theme - 現在は視覚差分に使わない（API 互換のため引数は維持）
    * @returns {string}
    */
   function hero(theme) {
-    var parts = SCENES[theme] || SCENES.generic_insight;
-    var scene = parts.map(function (p) { return place(p[0], p[1], p[2], p[3], p[4]); }).join("");
+    void theme;
     return (
       '<svg class="hero-illust__svg" viewBox="0 0 300 240" fill="none" ' +
       'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
@@ -271,7 +315,8 @@
       '<rect x="10" y="14" width="280" height="212" rx="22" fill="url(#hiBg)" stroke="none"/>' +
       '<ellipse class="hi-shadow" cx="150" cy="214" rx="120" ry="10" fill="currentColor" stroke="none" opacity="0.06"/>' +
       biBackdrop() +
-      scene +
+      executiveGoldAccent() +
+      executiveKpiCards() +
       "</svg>"
     );
   }

@@ -251,7 +251,7 @@ function renderPremiumInitialHtml(t, o) {
     greet +
     "</p>" +
     (t.hasOpportunity
-      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">御社に今あるビジネスチャンスを見つけました。</p>' +
+      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">御社向けのビジネスチャンスがあります！</p>' +
         '<p style="font-size:19px;font-weight:800;color:' +
         AOR_GOLD +
         ';line-height:1.6;margin:0;">' +
@@ -510,7 +510,7 @@ function renderPremiumWeeklyHtml(t, o) {
     greet +
     "</p>" +
     (t.hasOpportunity
-      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">今週見つかった新しいビジネスチャンスがあります。</p>' +
+      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">御社向けのビジネスチャンスがあります！</p>' +
         '<p style="font-size:19px;font-weight:800;color:' +
         AOR_GOLD +
         ';line-height:1.6;margin:0;">' +
