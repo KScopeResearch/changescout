@@ -189,7 +189,9 @@ body { overflow-x: hidden; }
   font-weight: 800;
   color: #fff;
   margin: 0 0 12px;
+  padding-bottom: 12px;
   letter-spacing: 0.005em;
+  border-bottom: 2px solid rgba(201, 162, 75, 0.5);
 }
 .report-hero__headline-line { display: inline-block; }
 .report-hero__opp-title {
@@ -371,6 +373,31 @@ body { overflow-x: hidden; }
   .hero-illust__svg .hi-bi__glow { animation: none; opacity: 0.5; }
 }
 
+/* Phase73 STEP1: Hero Illustration v2（Business Intelligence Dashboard）アニメーション。
+   transform のみ（JS アニメーション不使用）。prefers-reduced-motion では全て停止する。 */
+.hero-illust__svg .hi-radar__scan { animation: aor-radar-sweep 6s linear infinite; }
+.hero-illust__svg .hi-radar__point { animation: aor-signal-pulse 2.4s ease-in-out infinite; }
+.hero-illust__svg .hi-kpi__card { animation: aor-kpi-float 4.2s ease-in-out infinite; }
+.hero-illust__svg .hi-kpi__card:nth-child(2) { animation-delay: 0.5s; }
+.hero-illust__svg .hi-kpi__card:nth-child(3) { animation-delay: 1s; }
+@keyframes aor-radar-sweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes aor-signal-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.35); opacity: 0.65; }
+}
+@keyframes aor-kpi-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-illust__svg .hi-radar__scan,
+  .hero-illust__svg .hi-radar__point,
+  .hero-illust__svg .hi-kpi__card { animation: none; }
+}
+
 /* ============ Metrics（2-up: 市場の追い風 / 御社との適合） ============ */
 .metrics-2up {
   display: grid;
@@ -472,6 +499,10 @@ body { overflow-x: hidden; }
   color: var(--aor-gold, #c9a24b);
 }
 .metric-card__check { display: inline-flex; color: var(--aor-emerald, #059669); margin-right: 4px; vertical-align: -2px; }
+
+/* Phase73 STEP1: Dashboard KPI カードのさらなる視覚化 */
+.metric-card__trend-bar { display: inline-block; margin-top: 6px; opacity: 0.85; }
+.metric-card__network-icon { display: inline-flex; float: right; opacity: 0.8; }
 .metric-card--fit .metric-card__confidence { margin-top: 4px; }
 
 /* 「今回わかったこと」インサイトカード3枚（STEP5: 市場 / 御社 / 今動く理由） */
@@ -1557,6 +1588,18 @@ body { overflow-x: hidden; }
   gap: 8px;
   text-align: center;
 }
+/* Phase73 STEP5: market_signal_radar（コンパクト版）は大きなインフォグラフィックとして表示 */
+.reason-card__icon--radar {
+  width: 100%;
+  max-width: 96px;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  background: none;
+  box-shadow: none;
+  border-radius: 0;
+  color: var(--aor-navy);
+}
+.reason-card__icon--radar svg { width: 100%; height: 100%; }
 .reason-card__category {
   font-size: 0.6rem;
   font-weight: 800;
@@ -1695,6 +1738,24 @@ body { overflow-x: hidden; }
 }
 .canvas-layer--outcome .canvas-layer__kicker { color: var(--aor-gold); }
 .canvas-layer__text { margin: 0; font-size: 0.96rem; line-height: 1.85; }
+
+/* Phase73 STEP1: Executive Takeaway（Opportunity Canvas 末尾の Gold カード） */
+.executive-takeaway {
+  margin-top: 12px;
+  padding: 18px 20px;
+  border-radius: var(--radius-xl, 16px);
+  background: var(--aor-navy);
+  border: 1px solid var(--aor-gold);
+}
+.executive-takeaway__label {
+  margin: 0 0 6px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--aor-gold);
+}
+.executive-takeaway__text { margin: 0; font-size: 1.02rem; font-weight: 700; line-height: 1.6; color: #fff; }
 
 /* ============ Phase67 STEP7: First Action Roadmap 強化 ============ */
 .first-action__step-num {
@@ -1906,7 +1967,8 @@ body { overflow-x: hidden; }
 }
 @media (min-width: 1024px) {
   .report-hero { padding: 64px 56px 48px; }
-  .report-hero__headline { font-size: 3.75rem; line-height: 1.18; }
+  /* Phase73 STEP1: Hero h1 は 48〜56px（仕様範囲）に収める。旧 3.75rem(60px) から調整。 */
+  .report-hero__headline { font-size: 3.5rem; line-height: 1.18; }
   .sec-head__title { font-size: 2rem; }
   .stat-card__value { font-size: 2.5rem; }
   .metric-card__value { font-size: 2rem; }

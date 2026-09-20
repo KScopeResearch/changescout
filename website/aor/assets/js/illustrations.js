@@ -259,14 +259,15 @@
 
   function executiveKpiCards() {
     var cardW = 62,
-      cardH = 54,
-      cardY = 150,
+      cardH = 50,
+      cardY = 168,
       gap = 10,
       startX = 20;
     var out = "";
     for (var i = 0; i < 3; i++) {
       var x = startX + i * (cardW + gap);
       out +=
+        '<g class="hi-kpi__card">' +
         '<rect x="' + x + '" y="' + cardY + '" width="' + cardW + '" height="' + cardH +
         '" rx="8" fill="' + SURFACE + '" fill-opacity="0.92" stroke="currentColor" stroke-opacity="0.32"/>' +
         '<circle cx="' + (x + cardW - 13) + '" cy="' + (cardY + 13) + '" r="4" fill="#059669" stroke="none"/>';
@@ -274,9 +275,10 @@
       for (var b = 0; b < bars.length; b++) {
         var h = bars[b];
         var bx = x + 10 + b * 14;
-        var by = cardY + cardH - 12 - h;
+        var by = cardY + cardH - 10 - h;
         out += '<rect x="' + bx + '" y="' + by + '" width="8" height="' + h + '" rx="1.5" fill="currentColor" fill-opacity="0.55" stroke="none"/>';
       }
+      out += "</g>";
     }
     return '<g class="hi-kpi">' + out + "</g>";
   }
@@ -292,22 +294,25 @@
     );
   }
 
-  // ---- Phase72 STEP2 実メールQA反映: business_radar（ビジネスチャンス発見レーダー）------
-  // 左: レーダー円（同心円3重 + Gold スイープ楔形）+ 発見ポイント3つ（Emerald）+
-  //     中心からのAIネットワークライン。右: 上昇チャート（Emerald）+ 企業アイコン。
-  function radarScene() {
-    var cx = 85,
-      cy = 95;
+  // ---- Phase73 STEP1: Hero Illustration v2（Business Intelligence Dashboard）------
+  // 左: market_signal_radar（同心円レーダー + Gold スキャンライン + Emerald 検出ポイント3個 +
+  //     AI Network ライン。検出ポイント・スキャンラインは CSS アニメーション対象）。
+  function marketSignalRadar() {
+    var cx = 78,
+      cy = 92;
     var rings = [16, 30, 44]
       .map(function (r) {
         return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" stroke="currentColor" stroke-opacity="0.28" fill="none"/>';
       })
       .join("");
-    // Gold のレーダースイープ（扇形）
-    var sweep =
+    // Gold のスキャンライン（回転アニメーションの起点。transform-origin はコンポーネント側で cx,cy に設定）
+    var scan =
+      '<g class="hi-radar__scan" style="transform-origin: ' + cx + "px " + cy + 'px;">' +
       '<path d="M' + cx + " " + cy + " L" + cx + " " + (cy - 44) +
       " A44 44 0 0 1 " + (cx + 31) + " " + (cy - 31) +
-      ' Z" fill="#c9a24b" fill-opacity="0.18" stroke="none"/>';
+      ' Z" fill="#c9a24b" fill-opacity="0.2" stroke="none"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - 44) + '" stroke="#c9a24b" stroke-width="1.4"/>' +
+      "</g>";
     var discoveries = [
       [cx + 20, cy - 34],
       [cx - 30, cy + 10],
@@ -319,52 +324,85 @@
       })
       .join("");
     var points = discoveries
-      .map(function (p) {
+      .map(function (p, i) {
         return (
-          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
+          '<circle class="hi-radar__point" style="transform-origin: ' + p[0] + "px " + p[1] + 'px; animation-delay: ' + i * 0.4 + 's;" ' +
+          'cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
           '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>'
         );
       })
       .join("");
     var centerDot = '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="currentColor" stroke="none"/>';
-    return '<g class="hi-radar">' + rings + sweep + links + points + centerDot + "</g>";
+    return '<g class="hi-radar">' + rings + scan + links + points + centerDot + "</g>";
   }
 
-  function growthChartScene() {
+  // 右上: growth_projection_chart（上昇チャートのみ）。
+  function growthProjectionChart() {
     var pts = [
-      [185, 140],
-      [207, 118],
-      [229, 128],
-      [251, 94],
-      [270, 62],
+      [178, 138],
+      [198, 118],
+      [218, 127],
+      [238, 96],
+      [255, 66],
     ];
     var path = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
     var lastP = pts[pts.length - 1];
-    var chart =
+    return (
+      '<g class="hi-growth">' +
       '<path d="' + path + '" stroke="#059669" stroke-width="2.5" fill="none"/>' +
-      '<circle cx="' + lastP[0] + '" cy="' + lastP[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>';
-    var building =
-      '<g class="hi-building" transform="translate(238 92)">' +
+      '<circle cx="' + lastP[0] + '" cy="' + lastP[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>' +
+      "</g>"
+    );
+  }
+
+  // 右: company_network_map（Company ノード + Market ノード + 接続ライン + 企業アイコン）。
+  function companyNetworkMap() {
+    var company = [260, 100];
+    var market = [222, 62];
+    return (
+      '<g class="hi-network">' +
+      '<line x1="' + market[0] + '" y1="' + market[1] + '" x2="' + company[0] + '" y2="' + company[1] + '" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="2 4"/>' +
+      '<circle cx="' + market[0] + '" cy="' + market[1] + '" r="5" fill="currentColor" fill-opacity="0.5" stroke="#ffffff" stroke-width="1.2"/>' +
+      '<g class="hi-building" transform="translate(' + (company[0] - 12) + " " + (company[1] - 6) + ')">' +
       '<rect x="0" y="0" width="24" height="38" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.45"/>' +
       '<rect x="5" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
       '<rect x="14" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
       '<rect x="5" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
       '<rect x="14" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
       '<rect x="9" y="27" width="6" height="11" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
-      "</g>";
-    return '<g class="hi-growth">' + chart + building + "</g>";
+      "</g>" +
+      "</g>"
+    );
+  }
+
+  // Opportunity 通知カード（小さな Gold バッジ + スパークル。文字は使わない＝装飾のみ）。
+  function opportunityNotificationCard() {
+    return (
+      '<g class="hi-notify" transform="translate(150 30)">' +
+      '<circle r="10" fill="#c9a24b" fill-opacity="0.16" stroke="none"/>' +
+      '<path d="M0 -6l1.8 4.2L6 0l-4.2 1.8L0 6l-1.8-4.2L-6 0l4.2-1.8z" fill="#c9a24b" stroke="none"/>' +
+      "</g>"
+    );
+  }
+
+  // 下段キャプション（英語の定型マイクロコピー。FREE EDITION 等と同じ扱い、装飾テキスト）。
+  function dashboardCaption() {
+    return (
+      '<g class="hi-caption">' +
+      '<text x="16" y="152" font-size="7" font-weight="700" letter-spacing="0.06em" fill="#c9a24b" stroke="none">3 SIGNALS DETECTED</text>' +
+      '<text x="284" y="152" font-size="7" font-weight="700" letter-spacing="0.02em" fill="currentColor" fill-opacity="0.55" stroke="none" text-anchor="end">BUSINESS OPPORTUNITY IDENTIFIED</text>' +
+      "</g>"
+    );
   }
 
   /**
-   * Hero 用の「ビジネスチャンス発見レーダー」イラスト（business_radar）。
-   * 業種別の具体シーン（人物・店舗等）は廃止し、全テーマ共通のビジュアルへ統一する。
-   * 左: レーダー円+発見ポイント3つ+AIネットワーク。右: 上昇チャート+企業アイコン。
-   * 下段: KPIカード3枚。SVGのみ・人物なし・写真なし・絵文字なし。
-   * @param {string} theme - 現在は視覚差分に使わない（API 互換のため引数は維持）
+   * Hero 用の Business Intelligence Dashboard イラスト（business_intelligence_cover）。
+   * 左: market_signal_radar。右: growth_projection_chart + company_network_map +
+   * opportunity 通知カード。下段: Gold ライン + キャプション + KPI カード3枚（executive_dashboard_panel）。
+   * SVGのみ・人物なし・写真なし・絵文字なし。アニメーションは CSS（transform のみ）。
    * @returns {string}
    */
-  function hero(theme) {
-    void theme;
+  function businessIntelligenceCover() {
     return (
       '<svg class="hero-illust__svg" viewBox="0 0 300 240" fill="none" ' +
       'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
@@ -377,12 +415,24 @@
       "</defs>" +
       '<rect x="10" y="14" width="280" height="212" rx="22" fill="url(#hiBg)" stroke="none"/>' +
       '<ellipse class="hi-shadow" cx="150" cy="214" rx="120" ry="10" fill="currentColor" stroke="none" opacity="0.06"/>' +
-      radarScene() +
-      growthChartScene() +
-      executiveGoldAccent() +
+      marketSignalRadar() +
+      growthProjectionChart() +
+      companyNetworkMap() +
+      opportunityNotificationCard() +
+      '<line x1="16" y1="142" x2="284" y2="142" stroke="#c9a24b" stroke-width="2" stroke-dasharray="1 7"/>' +
+      dashboardCaption() +
       executiveKpiCards() +
       "</svg>"
     );
+  }
+
+  /**
+   * @param {string} theme - 現在は視覚差分に使わない（API 互換のため引数は維持）
+   * @returns {string}
+   */
+  function hero(theme) {
+    void theme;
+    return businessIntelligenceCover();
   }
 
   // ---- Phase72 STEP2 実メールQA反映: セクション見出し用の小型シーン（各章の先頭） ------
@@ -455,6 +505,50 @@
     return bars + line + doc;
   }
 
+  // Phase73 STEP1 STEP5: WHY NOW 用の market_signal_radar コンパクト版（正方形、左20%カラム）。
+  function marketSignalRadarCompact() {
+    var cx = 56,
+      cy = 56;
+    var rings = [10, 20, 32]
+      .map(function (r) {
+        return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" stroke="currentColor" stroke-opacity="0.28" fill="none"/>';
+      })
+      .join("");
+    var scan =
+      '<g class="hi-radar__scan" style="transform-origin: ' + cx + "px " + cy + 'px;">' +
+      '<path d="M' + cx + " " + cy + " L" + cx + " " + (cy - 32) +
+      " A32 32 0 0 1 " + (cx + 23) + " " + (cy - 22) +
+      ' Z" fill="#c9a24b" fill-opacity="0.2" stroke="none"/>' +
+      "</g>";
+    var discoveries = [
+      [cx + 14, cy - 24],
+      [cx - 22, cy + 8],
+      [cx + 24, cy + 22],
+    ];
+    var links = discoveries
+      .map(function (p) {
+        return '<line x1="' + cx + '" y1="' + cy + '" x2="' + p[0] + '" y2="' + p[1] + '" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="2 4"/>';
+      })
+      .join("");
+    var points = discoveries
+      .map(function (p, i) {
+        return (
+          '<circle class="hi-radar__point" style="transform-origin: ' + p[0] + "px " + p[1] + 'px; animation-delay: ' + i * 0.4 + 's;" ' +
+          'cx="' + p[0] + '" cy="' + p[1] + '" r="6" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
+          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="3" fill="#059669" stroke="#ffffff" stroke-width="1.2"/>'
+        );
+      })
+      .join("");
+    var centerDot = '<circle cx="' + cx + '" cy="' + cy + '" r="2.6" fill="currentColor" stroke="none"/>';
+    return (
+      '<svg class="hero-illust__svg sec-scene__radar" viewBox="0 0 112 112" fill="none" ' +
+      'stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" ' +
+      'aria-hidden="true" focusable="false">' +
+      '<g class="hi-radar">' + rings + scan + links + points + centerDot + "</g>" +
+      "</svg>"
+    );
+  }
+
   var SECTION_SCENES = {
     trend_signal: trendSignalScene,
     opportunity_network: opportunityNetworkScene,
@@ -500,6 +594,14 @@
     hero: hero,
     steps: steps,
     sectionScene: sectionScene,
+    // Phase73 STEP1: Hero Illustration v2 の個別パーツ（hero() は business_intelligence_cover
+    // を内部で呼ぶ。個別関数はテスト・将来の再利用のために公開）。
+    business_intelligence_cover: businessIntelligenceCover,
+    market_signal_radar: marketSignalRadar,
+    executive_dashboard_panel: executiveKpiCards,
+    growth_projection_chart: growthProjectionChart,
+    company_network_map: companyNetworkMap,
+    market_signal_radar_compact: marketSignalRadarCompact,
     THEMES: THEMES,
     SCENE_THEMES: Object.keys(SCENES),
   };

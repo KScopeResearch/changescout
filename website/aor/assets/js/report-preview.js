@@ -633,6 +633,7 @@ function buildMarketMetricCard(vm, snapshot) {
     `<span class="metric-card__value">${escapeText(top.value)}</span>` +
     `</div>` +
     `<div class="metric-card__note">${escapeText(labelWithScope(top))}</div>` +
+    `<span class="metric-card__trend-bar" aria-hidden="true">${marketTrendBar()}</span>` +
     (insight ? `<div class="metric-card__insight">${escapeText(insight)}</div>` : "");
   return card;
 }
@@ -644,6 +645,26 @@ function windTrendIcon() {
     '<svg width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true">' +
     '<circle cx="18" cy="18" r="15" stroke="currentColor" stroke-opacity="0.25" stroke-width="3"/>' +
     '<path d="M11 21l7-9 7 9" stroke="#059669" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>' +
+    "</svg>"
+  );
+}
+
+// 「市場の追い風」カード用の小さなトレンドバー（装飾のみ・値は含まない）。
+function marketTrendBar() {
+  return (
+    '<svg width="64" height="16" viewBox="0 0 64 16" fill="none" aria-hidden="true">' +
+    '<path d="M2 13 L16 9 L28 11 L42 5 L62 3" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    "</svg>"
+  );
+}
+
+// 「御社との適合度」カード用の小さなネットワークダイアグラム（会社×市場の2ノード）。
+function fitNetworkIcon() {
+  return (
+    '<svg width="30" height="20" viewBox="0 0 30 20" fill="none" aria-hidden="true">' +
+    '<line x1="6" y1="14" x2="22" y2="6" stroke="currentColor" stroke-opacity="0.35"/>' +
+    '<circle cx="6" cy="14" r="4" fill="#c9a24b" stroke="none"/>' +
+    '<circle cx="22" cy="6" r="4" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
     "</svg>"
   );
 }
@@ -667,7 +688,8 @@ function buildFitMetricCard(data, vm) {
   const ring = vm.confidence && vm.confidence.level ? confidenceRing(vm.confidence.level) : "";
   const checkGlyph = Illustrations.glyph("check_circle", { size: 14 });
   card.innerHTML =
-    `<div class="metric-card__label">御社との適合度<span class="metric-card__fit-tag">事業適合分析</span></div>` +
+    `<div class="metric-card__label">御社との適合度<span class="metric-card__fit-tag">事業適合分析</span>` +
+    `<span class="metric-card__network-icon" aria-hidden="true">${fitNetworkIcon()}</span></div>` +
     (ring
       ? `<div class="metric-card__ring-row">` +
         `<div class="metric-card__ring" aria-hidden="true">${ring}</div>` +
@@ -766,17 +788,18 @@ function renderWhyNow(vm, theme) {
   el.innerHTML = "";
   if (!vm.whyNow) return;
   el.appendChild(secHead("なぜ今なのか", theme));
-  el.appendChild(sectionSceneEl("trend_signal"));
 
   const card = document.createElement("div");
   card.className = "reason-card reason-card--feature";
 
+  // Phase73 STEP5: 左側の狭いカラムを market_signal_radar（コンパクト版）へ差し替え
+  // （雑誌レイアウトの大きなインフォグラフィック）。
   const iconCol = document.createElement("div");
   iconCol.className = "reason-card__icon-col";
   const icon = document.createElement("span");
-  icon.className = "reason-card__icon";
+  icon.className = "reason-card__icon reason-card__icon--radar";
   icon.setAttribute("aria-hidden", "true");
-  icon.innerHTML = Illustrations.glyph(theme, { size: 28 });
+  icon.innerHTML = Illustrations.market_signal_radar_compact();
   iconCol.appendChild(icon);
   iconCol.appendChild(textP("reason-card__category", "MARKET CHANGE"));
   card.appendChild(iconCol);
@@ -982,6 +1005,18 @@ function renderOpportunity(data, vm, theme, snapshot) {
     layer3.appendChild(textP("canvas-layer__kicker", "Layer 3 — Expected Outcome"));
     layer3.appendChild(textP("canvas-layer__text", vm.impact));
     canvas.appendChild(layer3);
+  }
+
+  // Phase73 STEP1: Executive Takeaway（Goldカード）。データは Initial Report が既に持つ
+  // free_opportunity.extended_analysis.priority（vm.impact）のみを要約表示する。
+  // paid_analysis.decision_summary は有料層データのため参照しない（Free/Paid境界を維持）。
+  const takeaway = PreviewUI.summarizeSentence(vm.impact, 96);
+  if (takeaway) {
+    const tw = document.createElement("div");
+    tw.className = "executive-takeaway";
+    tw.appendChild(textP("executive-takeaway__label", "Executive Takeaway"));
+    tw.appendChild(textP("executive-takeaway__text", takeaway));
+    canvas.appendChild(tw);
   }
 
   el.appendChild(canvas);

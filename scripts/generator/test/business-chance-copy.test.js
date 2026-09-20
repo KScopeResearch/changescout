@@ -173,7 +173,7 @@ test("expectedBenefit: 売上/集客/リピート/採用・定着/利益率/業�
 
 /* ---------- Illustration: 20 テーマすべて SVG ---------- */
 
-test("Illustrations: 全 THEMES で glyph が SVG・hero が business_radar SVG（Phase72 STEP2: 人物シーン廃止）", () => {
+test("Illustrations: 全 THEMES で glyph が SVG・hero が Business Intelligence Dashboard SVG（Phase73 STEP1: Hero v2）", () => {
   const I = require(path.join(WEB, "assets", "js", "illustrations.js"));
   assert.ok(I.THEMES.length >= 20, "20 テーマ以上: " + I.THEMES.length);
   I.THEMES.forEach((th) => {
@@ -181,17 +181,29 @@ test("Illustrations: 全 THEMES で glyph が SVG・hero が business_radar SVG�
     const h = I.hero(th);
     assert.ok(h.startsWith("<svg") && h.trim().endsWith("</svg>"), th + " hero");
     assert.match(h, /aria-hidden="true"/, th + " aria-hidden");
-    // Phase72 STEP2（実メールQA反映）: 業種別の具体シーン（店舗/人物/スマホ等）は廃止し、
-    // 全テーマ共通の「ビジネスチャンス発見レーダー」（business_radar）へ統一した。
-    // レーダー円+発見ポイント+AIネットワーク（hi-radar）、上昇チャート+企業アイコン
-    // （hi-growth）、Goldアクセント（hi-gold-accent）、KPIカード3枚（hi-kpi）を含み、
-    // 人物パーツは一切含まれない。
+    // Phase73 STEP1: business_intelligence_cover に統一。market_signal_radar（hi-radar、
+    // 検出ポイント3個 hi-radar__point）+ growth_projection_chart（hi-growth）+
+    // company_network_map（hi-network）+ Opportunity 通知カード（hi-notify）+
+    // キャプション（hi-caption）+ executive_dashboard_panel（hi-kpi、カード hi-kpi__card）。
+    // 業種別の具体シーン（店舗/人物/スマホ等）は含まれない。
     assert.match(h, /class="hi-radar"/, th + " radar");
+    assert.match(h, /class="hi-radar__point"/, th + " radar discovery points");
     assert.match(h, /class="hi-growth"/, th + " growth chart");
-    assert.match(h, /class="hi-gold-accent"/, th + " gold accent");
+    assert.match(h, /class="hi-network"/, th + " company network map");
+    assert.match(h, /class="hi-notify"/, th + " opportunity notification");
     assert.match(h, /class="hi-kpi"/, th + " kpi cards");
     assert.doesNotMatch(h, /P\.person|hi-person/, th + " no person parts");
   });
+});
+
+test("Illustrations: Hero v2 の個別パーツ関数（business_intelligence_cover 系）が公開されている", () => {
+  const I = require(path.join(WEB, "assets", "js", "illustrations.js"));
+  assert.equal(typeof I.business_intelligence_cover, "function");
+  assert.equal(typeof I.market_signal_radar, "function");
+  assert.equal(typeof I.executive_dashboard_panel, "function");
+  assert.equal(typeof I.growth_projection_chart, "function");
+  assert.equal(typeof I.company_network_map, "function");
+  assert.match(I.business_intelligence_cover(), /^<svg[\s\S]*<\/svg>$/);
 });
 
 test("Illustrations: sectionScene() は4種すべてで整形式の SVG を返す", () => {
