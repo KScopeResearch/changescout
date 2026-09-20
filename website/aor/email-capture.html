@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>詳細レポートを受け取る | AI Opportunity Report</title>
+<title>御社専用の追加分析を見る | AOR</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="stylesheet" href="assets/css/base.css">
 <link rel="stylesheet" href="assets/css/email-capture.css">
@@ -12,118 +12,189 @@
 
 <div class="page" id="page" hidden>
 
-  <header class="ec-header">
-    <p class="report-header__eyebrow">AI Opportunity Report</p>
-    <h1 class="ec-header__title">詳細レポートを受け取る</h1>
-    <p class="ec-header__tagline">メールアドレスのみで登録できます。営業電話はいたしません。</p>
-  </header>
+  <!-- Phase69 STEP1: SECTION 1 — Executive Cover（Initial Report と世界観を統一。JS で描画） -->
+  <header class="ec-cover" id="ec-cover"></header>
 
   <main>
 
-    <form id="capture-form" class="ec-form" novalidate>
+    <!-- SECTION 2 — 追加分析ではここまで分かります（既存データの抜粋のみ） -->
+    <section class="section" id="ec-what-you-get"></section>
 
-      <div class="field">
-        <label for="email">メールアドレス <span class="required">必須</span></label>
-        <input type="email" id="email" name="email" required placeholder="you@example.co.jp" autocomplete="email">
-        <p class="field-error" id="email-error" hidden>メールアドレスを正しい形式で入力してください。</p>
-      </div>
+    <!-- SECTION 3 — Executive Dashboard（Initial Report の Dashboard 値を再利用） -->
+    <section class="section" id="ec-dashboard"></section>
 
-      <p class="privacy-note">
-        業務用のメールアドレス・会社情報のみを利用し、個人の機微な情報は取得しません。
-      </p>
+    <!-- SECTION 4 — 詳細分析サンプル（ぼかしプレビュー。既存データのみ・文章生成なし） -->
+    <section class="section" id="ec-premium-preview"></section>
 
-      <button type="button" class="toggle-optional" id="toggle-optional" aria-expanded="false" aria-controls="optional-fields">
-        詳細を確認（任意・2項目）
-      </button>
-
-      <div class="optional-fields" id="optional-fields" hidden>
-        <div class="field">
-          <label for="company-name">会社名</label>
-          <input type="text" id="company-name" name="company_name">
-          <p class="field-hint" id="company-name-hint"></p>
-        </div>
-
-        <div class="field">
-          <label for="role">担当業務</label>
-          <select id="role" name="role">
-            <option value="">選択してください</option>
-            <option value="executive">経営者</option>
-            <option value="sales">営業</option>
-            <option value="backoffice">バックオフィス</option>
-            <option value="other">その他</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label for="industry">業種</label>
-          <input type="text" id="industry" name="industry">
-          <p class="field-hint" id="industry-hint"></p>
-        </div>
-      </div>
-
-      <label class="consent" id="consent-label">
-        <input type="checkbox" id="consent" required>
-        <span>プライバシーポリシーに同意し、レポートの配信を希望します。</span>
-      </label>
-      <p class="field-error" id="consent-error" hidden>同意のうえチェックを入れてください。</p>
-
-      <!-- ハニーポット（PJ2 第2実装）: 人間には見えないダミー欄。botが自動入力したら
-           API側で検知し、保存せず成功と同じ応答を返す（bot側に検知を悟らせないため）。
-           name/id を実在しそうな値にし、tabindex=-1・aria-hidden・オフスクリーン配置で
-           スクリーンリーダー・キーボード操作の利用者には一切影響しない。 -->
-      <div class="hp-field" aria-hidden="true">
-        <label for="hp-website">Website</label>
-        <input type="text" id="hp-website" name="hp_website" tabindex="-1" autocomplete="off">
-      </div>
-
-      <p class="field-error" id="api-error" hidden></p>
-
-      <button type="submit" class="btn btn-primary btn-cta ec-submit" id="submit-btn">詳細レポートを受け取る</button>
-      <p class="cta-note">営業電話はいたしません。</p>
-    </form>
-
-    <!-- PJ2 Phase3前段: report-preview.htmlから ?lead=/?token= を伴って遷移してきた場合のみ
-         JS側でこちらを表示し、上のcapture-form（旧: 自己登録フロー）は隠す。
-         email/company_slugは不要（Lead側で既に把握済みのため再入力させない）。 -->
-    <section class="ec-phase4" id="phase4-section" hidden>
-      <h2 class="ec-header__title">続けてお選びください</h2>
-      <p class="ec-header__tagline">このレポートについて、以下からお選びいただけます。</p>
-
-      <div class="ec-phase4__actions">
-        <button type="button" class="btn btn-primary btn-cta" id="phase4-paid-btn">詳しい有料レポートが欲しい</button>
-        <button type="button" class="btn btn-secondary btn-cta" id="phase4-weekly-btn">毎週無料レポートを受け取ることに同意する</button>
-      </div>
-
-      <p class="field-error" id="phase4-error" hidden></p>
-      <p class="ec-success__mail-note" id="phase4-success" hidden></p>
+    <!-- SECTION 5 — レポート構成（登録すると届く内容・固定コピーのタイムライン） -->
+    <section class="section ec-structure">
+      <h2 class="sec-title">登録すると届く内容</h2>
+      <ol class="ec-timeline">
+        <li class="ec-timeline__step">
+          <span class="ec-timeline__num">01</span>
+          <p class="ec-timeline__label">市場分析</p>
+          <p class="ec-timeline__text">市場規模・成長性・制度動向の詳細分析</p>
+        </li>
+        <li class="ec-timeline__step">
+          <span class="ec-timeline__num">02</span>
+          <p class="ec-timeline__label">御社分析</p>
+          <p class="ec-timeline__text">競合状況・御社の強みとの接続ポイント</p>
+        </li>
+        <li class="ec-timeline__step">
+          <span class="ec-timeline__num">03</span>
+          <p class="ec-timeline__label">実行プラン</p>
+          <p class="ec-timeline__text">優先順位づけと具体的な実行ロードマップ</p>
+        </li>
+        <li class="ec-timeline__step">
+          <span class="ec-timeline__num">04</span>
+          <p class="ec-timeline__label">毎週アップデート</p>
+          <p class="ec-timeline__text">新しいビジネスチャンスを継続的にお届け</p>
+        </li>
+      </ol>
     </section>
 
-    <section class="ec-success" id="success" hidden>
-      <p class="ec-success__check" aria-hidden="true">✓</p>
-      <h2 class="ec-success__title">追加分析を公開しました</h2>
-      <p class="ec-success__body">
-        登録ありがとうございます。無料版ではご紹介したテーマについて、追加分析をご覧いただけます。
-        さらに複数テーマの分析、優先順位付け、90日ロードマップ、継続支援は有料版で提供します。
-      </p>
-      <p class="ec-success__mail-note">
-        確認メールを <strong id="success-email"></strong> 宛に送信しました。
-        （本モックでは実際のメール送信は行われません）
-      </p>
+    <!-- SECTION 6 — 毎週届く内容（レイアウトのみ・実データは登録済みテーマの言い換え） -->
+    <section class="section" id="ec-weekly-preview"></section>
 
-      <div id="extended-analysis"></div>
+    <!-- SECTION 7 — Trust（Constitution固定の4項目） -->
+    <section class="section" id="ec-trust"></section>
 
-      <div class="ec-upgrade">
-        <a href="#" id="paid-preview-link" class="btn btn-primary btn-cta">さらに詳しい分析を見る</a>
+    <!-- SECTION 8 — FAQ（仕様説明のみ・固定コピー） -->
+    <section class="section ec-faq">
+      <h2 class="sec-title">よくあるご質問</h2>
+      <div class="ec-faq__list">
+        <details class="ec-faq__item">
+          <summary>なぜ無料なのですか？</summary>
+          <p>公開情報をもとに専門家監修のもと分析したレポートです。まずは無料版で価値を確認いただき、
+            継続的にご利用いただけるかをご判断いただくための提供形態です。</p>
+        </details>
+        <details class="ec-faq__item">
+          <summary>どれくらいの頻度で届きますか？</summary>
+          <p>登録後、追加分析を1回、その後は新しいビジネスチャンスが見つかるたびに無料版を毎週配信します。</p>
+        </details>
+        <details class="ec-faq__item">
+          <summary>配信は停止できますか？</summary>
+          <p>いつでも停止できます。メール内のリンク、または本ページ下部の配信停止リンクからご操作いただけます。</p>
+        </details>
+        <details class="ec-faq__item">
+          <summary>営業電話はありますか？</summary>
+          <p>営業電話はいたしません。メールアドレス登録のみで完結し、電話・訪問営業は行いません。</p>
+        </details>
       </div>
+    </section>
+
+    <!-- SECTION 9 — CTA / フォーム（機能はPJ2既存仕様を完全維持。見た目のみ Premium 化） -->
+    <section class="section ec-cta-section" id="ec-cta-section">
+      <h2 class="ec-cta-section__title">無料版を毎週メールで受け取る</h2>
+      <p class="ec-cta-section__desc">メールアドレスのみで登録できます。営業電話はいたしません。</p>
+
+      <form id="capture-form" class="ec-form" novalidate>
+
+        <div class="field field--email">
+          <label for="email">メールアドレス <span class="required">必須</span></label>
+          <input type="email" id="email" name="email" required placeholder="you@example.co.jp" autocomplete="email">
+          <p class="field-error" id="email-error" hidden>メールアドレスを正しい形式で入力してください。</p>
+        </div>
+
+        <p class="privacy-note">
+          業務用のメールアドレス・会社情報のみを利用し、個人の機微な情報は取得しません。
+        </p>
+
+        <button type="button" class="toggle-optional" id="toggle-optional" aria-expanded="false" aria-controls="optional-fields">
+          詳細を確認（任意・2項目）
+        </button>
+
+        <div class="optional-fields" id="optional-fields" hidden>
+          <div class="field">
+            <label for="company-name">会社名</label>
+            <input type="text" id="company-name" name="company_name">
+            <p class="field-hint" id="company-name-hint"></p>
+          </div>
+
+          <div class="field">
+            <label for="role">担当業務</label>
+            <select id="role" name="role">
+              <option value="">選択してください</option>
+              <option value="executive">経営者</option>
+              <option value="sales">営業</option>
+              <option value="backoffice">バックオフィス</option>
+              <option value="other">その他</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="industry">業種</label>
+            <input type="text" id="industry" name="industry">
+            <p class="field-hint" id="industry-hint"></p>
+          </div>
+        </div>
+
+        <label class="consent" id="consent-label">
+          <input type="checkbox" id="consent" required>
+          <span>プライバシーポリシーに同意し、レポートの配信を希望します。</span>
+        </label>
+        <p class="field-error" id="consent-error" hidden>同意のうえチェックを入れてください。</p>
+
+        <!-- ハニーポット（PJ2 第2実装）: 人間には見えないダミー欄。botが自動入力したら
+             API側で検知し、保存せず成功と同じ応答を返す（bot側に検知を悟らせないため）。
+             name/id を実在しそうな値にし、tabindex=-1・aria-hidden・オフスクリーン配置で
+             スクリーンリーダー・キーボード操作の利用者には一切影響しない。 -->
+        <div class="hp-field" aria-hidden="true">
+          <label for="hp-website">Website</label>
+          <input type="text" id="hp-website" name="hp_website" tabindex="-1" autocomplete="off">
+        </div>
+
+        <p class="field-error" id="api-error" hidden></p>
+
+        <button type="submit" class="btn btn-primary btn-cta ec-submit" id="submit-btn">
+          <span>無料版を毎週メールで受け取る</span>
+          <span class="ec-submit__arrow" aria-hidden="true"></span>
+        </button>
+        <p class="cta-note">営業電話はいたしません。公開情報ベースで分析します。</p>
+      </form>
+
+      <!-- PJ2 Phase3前段: report-preview.htmlから ?lead=/?token= を伴って遷移してきた場合のみ
+           JS側でこちらを表示し、上のcapture-form（旧: 自己登録フロー）は隠す。
+           email/company_slugは不要（Lead側で既に把握済みのため再入力させない）。 -->
+      <section class="ec-phase4" id="phase4-section" hidden>
+        <h2 class="ec-header__title">続けてお選びください</h2>
+        <p class="ec-header__tagline">このレポートについて、以下からお選びいただけます。</p>
+
+        <div class="ec-phase4__actions">
+          <button type="button" class="btn btn-primary btn-cta" id="phase4-paid-btn">詳しい有料レポートが欲しい</button>
+          <button type="button" class="btn btn-secondary btn-cta" id="phase4-weekly-btn">毎週無料レポートを受け取ることに同意する</button>
+        </div>
+
+        <p class="field-error" id="phase4-error" hidden></p>
+        <p class="ec-success__mail-note" id="phase4-success" hidden></p>
+      </section>
+
+      <section class="ec-success" id="success" hidden>
+        <p class="ec-success__check" aria-hidden="true">
+          <span class="ec-success__check-icon"></span>
+        </p>
+        <h2 class="ec-success__title">追加分析を公開しました</h2>
+        <p class="ec-success__body">
+          登録ありがとうございます。無料版ではご紹介したテーマについて、追加分析をご覧いただけます。
+          さらに複数テーマの分析、優先順位付け、90日ロードマップ、継続支援は有料版で提供します。
+        </p>
+        <p class="ec-success__mail-note">
+          確認メールを <strong id="success-email"></strong> 宛に送信しました。
+          （本モックでは実際のメール送信は行われません）
+        </p>
+
+        <div id="extended-analysis"></div>
+
+        <div class="ec-upgrade">
+          <a href="#" id="paid-preview-link" class="btn btn-primary btn-cta">さらに詳しい分析を見る</a>
+        </div>
+      </section>
     </section>
 
   </main>
 
-  <footer class="report-footer">
-    <p class="report-footer__row">AI Opportunity Report 運営事務局</p>
-    <p class="report-footer__row"><a href="#">プライバシーポリシー</a>（サービスLPは本パスでは未実装のためプレースホルダーです）</p>
-    <p class="report-footer__row"><a href="#" id="footer-opt-out">配信停止はこちら</a></p>
-  </footer>
+  <!-- SECTION 10 — Footer（Initial Report 準拠。JS で描画） -->
+  <footer class="report-footer ec-footer" id="ec-footer"></footer>
 
 </div>
 
@@ -135,6 +206,9 @@
   <div id="state-error-content"></div>
 </div>
 
+<script src="assets/js/market-stats.js"></script>
+<script src="assets/js/preview-ui.js"></script>
+<script src="assets/js/illustrations.js"></script>
 <script src="assets/js/common.js"></script>
 <script src="assets/js/email-capture.js"></script>
 </body>
