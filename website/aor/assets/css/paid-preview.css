@@ -131,24 +131,37 @@ body { overflow-x: hidden; }
   margin: 0 auto 24px;
   max-width: 42em;
 }
-.hero-cover-meta {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 18px 28px;
+/* Phase70 STEP1: Cover 下部メタは4枚のカードへ（従来の dl 表示から変更） */
+.hero-cover-meta-cards {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   margin: 0;
-  padding-top: 18px;
+  padding-top: 20px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
 }
-.hero-cover-meta dt {
-  font-size: 0.62rem;
+.hero-cover-meta-card {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 12px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.hero-cover-meta-card__icon { display: inline-flex; color: var(--aor-gold); }
+.hero-cover-meta-card__label {
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
-  margin: 0 0 3px;
 }
-.hero-cover-meta dd { font-size: 0.94rem; font-weight: 700; color: #fff; margin: 0; }
+.hero-cover-meta-card__value { font-size: 0.9rem; font-weight: 700; color: #fff; overflow-wrap: anywhere; }
 
 .hero-illust { position: relative; z-index: 1; margin: 24px auto 0; max-width: 420px; color: rgba(255, 255, 255, 0.85); }
 .hero-illust__svg { width: 100%; height: auto; display: block; }
@@ -176,6 +189,24 @@ body { overflow-x: hidden; }
 }
 .exec-summary__title-wrap { display: flex; align-items: center; gap: 8px; }
 .exec-summary__icon { display: inline-flex; color: var(--aor-navy); }
+
+/* Decision Highlight（decision_summary.recommendation がある場合のみ表示） */
+.decision-highlight {
+  background: linear-gradient(135deg, rgba(201, 162, 75, 0.12) 0%, rgba(201, 162, 75, 0.04) 100%);
+  border: 1px solid var(--aor-gold);
+  border-radius: 16px;
+  padding: 16px 20px;
+  margin: 0 0 20px;
+}
+.decision-highlight__label {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8842f;
+}
+.decision-highlight__text { margin: 0; font-size: 1rem; font-weight: 700; line-height: 1.7; color: var(--aor-navy); }
 .exec-summary__title { margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--aor-navy); }
 .exec-summary__badge {
   display: inline-block;
@@ -266,6 +297,28 @@ body { overflow-x: hidden; }
 .market-timeline__dot { width: 12px; height: 12px; border-radius: 999px; background: var(--aor-navy); border: 2px solid #fff; display: block; }
 .market-timeline__year { font-size: 0.78rem; font-weight: 800; color: var(--aor-navy); }
 
+/* Phase70 STEP1: 資料風の縦タイムライン */
+.market-timeline--vertical {
+  flex-direction: column;
+  gap: 18px;
+  padding-left: 6px;
+}
+.market-timeline--vertical::before {
+  left: 5px;
+  right: auto;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  height: auto;
+}
+.market-timeline--vertical .market-timeline__item {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+}
+.market-timeline--vertical .market-timeline__year { font-size: 0.9rem; }
+
 /* ============ SECTION 5: Company Analysis ============ */
 .company-snapshot { background: #fff; border: 1px solid var(--aor-border); border-radius: var(--radius-xl); padding: 24px 24px 22px; box-shadow: var(--shadow-soft); margin: 0 0 18px; }
 .company-snapshot__title { display: flex; align-items: center; gap: 6px; margin: 0 0 16px; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--aor-navy); }
@@ -309,6 +362,37 @@ body { overflow-x: hidden; }
 .opp-triad__label { margin: 0 0 6px; font-size: 0.72rem; font-weight: 800; color: var(--aor-navy); }
 .opp-triad__text { margin: 0; font-size: 0.85rem; line-height: 1.65; color: var(--color-text); }
 
+/* Executive Takeaway（Opportunity Canvas 最後の一文カード） */
+.executive-takeaway {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: var(--aor-navy);
+  color: #fff;
+  border-radius: 18px;
+  padding: 20px 22px;
+}
+.executive-takeaway__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  color: var(--aor-navy);
+  background: var(--aor-gold);
+  border-radius: 10px;
+}
+.executive-takeaway__label {
+  margin: 0 0 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aor-gold);
+}
+.executive-takeaway__text { margin: 0; font-size: 0.98rem; line-height: 1.8; }
+
 /* ============ SECTION 7: Competitive Perspective ============ */
 .cp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
 .cp-card { background: #fff; border: 1px solid var(--aor-border); border-radius: 16px; padding: 18px 14px; text-align: center; box-shadow: var(--shadow-soft); }
@@ -345,6 +429,23 @@ body { overflow-x: hidden; }
 }
 .first-action__done-badge-tag { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.06em; color: var(--aor-emerald-dark); border: 1px solid var(--aor-emerald-border); border-radius: 999px; padding: 1px 8px; }
 
+/* Milestone（Today / 30 Days / 90 Days。既存 paid_analysis.roadmap のみ使用） */
+.milestone-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px; }
+.milestone-chip { background: #fff; border: 1px solid var(--aor-border); border-radius: 14px; padding: 14px 16px; }
+.milestone-chip__label {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--aor-navy);
+  border-radius: 999px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+}
+.milestone-chip__text { margin: 0; font-size: 0.82rem; line-height: 1.6; color: var(--color-text); }
+
 /* ============ SECTION 9: Evidence Library ============ */
 .evi-list--card { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .evi-card { position: relative; padding: 18px 20px 18px 48px; background: #fff; border: 1px solid var(--aor-border); border-radius: 18px; box-shadow: var(--shadow-soft); }
@@ -364,6 +465,18 @@ body { overflow-x: hidden; }
 .badge-cat--news { background: #f3f4f6; color: #374151; }
 
 /* ============ SECTION 10: Source Library ============ */
+.source-group-block { margin: 0 0 28px; }
+.source-group-block:last-child { margin-bottom: 0; }
+.source-group-block__title {
+  margin: 0 0 12px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--aor-navy);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--aor-border);
+}
 .source-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
 .source-card { position: relative; display: block; padding: 18px 16px 16px 44px; background: #fff; border: 1px solid var(--aor-border); border-radius: 16px; text-decoration: none; box-shadow: var(--shadow-soft); transition: transform 0.12s ease, box-shadow 0.12s ease; }
 .source-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-xl); }
@@ -458,6 +571,26 @@ body { overflow-x: hidden; }
 .cta-v3__btn:hover { transform: translateY(-1px); box-shadow: 0 18px 36px -12px rgba(0, 0, 0, 0.55); }
 .cta-v3__btn-arrow { display: inline-flex; transition: transform 0.12s ease; }
 .cta-v3__btn:hover .cta-v3__btn-arrow { transform: translateX(3px); }
+.cta-v3__btn--large { min-height: 60px; padding: 20px 40px; font-size: 1.15rem; margin-bottom: 22px; }
+
+/* Trust 4項目（Constitution 固定。Initial Report と同じ配色方針） */
+.trust-strip {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: center;
+  background: var(--aor-gray-bg);
+  border: 1px solid var(--aor-border);
+  border-radius: 12px;
+}
+.trust-strip__item { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; font-weight: 700; color: var(--aor-navy); }
+.trust-strip__icon { color: var(--aor-emerald-dark); display: inline-flex; }
+.cta-final .trust-strip { position: relative; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.18); margin-top: 22px; }
+.cta-final .trust-strip__item { color: rgba(255, 255, 255, 0.85); }
+.cta-final .trust-strip__icon { color: var(--aor-gold); }
 
 /* ============ SECTION 13: Footer ============ */
 .report-footer { margin-top: 56px; padding: 26px 24px; background: var(--aor-navy); border-radius: var(--radius-xl); border-top: none; }
@@ -497,11 +630,13 @@ body { overflow-x: hidden; }
 @media (max-width: 900px) {
   .kpi-row { grid-template-columns: repeat(2, 1fr); }
   .cp-grid { grid-template-columns: repeat(3, 1fr); }
+  .hero-cover-meta-cards { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 768px) {
   .insight-cards, .opp-triad { grid-template-columns: 1fr; }
   .cards--locked-grid { grid-template-columns: repeat(2, 1fr); }
   .pp-compare-cards { grid-template-columns: 1fr; }
+  .milestone-row { grid-template-columns: 1fr; }
   .first-action__steps--timeline { flex-direction: column; }
   .first-action__steps--timeline .first-action__step { border-top: none; border-left: 3px solid var(--aor-emerald); border-radius: 0 14px 14px 0; }
   .first-action__steps--timeline .first-action__step + .first-action__step { margin-left: 0; margin-top: 14px; }
@@ -511,12 +646,14 @@ body { overflow-x: hidden; }
   .pp-cover { padding: 18px 16px 24px; border-radius: 18px; }
   .hero-cover-header { flex-direction: column; align-items: flex-start; gap: 12px; }
   .report-hero__headline { font-size: 1.35rem; }
+  .hero-cover-meta-cards { grid-template-columns: repeat(2, 1fr); }
   .kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-card { padding: 14px 12px; }
   .kpi-card__value { font-size: 1rem; }
   .cp-grid { grid-template-columns: repeat(2, 1fr); }
   .cards--locked-grid { grid-template-columns: 1fr; }
   .source-card-grid { grid-template-columns: 1fr; }
+  .executive-takeaway { flex-direction: column; }
   .market-stats { flex-direction: column; }
   .reason-card--feature { grid-template-columns: 1fr; row-gap: 12px; }
   .reason-card__icon-col { flex-direction: row; justify-content: flex-start; text-align: left; }
@@ -535,7 +672,9 @@ body { overflow-x: hidden; }
   .section { margin-top: 120px; }
 }
 
-/* ============ Print（Phase68 STEP2 の設計を踏襲。既存ルール優先） ============ */
+/* ============ Print Final（Phase70 STEP1: 経営会議資料として保存できる品質へ強化） ============
+ * 必須改ページ: 1p Cover / 2p Executive Summary / 3p Market Analysis開始 /
+ * 4p Company Analysis開始 / 最終p は CTA削除済み Footer。 */
 .print-only { display: none; }
 @page { size: A4 portrait; margin: 16mm 16mm 18mm 16mm; }
 @media print {
@@ -544,16 +683,50 @@ body { overflow-x: hidden; }
   .reveal, .reveal.is-visible { opacity: 1 !important; transform: none !important; }
   a { color: #000 !important; text-decoration: none !important; }
   .page { max-width: none; padding: 0; margin: 0; }
+
+  /* 必須改ページ（1p Cover / 2p Executive Summary / 3p Market Analysis / 4p Company Analysis） */
   .pp-cover { background: #fff !important; border: none !important; break-after: page; page-break-after: always; }
+  #pp-exec-summary { break-before: page; page-break-before: always; }
+  #pp-market-analysis { break-before: page; page-break-before: always; }
+  #pp-company-analysis { break-before: page; page-break-before: always; }
+
   .report-hero__headline, .report-hero__company { color: var(--aor-navy) !important; }
-  .report-hero__doctype, .report-hero__variant-line, .hero-cover-meta dt { color: #475569 !important; }
-  .hero-cover-meta dd { color: #000 !important; }
-  .kpi-card, .canvas-layer--outcome, .momentum-item, .report-footer, .cta-final { background: #f8fafc !important; color: #000 !important; border: 0.3mm solid #cbd5e1 !important; }
-  .cta-final, .cta-final * { display: none !important; } /* CTA は印刷非表示 */
-  .exec-summary, .oppv2, .reason-card, .company-snapshot, .strength-card, .evi-card, .source-card, .opp-card--locked, .kpi-card, .insight-card, .cp-card {
+  .report-hero__doctype, .report-hero__variant-line { color: #475569 !important; }
+  .hero-cover-meta-card { background: #f8fafc !important; border: 0.3mm solid #cbd5e1 !important; }
+  .hero-cover-meta-card__label { color: #475569 !important; }
+  .hero-cover-meta-card__value, .hero-cover-meta-card__icon { color: #000 !important; }
+  .decision-highlight { background: #f8fafc !important; border: 0.3mm solid var(--aor-gold) !important; color: #000 !important; }
+  .executive-takeaway { background: #f8fafc !important; border: 0.3mm solid #cbd5e1 !important; color: #000 !important; }
+  .kpi-card, .canvas-layer--outcome, .momentum-item, .report-footer, .cta-final, .milestone-chip { background: #f8fafc !important; color: #000 !important; border: 0.3mm solid #cbd5e1 !important; }
+  .cta-final, .cta-final * { display: none !important; } /* CTA は印刷非表示（最終ページは Footer のみ） */
+
+  /* break-inside: avoid 対象（executive-summary / dashboard / snapshot-card / roadmap-card /
+     evidence-card / source-card / opportunity-card を含む） */
+  .exec-summary,
+  .decision-highlight,
+  .kpi-row,
+  .kpi-card,
+  .oppv2,
+  .canvas-layer,
+  .executive-takeaway,
+  .reason-card,
+  .company-snapshot,
+  .strength-card,
+  .evi-card,
+  .source-card,
+  .opp-card--locked,
+  .insight-card,
+  .cp-card,
+  .first-action__step,
+  .milestone-chip {
     break-inside: avoid;
     page-break-inside: avoid;
     box-shadow: none !important;
   }
   .sec-head { break-after: avoid; page-break-after: avoid; }
+
+  /* Evidence の出典リンクは印刷では押せないため URL を文字で併記する */
+  .evi-item__src a[href]::after { content: " (" attr(href) ")"; font-size: 7.5pt; color: #475569; word-break: break-all; }
+  /* Source Appendix は URL を表示しない（カテゴリ・タイトル・利用目的のみ） */
+  .source-group-block { break-inside: avoid; page-break-inside: avoid; }
 }
