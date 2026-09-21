@@ -237,7 +237,7 @@ function pmStackCard(kicker, body) {
     ';">' +
     kicker +
     "</div>" +
-    '<div style="font-size:13px;color:' +
+    '<div style="font-size:16px;color:' +
     AOR_INK +
     ';line-height:1.8;margin-top:8px;">' +
     body +
@@ -248,7 +248,7 @@ function pmStackCard(kicker, body) {
 function pmStack(cellsHtml) {
   return cellsHtml
     .map(function (c, i) {
-      return '<div style="' + (i < cellsHtml.length - 1 ? "margin:0 0 12px;" : "") + '">' + c + "</div>";
+      return '<div style="' + (i < cellsHtml.length - 1 ? "margin:0 0 24px;" : "") + '">' + c + "</div>";
     })
     .join("");
 }
@@ -389,29 +389,48 @@ function dashboardGoldAccentCard() {
   return '<div style="background:' + AOR_GOLD + ';border-radius:8px;height:6px;font-size:0;line-height:0;">&nbsp;</div>';
 }
 
-function heroDashboardVisual() {
+// Phase74 STEP2: 右カラムの3枚は数値/確信度%を持たない、ラベルのみのシグナルカード
+// （実データのみ使用。reviewApproved以外は固定のシステム状態ラベル）。
+function dashboardSignalCard(label) {
+  return (
+    '<div style="background:#132a44;border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px 10px;">' +
+    dashboardDot(AOR_EMERALD, 6) +
+    '<span style="display:inline-block;width:6px;font-size:0;line-height:0;">&nbsp;</span>' +
+    '<span style="font-size:10px;font-weight:700;color:#ffffff;vertical-align:middle;">' +
+    label +
+    "</span></div>"
+  );
+}
+
+function heroDashboardVisual(reviewApproved) {
   var row = function (inner, last) {
-    return '<div style="' + (last ? "" : "margin:0 0 12px;") + '">' + inner + "</div>";
+    return '<div style="' + (last ? "" : "margin:0 0 10px;") + '">' + inner + "</div>";
   };
   var left =
-    row(dashboardRadar()) + row(dashboardNetwork()) + row(dashboardGrowthBars()) + row(dashboardCompanyNode(), true);
+    row(dashboardRadar()) +
+    row(dashboardNetwork()) +
+    row(dashboardGrowthBars()) +
+    row(dashboardCompanyNode()) +
+    row(dashboardNotificationChip(), true);
   var right =
-    '<div style="font-size:9px;font-weight:800;letter-spacing:0.1em;color:' +
-    AOR_GOLD +
-    ';margin:0 0 8px;">BUSINESS SIGNAL</div>' +
-    row(dashboardMeterCard(70, AOR_GOLD)) +
-    row(dashboardMeterCard(45, AOR_EMERALD)) +
-    row(dashboardMeterCard(85, AOR_GOLD)) +
-    row(dashboardNotificationChip()) +
-    row(dashboardGoldAccentCard(), true);
+    row(dashboardSignalCard("市場シグナル検出")) +
+    row(dashboardSignalCard("公開情報分析")) +
+    row(dashboardSignalCard(reviewApproved ? "専門家監修済み" : "運営がレビュー中"), true);
   return (
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 4px;"><tr>' +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 0;"><tr>' +
     '<td width="60%" valign="top" style="padding:0 8px 0 0;">' +
     left +
     "</td>" +
     '<td width="40%" valign="top" style="padding:0 0 0 8px;">' +
     right +
     "</td>" +
+    "</tr></table>" +
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:14px 0 4px;"><tr>' +
+    '<td style="border-top:2px solid ' +
+    AOR_GOLD +
+    ';padding-top:8px;font-size:9px;font-weight:800;letter-spacing:0.12em;color:' +
+    AOR_GOLD +
+    ';">BUSINESS SIGNAL DETECTED</td>' +
     "</tr></table>"
   );
 }
@@ -461,17 +480,23 @@ function renderPremiumInitialHtml(t, o) {
     greet +
     "</p>" +
     (t.hasOpportunity
-      ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">御社向けのビジネスチャンスがあります！</p>' +
+      ? '<p style="font-size:13px;font-weight:800;color:#ffffff;opacity:0.75;line-height:1.5;margin:0 0 6px;">御社向けのビジネスチャンスがあります！</p>' +
         '<p style="font-size:24px;font-weight:800;color:' +
         AOR_GOLD +
-        ';line-height:1.4;margin:4px 0 0;padding-bottom:12px;border-bottom:2px solid rgba(201,162,75,0.3);">' +
+        ';line-height:1.4;margin:0;padding-bottom:12px;border-bottom:2px solid rgba(201,162,75,0.3);">' +
         esc(t.opportunityTitle) +
-        "</p>"
+        "</p>" +
+        (t.chanceSummary
+          ? '<p style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin:10px 0 0;">' +
+            esc(t.chanceSummary) +
+            "</p>"
+          : "")
       : '<p style="font-size:20px;font-weight:800;color:#ffffff;line-height:1.5;margin:0;">御社について公開情報を分析し、レポートにまとめました。</p>') +
     '<p style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8;margin:16px 0 0;">公開情報をもとに専門家監修で整理した御社専用ビジネスチャンスレポートです。</p>' +
-    heroDashboardVisual() +
+    heroDashboardVisual(t.reviewApproved) +
     '<div style="margin:8px 0 4px;">' +
     pmGoldButtonFull(ctaHref, "無料版レポートを見る") +
+    '<p style="font-size:11px;color:rgba(255,255,255,0.55);text-align:center;margin:8px 0 0;">約3分でレポート全文を確認できます。</p>' +
     "</div>" +
     "</td></tr></table>" +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
@@ -565,20 +590,27 @@ function renderPremiumInitialHtml(t, o) {
         '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:' +
         AOR_NAVY +
         ';margin:12px 0;">FIRST STEP</div>' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>' +
-        '<td width="36" valign="top">' +
-        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="28" height="28" bgcolor="' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+        'style="border-left:3px solid ' +
         AOR_GOLD +
-        '" style="border-radius:14px;text-align:center;font-size:13px;font-weight:800;color:' +
+        ';"><tr>' +
+        '<td width="48" valign="top" style="padding:14px 0 14px 14px;">' +
+        '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
+        '<td width="36" height="36" bgcolor="' +
+        AOR_GOLD +
+        '" style="border-radius:18px;text-align:center;font-size:19px;font-weight:800;color:' +
         AOR_NAVY +
-        ';line-height:28px;">1</td>' +
+        ';line-height:36px;">&#9312;</td>' +
         "</tr></table></td>" +
-        '<td style="padding-left:10px;">' +
-        '<span style="display:inline-block;padding:3px 10px;background:#fbf3e2;color:#8a6a1f;font-size:9px;font-weight:800;border-radius:10px;">TODAY</span>' +
+        '<td style="padding:14px 14px 14px 4px;">' +
+        '<span style="display:inline-block;padding:3px 10px;background:' +
+        AOR_GOLD +
+        ';color:' +
+        AOR_NAVY +
+        ';font-size:9px;font-weight:800;border-radius:10px;">TODAY</span>' +
         '<div style="font-size:13px;color:' +
         AOR_INK +
-        ';line-height:1.9;margin-top:8px;">' +
+        ';line-height:2.2;margin-top:8px;">' +
         esc(t.firstStep) +
         "</div></td>" +
         "</tr></table></td></tr>";
