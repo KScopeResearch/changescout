@@ -516,13 +516,18 @@ body { overflow-x: hidden; }
 .metric-card__value-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
 .metric-card__trend-icon { flex: none; display: inline-flex; color: var(--aor-navy, currentColor); }
 .metric-card__value-row .metric-card__value { margin-top: 0; }
+/* Phase76 STEP4: Gold文字（白背景でWCAG AA未達）をやめ、Goldバッジ+Navy文字へ */
 .metric-card__fit-tag {
   display: inline-block;
   margin-left: 8px;
   font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.04em;
-  color: var(--aor-gold, #c9a24b);
+  color: var(--aor-navy);
+  background: rgba(201, 162, 75, 0.18);
+  border: 1px solid var(--aor-gold);
+  border-radius: 999px;
+  padding: 1px 8px;
 }
 .metric-card__check { display: inline-flex; color: var(--aor-emerald, #059669); margin-right: 4px; vertical-align: -2px; }
 
@@ -828,6 +833,13 @@ body { overflow-x: hidden; }
   margin: 10px 0 0;
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.68);
+}
+/* Phase76 STEP4: Link UX Cleanup — CTA直下のcaptionサイズ補足 */
+.cta-final__caption {
+  position: relative;
+  margin: 4px 0 0;
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.55);
 }
 /* Phase72 STEP2（実メールQA反映）: CTA を「広告バナー」ではなくレポートの続き案内へ */
 .cta-final__points {
@@ -1577,13 +1589,19 @@ body { overflow-x: hidden; }
   border-radius: 16px;
   padding: 18px 20px;
 }
+/* Phase76 STEP4: Gold文字（白背景でWCAG AA未達）をやめ、Goldバッジ+Navy文字へ */
 .exec-snapshot__title {
+  display: inline-block;
   margin: 0 0 14px;
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--aor-gold);
+  color: var(--aor-navy);
+  background: rgba(201, 162, 75, 0.18);
+  border: 1px solid var(--aor-gold);
+  border-radius: 999px;
+  padding: 3px 10px;
 }
 .exec-snapshot__list { margin: 0; display: grid; gap: 12px; }
 .exec-snapshot__row {
@@ -1629,7 +1647,7 @@ body { overflow-x: hidden; }
   border: 1px solid var(--aor-border);
   border-top: 3px solid var(--aor-gold);
   border-radius: var(--radius-xl);
-  padding: 20px;
+  padding: 28px 24px;
   box-shadow: var(--shadow-soft);
 }
 .exec-brief-card--today { border-top-color: var(--aor-emerald, #059669); }
@@ -1645,24 +1663,30 @@ body { overflow-x: hidden; }
   border-radius: 999px;
   padding: 3px 10px;
 }
+/* Phase76 STEP4: Gold文字（白背景でWCAG AA未達）をやめ、Goldバッジ+Navy文字へ */
 .exec-brief-card__label {
+  display: inline-block;
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--aor-gold);
+  color: var(--aor-navy);
+  background: rgba(201, 162, 75, 0.18);
+  border: 1px solid var(--aor-gold);
+  border-radius: 999px;
+  padding: 3px 10px;
   margin: 0 0 6px;
 }
 .exec-brief-card__title {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
   line-height: 1.5;
   color: var(--aor-navy);
-  margin: 0 0 6px;
+  margin: 0 0 10px;
 }
 .exec-brief-card__body {
-  font-size: 0.86rem;
-  line-height: 1.7;
+  font-size: 16px;
+  line-height: 1.8;
   color: var(--color-text);
   margin: 0;
 }
@@ -1684,9 +1708,11 @@ body { overflow-x: hidden; }
 }
 .kpi-card {
   background: var(--aor-navy);
-  border-radius: 16px;
+  border-top: 3px solid var(--aor-gold);
+  border-radius: 24px;
   padding: 24px;
   color: #fff;
+  box-shadow: var(--shadow-xl);
 }
 .kpi-card__icon {
   display: inline-flex;
@@ -2361,7 +2387,7 @@ body { overflow-x: hidden; }
   /* ---- STEP12: CTA 印刷版（ボタンではなく URL 文字列 + QR風プレースホルダー） ---- */
   .cta-final { background: #fff !important; border: 0.3mm solid #cbd5e1 !important; color: #000 !important; }
   .cta-final::before { display: none; }
-  .cta-final__title, .cta-final__desc, .cta-final__note, .cta-v3__sub { color: #000 !important; }
+  .cta-final__title, .cta-final__desc, .cta-final__note, .cta-final__caption, .cta-v3__sub { color: #000 !important; }
   .cta-final .cta-v2__proof { color: #475569 !important; }
   .cta-final .cta-v2__proof span::before { color: var(--aor-emerald-dark) !important; }
   .cta-final .cta-v3__btn { display: none !important; } /* 紙ではボタンにしない */

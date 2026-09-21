@@ -146,11 +146,9 @@ test("report-preview.js: CTA は共有ヘルパー（ctaButton）で組み立て
   assert.match(js, /querySelectorAll\("\[data-cta\]"\)[\s\S]*?setAttribute\("href", target\)/);
 });
 
-test("report-preview.js: CTA 文言に「無料」が含まれる（Hero inline・下部）", () => {
-  assert.match(js, /無料でレポートを見る/);
-  // Phase73 STEP8（CTA Premium Finish）: 下部CTAボタン文言を「無料版を毎週受け取る」から
-  // 「無料版レポートを受け取る」へ変更。
-  assert.match(js, /無料版レポートを受け取る/);
+test("report-preview.js: CTA 文言は Hero inline・下部とも「無料版レポートを見る」に統一されている（Phase76 STEP4: Link UX Cleanup）", () => {
+  const matches = js.match(/無料版レポートを見る/g) || [];
+  assert.ok(matches.length >= 2, "Hero inline CTA と 下部CTA の両方に同一文言があるはず");
 });
 
 /* ---------- 数字の捏造禁止 ---------- */
@@ -260,11 +258,11 @@ test("preview-conversion.css: .sec-head--flash は prefers-reduced-motion で停
   assert.match(reduceBlock, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.sec-head--flash[\s\S]*?animation:\s*none/);
 });
 
-test("preview-conversion.css: .kpi-card のpaddingは24pxに統一（border-radiusの16pxは維持）", () => {
+test("preview-conversion.css: .kpi-card のpaddingは24pxに統一（border-radiusはPhase76 STEP4で24pxへ統一）", () => {
   const idx = css.indexOf(".kpi-card {");
   const block = css.slice(idx, css.indexOf("}", idx));
   assert.match(block, /padding:\s*24px/);
-  assert.match(block, /border-radius:\s*16px/);
+  assert.match(block, /border-radius:\s*24px/);
 });
 
 test("report-preview.js: Trust strip（メールアドレス登録だけ / 専門家監修 / 無料版を毎週配信 / 停止可能）を CTA の前に描画する", () => {
@@ -303,4 +301,51 @@ test("preview-conversion.css: 横スクロール防止に body { overflow-x: hid
 
 test("report-preview.js: illustration は aria-hidden（意味は本文が担う）", () => {
   assert.match(js, /setAttribute\("aria-hidden", "true"\)/);
+});
+
+/* ---------- Phase76 STEP4: Final Polish（Contrast AA + Link UX Cleanup） ---------- */
+
+test("preview-conversion.css: 白背景カード上のGoldラベル（exec-snapshot__title / exec-brief-card__label / metric-card__fit-tag）はGold文字をやめ、Navy文字+Goldバッジへ変更している", () => {
+  [".exec-snapshot__title", ".exec-brief-card__label", ".metric-card__fit-tag"].forEach((sel) => {
+    const idx = css.indexOf(sel + " {");
+    assert.ok(idx !== -1, `${sel} のルールが無い`);
+    const block = css.slice(idx, css.indexOf("}", idx));
+    assert.doesNotMatch(block, /color:\s*var\(--aor-gold/, `${sel} がまだGold文字のまま`);
+    assert.match(block, /color:\s*var\(--aor-navy\)/, `${sel} がNavy文字になっていない`);
+    assert.match(block, /border:\s*1px solid var\(--aor-gold\)/, `${sel} にGoldボーダーが無い`);
+  });
+});
+
+test("report-preview.js: CTA直下に固定コピー2行（メールアドレス登録だけで無料版レポートを毎週配信します。/詳細分析サンプルも確認できます。）がある", () => {
+  assert.match(js, /メールアドレス登録だけで無料版レポートを毎週配信します。/);
+  assert.match(js, /詳細分析サンプルも確認できます。/);
+});
+
+test("report-preview.js: 「続きを読む」は矢印付き表記（続きを読む →）になっている", () => {
+  assert.match(js, /続きを読む\s*→/);
+});
+
+test("preview-conversion.css: Executive Brief カードの余白（上下28px/左右24px）・タイトル（20px/700/margin-bottom10px）・本文（16px/line-height1.8）が更新されている", () => {
+  const cardIdx = css.indexOf(".exec-brief-card {");
+  const cardBlock = css.slice(cardIdx, css.indexOf("}", cardIdx));
+  assert.match(cardBlock, /padding:\s*28px 24px/);
+
+  const titleIdx = css.indexOf(".exec-brief-card__title {");
+  const titleBlock = css.slice(titleIdx, css.indexOf("}", titleIdx));
+  assert.match(titleBlock, /font-size:\s*20px/);
+  assert.match(titleBlock, /font-weight:\s*700/);
+  assert.match(titleBlock, /margin:\s*0 0 10px/);
+
+  const bodyIdx = css.indexOf(".exec-brief-card__body {");
+  const bodyBlock = css.slice(bodyIdx, css.indexOf("}", bodyIdx));
+  assert.match(bodyBlock, /font-size:\s*16px/);
+  assert.match(bodyBlock, /line-height:\s*1\.8/);
+});
+
+test("preview-conversion.css: Dashboard KPIカードにGold 3pxライン・24px Radius・Heroと同じShadowが適用されている", () => {
+  const idx = css.indexOf(".kpi-card {");
+  const block = css.slice(idx, css.indexOf("}", idx));
+  assert.match(block, /border-top:\s*3px solid var\(--aor-gold\)/);
+  assert.match(block, /border-radius:\s*24px/);
+  assert.match(block, /box-shadow:\s*var\(--shadow-xl\)/);
 });

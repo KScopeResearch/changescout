@@ -324,7 +324,7 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   cta.setAttribute("data-cta", "");
   const ctaText = document.createElement("span");
   ctaText.className = "cta-v3__btn-text";
-  ctaText.textContent = "無料でレポートを見る";
+  ctaText.textContent = "無料版レポートを見る";
   const ctaArrow = document.createElement("span");
   ctaArrow.className = "cta-v3__btn-arrow";
   ctaArrow.setAttribute("aria-hidden", "true");
@@ -460,7 +460,7 @@ function execBriefCard({ glyph, label, title, body, jumpHref, isToday }) {
     const a = document.createElement("a");
     a.className = "exec-brief-card__more";
     a.href = jumpHref;
-    a.textContent = "続きを読む";
+    a.textContent = "続きを読む →";
     c.appendChild(a);
   }
   return c;
@@ -1419,10 +1419,10 @@ function renderCtaBottom() {
   });
   wrap.appendChild(points);
 
-  wrap.appendChild(ctaButton("無料版レポートを受け取る"));
-  // Phase75 STEP8: 補足文を1行に簡素化（既存のTrust文言=email-render.jsと同じ確立済み
-  // コピーを再利用。新しい文章は作らない）。
-  wrap.appendChild(textP("cta-final__note", "メールアドレス登録だけで無料版を毎週配信"));
+  wrap.appendChild(ctaButton("無料版レポートを見る"));
+  // Phase76 STEP4: Link UX Cleanup（固定コピー。新しい営業コピーは作らない）。
+  wrap.appendChild(textP("cta-final__note", "メールアドレス登録だけで無料版レポートを毎週配信します。"));
+  wrap.appendChild(textP("cta-final__caption", "詳細分析サンプルも確認できます。"));
 
   // Phase68 STEP2 STEP12: 印刷専用 CTA（ボタンではなく URL 文字列 + QR風プレースホルダー）。
   // 画面には出さない（.print-only は @media print のみ表示）。QR コードは生成しない。
