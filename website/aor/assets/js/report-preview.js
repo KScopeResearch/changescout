@@ -213,6 +213,11 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   header.appendChild(badgeCluster);
   el.appendChild(header);
 
+  // Phase75 STEP2/STEP3: Hero を左右2カラム（左=コピー・右=実画像、比率60/40）へ。
+  // コピー（宛名・見出し・タイトル・サブタイトル・CTA）は一切変更しない。
+  const heroGrid = document.createElement("div");
+  heroGrid.className = "hero-grid";
+
   const body = document.createElement("div");
   body.className = "hero-body";
 
@@ -326,19 +331,19 @@ function renderHero(data, vm, variant, theme, review, snapshot) {
   cta.append(ctaText, ctaArrow);
   body.appendChild(cta);
 
-  el.appendChild(body);
+  heroGrid.appendChild(body);
 
-  // 大型イラスト（右カラム・背景グラデーション/リングは CSS、ドットのみ要素を用意）
-  const illust = document.createElement("div");
-  illust.className = "hero-illust";
-  illust.setAttribute("aria-hidden", "true");
-  illust.innerHTML = Illustrations.hero(theme);
-  ["a", "b"].forEach((k) => {
-    const dot = document.createElement("span");
-    dot.className = "hero-illust__dot hero-illust__dot--" + k;
-    illust.appendChild(dot);
-  });
-  el.appendChild(illust);
+  // Phase75 STEP2: 図形/SVG Hero を実画像（illustrations.js の SVG を Playwright で
+  // PNG化したもの）へ置換。右カラム（40%）に配置。
+  const heroImg = document.createElement("img");
+  heroImg.className = "hero-illust-img";
+  heroImg.src = "assets/images/hero-business-dashboard-v1.png";
+  heroImg.width = 1200;
+  heroImg.height = 720;
+  heroImg.alt = "Business Intelligence Dashboard";
+  heroGrid.appendChild(heroImg);
+
+  el.appendChild(heroGrid);
 }
 
 // Report Cover 下部メタ行: 作成日 / 分析対象 / 分析ソース数 / 確信度。

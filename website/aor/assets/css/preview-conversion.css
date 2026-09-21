@@ -131,6 +131,28 @@ body { overflow-x: hidden; }
   right: auto;
 }
 .hero-body { position: relative; z-index: 1; max-width: 100%; text-align: center; }
+
+/* Phase75 STEP2/STEP3: Hero を左60%(コピー)/右40%(実画像)の2カラムへ。
+   旧 .hero-illust* は互換のため残置（未使用でも無害）。 */
+.hero-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 60fr 40fr;
+  gap: 28px;
+  align-items: center;
+}
+.hero-illust-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+}
+@media (max-width: 900px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 20px; }
+  .hero-illust-img { order: -1; }
+}
 /* AOR ブランド行（左上・固定。細いゴールドラインは .report-hero::after が担う） */
 .report-hero__brand {
   display: flex;

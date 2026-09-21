@@ -170,7 +170,7 @@ test("report-preview.js: 『御社との適合』カードは確信度・why_com
 
 /* ---------- Hero の要素 ---------- */
 
-test("report-preview.js: Hero に AOR ブランド行 / 宛名 / メインキャッチ(h1) / サブコピー / Pill / 専門家監修バッジ / 大型イラストがある", () => {
+test("report-preview.js: Hero に AOR ブランド行 / 宛名 / メインキャッチ(h1) / サブコピー / Pill / 専門家監修バッジ / Hero画像がある（Phase75 STEP2/STEP3: 実画像化）", () => {
   assert.match(js, /report-hero__brand/);
   assert.match(js, /BUSINESS OPPORTUNITY REPORT/);
   assert.match(js, /PreviewUI\.salutation\(cp\.name\)/);
@@ -178,7 +178,8 @@ test("report-preview.js: Hero に AOR ブランド行 / 宛名 / メインキャ
   assert.match(js, /PreviewUI\.heroSubcopy/);
   assert.match(js, /report-hero__pill|report-hero__chip/);
   assert.match(js, /hero-review-badge/);
-  assert.match(js, /Illustrations\.hero\(theme\)/);
+  assert.match(js, /hero-illust-img/);
+  assert.match(js, /assets\/images\/hero-business-dashboard-v1\.png/);
   assert.match(js, /専門家監修/);
 });
 

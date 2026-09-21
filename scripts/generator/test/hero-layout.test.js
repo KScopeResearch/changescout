@@ -19,7 +19,7 @@ test("Hero: header#report-hero がページ最上部（<main> より前）", () 
   assert.ok(iHero !== -1 && iMain !== -1 && iHero < iMain);
 });
 
-test("Hero: renderHero 内で ブランド行 → 宛名 → h1 headline → subcopy → pill → badges → inline CTA → illust の順に append", () => {
+test("Hero: renderHero 内で ブランド行 → 宛名 → h1 headline → subcopy → pill → badges → inline CTA → illust(実画像) の順に append", () => {
   const body = js.slice(js.indexOf("function renderHero("), js.indexOf("function renderMetrics("));
   const order = [
     "report-hero__brand",
@@ -29,7 +29,7 @@ test("Hero: renderHero 内で ブランド行 → 宛名 → h1 headline → sub
     "report-hero__pill",
     "report-hero__badges",
     "hero-cta-inline",
-    "Illustrations.hero(theme)",
+    "hero-illust-img",
   ];
   let last = -1;
   for (const token of order) {

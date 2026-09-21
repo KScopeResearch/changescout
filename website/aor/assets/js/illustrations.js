@@ -251,34 +251,31 @@
   // ---- Phase72 STEP2: Executive Report Cover（C案）------------------------------
   // 3枚の抽象 KPI カード（業種別の具体シーンではなく、コンサルティングレポート表紙の
   // 定型ビジュアルとして全テーマ共通）。棒の高さは各カードで固定パターン（乱数不使用）。
-  var KPI_CARD_BARS = [
-    [10, 16, 22],
-    [14, 20, 12],
-    [18, 10, 24],
-  ];
+  // Phase75 STEP2: 数値・バー・％は一切使わない、ラベルのみのシグナルカード3枚
+  // （実データの数値化ではなく、システム状態を示す定型ラベルのみ。捏造なし）。
+  var KPI_CARD_LABELS = ["市場シグナル検出", "公開情報分析", "専門家監修済み"];
 
   function executiveKpiCards() {
-    var cardW = 62,
-      cardH = 50,
-      cardY = 168,
+    var cardX = 312,
+      cardW = 140,
+      cardH = 36,
       gap = 10,
-      startX = 20;
-    var out = "";
-    for (var i = 0; i < 3; i++) {
-      var x = startX + i * (cardW + gap);
+      startY = 115;
+    var out =
+      '<text x="' + cardX + '" y="' + (startY - 12) +
+      '" font-size="7.5" font-weight="800" letter-spacing="0.04em" fill="#c9a24b" stroke="none">BUSINESS SIGNAL DETECTED</text>' +
+      '<line x1="' + cardX + '" y1="' + (startY - 6) + '" x2="' + (cardX + cardW) + '" y2="' + (startY - 6) + '" stroke="#c9a24b" stroke-width="1.6"/>';
+    for (var i = 0; i < KPI_CARD_LABELS.length; i++) {
+      var y = startY + i * (cardH + gap);
       out +=
         '<g class="hi-kpi__card">' +
-        '<rect x="' + x + '" y="' + cardY + '" width="' + cardW + '" height="' + cardH +
-        '" rx="8" fill="' + SURFACE + '" fill-opacity="0.92" stroke="currentColor" stroke-opacity="0.32"/>' +
-        '<circle cx="' + (x + cardW - 13) + '" cy="' + (cardY + 13) + '" r="4" fill="#059669" stroke="none"/>';
-      var bars = KPI_CARD_BARS[i];
-      for (var b = 0; b < bars.length; b++) {
-        var h = bars[b];
-        var bx = x + 10 + b * 14;
-        var by = cardY + cardH - 10 - h;
-        out += '<rect x="' + bx + '" y="' + by + '" width="8" height="' + h + '" rx="1.5" fill="currentColor" fill-opacity="0.55" stroke="none"/>';
-      }
-      out += "</g>";
+        '<rect x="' + cardX + '" y="' + y + '" width="' + cardW + '" height="' + cardH +
+        '" rx="9" fill="' + SURFACE + '" fill-opacity="0.92" stroke="currentColor" stroke-opacity="0.32"/>' +
+        '<circle cx="' + (cardX + 16) + '" cy="' + (y + cardH / 2) + '" r="4" fill="#059669" stroke="none"/>' +
+        '<text x="' + (cardX + 28) + '" y="' + (y + cardH / 2 + 3.5) + '" font-size="11.5" font-weight="700" fill="currentColor" stroke="none">' +
+        KPI_CARD_LABELS[i] +
+        "</text>" +
+        "</g>";
     }
     return '<g class="hi-kpi">' + out + "</g>";
   }
@@ -298,9 +295,9 @@
   // 左: market_signal_radar（同心円レーダー + Gold スキャンライン + Emerald 検出ポイント3個 +
   //     AI Network ライン。検出ポイント・スキャンラインは CSS アニメーション対象）。
   function marketSignalRadar() {
-    var cx = 78,
-      cy = 92;
-    var rings = [16, 30, 44]
+    var cx = 110,
+      cy = 150;
+    var rings = [26, 47, 68]
       .map(function (r) {
         return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" stroke="currentColor" stroke-opacity="0.28" fill="none"/>';
       })
@@ -308,15 +305,15 @@
     // Gold のスキャンライン（回転アニメーションの起点。transform-origin はコンポーネント側で cx,cy に設定）
     var scan =
       '<g class="hi-radar__scan" style="transform-origin: ' + cx + "px " + cy + 'px;">' +
-      '<path d="M' + cx + " " + cy + " L" + cx + " " + (cy - 44) +
-      " A44 44 0 0 1 " + (cx + 31) + " " + (cy - 31) +
+      '<path d="M' + cx + " " + cy + " L" + cx + " " + (cy - 68) +
+      " A68 68 0 0 1 " + (cx + 48) + " " + (cy - 48) +
       ' Z" fill="#c9a24b" fill-opacity="0.2" stroke="none"/>' +
-      '<line x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - 44) + '" stroke="#c9a24b" stroke-width="1.4"/>' +
+      '<line x1="' + cx + '" y1="' + cy + '" x2="' + cx + '" y2="' + (cy - 68) + '" stroke="#c9a24b" stroke-width="1.6"/>' +
       "</g>";
     var discoveries = [
-      [cx + 20, cy - 34],
-      [cx - 30, cy + 10],
-      [cx + 34, cy + 30],
+      [cx + 30, cy - 52],
+      [cx - 46, cy + 15],
+      [cx + 52, cy + 46],
     ];
     var links = discoveries
       .map(function (p) {
@@ -327,60 +324,77 @@
       .map(function (p, i) {
         return (
           '<circle class="hi-radar__point" style="transform-origin: ' + p[0] + "px " + p[1] + 'px; animation-delay: ' + i * 0.4 + 's;" ' +
-          'cx="' + p[0] + '" cy="' + p[1] + '" r="8" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
-          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>'
+          'cx="' + p[0] + '" cy="' + p[1] + '" r="9" fill="#059669" fill-opacity="0.18" stroke="none"/>' +
+          '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="5" fill="#059669" stroke="#ffffff" stroke-width="1.6"/>'
         );
       })
       .join("");
-    var centerDot = '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="currentColor" stroke="none"/>';
+    var centerDot = '<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="currentColor" stroke="none"/>';
     return '<g class="hi-radar">' + rings + scan + links + points + centerDot + "</g>";
   }
 
-  // 右上: growth_projection_chart（上昇チャートのみ）。
+  // AI Analysis / Growth Projection（Emerald 棒グラフ + 右肩上がりライン）。
+  // レーダー（左ゾーン左寄り）とは重ならない位置（x>=190）に配置する。
   function growthProjectionChart() {
     var pts = [
-      [178, 138],
-      [198, 118],
-      [218, 127],
-      [238, 96],
-      [255, 66],
+      [195, 145],
+      [215, 120],
+      [235, 130],
+      [258, 95],
+      [280, 60],
     ];
     var path = "M" + pts.map(function (p) { return p[0] + " " + p[1]; }).join(" L");
     var lastP = pts[pts.length - 1];
+    var baseline = 145;
+    var bars = pts
+      .map(function (p) {
+        var h = baseline - p[1];
+        if (h <= 0) return "";
+        return (
+          '<rect x="' + (p[0] - 3) + '" y="' + p[1] + '" width="6" height="' + h +
+          '" fill="#059669" fill-opacity="0.14" stroke="none"/>'
+        );
+      })
+      .join("");
     return (
       '<g class="hi-growth">' +
-      '<path d="' + path + '" stroke="#059669" stroke-width="2.5" fill="none"/>' +
-      '<circle cx="' + lastP[0] + '" cy="' + lastP[1] + '" r="4" fill="#059669" stroke="#ffffff" stroke-width="1.4"/>' +
+      bars +
+      '<path d="' + path + '" stroke="#059669" stroke-width="2.8" fill="none"/>' +
+      '<circle cx="' + lastP[0] + '" cy="' + lastP[1] + '" r="4.5" fill="#059669" stroke="#ffffff" stroke-width="1.6"/>' +
       "</g>"
     );
   }
 
-  // 右: company_network_map（Company ノード + Market ノード + 接続ライン + 企業アイコン）。
+  // Company Intelligence: company_network_map（Company ノード + Market ノード + 接続ライン +
+  // 企業アイコン）。Growth Chart の下（y>=175）に配置し重ならないようにする。
   function companyNetworkMap() {
-    var company = [260, 100];
-    var market = [222, 62];
+    var company = [270, 195];
+    var market = [205, 175];
     return (
       '<g class="hi-network">' +
       '<line x1="' + market[0] + '" y1="' + market[1] + '" x2="' + company[0] + '" y2="' + company[1] + '" stroke="currentColor" stroke-opacity="0.3" stroke-dasharray="2 4"/>' +
-      '<circle cx="' + market[0] + '" cy="' + market[1] + '" r="5" fill="currentColor" fill-opacity="0.5" stroke="#ffffff" stroke-width="1.2"/>' +
-      '<g class="hi-building" transform="translate(' + (company[0] - 12) + " " + (company[1] - 6) + ')">' +
-      '<rect x="0" y="0" width="24" height="38" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.45"/>' +
-      '<rect x="5" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
-      '<rect x="14" y="7" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
-      '<rect x="5" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
-      '<rect x="14" y="16" width="4.5" height="4.5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
-      '<rect x="9" y="27" width="6" height="11" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<circle cx="' + market[0] + '" cy="' + market[1] + '" r="6" fill="currentColor" fill-opacity="0.5" stroke="#ffffff" stroke-width="1.4"/>' +
+      '<g class="hi-building" transform="translate(' + (company[0] - 14) + " " + (company[1] - 7) + ')">' +
+      '<rect x="0" y="0" width="28" height="44" rx="2" fill="' + SURFACE + '" fill-opacity="0.9" stroke="currentColor" stroke-opacity="0.45"/>' +
+      '<rect x="6" y="8" width="5" height="5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="17" y="8" width="5" height="5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="6" y="19" width="5" height="5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="17" y="19" width="5" height="5" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
+      '<rect x="10" y="31" width="7" height="13" fill="currentColor" fill-opacity="0.4" stroke="none"/>' +
       "</g>" +
       "</g>"
     );
   }
 
-  // Opportunity 通知カード（小さな Gold バッジ + スパークル。文字は使わない＝装飾のみ）。
+  // Opportunity Detection 通知カード（Gold バッジ + スパーク + 装飾ラベル「NEW SIGNAL」。
+  // 「Opportunity」という英単語は禁止語のため、日本語混在文には使わず、この英語のみの
+  // 装飾マイクロコピーに留める）。Growth Chart の上（y<=40）に配置。
   function opportunityNotificationCard() {
     return (
-      '<g class="hi-notify" transform="translate(150 30)">' +
-      '<circle r="10" fill="#c9a24b" fill-opacity="0.16" stroke="none"/>' +
-      '<path d="M0 -6l1.8 4.2L6 0l-4.2 1.8L0 6l-1.8-4.2L-6 0l4.2-1.8z" fill="#c9a24b" stroke="none"/>' +
+      '<g class="hi-notify" transform="translate(232 38)">' +
+      '<circle r="11" fill="#c9a24b" fill-opacity="0.16" stroke="none"/>' +
+      '<path d="M0 -6.5l2 4.5L6.5 0l-4.5 2L0 6.5l-2-4.5L-6.5 0l4.5-2z" fill="#c9a24b" stroke="none"/>' +
+      '<text x="16" y="4" font-size="7" font-weight="800" letter-spacing="0.04em" fill="#c9a24b" stroke="none">NEW SIGNAL</text>' +
       "</g>"
     );
   }
@@ -389,8 +403,7 @@
   function dashboardCaption() {
     return (
       '<g class="hi-caption">' +
-      '<text x="16" y="152" font-size="7" font-weight="700" letter-spacing="0.06em" fill="#c9a24b" stroke="none">3 SIGNALS DETECTED</text>' +
-      '<text x="284" y="152" font-size="7" font-weight="700" letter-spacing="0.02em" fill="currentColor" fill-opacity="0.55" stroke="none" text-anchor="end">BUSINESS OPPORTUNITY IDENTIFIED</text>' +
+      '<text x="32" y="251" font-size="8" font-weight="700" letter-spacing="0.06em" fill="#c9a24b" stroke="none">3 SIGNALS DETECTED</text>' +
       "</g>"
     );
   }
@@ -404,7 +417,8 @@
    */
   function businessIntelligenceCover() {
     return (
-      '<svg class="hero-illust__svg" viewBox="0 0 300 240" fill="none" ' +
+      // Phase75 STEP2: viewBox を 5:3（1200x720 の画像化に合わせた比率）へ拡張。
+      '<svg class="hero-illust__svg" viewBox="0 0 480 288" fill="none" ' +
       'stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" ' +
       'aria-hidden="true" focusable="false">' +
       "<defs>" +
@@ -413,13 +427,12 @@
       '<stop offset="1" stop-color="currentColor" stop-opacity="0.03"/>' +
       "</linearGradient>" +
       "</defs>" +
-      '<rect x="10" y="14" width="280" height="212" rx="22" fill="url(#hiBg)" stroke="none"/>' +
-      '<ellipse class="hi-shadow" cx="150" cy="214" rx="120" ry="10" fill="currentColor" stroke="none" opacity="0.06"/>' +
+      '<rect x="16" y="22" width="448" height="244" rx="32" fill="url(#hiBg)" stroke="none"/>' +
+      '<ellipse class="hi-shadow" cx="240" cy="258" rx="190" ry="12" fill="currentColor" stroke="none" opacity="0.06"/>' +
       marketSignalRadar() +
       growthProjectionChart() +
       companyNetworkMap() +
       opportunityNotificationCard() +
-      '<line x1="16" y1="142" x2="284" y2="142" stroke="#c9a24b" stroke-width="2" stroke-dasharray="1 7"/>' +
       dashboardCaption() +
       executiveKpiCards() +
       "</svg>"
