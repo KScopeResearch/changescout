@@ -156,6 +156,15 @@ var AOR_GRAY_BG = "#f4f6f9";
 var AOR_INK = "#1f2430";
 var AOR_MUTED = "#5b6472";
 
+// Phase75 STEP3: Initial メール Hero 画像の URL（1 箇所で定義・差し替え可能な構造にする）。
+// 本番URLは website/aor を S3/CloudFront へ deploy した後に確定するため、
+// report-preview.js と同じ production origin + 相対パスをプレースホルダーとして使う
+// （このフェーズでは S3/CloudFront への配置・Lambda デプロイは行わない）。
+// ローカル QA 時は環境変数 AOR_HERO_IMAGE_URL でローカルパス/URL に上書きする。
+var AOR_HERO_IMAGE_URL =
+  process.env.AOR_HERO_IMAGE_URL ||
+  "https://d261eor7y01afd.cloudfront.net/assets/images/hero-business-dashboard-v1.png";
+
 function pmCard(kicker, body) {
   return (
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
@@ -291,147 +300,20 @@ function trustRow(label) {
   );
 }
 
-function dashboardBlock(color, w, h, radius) {
+// Phase75 STEP3: table/div で描いた抽象グラフィックを実画像（Hero PNG。report-preview.js と
+// 共通の website/aor/assets/images/hero-business-dashboard-v1.png）へ置換。
+// img は width 属性 + inline style（display:block / max-width:100% / height:auto）の
+// email-safe パターンで、Gmail/iPhone 幅375pxでも崩れず縮小される。
+function heroImageBlock(imageUrl) {
   return (
-    '<span style="display:inline-block;width:' +
-    w +
-    "px;height:" +
-    h +
-    "px;background:" +
-    color +
-    ";border-radius:" +
-    radius +
-    'px;font-size:0;line-height:0;">&nbsp;</span>'
-  );
-}
-
-function dashboardDot(color, size) {
-  return dashboardBlock(color, size, size, Math.round(size / 2));
-}
-
-function dashboardConnector(w) {
-  return (
-    '<span style="display:inline-block;width:' +
-    w +
-    'px;margin:0 4px;border-top:1px dashed rgba(201,162,75,0.4);vertical-align:middle;font-size:0;line-height:0;">&nbsp;</span>'
-  );
-}
-
-function dashboardRadar() {
-  return (
-    '<div style="width:60px;height:60px;border:1px solid rgba(201,162,75,0.35);border-radius:30px;text-align:center;">' +
-    '<div style="width:40px;height:40px;margin:9px auto 0;border:1px solid rgba(201,162,75,0.55);border-radius:20px;text-align:center;">' +
-    '<div style="width:18px;height:18px;margin:10px auto 0;background:' +
-    AOR_GOLD +
-    ';border-radius:9px;font-size:0;line-height:0;">&nbsp;</div></div></div>'
-  );
-}
-
-function dashboardNetwork() {
-  return (
-    dashboardDot(AOR_GOLD, 12) +
-    dashboardConnector(14) +
-    dashboardDot(AOR_EMERALD, 12) +
-    dashboardConnector(14) +
-    dashboardDot(AOR_GOLD, 12)
-  );
-}
-
-function dashboardGrowthBars() {
-  var heights = [9, 14, 12, 20, 26];
-  var bars = heights
-    .map(function (h, i) {
-      var color = i === heights.length - 1 ? AOR_EMERALD : "#2a4a63";
-      return (
-        '<span style="display:inline-block;width:7px;height:' +
-        h +
-        "px;background:" +
-        color +
-        ';border-radius:2px;margin-right:3px;vertical-align:bottom;font-size:0;line-height:0;">&nbsp;</span>'
-      );
-    })
-    .join("");
-  return '<div style="height:26px;">' + bars + "</div>";
-}
-
-function dashboardCompanyNode() {
-  return (
-    '<div style="border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:8px;">' +
-    dashboardBlock("#16304f", 18, 18, 4) +
-    '<span style="display:inline-block;width:8px;font-size:0;line-height:0;">&nbsp;</span>' +
-    dashboardBlock("#16304f", 18, 18, 4) +
+    '<div style="margin:24px 0 24px;">' +
+    '<img src="' +
+    esc(imageUrl) +
+    '" width="560" alt="Business Intelligence Dashboard" border="0" ' +
+    'style="display:block;outline:none;text-decoration:none;border-radius:16px;max-width:100%;height:auto;">' +
+    '<p style="font-size:10px;color:rgba(255,255,255,0.5);text-align:center;margin:8px 0 0;">' +
+    "公開情報をAI分析し、専門家が監修したBusiness Intelligence Dashboardです。</p>" +
     "</div>"
-  );
-}
-
-function dashboardMeterCard(fillPct, color) {
-  return (
-    '<div style="background:#132a44;border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:9px 10px;">' +
-    '<div style="height:4px;background:#1c3b5e;border-radius:2px;font-size:0;line-height:0;">' +
-    '<span style="display:inline-block;height:4px;width:' +
-    fillPct +
-    "%;background:" +
-    color +
-    ';border-radius:2px;">&nbsp;</span></div></div>'
-  );
-}
-
-function dashboardNotificationChip() {
-  return (
-    '<div style="background:rgba(201,162,75,0.14);border:1px solid rgba(201,162,75,0.4);border-radius:8px;padding:9px 10px;">' +
-    dashboardDot(AOR_GOLD, 10) +
-    dashboardConnector(56) +
-    "</div>"
-  );
-}
-
-function dashboardGoldAccentCard() {
-  return '<div style="background:' + AOR_GOLD + ';border-radius:8px;height:6px;font-size:0;line-height:0;">&nbsp;</div>';
-}
-
-// Phase74 STEP2: 右カラムの3枚は数値/確信度%を持たない、ラベルのみのシグナルカード
-// （実データのみ使用。reviewApproved以外は固定のシステム状態ラベル）。
-function dashboardSignalCard(label) {
-  return (
-    '<div style="background:#132a44;border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:8px 10px;">' +
-    dashboardDot(AOR_EMERALD, 6) +
-    '<span style="display:inline-block;width:6px;font-size:0;line-height:0;">&nbsp;</span>' +
-    '<span style="font-size:10px;font-weight:700;color:#ffffff;vertical-align:middle;">' +
-    label +
-    "</span></div>"
-  );
-}
-
-function heroDashboardVisual(reviewApproved) {
-  var row = function (inner, last) {
-    return '<div style="' + (last ? "" : "margin:0 0 10px;") + '">' + inner + "</div>";
-  };
-  var left =
-    row(dashboardRadar()) +
-    row(dashboardNetwork()) +
-    row(dashboardGrowthBars()) +
-    row(dashboardCompanyNode()) +
-    row(dashboardNotificationChip(), true);
-  var right =
-    row(dashboardSignalCard("市場シグナル検出")) +
-    row(dashboardSignalCard("公開情報分析")) +
-    row(dashboardSignalCard(reviewApproved ? "専門家監修済み" : "運営がレビュー中"), true);
-  return (
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 0;"><tr>' +
-    '<td width="60%" valign="top" style="padding:0 8px 0 0;">' +
-    left +
-    "</td>" +
-    '<td width="40%" valign="top" style="padding:0 0 0 8px;">' +
-    right +
-    "</td>" +
-    "</tr></table>" +
-    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:14px 0 4px;"><tr>' +
-    '<td style="border-top:2px solid ' +
-    AOR_GOLD +
-    ';padding-top:8px;font-size:9px;font-weight:800;letter-spacing:0.12em;color:' +
-    AOR_GOLD +
-    ';">BUSINESS SIGNAL DETECTED</td>' +
-    "</tr></table>"
   );
 }
 
@@ -493,10 +375,11 @@ function renderPremiumInitialHtml(t, o) {
           : "")
       : '<p style="font-size:20px;font-weight:800;color:#ffffff;line-height:1.5;margin:0;">御社について公開情報を分析し、レポートにまとめました。</p>') +
     '<p style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8;margin:16px 0 0;">公開情報をもとに専門家監修で整理した御社専用ビジネスチャンスレポートです。</p>' +
-    heroDashboardVisual(t.reviewApproved) +
+    heroImageBlock(AOR_HERO_IMAGE_URL) +
     '<div style="margin:8px 0 4px;">' +
     pmGoldButtonFull(ctaHref, "無料版レポートを見る") +
-    '<p style="font-size:11px;color:rgba(255,255,255,0.55);text-align:center;margin:8px 0 0;">約3分でレポート全文を確認できます。</p>' +
+    '<p style="font-size:11px;color:rgba(255,255,255,0.55);text-align:center;margin:8px 0 0;">約3分で全文を確認できます。</p>' +
+    '<p style="font-size:11px;color:rgba(255,255,255,0.55);text-align:center;margin:2px 0 0;">メールアドレス登録だけで無料版を毎週配信します。</p>' +
     "</div>" +
     "</td></tr></table>" +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +

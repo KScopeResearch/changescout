@@ -79,13 +79,17 @@ test("Email ↔ Preview: whyNow は report.why_now の部分文字列（矛盾�
 
 /* ---------- email-safe HTML ---------- */
 
-test("renderInitialReportEmail: HTML に外部画像・SVG・script が無い", () => {
+test("renderInitialReportEmail: HTML に SVG・script が無く、img は Hero 画像1枚のみ（Phase75 STEP3: Hero実画像化）", () => {
   ["kscope.co.jp", "ab-i.jp", "illegame.com"].forEach((s) => {
     const { em } = emailFor(s);
-    assert.doesNotMatch(em.html, /<img\b/i, s + " <img>");
     assert.doesNotMatch(em.html, /<svg\b/i, s + " <svg>");
     assert.doesNotMatch(em.html, /<script\b/i, s + " <script>");
     assert.doesNotMatch(em.html, /url\(http/i, s + " CSS 外部画像");
+    const imgMatches = em.html.match(/<img\b/gi) || [];
+    assert.equal(imgMatches.length, 1, s + " <img> はHero1枚のみ");
+    assert.match(em.html, /<img[^>]*alt="Business Intelligence Dashboard"/, s + " Hero img に alt");
+    assert.match(em.html, /<img[^>]*width="560"/, s + " Hero img に width=560");
+    assert.match(em.html, /<img[^>]*style="[^"]*max-width:100%[^"]*height:auto/, s + " Hero img が max-width:100%/height:auto で縮小可能");
   });
 });
 
