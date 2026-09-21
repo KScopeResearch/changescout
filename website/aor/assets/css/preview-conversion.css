@@ -1241,6 +1241,14 @@ body { overflow-x: hidden; }
 .disclosure[open] > summary::before { transform: rotate(90deg); }
 .disclosure__body { padding: 4px 18px 16px; }
 .disclosure__lede { font-size: 0.82rem; color: var(--color-text-muted); margin: 4px 0 10px; line-height: 1.7; }
+/* Phase75 STEP7: Evidence の「さらに表示」ネスト disclosure（先頭3件は常時表示） */
+.disclosure--nested {
+  margin-top: 14px;
+  background: var(--aor-gray-bg, var(--color-surface-muted, #f8fafc));
+  box-shadow: none;
+}
+.disclosure--nested > summary { font-size: 0.82rem; padding: 12px 16px; }
+.disclosure--nested .disclosure__body { padding: 4px 16px 14px; }
 
 .source-group { margin: 10px 0; }
 .source-group__label {
@@ -1265,7 +1273,8 @@ body { overflow-x: hidden; }
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 13px 15px;
+  /* Phase75 STEP7: 少しコンパクト化（13px 15px → 11px 13px） */
+  padding: 11px 13px;
   text-decoration: none;
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
@@ -1571,6 +1580,65 @@ body { overflow-x: hidden; }
   color: var(--color-text);
   overflow-wrap: anywhere;
 }
+/* Phase75 STEP5: Executive Snapshot を Dashboard 内へ移設した際の上余白 */
+.exec-snapshot--dashboard { margin-top: 16px; }
+
+/* Phase75 STEP2: Executive Brief（旧 Executive Summary を置換。30秒で伝わる4カードのみ） */
+.exec-brief-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.exec-brief-card {
+  background: #fff;
+  border: 1px solid var(--aor-border);
+  border-top: 3px solid var(--aor-gold);
+  border-radius: var(--radius-xl);
+  padding: 20px 20px 22px;
+  box-shadow: var(--shadow-soft);
+}
+.exec-brief-card--today { border-top-color: var(--aor-emerald, #059669); }
+.exec-brief-card__head { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.exec-brief-card__icon { display: inline-flex; color: var(--aor-navy); }
+.exec-brief-card__badge {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--aor-navy);
+  background: var(--aor-gold);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.exec-brief-card__label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--aor-gold);
+  margin: 0 0 6px;
+}
+.exec-brief-card__title {
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.5;
+  color: var(--aor-navy);
+  margin: 0 0 6px;
+}
+.exec-brief-card__body {
+  font-size: 0.86rem;
+  line-height: 1.7;
+  color: var(--color-text);
+  margin: 0;
+}
+.exec-brief-card__more {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--aor-navy);
+  text-decoration: underline;
+}
 
 /* ============ Phase67 STEP3: Market Intelligence Dashboard KPI ============ */
 .kpi-row {
@@ -1847,11 +1915,11 @@ body { overflow-x: hidden; }
 }
 
 /* ============ Phase67 STEP9: Sources Library（アイコン + 利用目的） ============ */
-.source-card { position: relative; padding-top: 40px; }
+.source-card { position: relative; padding-top: 34px; }
 .source-card__icon {
   position: absolute;
-  top: 14px;
-  left: 15px;
+  top: 11px;
+  left: 13px;
   display: inline-flex;
   color: var(--color-primary);
 }
@@ -1980,6 +2048,8 @@ body { overflow-x: hidden; }
   .exec-summary,
   .canvas-layer { padding: 20px 18px; }
   .exec-summary__body { grid-template-columns: 1fr; }
+  /* Phase75 STEP9: Executive Brief 4枚を縦積みに（Gap 20px） */
+  .exec-brief-cards { grid-template-columns: 1fr; gap: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2156,6 +2226,8 @@ body { overflow-x: hidden; }
   #sec-exec-summary { break-before: page; page-break-before: always; }
   .exec-summary { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border-color: #cbd5e1 !important; }
   .exec-snapshot { background: #f8fafc !important; border-color: #cbd5e1 !important; }
+  .exec-brief-card { break-inside: avoid; page-break-inside: avoid; box-shadow: none !important; border-color: #cbd5e1 !important; }
+  .disclosure--nested { background: #f8fafc !important; }
 
   /* ---- STEP5: カード単位のページ内分割禁止（セクション全体ではなくカード単位） ---- */
   .kpi-card,

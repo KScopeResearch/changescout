@@ -5,9 +5,10 @@
  * （published JSON）のフィールドのみ。新しい数値・事実は一切作らない。
  * 数字・事実はすべて既存フィールドから取り出す／言い換えるだけで、LLM も乱数も使わない。
  *
- * 描画順（Phase67 STEP2: Executive Summary を Hero 直後に追加。以降は変更なし）:
- *   Hero → Executive Summary → Metrics(Dashboard) → WHY NOW → WHY YOU → THE OPPORTUNITY
- *   → FIRST STEP → EVIDENCE → SOURCE → MORE OPPORTUNITIES → CTA → Footer
+ * 描画順（Phase75 STEP1: IA Refresh — Dashboard を上へ、Executive Summary は
+ *   Executive Brief［30秒で伝わる4カード。旧 FIRST STEP セクションはここに統合］へ置換）:
+ *   Hero → Metrics(Dashboard) → Executive Brief → WHY NOW → WHY YOU → THE OPPORTUNITY
+ *   → Why This Matters → EVIDENCE → SOURCE → MORE OPPORTUNITIES → CTA → Footer
  *
  * データは published JSON（common.js の fetchCompanyData）のみ。API 連携・LLM なし。
  * pure な view model 変換は preview-ui.js / market-stats.js、図は illustrations.js。
@@ -58,13 +59,12 @@ function render(data, slug) {
   const snapshot = PreviewUI.marketSnapshot(data);
 
   renderHero(data, vm, variant, theme, review, snapshot);
-  renderExecutiveSummary(data, vm, snapshot);
   renderMetrics(data, vm, theme, snapshot);
+  renderExecutiveSummary(data, vm, snapshot);
   renderWhyNow(vm, theme, snapshot);
   renderWhyYou(data, vm, theme);
   renderOpportunity(data, vm, theme, snapshot);
   renderWhyThisMatters(vm);
-  renderFirstStep(data, theme);
   renderEvidence(data, sourceMap);
   renderSourcesV2(data);
   renderLockedThemes(data.locked_opportunities);
@@ -126,13 +126,12 @@ if (typeof window !== "undefined" && window.addEventListener) {
 function initScrollReveal() {
   const ids = [
     "report-hero",
-    "sec-exec-summary",
     "sec-metrics",
+    "sec-exec-summary",
     "sec-why-now",
     "sec-why-you",
     "sec-opportunity",
     "sec-why-matters",
-    "sec-first-step",
     "sec-evidence",
     "sec-sources",
     "sec-locked",
@@ -368,59 +367,106 @@ function sourceCount(data) {
 /* ==================== Executive Summary（Phase68 STEP3: 2カラム Premium 化） ==================== */
 // 左: 今回の結論 / Why Now要約 / Why You要約。右: Executive Snapshot 5項目（SVGアイコン付き）。
 // いずれも既存フィールドの先頭抜粋・言い換えのみで、新しい文章・数値は作らない。
+// Phase75 STEP2: Executive Brief（旧 Executive Summary を置換。30秒で価値が伝わる
+// 4カードのみに絞る。WHY NOW/WHY YOU はここでは120字程度の抜粋のみとし、全文は
+// 下部の該当セクション（sec-why-now / sec-why-you）へ「続きを読む」でジャンプする
+// ページ内アンカーとする。新しい文章は一切生成せず、既存フィールドの切り出しのみ）。
 function renderExecutiveSummary(data, vm, snapshot) {
   const el = document.getElementById("sec-exec-summary");
   el.innerHTML = "";
   if (!vm.title && !vm.whyNow && !vm.whyCompany) return;
 
-  const card = document.createElement("div");
-  card.className = "exec-summary";
+  el.appendChild(secHead("Executive Brief", "intelligence_dashboard"));
 
-  const head = document.createElement("div");
-  head.className = "exec-summary__head";
-  const titleWrap = document.createElement("div");
-  titleWrap.className = "exec-summary__title-wrap";
-  const hIcon = document.createElement("span");
-  hIcon.className = "exec-summary__icon";
-  hIcon.setAttribute("aria-hidden", "true");
-  hIcon.innerHTML = Illustrations.glyph("intelligence_dashboard", { size: 20 });
-  const h = document.createElement("h2");
-  h.className = "exec-summary__title";
-  h.textContent = "Executive Summary";
-  titleWrap.append(hIcon, h);
-  head.appendChild(titleWrap);
-  const badge = document.createElement("span");
-  badge.className = "exec-summary__badge";
-  badge.textContent = "30秒で読める要約";
-  head.appendChild(badge);
-  card.appendChild(head);
+  const cards = document.createElement("div");
+  cards.className = "exec-brief-cards";
 
-  const body = document.createElement("div");
-  body.className = "exec-summary__body";
-
-  // 左カラム: 今回の結論 / Why Now要約 / Why You要約
-  const leftRows = [
-    ["今回の結論", vm.title],
-    ["Why Now", PreviewUI.summarizeSentence(vm.whyNow, 90)],
-    ["Why You", PreviewUI.summarizeSentence(vm.whyCompany, 90)],
-  ].filter(([, v]) => v);
-  if (leftRows.length) {
-    const left = document.createElement("dl");
-    left.className = "exec-summary__narrative";
-    leftRows.forEach(([label, value]) => {
-      const dt = document.createElement("dt");
-      dt.className = "exec-summary__label";
-      dt.textContent = label;
-      const dd = document.createElement("dd");
-      dd.className = "exec-summary__value";
-      dd.textContent = value;
-      left.append(dt, dd);
-    });
-    body.appendChild(left);
+  if (vm.title) {
+    const body = PreviewUI.summarizeSentence(vm.impact || vm.marketChange || vm.whyNow, 90);
+    cards.appendChild(execBriefCard({ glyph: "target", label: "今回見つかったビジネスチャンス", title: vm.title, body }));
   }
 
-  // 右カラム: Executive Snapshot（Phase73 STEP2: 確信度 / 公開情報ソース数 / 市場シグナル件数 /
-  // 更新日 / レポート種別。数値の新規生成は行わず、既存フィールドの件数・日付のみ表示する）。
+  if (vm.whyNow) {
+    cards.appendChild(
+      execBriefCard({
+        glyph: "line_chart",
+        label: "なぜ今なのか",
+        body: PreviewUI.summarizeSentence(vm.whyNow, 120),
+        jumpHref: "#sec-why-now",
+      })
+    );
+  }
+
+  if (vm.whyCompany) {
+    cards.appendChild(
+      execBriefCard({
+        glyph: "building",
+        label: "なぜ御社なのか",
+        body: PreviewUI.summarizeSentence(vm.whyCompany, 120),
+        jumpHref: "#sec-why-you",
+      })
+    );
+  }
+
+  const fa = (data.free_opportunity || {}).first_action || "";
+  if (fa) {
+    cards.appendChild(execBriefCard({ glyph: "rocket", label: "今日やること", body: fa, isToday: true }));
+  }
+
+  if (!cards.children.length) return;
+  el.appendChild(cards);
+}
+
+/**
+ * @param {{glyph:string, label:string, title?:string, body?:string, jumpHref?:string, isToday?:boolean}} args
+ */
+function execBriefCard({ glyph, label, title, body, jumpHref, isToday }) {
+  const c = document.createElement("div");
+  c.className = "exec-brief-card" + (isToday ? " exec-brief-card--today" : "");
+
+  const head = document.createElement("div");
+  head.className = "exec-brief-card__head";
+  const icon = document.createElement("span");
+  icon.className = "exec-brief-card__icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.innerHTML = Illustrations.glyph(glyph, { size: 18 });
+  head.appendChild(icon);
+  if (isToday) {
+    const badge = document.createElement("span");
+    badge.className = "exec-brief-card__badge";
+    badge.textContent = "TODAY";
+    head.appendChild(badge);
+  }
+  c.appendChild(head);
+
+  c.appendChild(textP("exec-brief-card__label", label));
+  if (title) c.appendChild(textP("exec-brief-card__title", title));
+  if (body) c.appendChild(textP("exec-brief-card__body", body));
+  if (jumpHref) {
+    const a = document.createElement("a");
+    a.className = "exec-brief-card__more";
+    a.href = jumpHref;
+    a.textContent = "続きを読む";
+    c.appendChild(a);
+  }
+  return c;
+}
+
+/* ==================== Metrics（STEP4: 経営ダッシュボード化） ==================== */
+
+function renderMetrics(data, vm, theme, snapshot) {
+  const el = document.getElementById("sec-metrics");
+  el.innerHTML = "";
+
+  const marketCard = buildMarketMetricCard(vm, snapshot);
+  const fitCard = buildFitMetricCard(data, vm);
+  if (!marketCard && !fitCard && !snapshot.stats.length && !snapshot.years.length) return;
+
+  el.appendChild(secHead("Market Intelligence Dashboard", theme));
+
+  // Phase75 STEP5: Executive Snapshot（確信度 / 公開情報ソース数 / 市場シグナル件数 /
+  // 更新日 / レポート種別）を、廃止した旧 Executive Summary からこちらへ移設。
+  // 数値の新規生成は行わず、既存フィールドの件数・日付のみ表示する（内容は変更なし）。
   const gen = formatDate(data.meta && data.meta.generated_at);
   const snapItems = [
     ["Confidence", "target", vm.confidence && vm.confidence.level],
@@ -431,7 +477,7 @@ function renderExecutiveSummary(data, vm, snapshot) {
   ].filter(([, , v]) => v);
   if (snapItems.length) {
     const snap = document.createElement("div");
-    snap.className = "exec-snapshot";
+    snap.className = "exec-snapshot exec-snapshot--dashboard";
     snap.appendChild(textP("exec-snapshot__title", "Executive Snapshot"));
     const list = document.createElement("dl");
     list.className = "exec-snapshot__list";
@@ -451,25 +497,8 @@ function renderExecutiveSummary(data, vm, snapshot) {
       list.appendChild(row);
     });
     snap.appendChild(list);
-    body.appendChild(snap);
+    el.appendChild(snap);
   }
-
-  if (!body.children.length) return;
-  card.appendChild(body);
-  el.appendChild(card);
-}
-
-/* ==================== Metrics（STEP4: 経営ダッシュボード化） ==================== */
-
-function renderMetrics(data, vm, theme, snapshot) {
-  const el = document.getElementById("sec-metrics");
-  el.innerHTML = "";
-
-  const marketCard = buildMarketMetricCard(vm, snapshot);
-  const fitCard = buildFitMetricCard(data, vm);
-  if (!marketCard && !fitCard && !snapshot.stats.length && !snapshot.years.length) return;
-
-  el.appendChild(secHead("Market Intelligence Dashboard", theme));
 
   // Phase67 STEP3: 上段 KPI 4カード（市場の追い風 / 補助金・制度 / 節目の年 / 確信度）。
   // いずれも既存フィールドから確認できた項目のみ表示（捏造しない）。
@@ -1147,68 +1176,6 @@ function renderWhyThisMatters(vm) {
   el.appendChild(grid);
 }
 
-/* ==================== FIRST STEP（STEP7: 横タイムライン化） ==================== */
-
-function renderFirstStep(data, theme) {
-  const el = document.getElementById("sec-first-step");
-  el.innerHTML = "";
-  const fa = (data.free_opportunity || {}).first_action || "";
-  const steps = PreviewUI.buildFirstActionViewModel(fa);
-  if (!steps.length) return;
-
-  el.appendChild(secHead("今日からできる一歩", theme));
-
-  const card = document.createElement("div");
-  card.className = "oppv2__block oppv2__block--action";
-  if (steps.length <= 1) {
-    const p = document.createElement("p");
-    p.className = "first-action__single";
-    p.textContent = steps[0] || fa;
-    card.appendChild(p);
-  } else {
-    const ol = document.createElement("ol");
-    ol.className = "first-action__steps first-action__steps--timeline";
-    steps.forEach((st, i) => {
-      const li = document.createElement("li");
-      li.className = "first-action__step";
-      const num = document.createElement("span");
-      num.className = "first-action__step-num";
-      num.setAttribute("aria-hidden", "true");
-      num.textContent = String(i + 1).padStart(2, "0");
-      const badge = document.createElement("span");
-      badge.className = "first-action__step-badge";
-      badge.textContent = "STEP" + (i + 1);
-      const p = document.createElement("p");
-      p.textContent = st;
-      li.append(num, badge, p);
-      if (i < steps.length - 1) {
-        const arrow = document.createElement("span");
-        arrow.className = "first-action__step-arrow";
-        arrow.setAttribute("aria-hidden", "true");
-        arrow.innerHTML =
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
-        li.appendChild(arrow);
-      }
-      ol.appendChild(li);
-    });
-    card.appendChild(ol);
-
-    const doneBadge = document.createElement("p");
-    doneBadge.className = "first-action__done-badge";
-    const dbIcon = document.createElement("span");
-    dbIcon.setAttribute("aria-hidden", "true");
-    dbIcon.innerHTML = Illustrations.glyph("rocket", { size: 14 });
-    const dbLabel = document.createElement("span");
-    dbLabel.className = "first-action__done-badge-tag";
-    dbLabel.textContent = "START TODAY";
-    const dbText = document.createElement("span");
-    dbText.textContent = "今日30分で始められます";
-    doneBadge.append(dbIcon, " ", dbLabel, " ", dbText);
-    card.appendChild(doneBadge);
-  }
-  el.appendChild(card);
-}
-
 /* ==================== 根拠（STEP8: カードデザイン刷新・折りたたみ） ==================== */
 
 const EVIDENCE_BADGE_LABEL = {
@@ -1232,26 +1199,9 @@ const BADGE_COLOR_KEY = {
   review: "research",
 };
 
-function renderEvidence(data, sourceMap) {
-  const el = document.getElementById("sec-evidence");
-  el.innerHTML = "";
-  const evidence = (data.free_opportunity || {}).evidence || [];
-  if (!evidence.length) return;
-
-  const details = document.createElement("details");
-  details.className = "disclosure";
-  const summary = document.createElement("summary");
-  summary.textContent = `この提案の根拠（${evidence.length}件）`;
-  details.appendChild(summary);
-
-  const body = document.createElement("div");
-  body.className = "disclosure__body";
-  body.appendChild(secHead("今回の提案の根拠", "evidence_stack"));
-  body.appendChild(sectionSceneEl("market_growth_chart"));
-  body.appendChild(
-    textP("disclosure__lede", "公開情報・市場データ・企業情報を組み合わせて分析しました。")
-  );
-
+// Phase75 STEP7: 折りたたみを開いた後も、先頭3件のみを常時表示し、残りは
+// ネストした「さらに表示」details に格納する（データは1件も削らない・全件保持）。
+function buildEvidenceList(evidence, sourceMap, offset) {
   const ul = document.createElement("ul");
   ul.className = "evi-list evi-list--card";
   evidence.forEach((ev, i) => {
@@ -1263,7 +1213,7 @@ function renderEvidence(data, sourceMap) {
     const num = document.createElement("span");
     num.className = "evi-item__num";
     num.setAttribute("aria-hidden", "true");
-    num.textContent = String(i + 1);
+    num.textContent = String(offset + i + 1);
     li.appendChild(num);
     const chip = document.createElement("span");
     chip.className = "evi-item__chip badge-cat badge-cat--" + colorKey;
@@ -1294,7 +1244,46 @@ function renderEvidence(data, sourceMap) {
     }
     ul.appendChild(li);
   });
-  body.appendChild(ul);
+  return ul;
+}
+
+function renderEvidence(data, sourceMap) {
+  const el = document.getElementById("sec-evidence");
+  el.innerHTML = "";
+  const evidence = (data.free_opportunity || {}).evidence || [];
+  if (!evidence.length) return;
+
+  const details = document.createElement("details");
+  details.className = "disclosure";
+  const summary = document.createElement("summary");
+  summary.textContent = `この提案の根拠（${evidence.length}件）`;
+  details.appendChild(summary);
+
+  const body = document.createElement("div");
+  body.className = "disclosure__body";
+  body.appendChild(secHead("今回の提案の根拠", "evidence_stack"));
+  body.appendChild(sectionSceneEl("market_growth_chart"));
+  body.appendChild(
+    textP("disclosure__lede", "公開情報・市場データ・企業情報を組み合わせて分析しました。")
+  );
+
+  const visible = evidence.slice(0, 3);
+  const rest = evidence.slice(3);
+  body.appendChild(buildEvidenceList(visible, sourceMap, 0));
+
+  if (rest.length) {
+    const moreDetails = document.createElement("details");
+    moreDetails.className = "disclosure disclosure--nested";
+    const moreSummary = document.createElement("summary");
+    moreSummary.textContent = `さらに表示（残り${rest.length}件）`;
+    moreDetails.appendChild(moreSummary);
+    const moreBody = document.createElement("div");
+    moreBody.className = "disclosure__body";
+    moreBody.appendChild(buildEvidenceList(rest, sourceMap, 3));
+    moreDetails.appendChild(moreBody);
+    body.appendChild(moreDetails);
+  }
+
   details.appendChild(body);
   el.appendChild(details);
 }
@@ -1460,19 +1449,9 @@ function renderCtaBottom() {
   wrap.appendChild(points);
 
   wrap.appendChild(ctaButton("無料版レポートを受け取る"));
-  wrap.appendChild(textP("cta-v3__sub", "市場規模・競合・リスク分析を確認できます。"));
-  wrap.appendChild(
-    textP("cta-final__note", "営業電話はいたしません。公開情報ベースで分析します。")
-  );
-
-  const proof = document.createElement("div");
-  proof.className = "cta-v2__proof";
-  ["御社向けに整理した分析", "公開情報ベース", "専門家監修"].forEach((t) => {
-    const s = document.createElement("span");
-    s.textContent = t;
-    proof.appendChild(s);
-  });
-  wrap.appendChild(proof);
+  // Phase75 STEP8: 補足文を1行に簡素化（既存のTrust文言=email-render.jsと同じ確立済み
+  // コピーを再利用。新しい文章は作らない）。
+  wrap.appendChild(textP("cta-final__note", "メールアドレス登録だけで無料版を毎週配信"));
 
   // Phase68 STEP2 STEP12: 印刷専用 CTA（ボタンではなく URL 文字列 + QR風プレースホルダー）。
   // 画面には出さない（.print-only は @media print のみ表示）。QR コードは生成しない。

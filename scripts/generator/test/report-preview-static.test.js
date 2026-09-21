@@ -39,7 +39,7 @@ test("report-preview.html: 必要な JS を正しい順で読み込む（guard �
   }
 });
 
-test("report-preview.html: Hero → Metrics → Why Now → Why You → Opportunity → First Step → 根拠 → 情報源 → ほかのテーマ → Trust → CTA の順", () => {
+test("report-preview.html: Hero → Metrics → Executive Brief → Why Now → Why You → Opportunity → 根拠 → 情報源 → ほかのテーマ → Trust → CTA の順（Phase75 STEP1: IA Refresh）", () => {
   const idx = (id) => {
     const i = html.indexOf(`id="${id}"`);
     assert.ok(i !== -1, `セクション ${id} が無い`);
@@ -47,34 +47,36 @@ test("report-preview.html: Hero → Metrics → Why Now → Why You → Opportun
   };
   const iHero = idx("report-hero");
   const iMetrics = idx("sec-metrics");
+  const iExecBrief = idx("sec-exec-summary");
   const iWhyNow = idx("sec-why-now");
   const iWhyYou = idx("sec-why-you");
   const iOpp = idx("sec-opportunity");
-  const iFirstStep = idx("sec-first-step");
   const iEvidence = idx("sec-evidence");
   const iSources = idx("sec-sources");
   const iLocked = idx("sec-locked");
   const iTrust = idx("sec-trust");
   const iCta = idx("sec-cta");
 
+  assert.ok(!html.includes('id="sec-first-step"'), "旧 sec-first-step は Executive Brief へ統合され廃止されている");
   assert.ok(iHero < iMetrics, "Hero は Metrics より前");
-  assert.ok(iMetrics < iWhyNow && iWhyNow < iWhyYou, "Metrics → WhyNow → WhyYou の順");
-  assert.ok(iWhyYou < iOpp && iOpp < iFirstStep, "WhyYou → Opportunity → FirstStep の順");
-  assert.ok(iFirstStep < iEvidence && iEvidence < iSources, "FirstStep → 根拠 → 情報源 の順");
-  assert.ok(iOpp < iSources, "情報源は Opportunity より後（結論→根拠）");
+  assert.ok(iMetrics < iExecBrief, "Metrics（Dashboard）は Executive Brief より前");
+  assert.ok(iExecBrief < iWhyNow && iWhyNow < iWhyYou, "Executive Brief → WhyNow → WhyYou の順");
+  assert.ok(iWhyYou < iOpp && iOpp < iEvidence, "WhyYou → Opportunity → 根拠 の順");
+  assert.ok(iEvidence < iSources, "根拠 → 情報源 の順");
   assert.ok(iSources < iLocked && iLocked < iTrust && iTrust < iCta, "情報源 → ほかのテーマ → Trust → CTA の順");
 });
 
 /* ---------- JS: 描画順・データソース ---------- */
 
-test("report-preview.js: render() が Hero → Metrics → WhyNow → WhyYou → Opportunity → FirstStep → Evidence → Sources → Locked → Trust → CtaBottom の順で呼ぶ", () => {
+test("report-preview.js: render() が Hero → Metrics → ExecutiveSummary(Brief) → WhyNow → WhyYou → Opportunity → Evidence → Sources → Locked → Trust → CtaBottom の順で呼ぶ（Phase75 STEP1: IA Refresh。旧 renderFirstStep は Executive Brief へ統合され廃止）", () => {
+  assert.doesNotMatch(js, /function renderFirstStep\(/, "renderFirstStep は削除済みのはず");
   const seq = [
     "renderHero(",
     "renderMetrics(",
+    "renderExecutiveSummary(",
     "renderWhyNow(",
     "renderWhyYou(",
     "renderOpportunity(",
-    "renderFirstStep(",
     "renderEvidence(",
     "renderSourcesV2(",
     "renderLockedThemes(",
@@ -201,9 +203,10 @@ test("report-preview.js: Metrics は 2-up カード（市場の追い風 / 御�
   assert.match(js, /market-timeline/);
 });
 
-test("report-preview.js: FIRST STEP は今日からできる一歩をロードマップ表示する", () => {
-  assert.match(js, /PreviewUI\.buildFirstActionViewModel/);
-  assert.match(js, /first-action__steps/);
+test("report-preview.js: 今日やること（旧 FIRST STEP）は Executive Brief の TODAY カードへ統合されている（Phase75 STEP1: IA Refresh）", () => {
+  assert.match(js, /free_opportunity[\s\S]{0,20}first_action/);
+  assert.match(js, /exec-brief-card--today/);
+  assert.match(js, /"TODAY"/);
 });
 
 test("report-preview.js: Trust strip（メールアドレス登録だけ / 専門家監修 / 無料版を毎週配信 / 停止可能）を CTA の前に描画する", () => {
