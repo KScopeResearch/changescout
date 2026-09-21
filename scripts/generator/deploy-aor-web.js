@@ -422,8 +422,27 @@ async function reconcilePublishedReports(input = {}) {
  *   storeOptions は Phase58 STEP4 の reconciliation で report-store / review-store へ渡す DI。
  * @returns {Promise<Object>}
  */
+/**
+ * Phase75 STEP4: config.files（相対パスの配列）が指定された場合、公開対象を
+ * その中で実際に deployable なファイルだけに絞り込む（isDeployableFile の
+ * ホワイトリスト/除外セグメントは常に適用される＝ config.files 経由で
+ * 拡張子制限や除外パスセグメントを迂回することはできない）。
+ * @param {string[]} allKeys - listDeployableFiles() の結果
+ * @param {string[]|undefined} files - config.files
+ * @returns {{relativeKeys:string[], notFound:string[]}}
+ */
+function filterToRequestedFiles(allKeys, files) {
+  if (!Array.isArray(files)) return { relativeKeys: allKeys, notFound: [] };
+  const allowed = new Set(allKeys);
+  const requested = new Set(files);
+  return {
+    relativeKeys: allKeys.filter((k) => requested.has(k)),
+    notFound: files.filter((f) => !allowed.has(f)),
+  };
+}
+
 async function deployAorWeb(config, options = {}) {
-  const relativeKeys = listDeployableFiles();
+  const { relativeKeys, notFound } = filterToRequestedFiles(listDeployableFiles(), config.files);
 
   // Phase58 STEP4: Deploy前 reconciliation（Public Data Safety より前段。FAIL CLOSED）。
   // stale/orphan Published artifact を1件でも検出したら、dry-run / 実行を問わず deploy 全体を中止する
@@ -468,6 +487,7 @@ async function deployAorWeb(config, options = {}) {
       distributionId: config.distributionId,
       uploads: plan.uploads,
       skipped: plan.skipped,
+      notFound,
       plannedCommands: plan.plannedCommands,
     };
   }
@@ -529,7 +549,7 @@ async function deployAorWeb(config, options = {}) {
     logger.info(`CloudFront invalidationを作成しました: ${invalidationId}`);
   }
 
-  return { ok: true, dryRun: false, uploaded, skipped, invalidationId };
+  return { ok: true, dryRun: false, uploaded, skipped, notFound, invalidationId };
 }
 
 async function main() {
@@ -537,15 +557,21 @@ async function main() {
   const region = process.env.AWS_REGION;
   const distributionId = process.env.AOR_WEB_CLOUDFRONT_DISTRIBUTION_ID || undefined;
   const execute = process.env.AOR_DEPLOY_EXECUTE === "yes";
+  // Phase75 STEP4: AOR_DEPLOY_FILES（カンマ区切り、SOURCE_DIRからの相対パス）を指定した場合、
+  // website/aor/ 全体ではなく指定ファイルのみをデプロイ対象にする（選択的デプロイ）。
+  const files = process.env.AOR_DEPLOY_FILES
+    ? process.env.AOR_DEPLOY_FILES.split(",").map((f) => f.trim()).filter(Boolean)
+    : undefined;
 
   if (!bucket || !region) {
     console.error("使い方: AOR_WEB_S3_BUCKET=... AWS_REGION=... node scripts/generator/deploy-aor-web.js");
     console.error("        （実書き込みにはIAM整備後、AOR_DEPLOY_EXECUTE=yes を明示的に指定する）");
+    console.error("        （特定ファイルのみ対象にするには AOR_DEPLOY_FILES=a.html,assets/js/b.js を指定する）");
     process.exitCode = 2;
     return;
   }
 
-  const result = await deployAorWeb({ bucket, region, distributionId, execute });
+  const result = await deployAorWeb({ bucket, region, distributionId, execute, files });
   if (!result.ok) {
     if (result.reconciliation) {
       console.error("STALE PUBLISHED ARTIFACT DETECTED");
@@ -575,8 +601,15 @@ async function main() {
     return;
   }
 
+  if (result.notFound && result.notFound.length > 0) {
+    console.warn(
+      `AOR_DEPLOY_FILES に含まれるが公開対象にならなかったファイル: ${result.notFound.length}件: ${result.notFound.join(", ")}`
+    );
+  }
+
   if (result.dryRun) {
     console.log(`[dry-run] ${result.uploads.length}件のファイルが公開対象です。AWSへの書き込みは行っていません。`);
+    result.uploads.forEach((u) => console.log(`[dry-run]   - ${u.key} (${u.contentType}, ${u.sizeBytes} bytes)`));
     if (result.skipped && result.skipped.length > 0) {
       console.log(`[dry-run] スキップ: ${result.skipped.length}件（列挙後に消失）: ${result.skipped.join(", ")}`);
     }

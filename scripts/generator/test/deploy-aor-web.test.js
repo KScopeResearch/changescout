@@ -228,6 +228,45 @@ test("deployAorWeb: execute:true時、ENOENT以外のファイル読み込みエ
   );
 });
 
+// ===========================================================================
+// Phase75 STEP4 — config.files による選択的デプロイ（指定ファイルのみ対象にする）
+// ===========================================================================
+
+test("deployAorWeb: config.files 指定時は指定ファイルのみが対象になる（dry-run）", async () => {
+  const files = ["report-preview.html", "assets/js/report-preview.js"];
+  const result = await deployAorWeb({ bucket: "b", region: "r", files });
+  assert.equal(result.ok, true);
+  assert.equal(result.dryRun, true);
+  const keys = result.uploads.map((u) => u.key).sort();
+  assert.deepEqual(keys, files.slice().sort());
+});
+
+test("deployAorWeb: config.files に存在しない/対象外ファイルがあればnotFoundとして報告し、アップロード対象にしない", async () => {
+  const files = ["report-preview.html", "no-such-file.html", "README.md"];
+  const result = await deployAorWeb({ bucket: "b", region: "r", files });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.uploads.map((u) => u.key), ["report-preview.html"]);
+  assert.ok(result.notFound.includes("no-such-file.html"), "存在しないファイルはnotFound");
+  assert.ok(result.notFound.includes("README.md"), "isDeployableFileがfalseのファイルもnotFound");
+});
+
+test("deployAorWeb: config.files 指定時、execute:true でも指定ファイルのみS3へアップロードする", async () => {
+  const s3Client = createFakeS3Client();
+  const files = ["report-preview.html", "assets/js/illustrations.js"];
+  const result = await deployAorWeb({ bucket: "b", region: "r", execute: true, files }, { s3Client });
+  assert.equal(result.ok, true);
+  assert.equal(result.uploaded, 2);
+  const keys = s3Client.calls.map((c) => c.input.Key).sort();
+  assert.deepEqual(keys, files.slice().sort());
+});
+
+test("deployAorWeb: config.files 未指定時は従来どおり全公開対象ファイルが対象になる（後方互換）", async () => {
+  const result = await deployAorWeb({ bucket: "b", region: "r" });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.notFound, []);
+  assert.ok(result.uploads.length > 1, "filesを指定しなければ複数ファイルが対象のはず");
+});
+
 test("isDeployableFile: 許可拡張子（html/css/js/json）は対象になる", () => {
   assert.equal(isDeployableFile("report-preview.html"), true);
   assert.equal(isDeployableFile("assets/css/base.css"), true);
