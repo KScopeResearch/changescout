@@ -206,6 +206,216 @@ function pmGoldButton(href, label) {
   );
 }
 
+// ---------- Phase73 STEP6: Initial Hero の Business Intelligence Dashboard visual ----------
+// table + inline style + bgcolor のみで構成する（SVG / img / 背景画像は使わない）。
+// Weekly（renderPremiumWeeklyHtml）には影響させないため、既存の pmCard/pmRow/pmGoldButton は変更せず、
+// Initial 専用の関数として追加する。
+function pmGoldButtonFull(href, label) {
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>' +
+    '<td bgcolor="' +
+    AOR_GOLD +
+    '" align="center" valign="middle" height="56" style="border-radius:8px;">' +
+    '<a href="' +
+    href +
+    '" target="_blank" style="display:block;font-size:15px;font-weight:800;color:' +
+    AOR_NAVY +
+    ';text-decoration:none;line-height:56px;">&#9654;&nbsp;&nbsp;' +
+    label +
+    "</a></td></tr></table>"
+  );
+}
+
+function pmStackCard(kicker, body) {
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+    'style="background:#ffffff;border:1px solid ' +
+    AOR_BORDER +
+    ';border-radius:12px;"><tr><td style="padding:24px;">' +
+    '<div style="font-size:10px;font-weight:800;letter-spacing:0.05em;color:' +
+    AOR_GOLD +
+    ';">' +
+    kicker +
+    "</div>" +
+    '<div style="font-size:13px;color:' +
+    AOR_INK +
+    ';line-height:1.8;margin-top:8px;">' +
+    body +
+    "</div></td></tr></table>"
+  );
+}
+
+function pmStack(cellsHtml) {
+  return cellsHtml
+    .map(function (c, i) {
+      return '<div style="' + (i < cellsHtml.length - 1 ? "margin:0 0 12px;" : "") + '">' + c + "</div>";
+    })
+    .join("");
+}
+
+function pmCardAccent(kicker, body, accent) {
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" ' +
+    'style="background:#ffffff;border:1px solid ' +
+    AOR_BORDER +
+    ";border-top:3px solid " +
+    accent +
+    ';border-radius:12px;"><tr><td style="padding:14px;">' +
+    '<span style="display:inline-block;width:8px;height:8px;background:' +
+    accent +
+    ';border-radius:4px;margin-right:6px;vertical-align:middle;font-size:0;line-height:0;">&nbsp;</span>' +
+    '<span style="font-size:10px;font-weight:800;letter-spacing:0.05em;color:' +
+    AOR_GOLD +
+    ';vertical-align:middle;">' +
+    kicker +
+    "</span>" +
+    '<div style="font-size:12px;color:' +
+    AOR_INK +
+    ';line-height:1.7;margin-top:6px;">' +
+    body +
+    "</div></td></tr></table>"
+  );
+}
+
+function trustRow(label) {
+  return (
+    '<tr><td style="padding:4px 0;">' +
+    '<span style="display:inline-block;width:14px;height:14px;background:' +
+    AOR_EMERALD +
+    ';border-radius:7px;text-align:center;font-size:9px;font-weight:800;color:#ffffff;line-height:14px;vertical-align:middle;">&#10003;</span>' +
+    '<span style="padding-left:8px;font-size:11px;color:' +
+    AOR_MUTED +
+    ';vertical-align:middle;">' +
+    esc(label) +
+    "</span></td></tr>"
+  );
+}
+
+function dashboardBlock(color, w, h, radius) {
+  return (
+    '<span style="display:inline-block;width:' +
+    w +
+    "px;height:" +
+    h +
+    "px;background:" +
+    color +
+    ";border-radius:" +
+    radius +
+    'px;font-size:0;line-height:0;">&nbsp;</span>'
+  );
+}
+
+function dashboardDot(color, size) {
+  return dashboardBlock(color, size, size, Math.round(size / 2));
+}
+
+function dashboardConnector(w) {
+  return (
+    '<span style="display:inline-block;width:' +
+    w +
+    'px;margin:0 4px;border-top:1px dashed rgba(201,162,75,0.4);vertical-align:middle;font-size:0;line-height:0;">&nbsp;</span>'
+  );
+}
+
+function dashboardRadar() {
+  return (
+    '<div style="width:60px;height:60px;border:1px solid rgba(201,162,75,0.35);border-radius:30px;text-align:center;">' +
+    '<div style="width:40px;height:40px;margin:9px auto 0;border:1px solid rgba(201,162,75,0.55);border-radius:20px;text-align:center;">' +
+    '<div style="width:18px;height:18px;margin:10px auto 0;background:' +
+    AOR_GOLD +
+    ';border-radius:9px;font-size:0;line-height:0;">&nbsp;</div></div></div>'
+  );
+}
+
+function dashboardNetwork() {
+  return (
+    dashboardDot(AOR_GOLD, 12) +
+    dashboardConnector(14) +
+    dashboardDot(AOR_EMERALD, 12) +
+    dashboardConnector(14) +
+    dashboardDot(AOR_GOLD, 12)
+  );
+}
+
+function dashboardGrowthBars() {
+  var heights = [9, 14, 12, 20, 26];
+  var bars = heights
+    .map(function (h, i) {
+      var color = i === heights.length - 1 ? AOR_EMERALD : "#2a4a63";
+      return (
+        '<span style="display:inline-block;width:7px;height:' +
+        h +
+        "px;background:" +
+        color +
+        ';border-radius:2px;margin-right:3px;vertical-align:bottom;font-size:0;line-height:0;">&nbsp;</span>'
+      );
+    })
+    .join("");
+  return '<div style="height:26px;">' + bars + "</div>";
+}
+
+function dashboardCompanyNode() {
+  return (
+    '<div style="border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:8px;">' +
+    dashboardBlock("#16304f", 18, 18, 4) +
+    '<span style="display:inline-block;width:8px;font-size:0;line-height:0;">&nbsp;</span>' +
+    dashboardBlock("#16304f", 18, 18, 4) +
+    "</div>"
+  );
+}
+
+function dashboardMeterCard(fillPct, color) {
+  return (
+    '<div style="background:#132a44;border:1px solid rgba(255,255,255,0.14);border-radius:8px;padding:9px 10px;">' +
+    '<div style="height:4px;background:#1c3b5e;border-radius:2px;font-size:0;line-height:0;">' +
+    '<span style="display:inline-block;height:4px;width:' +
+    fillPct +
+    "%;background:" +
+    color +
+    ';border-radius:2px;">&nbsp;</span></div></div>'
+  );
+}
+
+function dashboardNotificationChip() {
+  return (
+    '<div style="background:rgba(201,162,75,0.14);border:1px solid rgba(201,162,75,0.4);border-radius:8px;padding:9px 10px;">' +
+    dashboardDot(AOR_GOLD, 10) +
+    dashboardConnector(56) +
+    "</div>"
+  );
+}
+
+function dashboardGoldAccentCard() {
+  return '<div style="background:' + AOR_GOLD + ';border-radius:8px;height:6px;font-size:0;line-height:0;">&nbsp;</div>';
+}
+
+function heroDashboardVisual() {
+  var row = function (inner, last) {
+    return '<div style="' + (last ? "" : "margin:0 0 12px;") + '">' + inner + "</div>";
+  };
+  var left =
+    row(dashboardRadar()) + row(dashboardNetwork()) + row(dashboardGrowthBars()) + row(dashboardCompanyNode(), true);
+  var right =
+    '<div style="font-size:9px;font-weight:800;letter-spacing:0.1em;color:' +
+    AOR_GOLD +
+    ';margin:0 0 8px;">BUSINESS SIGNAL</div>' +
+    row(dashboardMeterCard(70, AOR_GOLD)) +
+    row(dashboardMeterCard(45, AOR_EMERALD)) +
+    row(dashboardMeterCard(85, AOR_GOLD)) +
+    row(dashboardNotificationChip()) +
+    row(dashboardGoldAccentCard(), true);
+  return (
+    '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:20px 0 4px;"><tr>' +
+    '<td width="60%" valign="top" style="padding:0 8px 0 0;">' +
+    left +
+    "</td>" +
+    '<td width="40%" valign="top" style="padding:0 0 0 8px;">' +
+    right +
+    "</td>" +
+    "</tr></table>"
+  );
+}
+
 function renderPremiumInitialHtml(t, o) {
   var greet = esc(t.salutation || (t.hasCompanyName ? t.companyName + " 経営者様" : "ご担当者様"));
   var reviewBadge = t.reviewApproved ? "専門家監修" : "運営がレビュー中";
@@ -252,15 +462,16 @@ function renderPremiumInitialHtml(t, o) {
     "</p>" +
     (t.hasOpportunity
       ? '<p style="font-size:22px;font-weight:800;color:#ffffff;line-height:1.5;margin:0 0 6px;">御社向けのビジネスチャンスがあります！</p>' +
-        '<p style="font-size:19px;font-weight:800;color:' +
+        '<p style="font-size:24px;font-weight:800;color:' +
         AOR_GOLD +
-        ';line-height:1.6;margin:0;">' +
+        ';line-height:1.4;margin:4px 0 0;padding-bottom:12px;border-bottom:2px solid rgba(201,162,75,0.3);">' +
         esc(t.opportunityTitle) +
         "</p>"
       : '<p style="font-size:20px;font-weight:800;color:#ffffff;line-height:1.5;margin:0;">御社について公開情報を分析し、レポートにまとめました。</p>') +
     '<p style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.8;margin:16px 0 0;">公開情報をもとに専門家監修で整理した御社専用ビジネスチャンスレポートです。</p>' +
-    '<div style="margin:22px 0 4px;">' +
-    pmGoldButton(ctaHref, "無料でレポートを見る") +
+    heroDashboardVisual() +
+    '<div style="margin:8px 0 4px;">' +
+    pmGoldButtonFull(ctaHref, "無料版レポートを見る") +
     "</div>" +
     "</td></tr></table>" +
     '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>' +
@@ -275,16 +486,16 @@ function renderPremiumInitialHtml(t, o) {
   var firstStepBlock = "";
   if (t.hasOpportunity) {
     var execCells = [];
-    if (t.whyNow) execCells.push(pmCard("WHY NOW", esc(t.whyNow)));
-    if (t.whyCompany) execCells.push(pmCard("WHY YOU", esc(t.whyCompany)));
-    if (t.firstStep) execCells.push(pmCard("今日からできる一歩", esc(t.firstStep)));
+    if (t.whyNow) execCells.push(pmStackCard("WHY NOW", esc(t.whyNow)));
+    if (t.whyCompany) execCells.push(pmStackCard("WHY YOU", esc(t.whyCompany)));
+    if (t.firstStep) execCells.push(pmStackCard("今日からできる一歩", esc(t.firstStep)));
     if (execCells.length) {
       execSummary =
         '<tr><td style="padding:26px 24px 4px;">' +
         '<div style="font-size:11px;font-weight:800;letter-spacing:0.08em;color:' +
         AOR_NAVY +
         ';margin:0 0 12px;">EXECUTIVE SUMMARY</div>' +
-        pmRow(execCells, execCells.length) +
+        pmStack(execCells) +
         "</td></tr>";
     }
 
@@ -292,22 +503,24 @@ function renderPremiumInitialHtml(t, o) {
     if (t.marketStats && t.marketStats.length) {
       var m0 = t.marketStats[0];
       kpiCells.push(
-        pmCard(
+        pmCardAccent(
           "市場の追い風" + (m0.worldOnly ? "（参考）" : ""),
           '<span style="font-size:16px;font-weight:800;color:' +
             AOR_NAVY +
             ';">' +
             esc(m0.value) +
             "</span>" +
-            (m0.label ? '<div style="font-size:11px;color:' + AOR_MUTED + ';margin-top:2px;">' + esc(m0.label) + "</div>" : "")
+            (m0.label ? '<div style="font-size:11px;color:' + AOR_MUTED + ';margin-top:2px;">' + esc(m0.label) + "</div>" : ""),
+          AOR_GOLD
         )
       );
     }
     if (t.expectedBenefit && t.expectedBenefit.length) {
       kpiCells.push(
-        pmCard(
+        pmCardAccent(
           "期待できる効果",
-          '<span style="font-size:16px;font-weight:800;color:' + AOR_NAVY + ';">' + esc(t.expectedBenefit.join("・")) + "</span>"
+          '<span style="font-size:16px;font-weight:800;color:' + AOR_NAVY + ';">' + esc(t.expectedBenefit.join("・")) + "</span>",
+          AOR_EMERALD
         )
       );
     }
@@ -353,19 +566,19 @@ function renderPremiumInitialHtml(t, o) {
         AOR_NAVY +
         ';margin:12px 0;">FIRST STEP</div>' +
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>' +
-        '<td width="30" valign="top">' +
+        '<td width="36" valign="top">' +
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>' +
-        '<td width="22" height="22" bgcolor="' +
-        AOR_EMERALD +
-        '" style="border-radius:11px;text-align:center;font-size:11px;font-weight:800;color:#ffffff;line-height:22px;">1</td>' +
+        '<td width="28" height="28" bgcolor="' +
+        AOR_GOLD +
+        '" style="border-radius:14px;text-align:center;font-size:13px;font-weight:800;color:' +
+        AOR_NAVY +
+        ';line-height:28px;">1</td>' +
         "</tr></table></td>" +
         '<td style="padding-left:10px;">' +
-        '<span style="display:inline-block;padding:2px 8px;background:#ecfdf5;color:' +
-        AOR_EMERALD_DARK +
-        ';font-size:9px;font-weight:800;border-radius:10px;">TODAY</span>' +
+        '<span style="display:inline-block;padding:3px 10px;background:#fbf3e2;color:#8a6a1f;font-size:9px;font-weight:800;border-radius:10px;">TODAY</span>' +
         '<div style="font-size:13px;color:' +
         AOR_INK +
-        ';line-height:1.7;margin-top:6px;">' +
+        ';line-height:1.9;margin-top:8px;">' +
         esc(t.firstStep) +
         "</div></td>" +
         "</tr></table></td></tr>";
@@ -380,13 +593,7 @@ function renderPremiumInitialHtml(t, o) {
     '<table role="presentation" cellpadding="0" cellspacing="0" border="0">' +
     ["メールアドレス登録だけで無料版を毎週配信", reviewBadge, "無料版を毎週配信", "配信はいつでも停止可"]
       .map(function (line) {
-        return (
-          '<tr><td style="padding:3px 0;font-size:11px;color:' +
-          AOR_MUTED +
-          ';">✓ ' +
-          esc(line) +
-          "</td></tr>"
-        );
+        return trustRow(line);
       })
       .join("") +
     "</table></td></tr></table></td></tr>";
@@ -410,10 +617,10 @@ function renderPremiumInitialHtml(t, o) {
     "</td></tr>";
 
   var footer =
-    '<tr><td style="padding:20px 24px 26px;border-top:1px solid ' +
-    AOR_BORDER +
+    '<tr><td style="padding:20px 24px 26px;border-top:2px solid ' +
+    AOR_GOLD +
     ';">' +
-    '<div style="font-size:11px;font-weight:800;letter-spacing:0.1em;color:' +
+    '<div style="font-size:13px;font-weight:800;letter-spacing:0.1em;color:' +
     AOR_NAVY +
     ';">AOR</div>' +
     '<div style="font-size:9px;font-weight:700;letter-spacing:0.08em;color:' +
