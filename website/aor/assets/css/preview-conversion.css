@@ -405,9 +405,13 @@ body { overflow-x: hidden; }
   gap: 12px;
   margin: 12px 0 4px;
 }
+/* Phase73 STEP3: 公開情報分析カード追加時は3カラム */
+.metrics-2up--3 { grid-template-columns: repeat(3, 1fr); }
 .metric-card {
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-border);
+  /* Phase73 STEP2/STEP3: White Card / Gold Border（Blue Leak 解消） */
+  background: #ffffff;
+  border: 1px solid var(--aor-border, #e7ecf3);
+  border-top: 2px solid var(--aor-gold);
   border-radius: 12px;
   padding: 14px 16px;
 }
@@ -503,6 +507,19 @@ body { overflow-x: hidden; }
 /* Phase73 STEP1: Dashboard KPI カードのさらなる視覚化 */
 .metric-card__trend-bar { display: inline-block; margin-top: 6px; opacity: 0.85; }
 .metric-card__network-icon { display: inline-flex; float: right; opacity: 0.8; }
+
+/* Phase73 STEP3 Card3: 公開情報分析（Government/Company/Research/News 件数） */
+.source-mix-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.source-mix-list__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.source-mix-list__count { font-weight: 800; }
 .metric-card--fit .metric-card__confidence { margin-top: 4px; }
 
 /* 「今回わかったこと」インサイトカード3枚（STEP5: 市場 / 御社 / 今動く理由） */
@@ -640,6 +657,29 @@ body { overflow-x: hidden; }
   color: var(--color-primary-border);
 }
 .reason-card--feature .reason-card__text { grid-column: 2; color: var(--color-text-muted); }
+
+/* Phase73 STEP4: WHY NOW Insight Timeline（市場変化 / 補助金 / タイミング） */
+.why-now-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.why-now-timeline__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 160px;
+  padding: 10px 14px;
+  background: var(--aor-gray-bg, #f4f6f9);
+  border: 1px solid var(--aor-border, #e7ecf3);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--aor-navy);
+}
+.why-now-timeline__icon { display: inline-flex; flex: none; color: var(--aor-gold); }
+.why-now-timeline__label { margin: 0; }
 @media (max-width: 480px) {
   .reason-card--feature { grid-template-columns: 36px 1fr; column-gap: 12px; padding: 18px 16px; }
   .reason-card__icon { width: 36px; height: 36px; }
@@ -1249,11 +1289,14 @@ body { overflow-x: hidden; }
   font-size: 0.72rem;
   color: var(--color-text-muted);
 }
-.badge-cat--gov-border { border-left: 3px solid #3730a3; }
-.badge-cat--industry-border { border-left: 3px solid #065f46; }
-.badge-cat--company-border { border-left: 3px solid var(--color-primary); }
-.badge-cat--research-border { border-left: 3px solid #9a3412; }
-.badge-cat--news-border { border-left: 3px solid #6b7280; }
+/* Phase73 STEP6: Category Color を Constitution パレットへ統一
+   （Government=Emerald / Industry=Navy / Company=Slate / Research=Gold / News=Orange）。
+   badge-cat--company-border は var(--color-primary) の Blue Leak も同時に解消する。 */
+.badge-cat--gov-border { border-left: 3px solid var(--aor-emerald-dark); }
+.badge-cat--industry-border { border-left: 3px solid var(--aor-navy); }
+.badge-cat--company-border { border-left: 3px solid #475569; }
+.badge-cat--research-border { border-left: 3px solid var(--aor-gold); }
+.badge-cat--news-border { border-left: 3px solid #c2410c; }
 
 .evi-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .evi-item { border-left: 3px solid var(--color-border); padding: 6px 0 6px 12px; }
@@ -1284,11 +1327,11 @@ body { overflow-x: hidden; }
   padding: 2px 9px;
   margin-bottom: 6px;
 }
-.badge-cat--gov { background: #eef2ff; color: #3730a3; }
-.badge-cat--industry { background: #ecfdf5; color: #065f46; }
-.badge-cat--company { background: var(--color-primary-bg); color: var(--color-primary-dark); }
-.badge-cat--research { background: #fff7ed; color: #9a3412; }
-.badge-cat--news { background: #f3f4f6; color: #374151; }
+.badge-cat--gov { background: var(--aor-emerald-bg); color: var(--aor-emerald-dark); }
+.badge-cat--industry { background: #eef2f7; color: var(--aor-navy); }
+.badge-cat--company { background: #f1f5f9; color: #475569; }
+.badge-cat--research { background: #fbf3e2; color: #8a6b23; }
+.badge-cat--news { background: #fff1e6; color: #c2410c; }
 
 /* Evidence: カードデザイン */
 .evi-list--card { gap: 12px; }
@@ -1431,6 +1474,7 @@ body { overflow-x: hidden; }
 .exec-summary {
   background: #fff;
   border: 1px solid var(--aor-border);
+  border-top: 3px solid var(--aor-gold);
   border-radius: var(--radius-xl);
   padding: 28px 26px;
   box-shadow: var(--shadow-soft);
@@ -1446,7 +1490,7 @@ body { overflow-x: hidden; }
   border-bottom: 1px solid var(--aor-border);
 }
 .exec-summary__title-wrap { display: flex; align-items: center; gap: 8px; }
-.exec-summary__icon { display: inline-flex; color: var(--color-primary); }
+.exec-summary__icon { display: inline-flex; color: var(--aor-navy); }
 .exec-summary__title { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--aor-navy); }
 .exec-summary__badge {
   display: inline-block;
@@ -1462,7 +1506,8 @@ body { overflow-x: hidden; }
 /* Phase68 STEP3: 2カラム（左: 結論/Why Now/Why You、右: Executive Snapshot） */
 .exec-summary__body {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  /* Phase73 STEP2: 左65% / 右35%（Executive Dashboard レイアウト） */
+  grid-template-columns: 65fr 35fr;
   gap: 28px;
   align-items: start;
 }
@@ -1494,7 +1539,7 @@ body { overflow-x: hidden; }
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-primary-dark);
+  color: var(--aor-gold);
 }
 .exec-snapshot__list { margin: 0; display: grid; gap: 12px; }
 .exec-snapshot__row {
@@ -1510,7 +1555,7 @@ body { overflow-x: hidden; }
   grid-row: 1 / 3;
   align-self: start;
   display: inline-flex;
-  color: var(--color-primary);
+  color: var(--aor-emerald, #059669);
 }
 .exec-snapshot__row dt {
   font-size: 0.66rem;

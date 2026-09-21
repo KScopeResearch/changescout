@@ -60,7 +60,7 @@ function render(data, slug) {
   renderHero(data, vm, variant, theme, review, snapshot);
   renderExecutiveSummary(data, vm, snapshot);
   renderMetrics(data, vm, theme, snapshot);
-  renderWhyNow(vm, theme);
+  renderWhyNow(vm, theme, snapshot);
   renderWhyYou(data, vm, theme);
   renderOpportunity(data, vm, theme, snapshot);
   renderWhyThisMatters(vm);
@@ -419,17 +419,15 @@ function renderExecutiveSummary(data, vm, snapshot) {
     body.appendChild(left);
   }
 
-  // 右カラム: Executive Snapshot（Opportunity / Market Signal / Company Fit / Confidence / Sources）
-  const cp = (data && data.company_profile) || {};
-  const core = coreTerm(vm.title);
-  const fitValue =
-    cp.industry_label && core ? `${cp.industry_label} × ${core}` : cp.industry_label || core || "";
+  // 右カラム: Executive Snapshot（Phase73 STEP2: 確信度 / 公開情報ソース数 / 市場シグナル件数 /
+  // 更新日 / レポート種別。数値の新規生成は行わず、既存フィールドの件数・日付のみ表示する）。
+  const gen = formatDate(data.meta && data.meta.generated_at);
   const snapItems = [
-    ["Opportunity", "sparkles", vm.title],
-    ["Market Signal", "line_chart", snapshot.stats[0] ? `${snapshot.stats[0].value}（${labelWithScope(snapshot.stats[0])}）` : ""],
-    ["Company Fit", "building", fitValue],
     ["Confidence", "target", vm.confidence && vm.confidence.level],
     ["Sources", "evidence_stack", sourceCount(data) ? sourceCount(data) + "件" : ""],
+    ["Market Signals", "line_chart", snapshot.stats.length ? snapshot.stats.length + "件" : ""],
+    ["Updated", "calendar", gen],
+    ["Report Type", "shield_check", "Initial Report（無料版）"],
   ].filter(([, , v]) => v);
   if (snapItems.length) {
     const snap = document.createElement("div");
@@ -495,10 +493,13 @@ function renderMetrics(data, vm, theme, snapshot) {
     el.appendChild(kpiRow);
   }
 
-  if (marketCard || fitCard) {
+  const sourceMixCard = buildSourceMixCard(data);
+
+  if (marketCard || fitCard || sourceMixCard) {
     const grid = document.createElement("div");
-    grid.className = "metrics-2up";
+    grid.className = "metrics-2up" + (sourceMixCard ? " metrics-2up--3" : "");
     if (marketCard) grid.appendChild(marketCard);
+    if (sourceMixCard) grid.appendChild(sourceMixCard);
     if (fitCard) grid.appendChild(fitCard);
     el.appendChild(grid);
   }
@@ -669,6 +670,43 @@ function fitNetworkIcon() {
   );
 }
 
+// Phase73 STEP3 Card3「公開情報分析」: 出典を Government / Company / Research / News の
+// 4カテゴリで件数集計するだけの表示（円グラフは使わない。捏造なし・存在件数のみ）。
+function buildSourceMixCard(data) {
+  const list =
+    Array.isArray(data.top_sources) && data.top_sources.length ? data.top_sources : data.source_pages || [];
+  if (!list.length) return null;
+  const counts = { gov: 0, company: 0, research: 0, news: 0 };
+  list.forEach((sp) => {
+    const key = BADGE_COLOR_KEY[sp.source_type];
+    if (key === "gov") counts.gov++;
+    else if (key === "company") counts.company++;
+    else if (key === "research" || key === "industry") counts.research++;
+    else if (key === "news") counts.news++;
+  });
+  const rows = [
+    ["Government", "gov", counts.gov],
+    ["Company", "company", counts.company],
+    ["Research", "research", counts.research],
+    ["News", "news", counts.news],
+  ].filter(([, , n]) => n > 0);
+  if (!rows.length) return null;
+
+  const card = document.createElement("div");
+  card.className = "metric-card metric-card--source-mix";
+  card.innerHTML =
+    `<div class="metric-card__label">公開情報分析</div>` +
+    `<ul class="source-mix-list">` +
+    rows
+      .map(
+        ([label, key, n]) =>
+          `<li class="source-mix-list__item badge-cat--${key}"><span class="source-mix-list__label">${escapeText(label)}</span><span class="source-mix-list__count">${n}件</span></li>`
+      )
+      .join("") +
+    `</ul>`;
+  return card;
+}
+
 // 「御社との適合度」カード: 御社の業種（industry_label）× 今回のテーマ（title の中核部分）。
 // 併せて確信度（confidence_note から抽出済み）と why_company の一文も表示する。
 // いずれも既存フィールドの言い換えのみで、新しいスコアや数値は作らない。
@@ -705,18 +743,23 @@ function buildFitMetricCard(data, vm) {
 
 // 確信度（高/中/低）をリングチャートの円弧割合へ機械的に変換するだけの表示補助（★変換と同じ位置づけ）。
 // 高=88割 中=62割 低=35割 の固定割当て。新しい判定・数値は作らない。
+// Phase73 STEP3（重要修正）: 確信度（高/中/低）をリングの塗り量へ機械的に変換するだけの
+// 表示補助。以前はここに具体的なパーセント数値を文字表示していたが、これは実際には
+// 存在しない数値の捏造にあたるため廃止し、HIGH/MEDIUM/LOW の定型ラベルのみを表示する
+// （塗り量の違いは視覚的な強弱の表現であり、割合の主張ではない）。
 function confidenceRing(level) {
-  const pct = level === "高" ? 88 : level === "低" ? 35 : 62;
+  const fillRatio = level === "高" ? 0.88 : level === "低" ? 0.35 : 0.62;
+  const label = level === "高" ? "HIGH" : level === "低" ? "LOW" : "MEDIUM";
   const r = 15;
   const c = 2 * Math.PI * r;
-  const dash = (c * pct) / 100;
+  const dash = c * fillRatio;
   return (
     `<svg width="44" height="44" viewBox="0 0 36 36" aria-hidden="true">` +
     `<circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--color-primary-border)" stroke-width="4"/>` +
     `<circle cx="18" cy="18" r="${r}" fill="none" stroke="currentColor" stroke-width="4" ` +
     `stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${c.toFixed(1)}" ` +
     `transform="rotate(-90 18 18)"/>` +
-    `<text x="18" y="21" text-anchor="middle" font-size="9" font-weight="800" fill="currentColor" stroke="none">${pct}%</text>` +
+    `<text x="18" y="21" text-anchor="middle" font-size="6.5" font-weight="800" fill="currentColor" stroke="none">${label}</text>` +
     `</svg>`
   );
 }
@@ -783,7 +826,7 @@ function buildInsightCards(vm) {
 
 /* ==================== WHY NOW（STEP5: Feature Card 化） ==================== */
 
-function renderWhyNow(vm, theme) {
+function renderWhyNow(vm, theme, snapshot) {
   const el = document.getElementById("sec-why-now");
   el.innerHTML = "";
   if (!vm.whyNow) return;
@@ -824,6 +867,26 @@ function renderWhyNow(vm, theme) {
   }
 
   el.appendChild(card);
+
+  // Phase73 STEP4: Insight Timeline（市場変化 / 補助金 / タイミング。存在する項目のみ）。
+  // momentumIndicators() と同じ既存フィールド判定を再利用し、新しい文章は作らない。
+  const timelineItems = momentumIndicators(vm, snapshot || { years: [] });
+  if (timelineItems.length) {
+    const timeline = document.createElement("div");
+    timeline.className = "why-now-timeline";
+    timelineItems.forEach((it) => {
+      const item = document.createElement("div");
+      item.className = "why-now-timeline__item";
+      const icon = document.createElement("span");
+      icon.className = "why-now-timeline__icon";
+      icon.setAttribute("aria-hidden", "true");
+      icon.innerHTML = Illustrations.glyph(it.glyph, { size: 18 });
+      item.appendChild(icon);
+      item.appendChild(textP("why-now-timeline__label", it.label));
+      timeline.appendChild(item);
+    });
+    el.appendChild(timeline);
+  }
 }
 
 /* ==================== WHY YOU（Phase68 STEP5: Company Intelligence） ==================== */
@@ -1378,11 +1441,12 @@ function renderCtaBottom() {
   const wrap = document.createElement("div");
   wrap.className = "cta-v3 cta-v3--bottom cta-final";
 
-  wrap.appendChild(textP("cta-final__title", "このレポートの続き（無料版）を受け取る"));
+  // Phase73 STEP8: CTA Premium Finish（見出し・Benefit Stripの文言を更新）。
+  wrap.appendChild(textP("cta-final__title", "毎週、新しいビジネスチャンスをお届けします。"));
 
   const points = document.createElement("ul");
   points.className = "cta-final__points";
-  ["毎週1回だけ配信", "配信停止はいつでも可能", "営業電話なし"].forEach((t) => {
+  ["公開情報だけを分析", "専門家監修", "配信停止はいつでも可能"].forEach((t) => {
     const li = document.createElement("li");
     const icon = document.createElement("span");
     icon.className = "cta-final__points-icon";
@@ -1395,7 +1459,7 @@ function renderCtaBottom() {
   });
   wrap.appendChild(points);
 
-  wrap.appendChild(ctaButton("無料版を毎週受け取る"));
+  wrap.appendChild(ctaButton("無料版レポートを受け取る"));
   wrap.appendChild(textP("cta-v3__sub", "市場規模・競合・リスク分析を確認できます。"));
   wrap.appendChild(
     textP("cta-final__note", "営業電話はいたしません。公開情報ベースで分析します。")
