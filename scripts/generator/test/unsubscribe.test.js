@@ -14,10 +14,10 @@ const js = fs.readFileSync(path.join(WEB, "assets", "js", "unsubscribe.js"), "ut
 const html = fs.readFileSync(path.join(WEB, "unsubscribe.html"), "utf-8");
 const css = fs.readFileSync(path.join(WEB, "assets", "css", "unsubscribe.css"), "utf-8");
 
-test("unsubscribe.js: 無効リンク（token/lead欠落・期限切れ・不正）は見出し/本文/補足の3点セットを表示する", () => {
+test("unsubscribe.js: 無効リンク（token/lead欠落・期限切れ・不正）は見出し/本文/補足の3点セットを表示する（Phase76 STEP1: 文言更新）", () => {
   assert.match(js, /このリンクは期限切れ、または無効です。/);
-  assert.match(js, /再度メールに記載された「配信停止リンク」からお手続きしてください。/);
-  assert.match(js, /古いメールのリンクや、一度利用済みのリンクでは配信停止できません。/);
+  assert.match(js, /メール本文からもう一度配信停止をお試しください。/);
+  assert.match(js, /新しいメールのリンクのみ有効です。/);
 });
 
 test("unsubscribe.js: 成功時は見出し/本文/補足を表示し、CTA・営業コピーを追加しない", () => {
@@ -51,6 +51,13 @@ test("unsubscribe.js: 赤いエラー画面を使わない（旧・警告絵文�
 test("unsubscribe.js: ページ読み込み時のfetch/POSTは行わない（既存の安全要件を維持）", () => {
   const initBody = js.slice(js.indexOf("function init("), js.indexOf("function init(") + js.slice(js.indexOf("function init(")).indexOf("\n}\n") + 3);
   assert.doesNotMatch(initBody, /fetch\(/);
+});
+
+test("unsubscribe.js: GET時はtoken/leadの有無だけで判定する（token/lead両方ありならConfirm、どちらか欠落ならInfo）（Phase76 STEP1）", () => {
+  const initBody = js.slice(js.indexOf("function init("), js.indexOf("function init(") + js.slice(js.indexOf("function init(")).indexOf("\n}\n") + 3);
+  assert.match(initBody, /!currentLeadId\s*\|\|\s*!currentReportToken/);
+  assert.match(initBody, /showResult\(INVALID_LINK_RESULT\)/);
+  assert.match(initBody, /confirm-section/);
 });
 
 test("unsubscribe.html: result-sectionにheading/body/note用の要素がある", () => {

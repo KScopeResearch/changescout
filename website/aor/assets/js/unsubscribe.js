@@ -31,12 +31,13 @@ const SUCCESS_ICON_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">' +
   '<circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+// Phase76 STEP1: 文言更新（GET時のtoken/lead欠落・POST後のサーバー400を問わず統一表示）。
 const INVALID_LINK_RESULT = {
   tone: "info",
   icon: INFO_ICON_SVG,
   heading: "このリンクは期限切れ、または無効です。",
-  body: "再度メールに記載された「配信停止リンク」からお手続きしてください。",
-  note: "古いメールのリンクや、一度利用済みのリンクでは配信停止できません。",
+  body: "メール本文からもう一度配信停止をお試しください。",
+  note: "新しいメールのリンクのみ有効です。",
 };
 
 const SUCCESS_RESULT = {

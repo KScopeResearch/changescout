@@ -210,6 +210,63 @@ test("report-preview.js: 今日やること（旧 FIRST STEP）は Executive Bri
   assert.match(js, /"TODAY"/);
 });
 
+/* ---------- Phase76 STEP1: Final UX Polish（重複削減・続きを読む） ---------- */
+
+test("report-preview.js: Executive Brief Card1（今回見つかったビジネスチャンス）にも「続きを読む」（#sec-opportunity）がある", () => {
+  const body = js.slice(js.indexOf("function renderExecutiveSummary("), js.indexOf("function execBriefCard("));
+  assert.match(body, /glyph:\s*"target"[\s\S]{0,300}jumpHref:\s*"#sec-opportunity"/);
+});
+
+test("report-preview.js: WHY NOW はExecutive Briefと重複する冒頭一文をそのまま太字ハイライト表示しない（reason-card__highlightを使わない）", () => {
+  const body = js.slice(js.indexOf("function renderWhyNow("), js.indexOf("function renderWhyYou("));
+  assert.doesNotMatch(body, /reason-card__highlight/);
+});
+
+test("report-preview.js: WHY YOU の Strength Analysis 引用は要約（summarizeSentence）で短く表示する", () => {
+  const body = js.slice(js.indexOf("function renderWhyYou("), js.indexOf("function renderOpportunity("));
+  const strengthBlock = body.slice(body.indexOf("strength-card__text"));
+  assert.match(strengthBlock.slice(0, 400), /PreviewUI\.summarizeSentence\(firstSentence/);
+});
+
+test("report-preview.js: Dashboard（Metrics）から重複していた「今回わかったこと」insight-cards・Why this matters引用を削除した（Executive Snapshot・KPIは維持）", () => {
+  const body = js.slice(js.indexOf("function renderMetrics("), js.indexOf("function buildMarketMetricCard("));
+  assert.doesNotMatch(body, /insight-cards/);
+  assert.doesNotMatch(body, /why-this-matters/);
+  assert.match(body, /exec-snapshot--dashboard/, "Executive Snapshotは維持されているはず");
+  assert.match(body, /kpi-row/, "KPIカードは維持されているはず");
+});
+
+test("report-preview.js: buildInsightCards は未使用のため削除されている", () => {
+  assert.doesNotMatch(js, /function buildInsightCards/);
+});
+
+test("report-preview.js: 「続きを読む」クリックでジャンプ先の見出しを一瞬ハイライトする（CSSアニメーション、新しい文言は追加しない）", () => {
+  assert.match(js, /exec-brief-card__more/);
+  assert.match(js, /sec-head--flash/);
+  const wireBody = js.slice(js.indexOf("function wireJumpHighlight("));
+  assert.doesNotMatch(wireBody.slice(0, 600), /textContent\s*=\s*["'][^"']+["']/, "新しい文言を追加していないはず");
+});
+
+test("report-preview.js: render() は wireJumpHighlight を呼ぶ", () => {
+  const start = js.indexOf("function render(data, slug)");
+  const body = js.slice(start, js.indexOf("function renderPrintChrome("));
+  assert.match(body, /wireJumpHighlight\(\)/);
+});
+
+test("preview-conversion.css: .sec-head--flash は prefers-reduced-motion で停止する", () => {
+  assert.match(css, /\.sec-head--flash\s*\{[\s\S]*?animation:/);
+  const idx = css.indexOf(".sec-head--flash");
+  const reduceBlock = css.slice(idx);
+  assert.match(reduceBlock, /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[\s\S]*?\.sec-head--flash[\s\S]*?animation:\s*none/);
+});
+
+test("preview-conversion.css: .kpi-card のpaddingは24pxに統一（border-radiusの16pxは維持）", () => {
+  const idx = css.indexOf(".kpi-card {");
+  const block = css.slice(idx, css.indexOf("}", idx));
+  assert.match(block, /padding:\s*24px/);
+  assert.match(block, /border-radius:\s*16px/);
+});
+
 test("report-preview.js: Trust strip（メールアドレス登録だけ / 専門家監修 / 無料版を毎週配信 / 停止可能）を CTA の前に描画する", () => {
   assert.match(js, /PreviewUI\.trustItems/);
   assert.match(js, /trust-strip/);

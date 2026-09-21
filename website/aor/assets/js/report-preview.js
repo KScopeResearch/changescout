@@ -73,6 +73,7 @@ function render(data, slug) {
   renderFooter(data);
   renderPrintChrome(data);
   wireCtas(slug);
+  wireJumpHighlight();
   initScrollReveal();
 }
 
@@ -388,7 +389,15 @@ function renderExecutiveSummary(data, vm, snapshot) {
 
   if (vm.title) {
     const body = PreviewUI.summarizeSentence(vm.impact || vm.marketChange || vm.whyNow, 90);
-    cards.appendChild(execBriefCard({ glyph: "target", label: "今回見つかったビジネスチャンス", title: vm.title, body }));
+    cards.appendChild(
+      execBriefCard({
+        glyph: "target",
+        label: "今回見つかったビジネスチャンス",
+        title: vm.title,
+        body,
+        jumpHref: "#sec-opportunity",
+      })
+    );
   }
 
   if (vm.whyNow) {
@@ -557,41 +566,11 @@ function renderMetrics(data, vm, theme, snapshot) {
       row.appendChild(item);
     });
     el.appendChild(row);
-
-    // Phase67 STEP3: Why this matters（既存本文冒頭からの引用のみ。新しい文章は作らない）
-    const why = PreviewUI.summarizeSentence(vm.whyNow, 90);
-    if (why) {
-      const wtm = document.createElement("div");
-      wtm.className = "why-this-matters";
-      wtm.appendChild(textP("why-this-matters__label", "Why this matters"));
-      const q = document.createElement("p");
-      q.className = "why-this-matters__quote";
-      q.textContent = why;
-      wtm.appendChild(q);
-      el.appendChild(wtm);
-    }
   }
 
-  // 「今回わかったこと」インサイトカード3枚（市場 / 御社 / 今動く理由）。
-  // 既存フィールド（market_change / why_company / why_now）の要約のみで新しい事実は作らない。
-  const insights = buildInsightCards(vm);
-  if (insights.length) {
-    const ic = document.createElement("div");
-    ic.className = "insight-cards";
-    insights.forEach((it) => {
-      const c = document.createElement("div");
-      c.className = "insight-card";
-      const icon = document.createElement("span");
-      icon.className = "insight-card__icon";
-      icon.setAttribute("aria-hidden", "true");
-      icon.innerHTML = Illustrations.glyph(it.glyph, { size: 18 });
-      c.appendChild(icon);
-      c.appendChild(textP("insight-card__label", it.label));
-      c.appendChild(textP("insight-card__text", it.text));
-      ic.appendChild(c);
-    });
-    el.appendChild(ic);
-  }
+  // Phase76 STEP1: 旧・重複していた本文引用ブロック（市場/御社/今動く理由の3枚カードと
+  // 冒頭抜粋の引用）は Executive Brief / WHY NOW / WHY YOU と内容が重複していたため削除した
+  // （Dashboard は数値・メタ情報中心に。Executive Snapshot・KPIカードは維持）。
 
   if (snapshot.worldOnly) {
     el.appendChild(
@@ -847,17 +826,6 @@ function buildKpiCards(vm, snapshot) {
 
 // 「今回わかったこと」3枚: 市場（market_change）/ 御社（why_company）/ 今動く理由（why_now）。
 // いずれも既存フィールドの要約のみ（summarizeSentence）。データが無い項目は出さない。
-function buildInsightCards(vm) {
-  const out = [];
-  const market = PreviewUI.summarizeSentence(vm.marketChange, 56);
-  if (market) out.push({ glyph: "line_chart", label: "市場", text: market });
-  const company = PreviewUI.summarizeSentence(vm.whyCompany, 56);
-  if (company) out.push({ glyph: "building", label: "御社", text: company });
-  const now = PreviewUI.summarizeSentence(vm.whyNow, 56);
-  if (now) out.push({ glyph: "sparkles", label: "今動く理由", text: now });
-  return out;
-}
-
 /* ==================== WHY NOW（STEP5: Feature Card 化） ==================== */
 
 function renderWhyNow(vm, theme, snapshot) {
@@ -881,24 +849,20 @@ function renderWhyNow(vm, theme, snapshot) {
   iconCol.appendChild(textP("reason-card__category", "MARKET CHANGE"));
   card.appendChild(iconCol);
 
+  // Phase76 STEP1: 冒頭一文は Executive Brief Card2 で既に要約表示済みのため、
+  // WHY NOW セクションで再び太字ハイライト表示して重複させない（新しい文章は作らない。
+  // 既存の数字強調のみ、表示する残りの文章に引き続き適用する）。
   const first = (String(vm.whyNow).match(/^[\s\S]*?。/) || [vm.whyNow])[0];
   const rest = String(vm.whyNow).slice(first.length).trim();
+  const bodyText = rest || first;
 
-  const highlight = document.createElement("p");
-  highlight.className = "reason-card__highlight";
-  // 数字部分のみ太字化（表示上の強調。文章・事実は変えない）
-  highlight.innerHTML = escapeText(first).replace(
+  const p = document.createElement("p");
+  p.className = "reason-card__text";
+  p.innerHTML = escapeText(bodyText).replace(
     /([0-9０-９][0-9０-９.,]*(?:%|％|倍|件|年|兆|億|万)?)/g,
     "<strong>$1</strong>"
   );
-  card.appendChild(highlight);
-
-  if (rest) {
-    const p = document.createElement("p");
-    p.className = "reason-card__text";
-    p.textContent = rest;
-    card.appendChild(p);
-  }
+  card.appendChild(p);
 
   el.appendChild(card);
 
@@ -995,13 +959,15 @@ function renderWhyYou(data, vm, theme) {
   }
 
   // Strength Analysis（強み・本文冒頭一文の引用カード）
+  // Phase76 STEP1: Executive Brief Card3 と重複しないよう、冒頭説明を短い引用に絞る
+  // （新しい文章は作らず、既存の summarizeSentence で要約するのみ）。
   if (firstSentence) {
     const strength = document.createElement("div");
     strength.className = "strength-card";
     strength.appendChild(textP("strength-card__label", "Strength Analysis"));
     const q = document.createElement("blockquote");
     q.className = "strength-card__text";
-    q.textContent = firstSentence;
+    q.textContent = PreviewUI.summarizeSentence(firstSentence, 60);
     strength.appendChild(q);
     el.appendChild(strength);
   }
@@ -1535,6 +1501,24 @@ function wireCtas(slug) {
     el.setAttribute("href", target);
     el.addEventListener("click", function () {
       trackEvent("cta_click", null, { placement: el.className || "cta" });
+    });
+  });
+}
+
+// Phase76 STEP1: Executive Brief の「続きを読む」クリックで、ジャンプ先の
+// 見出し（.sec-head）を一瞬ハイライトする（CSSアニメーションのみ・新しい文言は
+// 追加しない。ネイティブのアンカージャンプ自体は妨げない）。
+function wireJumpHighlight() {
+  document.querySelectorAll(".exec-brief-card__more").forEach((a) => {
+    a.addEventListener("click", () => {
+      const href = a.getAttribute("href") || "";
+      if (!href.startsWith("#")) return;
+      const target = document.querySelector(href);
+      const head = target && target.querySelector(".sec-head");
+      if (!head) return;
+      head.classList.remove("sec-head--flash");
+      void head.offsetWidth; // reflow でアニメーションを再トリガー
+      head.classList.add("sec-head--flash");
     });
   });
 }

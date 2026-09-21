@@ -893,6 +893,19 @@ body { overflow-x: hidden; }
 .sec-head__glyph { color: var(--aor-navy); display: inline-flex; }
 .sec-head__title { font-size: 1.08rem; font-weight: 800; margin: 0; color: var(--color-text); }
 
+/* Phase76 STEP1: 「続きを読む」クリックでジャンプ先の見出しを一瞬ハイライトする。 */
+.sec-head--flash {
+  animation: aor-sec-head-flash 1s ease-out;
+  border-radius: 8px;
+}
+@keyframes aor-sec-head-flash {
+  0% { background: rgba(201, 162, 75, 0.18); }
+  100% { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sec-head--flash { animation: none; }
+}
+
 /* Phase72 STEP2（実メールQA反映）: 各章先頭の小型説明イラスト */
 .sec-scene { margin: 0 0 16px; color: var(--aor-navy); }
 .sec-scene__svg { display: block; width: 132px; max-width: 100%; height: auto; }
@@ -1616,7 +1629,7 @@ body { overflow-x: hidden; }
   border: 1px solid var(--aor-border);
   border-top: 3px solid var(--aor-gold);
   border-radius: var(--radius-xl);
-  padding: 20px 20px 22px;
+  padding: 20px;
   box-shadow: var(--shadow-soft);
 }
 .exec-brief-card--today { border-top-color: var(--aor-emerald, #059669); }
@@ -1672,7 +1685,7 @@ body { overflow-x: hidden; }
 .kpi-card {
   background: var(--aor-navy);
   border-radius: 16px;
-  padding: 16px 14px;
+  padding: 24px;
   color: #fff;
 }
 .kpi-card__icon {
@@ -1743,6 +1756,9 @@ body { overflow-x: hidden; }
   writing-mode: horizontal-tb;
 }
 .reason-card__highlight strong { color: var(--aor-navy); }
+/* Phase76 STEP1: WHY NOW の冒頭ハイライトを廃止した後も、reason-card__text 内の
+   数字強調（<strong>）は同じ配色を維持する。 */
+.reason-card--feature .reason-card__text strong { color: var(--aor-navy); }
 
 /* ============ Phase68 STEP5: Company Intelligence（Company Snapshot / Strength / Opportunity Fit） ============ */
 .company-snapshot {
