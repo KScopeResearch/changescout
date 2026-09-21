@@ -260,6 +260,32 @@ test("deployAorWeb: config.files 指定時、execute:true でも指定ファイ�
   assert.deepEqual(keys, files.slice().sort());
 });
 
+test("deployAorWeb: config.files 指定時、CloudFront invalidationは/*ではなく指定ファイルのパスのみになる", async () => {
+  const s3Client = createFakeS3Client();
+  const cloudFrontClient = createFakeCloudFrontClient();
+  const files = ["report-preview.html", "assets/js/illustrations.js"];
+  const result = await deployAorWeb(
+    { bucket: "b", region: "r", distributionId: "EFAKE000", execute: true, files },
+    { s3Client, cloudFrontClient }
+  );
+  assert.equal(result.ok, true);
+  assert.equal(cloudFrontClient.calls.length, 1);
+  const items = cloudFrontClient.calls[0].input.InvalidationBatch.Paths.Items.slice().sort();
+  assert.deepEqual(items, ["/assets/js/illustrations.js", "/report-preview.html"]);
+  assert.equal(cloudFrontClient.calls[0].input.InvalidationBatch.Paths.Quantity, 2);
+});
+
+test("deployAorWeb: config.files 未指定時はCloudFront invalidationが従来どおり/*になる（後方互換）", async () => {
+  const s3Client = createFakeS3Client();
+  const cloudFrontClient = createFakeCloudFrontClient();
+  const result = await deployAorWeb(
+    { bucket: "b", region: "r", distributionId: "EFAKE000", execute: true },
+    { s3Client, cloudFrontClient }
+  );
+  assert.deepEqual(result.ok, true);
+  assert.deepEqual(cloudFrontClient.calls[0].input.InvalidationBatch.Paths.Items, ["/*"]);
+});
+
 test("deployAorWeb: config.files 未指定時は従来どおり全公開対象ファイルが対象になる（後方互換）", async () => {
   const result = await deployAorWeb({ bucket: "b", region: "r" });
   assert.equal(result.ok, true);

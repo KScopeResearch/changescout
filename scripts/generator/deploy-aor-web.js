@@ -229,14 +229,27 @@ function buildDeployPlan(config, relativeKeys) {
     uploads.push({ key, contentType: resolveContentType(absolutePath), sizeBytes: stat.size });
   }
 
-  const plannedCommands = [
-    `# ${uploads.length}件のファイルを website/aor/ から s3://${config.bucket}/ へ、` +
-      `ファイルごとにContentTypeとServerSideEncryption(AES256)を指定したPutObjectで送信（概要コマンド例）:`,
-    `aws s3 cp "${SOURCE_DIR}" "s3://${config.bucket}/" --recursive --sse AES256 --region ${config.region}`,
-  ];
+  // Phase75 STEP4: config.files で絞り込んだ場合、dry-run表示のコマンド例も
+  // 実際の挙動（ファイルごとのPutObject・指定パスのみinvalidate）に合わせる
+  // （"/* を全体sync"のような誤解を招く表示を避ける）。
+  const isSelective = Array.isArray(config.files);
+  const plannedCommands = isSelective
+    ? [
+        `# ${uploads.length}件の指定ファイルのみを、ファイルごとにContentTypeとServerSideEncryption(AES256)を` +
+          `指定したPutObjectで s3://${config.bucket}/ へ送信（概要コマンド例）:`,
+        ...uploads.map(
+          (u) => `aws s3 cp "${path.join(SOURCE_DIR, ...u.key.split("/"))}" "s3://${config.bucket}/${u.key}" --sse AES256 --region ${config.region}`
+        ),
+      ]
+    : [
+        `# ${uploads.length}件のファイルを website/aor/ から s3://${config.bucket}/ へ、` +
+          `ファイルごとにContentTypeとServerSideEncryption(AES256)を指定したPutObjectで送信（概要コマンド例）:`,
+        `aws s3 cp "${SOURCE_DIR}" "s3://${config.bucket}/" --recursive --sse AES256 --region ${config.region}`,
+      ];
   if (config.distributionId) {
+    const invalidationPaths = isSelective ? uploads.map((u) => `/${u.key}`) : ["/*"];
     plannedCommands.push(
-      `aws cloudfront create-invalidation --distribution-id ${config.distributionId} --paths "/*"`
+      `aws cloudfront create-invalidation --distribution-id ${config.distributionId} --paths ${invalidationPaths.map((p) => `"${p}"`).join(" ")}`
     );
   }
 
@@ -535,13 +548,16 @@ async function deployAorWeb(config, options = {}) {
 
   let invalidationId;
   if (config.distributionId) {
+    // Phase75 STEP4: config.files で対象を絞った場合は、そのデプロイ対象のパスのみを
+    // invalidateする（"/*" は使わない）。config.files未指定時は従来どおり全体invalidate。
+    const invalidationPaths = Array.isArray(config.files) ? relativeKeys.map((k) => "/" + k) : ["/*"];
     const cloudFrontClient = options.cloudFrontClient || new CloudFrontClient({ region: "us-east-1" });
     const result = await cloudFrontClient.send(
       new CreateInvalidationCommand({
         DistributionId: config.distributionId,
         InvalidationBatch: {
           CallerReference: `deploy-aor-web-${Date.now()}`,
-          Paths: { Quantity: 1, Items: ["/*"] },
+          Paths: { Quantity: invalidationPaths.length, Items: invalidationPaths },
         },
       })
     );
