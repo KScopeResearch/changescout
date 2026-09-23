@@ -32,22 +32,22 @@ const {
   RESERVED_TEST_DOMAIN_RE,
   isReservedTestDomain,
 } = require("../deploy-aor-web");
+const { checkPublicDataSafety } = require("../shared/public-data-safety-check");
 const { writeJson } = require("../shared/json-file");
 const { OUTPUT_DIR } = require("../shared/paths");
 const engine = require("../review/review-engine");
 
 // ===========================================================================
-// Phase82 STEP2/3 — ローカル実データ（本番 Published artifact）非依存化
+// Phase82 STEP2/3 → Phase84 STEP2 — ローカル実データ（本番 Published artifact）非依存化
 // ===========================================================================
 // website/aor/data/ には Git 管理下の fixture の他に、.gitignore 対象のローカル専用
-// 本番 artifact（ab-i.jp / illegame.com / kscope.co.jp 等）が置かれうる。deployAorWeb() は
-// 常に実 SOURCE_DIR を走査・reconciliation するため、それらの存在・鮮度（stale）に
-// テスト結果が左右されないよう、実 SOURCE_DIR に対して deployAorWeb() を呼ぶテストでは
-// useCleanCheckoutView(t) で data/ の列挙を Git 管理下 fixture のみに見せる
-// （checkPublicDataSafety(SOURCE_DIR) は config.files に関係なく data/ 全体を走査するため、
-//  config.files の指定だけでは実データ内容への依存が残る）。
-//  - 選択方式に依存しない検証 → 加えて config.files に FIXTURE_DEPLOY_FILES を渡す
-//  - config.files 未指定（全体走査・"/*" invalidation）経路そのものの検証 → config.files は渡さない
+// 本番 artifact（ab-i.jp / illegame.com / kscope.co.jp 等）が置かれうる。それらの存在・
+// 鮮度（stale）・内容にテスト結果が左右されないよう、deployAorWeb() を呼ぶテストは
+// 原則として options.sourceDir に makeTmpAorSite(t) の一時ディレクトリを渡す
+// （Phase84 STEP1 の sourceDir DI。列挙・reconciliation・Public Data Safety・計画・
+//  アップロードの全段階がその一時ディレクトリだけを見る）。
+// 実 website/aor/data/ へは書き込まず、data/ の列挙を fs のグローバル差し替えで絞ることもしない
+// （Phase82 の useCleanCheckoutView / assertOnlyTrackedData / FIXTURE_DEPLOY_FILES は Phase84 STEP2 で廃止）。
 
 /** Git 管理下（website/aor/data/ に commit 済み）の非本番 fixture slug */
 const TRACKED_NON_PRODUCTION_FIXTURES = [
@@ -60,42 +60,42 @@ const TRACKED_NON_PRODUCTION_FIXTURES = [
   "phase15-test.example.com",
 ];
 
-/** config.files 用: Git 管理下の公開対象ファイル（HTML/JS + 非本番 fixture JSON） */
-const FIXTURE_DEPLOY_FILES = [
+/** makeTmpAorSite() が作る公開対象ファイル（README.md は除外確認用のため含まない） */
+const TMP_SITE_DEPLOYABLE_KEYS = [
   "index.html",
   "report-preview.html",
   "assets/js/report-preview.js",
+  "assets/js/illustrations.js",
   ...TRACKED_NON_PRODUCTION_FIXTURES.map((s) => `data/${s}.json`),
 ];
 
 /**
- * website/aor/data/ の列挙結果を Git 管理下 fixture のみに絞って見せる（クリーンな
- * checkout 相当）。config.files 未指定経路（listDeployableFiles() による全体走査）を
- * ローカル専用の本番 artifact に依存せず検証するためのテスト専用ビュー。
- * 本体コード・checkPublicDataSafety の仕様には手を入れない（fs.readdirSync の戻り値を
- * data/ 直下についてのみフィルタし、テスト終了時に必ず元へ戻す）。
+ * 一時 sourceDir に、公開サイトの最小構成 + Git 管理下 fixture（実 data/ から読み取りのみで copy）を作る。
  * @param {import("node:test").TestContext} t
+ * @param {{extraFiles?: Record<string,string>}} [opts] - sourceDir 相対パス → 内容
+ * @returns {string} tmp sourceDir
  */
-function useCleanCheckoutView(t) {
-  const dataDir = path.resolve(SOURCE_DIR, "data");
-  const allowed = new Set(TRACKED_NON_PRODUCTION_FIXTURES.map((s) => `${s}.json`));
-  const originalReaddirSync = fs.readdirSync;
-  t.after(() => {
-    fs.readdirSync = originalReaddirSync;
-  });
-  fs.readdirSync = (dir, ...rest) => {
-    const entries = originalReaddirSync(dir, ...rest);
-    if (path.resolve(String(dir)) !== dataDir) return entries;
-    return entries.filter((e) => allowed.has(typeof e === "string" ? e : e.name));
+function makeTmpAorSite(t, opts = {}) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "aor-site-"));
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+  const files = {
+    "index.html": "<!doctype html><title>tmp-site index</title>",
+    "report-preview.html": "<!doctype html><title>tmp-site preview</title>",
+    "assets/js/report-preview.js": "// tmp-site report-preview\n",
+    "assets/js/illustrations.js": "// tmp-site illustrations\n",
+    "README.md": "# tmp-site\n",
+    ...(opts.extraFiles || {}),
   };
-}
-
-/** @param {string[]} keys - 全 data/ キーが Git 管理下 fixture であること（本番 artifact を含まない） */
-function assertOnlyTrackedData(keys) {
-  const allowed = new Set(TRACKED_NON_PRODUCTION_FIXTURES.map((s) => `data/${s}.json`));
-  keys
-    .filter((k) => k.startsWith("data/"))
-    .forEach((k) => assert.ok(allowed.has(k), `${k} は Git 管理下 fixture ではない（ローカル実データに依存している）`));
+  for (const [rel, content] of Object.entries(files)) {
+    const abs = path.join(tmp, ...rel.split("/"));
+    fs.mkdirSync(path.dirname(abs), { recursive: true });
+    fs.writeFileSync(abs, content, "utf-8");
+  }
+  fs.mkdirSync(path.join(tmp, "data"), { recursive: true });
+  TRACKED_NON_PRODUCTION_FIXTURES.forEach((s) =>
+    fs.copyFileSync(path.join(SOURCE_DIR, "data", `${s}.json`), path.join(tmp, "data", `${s}.json`))
+  );
+  return tmp;
 }
 
 /** @returns {{send:Function, calls:Array<Object>}} */
@@ -123,30 +123,29 @@ function createFakeCloudFrontClient() {
 }
 
 test("deployAorWeb: config.execute未指定（デフォルト）はdry-runとなり、AWSクライアントを一切呼ばない", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   // s3Client/cloudFrontClientをDIで渡していても、execute:trueでなければ一切使われないはず。
   const s3Client = createFakeS3Client();
   const cloudFrontClient = createFakeCloudFrontClient();
 
   const result = await deployAorWeb(
-    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", distributionId: "EFAKE000", files: FIXTURE_DEPLOY_FILES },
-    { s3Client, cloudFrontClient }
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", distributionId: "EFAKE000" },
+    { s3Client, cloudFrontClient, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
   assert.equal(result.dryRun, true);
   assert.ok(result.uploads.length > 0, "1件以上が公開対象として計画されるはず");
-  assertOnlyTrackedData(result.uploads.map((u) => u.key));
   assert.equal(s3Client.calls.length, 0, "dry-runではS3へ一切接続しないはず");
   assert.equal(cloudFrontClient.calls.length, 0, "dry-runではCloudFrontへ一切接続しないはず");
 });
 
 test("deployAorWeb: execute:trueの厳密booleanでない値（例: 文字列\"yes\"）はdry-run扱いのままとする（安全側のフェイルセーフ）", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const result = await deployAorWeb(
-    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: "yes", files: FIXTURE_DEPLOY_FILES },
-    { s3Client }
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: "yes" },
+    { s3Client, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
@@ -155,13 +154,11 @@ test("deployAorWeb: execute:trueの厳密booleanでない値（例: 文字列\"y
 });
 
 test("deployAorWeb: dry-run結果にはbucket/region/distributionIdと実行予定コマンドが含まれる", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
-  const result = await deployAorWeb({
-    bucket: "test-aor-web-bucket",
-    region: "ap-northeast-1",
-    distributionId: "EFAKE000",
-    files: FIXTURE_DEPLOY_FILES,
-  });
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb(
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", distributionId: "EFAKE000" },
+    { sourceDir: tmp }
+  );
 
   assert.equal(result.ok, true);
   assert.equal(result.dryRun, true);
@@ -174,8 +171,8 @@ test("deployAorWeb: dry-run結果にはbucket/region/distributionIdと実行予�
 });
 
 test("deployAorWeb: distributionId未指定のdry-runではCloudFrontコマンドを計画に含めない", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
-  const result = await deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1", files: FIXTURE_DEPLOY_FILES });
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1" }, { sourceDir: tmp });
 
   assert.equal(result.ok, true);
   assert.equal(result.dryRun, true);
@@ -184,12 +181,11 @@ test("deployAorWeb: distributionId未指定のdry-runではCloudFrontコマン�
 });
 
 test("deployAorWeb: execute:true時は既存website/aor/の公開対象ファイル（README.md除く）をアップロードする", async (t) => {
-  // config.files 未指定（全体走査）経路の検証。data/ は Git 管理下 fixture のみに見せる
-  useCleanCheckoutView(t);
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const result = await deployAorWeb(
     { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true },
-    { s3Client }
+    { s3Client, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
@@ -200,15 +196,15 @@ test("deployAorWeb: execute:true時は既存website/aor/の公開対象ファイ
   const keys = s3Client.calls.map((c) => c.input.Key);
   assert.ok(!keys.includes("README.md"), "README.mdは除外されるはず");
   assert.ok(keys.includes("report-preview.html"), "report-preview.htmlは含まれるはず");
-  assertOnlyTrackedData(keys);
+  assert.deepEqual(keys.slice().sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
 });
 
 test("deployAorWeb: execute:true時、全てのPutObjectCommandがSSE-S3(AES256)を指定する", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const result = await deployAorWeb(
-    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true, files: FIXTURE_DEPLOY_FILES },
-    { s3Client }
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true },
+    { s3Client, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
@@ -219,14 +215,13 @@ test("deployAorWeb: execute:true時、全てのPutObjectCommandがSSE-S3(AES256)
 });
 
 test("deployAorWeb: execute:true かつ distributionId指定時はCloudFront invalidationを1回だけ作成する", async (t) => {
-  // config.files 未指定経路（"/*" invalidation）の検証。data/ は Git 管理下 fixture のみに見せる
-  useCleanCheckoutView(t);
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const cloudFrontClient = createFakeCloudFrontClient();
 
   const result = await deployAorWeb(
     { bucket: "test-aor-web-bucket", region: "ap-northeast-1", distributionId: "EFAKE000", execute: true },
-    { s3Client, cloudFrontClient }
+    { s3Client, cloudFrontClient, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
@@ -237,13 +232,13 @@ test("deployAorWeb: execute:true かつ distributionId指定時はCloudFront inv
 });
 
 test("deployAorWeb: execute:true かつ distributionId未指定時はCloudFrontを一切呼ばない", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const cloudFrontClient = createFakeCloudFrontClient();
 
   const result = await deployAorWeb(
-    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true, files: FIXTURE_DEPLOY_FILES },
-    { s3Client, cloudFrontClient }
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true },
+    { s3Client, cloudFrontClient, sourceDir: tmp }
   );
 
   assert.equal(result.ok, true);
@@ -252,11 +247,11 @@ test("deployAorWeb: execute:true かつ distributionId未指定時はCloudFront�
 });
 
 test("deployAorWeb: セーフティチェックに失敗した場合はdry-run/execute問わず1件も対象にしない（安全側）", async (t) => {
-  // checkPublicDataSafety(SOURCE_DIR) は config.files に関係なく全体を検査するため、
-  // data/ を Git 管理下 fixture のみに見せて「既存の公開データ」をクリーンな checkout 相当に固定する
-  useCleanCheckoutView(t);
+  // 違反ありの側（dry-run/execute とも0件）は Phase84 sourceDir-2 / 2b で検証している。
+  // ここでは違反の無い公開データ（Git 管理下 fixture のみの一時 sourceDir）が PASS し、計画が組まれることを確認する。
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
-  const result = await deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1" }, { s3Client });
+  const result = await deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1" }, { s3Client, sourceDir: tmp });
   assert.equal(result.ok, true, "既存の公開データは安全なはず（セーフティチェックPASS）");
   assert.ok(result.uploads.length > 0, "セーフティチェックがPASSした場合はdry-run計画に対象が含まれるはず");
 });
@@ -270,9 +265,8 @@ test("deployAorWeb: execute:true時、listDeployableFiles()後にファイルが
   // checkPublicDataSafety()が事前に全ファイルを読むため、対象ファイルへの1回目の
   // readFileSyncはそのまま通し、2回目（deployAorWeb本体のアップロードループでの読み込み）
   // だけをENOENTにして「列挙後に消えた」状況を再現する。
-  // config.files 未指定（listDeployableFiles() 全体走査）経路の検証。data/ は Git 管理下 fixture のみに見せる。
-  useCleanCheckoutView(t);
-  const targetPath = require("path").join(SOURCE_DIR, ...listDeployableFiles()[0].split("/"));
+  const tmp = makeTmpAorSite(t);
+  const targetPath = path.join(tmp, ...listDeployableFiles(tmp)[0].split("/"));
   let targetReadCount = 0;
 
   const originalReadFileSync = fs.readFileSync;
@@ -292,16 +286,20 @@ test("deployAorWeb: execute:true時、listDeployableFiles()後にファイルが
   };
 
   const s3Client = createFakeS3Client();
-  const result = await deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true }, { s3Client });
+  const result = await deployAorWeb(
+    { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true },
+    { s3Client, sourceDir: tmp }
+  );
 
   assert.equal(result.ok, true, "1件のENOENTでデプロイ全体が失敗してはならない");
   assert.equal(result.skipped.length, 1);
   assert.ok(result.uploaded > 0, "消失した1件以外は正常にアップロードされるはず");
   assert.equal(s3Client.calls.length, result.uploaded);
-  assertOnlyTrackedData(s3Client.calls.map((c) => c.input.Key));
+  assert.equal(result.uploaded, TMP_SITE_DEPLOYABLE_KEYS.length - 1);
 });
 
 test("deployAorWeb: execute:true時、ENOENT以外のファイル読み込みエラーは握りつぶさずそのまま伝播する", async (t) => {
+  const tmp = makeTmpAorSite(t); // fs.readFileSync を差し替える前に作る
   const originalReadFileSync = fs.readFileSync;
   t.after(() => {
     fs.readFileSync = originalReadFileSync;
@@ -312,11 +310,7 @@ test("deployAorWeb: execute:true時、ENOENT以外のファイル読み込みエ
 
   const s3Client = createFakeS3Client();
   await assert.rejects(
-    () =>
-      deployAorWeb(
-        { bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true, files: FIXTURE_DEPLOY_FILES },
-        { s3Client }
-      ),
+    () => deployAorWeb({ bucket: "test-aor-web-bucket", region: "ap-northeast-1", execute: true }, { s3Client, sourceDir: tmp }),
     /EACCES/
   );
 });
@@ -326,9 +320,9 @@ test("deployAorWeb: execute:true時、ENOENT以外のファイル読み込みエ
 // ===========================================================================
 
 test("deployAorWeb: config.files 指定時は指定ファイルのみが対象になる（dry-run）", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const files = ["report-preview.html", "assets/js/report-preview.js"];
-  const result = await deployAorWeb({ bucket: "b", region: "r", files });
+  const result = await deployAorWeb({ bucket: "b", region: "r", files }, { sourceDir: tmp });
   assert.equal(result.ok, true);
   assert.equal(result.dryRun, true);
   const keys = result.uploads.map((u) => u.key).sort();
@@ -336,9 +330,9 @@ test("deployAorWeb: config.files 指定時は指定ファイルのみが対象�
 });
 
 test("deployAorWeb: config.files に存在しない/対象外ファイルがあればnotFoundとして報告し、アップロード対象にしない", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const files = ["report-preview.html", "no-such-file.html", "README.md"];
-  const result = await deployAorWeb({ bucket: "b", region: "r", files });
+  const result = await deployAorWeb({ bucket: "b", region: "r", files }, { sourceDir: tmp });
   assert.equal(result.ok, true);
   assert.deepEqual(result.uploads.map((u) => u.key), ["report-preview.html"]);
   assert.ok(result.notFound.includes("no-such-file.html"), "存在しないファイルはnotFound");
@@ -346,10 +340,10 @@ test("deployAorWeb: config.files に存在しない/対象外ファイルがあ�
 });
 
 test("deployAorWeb: config.files 指定時、execute:true でも指定ファイルのみS3へアップロードする", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const files = ["report-preview.html", "assets/js/illustrations.js"];
-  const result = await deployAorWeb({ bucket: "b", region: "r", execute: true, files }, { s3Client });
+  const result = await deployAorWeb({ bucket: "b", region: "r", execute: true, files }, { s3Client, sourceDir: tmp });
   assert.equal(result.ok, true);
   assert.equal(result.uploaded, 2);
   const keys = s3Client.calls.map((c) => c.input.Key).sort();
@@ -357,13 +351,13 @@ test("deployAorWeb: config.files 指定時、execute:true でも指定ファイ�
 });
 
 test("deployAorWeb: config.files 指定時、CloudFront invalidationは/*ではなく指定ファイルのパスのみになる", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const cloudFrontClient = createFakeCloudFrontClient();
   const files = ["report-preview.html", "assets/js/illustrations.js"];
   const result = await deployAorWeb(
     { bucket: "b", region: "r", distributionId: "EFAKE000", execute: true, files },
-    { s3Client, cloudFrontClient }
+    { s3Client, cloudFrontClient, sourceDir: tmp }
   );
   assert.equal(result.ok, true);
   assert.equal(cloudFrontClient.calls.length, 1);
@@ -373,26 +367,26 @@ test("deployAorWeb: config.files 指定時、CloudFront invalidationは/*では�
 });
 
 test("deployAorWeb: config.files 未指定時はCloudFront invalidationが従来どおり/*になる（後方互換）", async (t) => {
-  useCleanCheckoutView(t); // config.files 未指定経路の検証。data/ は Git 管理下 fixture のみに見せる
+  const tmp = makeTmpAorSite(t);
   const s3Client = createFakeS3Client();
   const cloudFrontClient = createFakeCloudFrontClient();
   const result = await deployAorWeb(
     { bucket: "b", region: "r", distributionId: "EFAKE000", execute: true },
-    { s3Client, cloudFrontClient }
+    { s3Client, cloudFrontClient, sourceDir: tmp }
   );
   assert.deepEqual(result.ok, true);
   assert.deepEqual(cloudFrontClient.calls[0].input.InvalidationBatch.Paths.Items, ["/*"]);
 });
 
 test("deployAorWeb: config.files 未指定時は従来どおり全公開対象ファイルが対象になる（後方互換）", async (t) => {
-  useCleanCheckoutView(t); // config.files 未指定経路の検証。data/ は Git 管理下 fixture のみに見せる
-  const result = await deployAorWeb({ bucket: "b", region: "r" });
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: tmp });
   assert.equal(result.ok, true);
   assert.deepEqual(result.notFound, []);
   assert.ok(result.uploads.length > 1, "filesを指定しなければ複数ファイルが対象のはず");
-  // 全公開対象 = listDeployableFiles() の全件（クリーンな checkout 相当）
-  assert.deepEqual(result.uploads.map((u) => u.key).sort(), listDeployableFiles().sort());
-  assertOnlyTrackedData(result.uploads.map((u) => u.key));
+  // 全公開対象 = listDeployableFiles(sourceDir) の全件
+  assert.deepEqual(result.uploads.map((u) => u.key).sort(), listDeployableFiles(tmp).sort());
+  assert.deepEqual(result.uploads.map((u) => u.key).sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
 });
 
 test("isDeployableFile: 許可拡張子（html/css/js/json）は対象になる", () => {
@@ -716,10 +710,9 @@ test("classifyPublishedArtifact: STALE_UNREADABLE は壊れた Published JSON（
 });
 
 test("deployAorWeb: Git 管理下 fixture に対する dry-run は reconciliation を通過し（ok:true）、uploads を計画する", async (t) => {
-  useCleanCheckoutView(t); // checkPublicDataSafety は config.files に関係なく data/ 全体を走査するため
-  // 対象を config.files で Git 管理下のファイルに限定（ローカル専用の本番 artifact に依存しない）
+  const tmp = makeTmpAorSite(t);
   const files = ["index.html", ...TRACKED_NON_PRODUCTION_FIXTURES.map((s) => `data/${s}.json`)];
-  const result = await deployAorWeb({ bucket: "b", region: "r", files });
+  const result = await deployAorWeb({ bucket: "b", region: "r", files }, { sourceDir: tmp });
   assert.equal(result.ok, true);
   assert.ok(result.dryRun);
   // reconciliation が実行されて uploads があること（既存挙動の regression 確認）
@@ -732,29 +725,214 @@ test("deployAorWeb: stale Published artifact があると dry-run/実行を問�
   const slug = "test-recon-deployblock.corp";
   cleanupInternal(slug);
   setupInternal(slug, { review: "none" }); // stale（review 無し）
-  // 実 website/aor/data/ に一時的に本番 artifact 相当を置く（この test 内で必ず消す）
-  const publishedPath = path.join(SOURCE_DIR, "data", `${slug}.json`);
-  writeJson(publishedPath, {
-    id: `generated-${slug}`,
-    meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z", published_at: "2026-02-01T00:00:00.000Z" },
-    company_profile: { name: slug },
-    free_opportunity: { title: "x" },
-    source_pages: [],
-  });
-  t.after(() => {
-    cleanupInternal(slug);
-    fs.rmSync(publishedPath, { force: true });
+  t.after(() => cleanupInternal(slug));
+  // 本番 artifact 相当は一時 sourceDir にだけ置く（実 website/aor/data/ へは書き込まない）
+  const tmp = makeTmpAorSite(t, {
+    extraFiles: {
+      [`data/${slug}.json`]: JSON.stringify({
+        id: `generated-${slug}`,
+        meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z", published_at: "2026-02-01T00:00:00.000Z" },
+        company_profile: { name: slug },
+        free_opportunity: { title: "x" },
+        source_pages: [],
+      }),
+    },
   });
 
   const s3Client = createFakeS3Client();
   // dry-run
-  const dry = await deployAorWeb({ bucket: "b", region: "r" }, { s3Client });
+  const dry = await deployAorWeb({ bucket: "b", region: "r" }, { s3Client, sourceDir: tmp });
   assert.equal(dry.ok, false, "stale 検出時は ok:false");
   assert.ok(dry.reconciliation && dry.reconciliation.stale.some((x) => x.slug === slug));
   assert.equal(dry.uploads, undefined, "dry-run 計画は組まれない");
 
   // execute:true でも同じ（FAIL CLOSED）
-  const exec = await deployAorWeb({ bucket: "b", region: "r", execute: true }, { s3Client });
+  const exec = await deployAorWeb({ bucket: "b", region: "r", execute: true }, { s3Client, sourceDir: tmp });
   assert.equal(exec.ok, false);
   assert.equal(s3Client.calls.length, 0, "1件も S3 へアップロードしないはず");
+});
+
+// ===========================================================================
+// Phase84 STEP1 — options.sourceDir DI（Phase83 STEP3 案B）
+// ===========================================================================
+// deployAorWeb(config, { sourceDir }) で渡した一時ディレクトリだけを、列挙・reconciliation・
+// Public Data Safety・dry-run 計画・アップロードの全段階で一貫して使うことを固定する。
+// 実 website/aor/data/ へは書き込まない（実データ側の stale / safety NG artifact は
+// injectIntoRealDataView() で fs の見え方だけを差し替えて再現する）。
+
+/**
+ * 実 website/aor/data/ に fileName が存在するかのように見せる（実ファイルは作らない）。
+ * node --test は他テストファイルを並行実行するため、実 data/ へ safety NG ファイルを
+ * 物理的に置くと public-data-safety-check.test.js 等を巻き込む。そのため readdirSync /
+ * readFileSync の見え方だけを data/ 直下の当該1件について差し替え、テスト終了時に戻す。
+ * @param {import("node:test").TestContext} t
+ * @param {string} fileName
+ * @param {string} content
+ */
+function injectIntoRealDataView(t, fileName, content) {
+  const dataDir = path.resolve(SOURCE_DIR, "data");
+  const fakePath = path.join(dataDir, fileName);
+  const originalReaddirSync = fs.readdirSync;
+  const originalReadFileSync = fs.readFileSync;
+  t.after(() => {
+    fs.readdirSync = originalReaddirSync;
+    fs.readFileSync = originalReadFileSync;
+  });
+  fs.readdirSync = (dir, ...rest) => {
+    const entries = originalReaddirSync(dir, ...rest);
+    if (path.resolve(String(dir)) !== dataDir) return entries;
+    const withTypes = rest[0] && typeof rest[0] === "object" && rest[0].withFileTypes;
+    const fake = withTypes
+      ? { name: fileName, isFile: () => true, isDirectory: () => false, isSymbolicLink: () => false }
+      : fileName;
+    return [...entries, fake];
+  };
+  fs.readFileSync = (file, ...rest) => {
+    if (typeof file === "string" && path.resolve(file) === fakePath) {
+      const encoding = typeof rest[0] === "string" ? rest[0] : rest[0] && rest[0].encoding;
+      return encoding ? content : Buffer.from(content, "utf-8");
+    }
+    return originalReadFileSync(file, ...rest);
+  };
+}
+
+test("Phase84 sourceDir-1: options.sourceDir を渡すと sourceDir 配下の公開対象のみを列挙し、dry-run 計画も sourceDir を指す", async (t) => {
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb({ bucket: "b", region: "r", distributionId: "EFAKE000" }, { sourceDir: tmp });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.dryRun, true);
+  assert.deepEqual(result.uploads.map((u) => u.key).sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
+  assert.deepEqual(result.notFound, []);
+  assert.ok(result.plannedCommands.some((c) => c.includes(tmp)), "dry-run 表示コマンドは渡した sourceDir を指すはず");
+  assert.ok(!result.plannedCommands.some((c) => c.includes(SOURCE_DIR)), "実 SOURCE_DIR を指してはならない");
+});
+
+test("Phase84 sourceDir-1b: execute:true でも sourceDir 配下のファイルを読んでアップロードする", async (t) => {
+  const tmp = makeTmpAorSite(t);
+  const s3Client = createFakeS3Client();
+  const result = await deployAorWeb({ bucket: "b", region: "r", execute: true }, { s3Client, sourceDir: tmp });
+
+  assert.equal(result.ok, true);
+  assert.equal(result.dryRun, false);
+  assert.deepEqual(s3Client.calls.map((c) => c.input.Key).sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
+  const indexCall = s3Client.calls.find((c) => c.input.Key === "index.html");
+  assert.equal(indexCall.input.Body.toString("utf-8"), "<!doctype html><title>tmp-site index</title>");
+});
+
+test("Phase84 sourceDir-2: Public Data Safety は sourceDir 配下を検査し、違反があれば dry-run/execute 問わず1件も対象にしない", async (t) => {
+  const tmp = makeTmpAorSite(t, {
+    extraFiles: { "data/leaked.json": JSON.stringify({ lead_id: "abc123", company_profile: {} }) },
+  });
+  const s3Client = createFakeS3Client();
+  const cloudFrontClient = createFakeCloudFrontClient();
+
+  const dry = await deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: tmp });
+  assert.equal(dry.ok, false);
+  assert.deepEqual(dry.safetyProblems.map((p) => p.file.split(path.sep).join("/")), ["data/leaked.json"]);
+  assert.equal(dry.uploads, undefined, "dry-run 計画は組まれない");
+
+  const exec = await deployAorWeb(
+    { bucket: "b", region: "r", distributionId: "EFAKE000", execute: true },
+    { s3Client, cloudFrontClient, sourceDir: tmp }
+  );
+  assert.equal(exec.ok, false);
+  assert.equal(s3Client.calls.length, 0);
+  assert.equal(cloudFrontClient.calls.length, 0);
+});
+
+test("Phase84 sourceDir-2b: config.files の対象外ファイルに違反があっても停止する（検査範囲 ⊇ 公開範囲）", async (t) => {
+  const tmp = makeTmpAorSite(t, { extraFiles: { ".env": "AWS_SECRET=dummy\n" } });
+  const result = await deployAorWeb({ bucket: "b", region: "r", files: ["index.html"] }, { sourceDir: tmp });
+
+  assert.equal(result.ok, false);
+  assert.ok(result.safetyProblems.some((p) => p.file === ".env"), ".env は公開対象外でも検査対象のはず");
+});
+
+test("Phase84 sourceDir-3: Reconciliation は sourceDir 配下の Published artifact のみを対象にする", async (t) => {
+  const slug = "test-recon-sourcedir-orphan.corp";
+  cleanupInternal(slug); // output/<slug>/ を作らない → STALE_ORPHAN
+  const tmp = makeTmpAorSite(t, {
+    extraFiles: {
+      [`data/${slug}.json`]: JSON.stringify({
+        id: `generated-${slug}`,
+        meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z", published_at: "2026-02-01T00:00:00.000Z" },
+        company_profile: { name: slug },
+        free_opportunity: { title: "x" },
+        source_pages: [],
+      }),
+    },
+  });
+  const s3Client = createFakeS3Client();
+
+  const dry = await deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: tmp });
+  assert.equal(dry.ok, false);
+  assert.deepEqual(
+    dry.reconciliation.stale.map((s) => [s.slug, s.classification]),
+    [[slug, RECONCILIATION_CLASS.STALE_ORPHAN]]
+  );
+  const tmpDataKeys = new Set(fs.readdirSync(path.join(tmp, "data")).map((f) => `data/${f}`));
+  dry.reconciliation.results.forEach((r) => assert.ok(tmpDataKeys.has(r.key), `${r.key} は sourceDir 配下のはず`));
+
+  const exec = await deployAorWeb({ bucket: "b", region: "r", execute: true }, { s3Client, sourceDir: tmp });
+  assert.equal(exec.ok, false);
+  assert.equal(s3Client.calls.length, 0);
+});
+
+test("Phase84 sourceDir-4: 実 website/aor/data に stale artifact があっても、sourceDir 指定時は影響を受けず PASS", async (t) => {
+  const slug = "test-recon-real-stale.corp";
+  cleanupInternal(slug); // current report 無し → 実 data/ 側では STALE_ORPHAN
+  injectIntoRealDataView(
+    t,
+    `${slug}.json`,
+    JSON.stringify({ id: `generated-${slug}`, meta: { schema_version: "2.4" }, company_profile: { name: slug } })
+  );
+  // 前提: 実 SOURCE_DIR を見る既定経路なら、この stale artifact で reconciliation が失敗する
+  const baseline = await reconcilePublishedReports();
+  assert.ok(baseline.stale.some((s) => s.slug === slug), "前提: 実 data/ 側で stale として検出されるはず");
+
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: tmp });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.uploads.map((u) => u.key).sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
+});
+
+test("Phase84 sourceDir-5: 実 website/aor/data に safety NG artifact があっても、sourceDir 指定時は影響を受けず PASS", async (t) => {
+  injectIntoRealDataView(t, "phase84-real-leak.json", JSON.stringify({ lead_id: "abc123", company_profile: {} }));
+  // 前提: 実 SOURCE_DIR を検査すれば safety NG になる
+  const baseline = checkPublicDataSafety(SOURCE_DIR);
+  assert.ok(
+    baseline.problems.some((p) => p.file.split(path.sep).join("/") === "data/phase84-real-leak.json"),
+    "前提: 実 data/ 側で safety NG として検出されるはず"
+  );
+
+  const tmp = makeTmpAorSite(t);
+  const result = await deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: tmp });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.uploads.map((u) => u.key).sort(), [...TMP_SITE_DEPLOYABLE_KEYS].sort());
+});
+
+test("Phase84 sourceDir-6: sourceDir 未指定なら従来どおり実 SOURCE_DIR を使う（後方互換）", async () => {
+  // 実 data/ のローカル専用 artifact の有無・鮮度に依存しないよう、結果の内容（ok 等）ではなく
+  // 「sourceDir 未指定」と「sourceDir: SOURCE_DIR 明示」が同一結果になることで既定値を固定する（読み取りのみ）。
+  // config.files は Git 管理下の index.html に絞る（他テストファイルが並行実行中に実 data/ へ一時ファイルを
+  // 書き込み・削除するため、全体走査のままだと2回の呼び出しの間で uploads/skipped がずれうる）。
+  const config = { bucket: "b", region: "r", files: ["index.html"] };
+  const byDefault = await deployAorWeb(config);
+  const explicit = await deployAorWeb(config, { sourceDir: SOURCE_DIR });
+  assert.deepEqual(byDefault, explicit);
+  // 同上の理由で、並行書き込みの起こりうる data/ は比較から外す
+  const nonData = (keys) => keys.filter((k) => !k.startsWith("data/")).sort();
+  assert.deepEqual(nonData(listDeployableFiles(SOURCE_DIR)), nonData(listDeployableFiles()));
+  if (byDefault.ok) {
+    assert.ok(
+      byDefault.plannedCommands.some((c) => c.includes(path.join(SOURCE_DIR, "index.html"))),
+      "dry-run 表示コマンドは実 SOURCE_DIR を指すはず"
+    );
+  }
+});
+
+test("Phase84 sourceDir-7: 存在しない sourceDir は throw する（fail-closed、実 SOURCE_DIR へフォールバックしない）", async () => {
+  const missing = path.join(os.tmpdir(), `aor-site-missing-${process.pid}-${Date.now()}`);
+  await assert.rejects(() => deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: missing }), /ENOENT|存在しません/);
 });

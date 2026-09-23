@@ -190,12 +190,13 @@ function isDeployableFile(relativePath) {
 }
 
 /**
- * SOURCE_DIR配下から公開対象ファイルの一覧を、SOURCE_DIRからの相対パス（"/"区切り）で返す。
+ * sourceDir配下から公開対象ファイルの一覧を、sourceDirからの相対パス（"/"区切り）で返す。
+ * @param {string} [sourceDir] - Phase84 STEP1: 省略時 SOURCE_DIR
  * @returns {string[]}
  */
-function listDeployableFiles() {
-  return listFilesRecursive(SOURCE_DIR)
-    .map((filePath) => path.relative(SOURCE_DIR, filePath).split(path.sep).join("/"))
+function listDeployableFiles(sourceDir = SOURCE_DIR) {
+  return listFilesRecursive(sourceDir)
+    .map((filePath) => path.relative(sourceDir, filePath).split(path.sep).join("/"))
     .filter(isDeployableFile);
 }
 
@@ -205,13 +206,14 @@ function listDeployableFiles() {
  * テストしやすくする。
  * @param {{bucket:string, region:string, distributionId?:string}} config
  * @param {string[]} relativeKeys - listDeployableFiles()の結果
+ * @param {string} [sourceDir] - Phase84 STEP1: 省略時 SOURCE_DIR（stat と dry-run 表示コマンドの両方に使う）
  * @returns {{uploads:Array<{key:string, contentType:string, sizeBytes:number}>, skipped:string[], plannedCommands:string[]}}
  */
-function buildDeployPlan(config, relativeKeys) {
+function buildDeployPlan(config, relativeKeys, sourceDir = SOURCE_DIR) {
   const uploads = [];
   const skipped = [];
   for (const key of relativeKeys) {
-    const absolutePath = path.join(SOURCE_DIR, ...key.split("/"));
+    const absolutePath = path.join(sourceDir, ...key.split("/"));
     let stat;
     try {
       // listDeployableFiles()での列挙後、statする前にファイルが削除された場合
@@ -238,13 +240,13 @@ function buildDeployPlan(config, relativeKeys) {
         `# ${uploads.length}件の指定ファイルのみを、ファイルごとにContentTypeとServerSideEncryption(AES256)を` +
           `指定したPutObjectで s3://${config.bucket}/ へ送信（概要コマンド例）:`,
         ...uploads.map(
-          (u) => `aws s3 cp "${path.join(SOURCE_DIR, ...u.key.split("/"))}" "s3://${config.bucket}/${u.key}" --sse AES256 --region ${config.region}`
+          (u) => `aws s3 cp "${path.join(sourceDir, ...u.key.split("/"))}" "s3://${config.bucket}/${u.key}" --sse AES256 --region ${config.region}`
         ),
       ]
     : [
         `# ${uploads.length}件のファイルを website/aor/ から s3://${config.bucket}/ へ、` +
           `ファイルごとにContentTypeとServerSideEncryption(AES256)を指定したPutObjectで送信（概要コマンド例）:`,
-        `aws s3 cp "${SOURCE_DIR}" "s3://${config.bucket}/" --recursive --sse AES256 --region ${config.region}`,
+        `aws s3 cp "${sourceDir}" "s3://${config.bucket}/" --recursive --sse AES256 --region ${config.region}`,
       ];
   if (config.distributionId) {
     const invalidationPaths = isSelective ? uploads.map((u) => `/${u.key}`) : ["/*"];
@@ -430,9 +432,12 @@ async function reconcilePublishedReports(input = {}) {
 /**
  * @param {{bucket:string, region:string, distributionId?:string, execute?:boolean}} config -
  *   execute:true を明示しない限りdry-run（AWS SDKクライアントを一切生成しない）。
- * @param {{s3Client?:Object, cloudFrontClient?:Object, storeOptions?:Object}} [options] -
+ * @param {{s3Client?:Object, cloudFrontClient?:Object, storeOptions?:Object, sourceDir?:string}} [options] -
  *   execute:true 時に、テストでAWSクライアントを差し替えるためのDIフック。
  *   storeOptions は Phase58 STEP4 の reconciliation で report-store / review-store へ渡す DI。
+ *   sourceDir は Phase84 STEP1: 省略時 SOURCE_DIR。テストで一時ディレクトリを渡すための DI フック。
+ *   列挙・reconciliation・Public Data Safety・dry-run 計画・アップロードの全段階で同一の
+ *   sourceDir を使う（safety は config.files に関係なく sourceDir 全体を検査する）。
  * @returns {Promise<Object>}
  */
 /**
@@ -455,14 +460,15 @@ function filterToRequestedFiles(allKeys, files) {
 }
 
 async function deployAorWeb(config, options = {}) {
-  const { relativeKeys, notFound } = filterToRequestedFiles(listDeployableFiles(), config.files);
+  const sourceDir = options.sourceDir || SOURCE_DIR;
+  const { relativeKeys, notFound } = filterToRequestedFiles(listDeployableFiles(sourceDir), config.files);
 
   // Phase58 STEP4: Deploy前 reconciliation（Public Data Safety より前段。FAIL CLOSED）。
   // stale/orphan Published artifact を1件でも検出したら、dry-run / 実行を問わず deploy 全体を中止する
   // （その1件だけを除外するのではなく全体を止める＝「deploy は成功した」と運用者に誤認させないため）。
   const reconciliation = await reconcilePublishedReports({
     relativeKeys,
-    sourceDir: SOURCE_DIR,
+    sourceDir,
     storeOptions: options.storeOptions,
   });
   if (!reconciliation.ok) {
@@ -473,7 +479,7 @@ async function deployAorWeb(config, options = {}) {
     return { ok: false, reconciliation };
   }
 
-  const safety = checkPublicDataSafety(SOURCE_DIR);
+  const safety = checkPublicDataSafety(sourceDir);
   if (!safety.ok) {
     logger.error("公開前セーフティチェックに失敗しました。デプロイを中止します（1件も対象にしません）。", {
       problems: safety.problems,
@@ -482,7 +488,7 @@ async function deployAorWeb(config, options = {}) {
   }
 
   if (config.execute !== true) {
-    const plan = buildDeployPlan(config, relativeKeys);
+    const plan = buildDeployPlan(config, relativeKeys, sourceDir);
     logger.info(
       `[dry-run] ${plan.uploads.length}件のファイルが公開対象です（AWSへは接続していません）。`,
       { bucket: config.bucket, region: config.region, distributionId: config.distributionId }
@@ -514,7 +520,7 @@ async function deployAorWeb(config, options = {}) {
   let uploaded = 0;
   const skipped = [];
   for (const key of relativeKeys) {
-    const absolutePath = path.join(SOURCE_DIR, ...key.split("/"));
+    const absolutePath = path.join(sourceDir, ...key.split("/"));
     let body;
     try {
       // listDeployableFiles()での列挙とここでの読み込みの間に、他プロセス（例:
