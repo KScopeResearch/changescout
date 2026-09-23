@@ -14,3 +14,18 @@ docs/BRAND.md
 # Published verification screenshots (served via GitHub Pages)
 !website/screenshots/
 !website/screenshots/**
+
+# Phase81 STEP3: ローカル生成物・実在企業データ・監査バックアップを除外
+/backup/
+/backup/lambda-live/
+/aor-site-build-scratch/
+/scripts/generator/logs/
+/scripts/generator/quality-report.md
+/scripts/generator/output/*
+!/scripts/generator/output/*.example.com/
+!/scripts/generator/output/*.example.jp/
+/website/aor/data/*
+!/website/aor/data/company-0*.json
+!/website/aor/data/example.com.json
+!/website/aor/data/*.example.com.json
+**/.claude/settings.local.json
