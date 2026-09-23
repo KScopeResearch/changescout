@@ -23,7 +23,8 @@ const path = require("path");
 
 // Phase87 STEP4（P4 J1）: job-runner の runtime-state / history はこのテストファイル専用の
 // 一時ディレクトリに書く（実 scripts/generator/logs/ を他のテストファイル・他プロセスと共有しない）。
-// ※ 子プロセスとして起動する website/aor-admin/server.js には configure() が及ばない。
+// ※ 子プロセスとして起動する website/aor-admin/server.js には configure() が及ばないため、
+//   Phase88 STEP2（P6）で追加した ADMIN_LOGS_DIR 環境変数で子プロセス側の logs も一時ディレクトリへ向ける。
 const jobRunner = require("../jobs/job-runner");
 const TEST_TMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "aor-security-test-"));
 const previousJobRunnerLogsDir = jobRunner.getLogsDir();
@@ -34,6 +35,9 @@ after(() => {
   removeTestTmpRoot();
 });
 process.on("exit", removeTestTmpRoot); // after() 後に遅れて書き込みがあっても残さない
+// Phase88 STEP2（P6）: 子プロセスの server.js が admin-audit.jsonl / job-history.jsonl /
+// job-runtime-state.json を書く先（実 scripts/generator/logs/ には書かせない）。
+const SERVER_LOGS_DIR = path.join(TEST_TMP_ROOT, "server-logs");
 
 const { redactSecrets } = require("../shared/redact");
 const { GENERATOR_DIR, OUTPUT_DIR } = require("../shared/paths");
@@ -134,7 +138,7 @@ function sleep(ms) {
 test("website/aor-admin/server.js: 未認証アクセスは401、認証済みは200、POSTはCSRFトークン無しだと403", async (t) => {
   const serverPath = path.join(GENERATOR_DIR, "..", "..", "website", "aor-admin", "server.js");
   const child = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, ADMIN_USER, ADMIN_PASSWORD, ADMIN_PORT: String(TEST_PORT) },
+    env: { ...process.env, ADMIN_USER, ADMIN_PASSWORD, ADMIN_PORT: String(TEST_PORT), ADMIN_LOGS_DIR: SERVER_LOGS_DIR },
     stdio: "pipe",
   });
   let serverErrorOutput = "";
@@ -200,11 +204,18 @@ test("website/aor-admin/server.js: 未認証アクセスは401、認証済みは
 // ログイン試行レート制限（Task41）
 // ---------------------------------------------------------------------------
 
-/** @param {number} port @param {import("node:test").TestContext} t @returns {Promise<void>} */
-async function startTestServer(port, t) {
+/**
+ * @param {number} port
+ * @param {import("node:test").TestContext} t
+ * @param {Object<string,string|undefined>} [envOverrides] 子プロセスの環境変数の上書き（値がundefinedのキーは削除する）
+ * @returns {Promise<void>}
+ */
+async function startTestServer(port, t, envOverrides = {}) {
   const serverPath = path.join(GENERATOR_DIR, "..", "..", "website", "aor-admin", "server.js");
+  const env = { ...process.env, ADMIN_USER, ADMIN_PASSWORD, ADMIN_PORT: String(port), ADMIN_LOGS_DIR: SERVER_LOGS_DIR, ...envOverrides };
+  Object.keys(env).forEach((key) => env[key] === undefined && delete env[key]);
   const child = spawn(process.execPath, [serverPath], {
-    env: { ...process.env, ADMIN_USER, ADMIN_PASSWORD, ADMIN_PORT: String(port) },
+    env,
     stdio: "pipe",
   });
   let serverErrorOutput = "";
@@ -393,4 +404,77 @@ test("GET /api/reports（Task46）: report.json追加直後はキャッシュ未
     true,
     "fs.watchのデバウンス後はreportsCacheが更新され、一覧に反映されるはず"
   );
+});
+
+// ---------------------------------------------------------------------------
+// 監査ログ・起動時復旧の logs 隔離（Phase88 STEP2、P6）
+// auth.js の configure({logsDir}) と server.js の ADMIN_LOGS_DIR 配線を確認する。
+// job-runner.js の configure()（Phase87 STEP2）と同じ DI パターン。
+// ---------------------------------------------------------------------------
+
+const { LOGS_DIR } = require("../shared/paths");
+
+test("auth.js（Phase88 T1）: 既定の logsDir は scripts/generator/logs/ で、AUDIT_LOG_PATH は従来どおり", () => {
+  assert.equal(authModule.getLogsDir(), LOGS_DIR);
+  assert.equal(authModule.AUDIT_LOG_PATH, path.join(LOGS_DIR, "admin-audit.jsonl"));
+});
+
+test("auth.js（Phase88 T2）: configure({logsDir}) 後の logAudit() は指定ディレクトリにのみ書き込む", (t) => {
+  const logsDir = path.join(TEST_TMP_ROOT, "auth-configure-logs");
+  authModule.configure({ logsDir });
+  t.after(() => authModule.configure());
+
+  assert.equal(authModule.AUDIT_LOG_PATH, path.join(logsDir, "admin-audit.jsonl"));
+  authModule.logAudit({ user: "phase88-t2", ip: "127.0.0.1", action: "phase88_t2", target: null, success: true });
+
+  const lines = fs.readFileSync(path.join(logsDir, "admin-audit.jsonl"), "utf-8").trim().split("\n");
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).action, "phase88_t2");
+});
+
+test("auth.js（Phase88 T3）: configure() を引数なしで呼ぶと既定の logsDir に戻る", () => {
+  authModule.configure({ logsDir: path.join(TEST_TMP_ROOT, "auth-reset-logs") });
+  authModule.configure();
+  assert.equal(authModule.getLogsDir(), LOGS_DIR);
+  assert.equal(authModule.AUDIT_LOG_PATH, path.join(LOGS_DIR, "admin-audit.jsonl"));
+});
+
+test("server.js（Phase88 T4）: ADMIN_LOGS_DIR 指定時、監査ログと起動時復旧はその logs のみを使う", async (t) => {
+  const logsDir = fs.mkdtempSync(path.join(TEST_TMP_ROOT, "server-t4-"));
+  // 起動時復旧（recoverInterruptedJobs）の対象になる「実行中」ジョブを tmp logs 側にだけ仕込む
+  fs.writeFileSync(
+    path.join(logsDir, "job-runtime-state.json"),
+    JSON.stringify({ "phase88-t4-job": { type: "generate-report", params: {}, started_at: new Date().toISOString() } })
+  );
+
+  const port = 4607;
+  await startTestServer(port, t, { ADMIN_LOGS_DIR: logsDir });
+
+  const unauth = await httpRequest({ path: "/api/reports", port });
+  assert.equal(unauth.status, 401);
+
+  const auditLines = fs.readFileSync(path.join(logsDir, "admin-audit.jsonl"), "utf-8").trim().split("\n");
+  assert.ok(
+    auditLines.some((line) => JSON.parse(line).action === "unauthenticated"),
+    "未認証アクセスの監査ログは ADMIN_LOGS_DIR 側の admin-audit.jsonl に記録されるはず"
+  );
+
+  const historyLines = fs.readFileSync(path.join(logsDir, "job-history.jsonl"), "utf-8").trim().split("\n");
+  assert.ok(
+    historyLines.some((line) => {
+      const record = JSON.parse(line);
+      return record.job_id === "phase88-t4-job" && record.status === "interrupted";
+    }),
+    "起動時復旧は ADMIN_LOGS_DIR 側の job-runtime-state.json を読み、同じ logs の job-history.jsonl に記録するはず"
+  );
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(logsDir, "job-runtime-state.json"), "utf-8")), {});
+});
+
+test("server.js（Phase88 T5）: ADMIN_LOGS_DIR 未設定でも /api/health は従来どおり応答する（後方互換）", async (t) => {
+  const port = 4608;
+  await startTestServer(port, t, { ADMIN_LOGS_DIR: undefined });
+
+  const res = await httpRequest({ path: "/api/health", port });
+  assert.ok(res.status === 200 || res.status === 503, `unexpected status: ${res.status}`);
+  assert.ok(JSON.parse(res.body).status);
 });

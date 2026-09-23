@@ -1325,6 +1325,14 @@ module.exports = {
 // 既存の HTTP テスト）で直接実行されたときだけ起動する。ユニットテストが require したときは
 // 起動せず、上記の純粋関数だけを公開する。
 if (require.main === module) {
+  // Phase88 STEP2（P6）: ADMIN_LOGS_DIR が設定されていれば、監査ログ（auth.js）とジョブ履歴・
+  // 起動時復旧（job-runner.js）の logs をそこへ向ける（子プロセスとして起動するテストの隔離用）。
+  // 未設定時は両モジュールとも従来どおり scripts/generator/logs/ を使う（本番挙動は変更なし）。
+  if (process.env.ADMIN_LOGS_DIR) {
+    auth.configure({ logsDir: process.env.ADMIN_LOGS_DIR });
+    jobRunner.configure({ logsDir: process.env.ADMIN_LOGS_DIR });
+  }
+
   const envCheck = auth.checkRequiredEnv();
   if (!envCheck.ok) {
     logger.error(`起動を中止しました: ${envCheck.message}`);

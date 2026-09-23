@@ -32,7 +32,29 @@ const logger = createLogger("aor-admin-auth");
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8時間
 const COOKIE_NAME = "sid";
 
-const AUDIT_LOG_PATH = path.join(__dirname, "..", "..", "scripts", "generator", "logs", "admin-audit.jsonl");
+// Phase88 STEP2（P6）: logs の置き場所は configure({logsDir}) で差し替えられる（テストの隔離用。
+// job-runner.js の configure() と同じパターン）。未指定時は従来どおり scripts/generator/logs/。
+const DEFAULT_LOGS_DIR = path.join(__dirname, "..", "..", "scripts", "generator", "logs");
+let logsDir = DEFAULT_LOGS_DIR;
+const AUDIT_LOG_FILENAME = "admin-audit.jsonl";
+
+/** @returns {string} */
+function auditLogPath() {
+  return path.join(logsDir, AUDIT_LOG_FILENAME);
+}
+
+/**
+ * logs の置き場所を設定する。logsDir 省略時は既定（scripts/generator/logs/）に戻す。
+ * @param {{logsDir?:string}} [options]
+ */
+function configure(options = {}) {
+  logsDir = options.logsDir || DEFAULT_LOGS_DIR;
+}
+
+/** @returns {string} 現在の logs ディレクトリ */
+function getLogsDir() {
+  return logsDir;
+}
 // Task43: admin-audit.jsonlは監査・セキュリティ用途のため自動削除はしない。サイズ超過時は
 // アーカイブ（別ファイルへ退避）するのみで、過去のアーカイブ自体は削除しない
 // （Task42のハイブリッド方式で決定した方針）。
@@ -326,8 +348,9 @@ function logAudit(entry) {
     detail: entry.detail ? redactSecrets(entry.detail) : null,
   };
   try {
-    archiveIfOversize(AUDIT_LOG_PATH, ARCHIVE_SIZE_BYTES); // Task43
-    appendJsonLine(AUDIT_LOG_PATH, record);
+    const auditPath = auditLogPath();
+    archiveIfOversize(auditPath, ARCHIVE_SIZE_BYTES); // Task43
+    appendJsonLine(auditPath, record);
   } catch (e) {
     logger.error(`監査ログの書き込みに失敗しました: ${e.message}`);
   }
@@ -349,7 +372,12 @@ function applySecurityHeaders(res) {
 module.exports = {
   SESSION_TTL_MS,
   COOKIE_NAME,
-  AUDIT_LOG_PATH,
+  configure, // Phase88 STEP2
+  getLogsDir, // Phase88 STEP2
+  // Phase88 STEP2: 現在の logsDir を反映する getter（未設定時は従来と同じ logs/ 配下のパス）
+  get AUDIT_LOG_PATH() {
+    return auditLogPath();
+  },
   checkRequiredEnv,
   authenticate,
   getSessionFromRequest,
