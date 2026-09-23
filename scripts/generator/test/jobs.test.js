@@ -5,12 +5,21 @@
  * generator.test.jsで別途カバーする）。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const runner = require("../jobs/job-runner");
+
+// Phase87 STEP2（P4 J1）: job-runner の runtime-state / history はこのテストファイル専用の
+// 一時ディレクトリに書く（実 scripts/generator/logs/ を他のテストファイル・他プロセスと共有しない）。
+const TEST_LOGS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "aor-jobs-test-logs-"));
+runner.configure({ logsDir: TEST_LOGS_DIR });
+const removeTestLogsDir = () => fs.rmSync(TEST_LOGS_DIR, { recursive: true, force: true });
+after(removeTestLogsDir);
+process.on("exit", removeTestLogsDir); // after() 後に遅れて書き込みがあっても残さない
 const store = require("../jobs/job-store");
 const engine = require("../jobs/job-engine");
 const { OUTPUT_DIR } = require("../shared/paths");

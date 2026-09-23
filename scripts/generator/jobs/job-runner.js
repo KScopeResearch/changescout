@@ -30,14 +30,41 @@ const { listCompanySlugs } = require("../company-index"); // PJ2 AOR: company_sl
 const { loadCompanyContext } = require("../company-context-store"); // PJ2 AOR: company_context内容読み込みbackend非依存化
 
 const logger = createLogger("job-runner");
-const HISTORY_PATH = path.join(LOGS_DIR, "job-history.jsonl");
+// Phase87 STEP2（P4）: logs の置き場所は configure({logsDir}) で差し替えられる（テストの隔離用）。
+// 未指定時は従来どおり scripts/generator/logs/（本番挙動は変更なし）。
+const DEFAULT_LOGS_DIR = LOGS_DIR;
+let logsDir = DEFAULT_LOGS_DIR;
+const HISTORY_FILENAME = "job-history.jsonl";
 // Task43: job-history.jsonlはJobs Dashboard（readHistory()）が直接読む運用ログのため、
 // admin-audit.jsonl等とは異なり期間ベースで古い行を整理する（世代ファイルは作らない。
 // Task42のハイブリッド方式で決定した方針）。
 const JOB_HISTORY_RETENTION_DAYS = 90;
 // Task23: 起動時復旧用。「現在実行中のジョブ」だけを保持する小さな状態ファイル
 // （job-history.jsonlとは別物。履歴を汚さず、かつjobオブジェクトの構造は変更しないための設計）。
-const RUNTIME_STATE_PATH = path.join(LOGS_DIR, "job-runtime-state.json");
+const RUNTIME_STATE_FILENAME = "job-runtime-state.json";
+
+/** @returns {string} */
+function historyPath() {
+  return path.join(logsDir, HISTORY_FILENAME);
+}
+
+/** @returns {string} */
+function runtimeStatePath() {
+  return path.join(logsDir, RUNTIME_STATE_FILENAME);
+}
+
+/**
+ * logs の置き場所を設定する。logsDir 省略時は既定（scripts/generator/logs/）に戻す。
+ * @param {{logsDir?:string}} [options]
+ */
+function configure(options = {}) {
+  logsDir = options.logsDir || DEFAULT_LOGS_DIR;
+}
+
+/** @returns {string} 現在の logs ディレクトリ */
+function getLogsDir() {
+  return logsDir;
+}
 
 // 指数バックオフ: 1秒→2秒→4秒（要件どおり）。既定の最大試行回数は初回+リトライ3回=4回。
 const RETRY_DELAYS_MS = [1000, 2000, 4000];
@@ -74,7 +101,7 @@ function notifyChange() {
 }
 
 /**
- * scripts/generator/logs/job-history.jsonl へ1件追記する。
+ * logsDir（既定: scripts/generator/logs/）の job-history.jsonl へ1件追記する。
  *
  * 【Task23】`error`はredactSecrets()を通してから書き込む。現状はmock providerのみの
  * 運用のため実際に秘密情報が混入した例はないが、将来実LLM/検索providerのエラー
@@ -98,8 +125,8 @@ function writeHistory(entry) {
     created_at: nowIso(),
   };
   try {
-    appendJsonLine(HISTORY_PATH, record);
-    pruneOlderThan(HISTORY_PATH, JOB_HISTORY_RETENTION_DAYS, "created_at"); // Task43
+    appendJsonLine(historyPath(), record);
+    pruneOlderThan(historyPath(), JOB_HISTORY_RETENTION_DAYS, "created_at"); // Task43
   } catch (e) {
     logger.error(`job-history.jsonlの書き込みに失敗しました: ${e.message}`);
   }
@@ -111,7 +138,7 @@ function writeHistory(entry) {
  * @returns {Object[]}
  */
 function readHistory(limit = 50) {
-  return readJsonLines(HISTORY_PATH).slice(-limit).reverse();
+  return readJsonLines(historyPath()).slice(-limit).reverse();
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +148,7 @@ function readHistory(limit = 50) {
 // ジョブキューはメモリのみで永続化しない設計（jobs/README.md「アーキテクチャ上の判断」参照）
 // のため、website/aor-admin/server.jsが再起動すると、実行中だったジョブの情報はプロセスの
 // メモリから跡形もなく失われる。job-store.jsのjob構造自体は変更せず、「今どのジョブが
-// 実行中か」だけを別の小さなJSONファイル（RUNTIME_STATE_PATH）に記録しておき、
+// 実行中か」だけを別の小さなJSONファイル（runtimeStatePath()）に記録しておき、
 // 次回起動時にそのファイルが残っていれば「前回は正常終了しなかった」と判断して、
 // job-history.jsonlへ`status: "interrupted"`の記録を残す。
 
@@ -129,13 +156,13 @@ function readHistory(limit = 50) {
  * @returns {Object<string,{type:string, params:Object, started_at:string}>}
  */
 function readRuntimeState() {
-  return readJsonSafe(RUNTIME_STATE_PATH) || {};
+  return readJsonSafe(runtimeStatePath()) || {};
 }
 
 /** @param {Object} state */
 function writeRuntimeState(state) {
   try {
-    writeJson(RUNTIME_STATE_PATH, state);
+    writeJson(runtimeStatePath(), state);
   } catch (e) {
     logger.error(`job-runtime-state.jsonの書き込みに失敗しました: ${e.message}`);
   }
@@ -453,8 +480,17 @@ module.exports = {
   isSchedulerRunning,
   getScheduledCompanyUrls,
   recoverInterruptedJobs, // Task23
-  HISTORY_PATH,
-  RUNTIME_STATE_PATH, // Task23
+  configure, // Phase87 STEP2
+  getLogsDir, // Phase87 STEP2
+  DEFAULT_LOGS_DIR, // Phase87 STEP2
+  // Phase87 STEP2: 現在の logsDir を反映する getter（未設定時は従来と同じ logs/ 配下のパス）
+  get HISTORY_PATH() {
+    return historyPath();
+  },
+  get RUNTIME_STATE_PATH() {
+    // Task23
+    return runtimeStatePath();
+  },
   DEFAULT_MAX_ATTEMPTS,
   RETRY_DELAYS_MS,
 };

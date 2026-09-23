@@ -2,7 +2,7 @@
  * shared.test.js — Task18: scripts/generator/shared/配下の自動テスト。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const os = require("os");
@@ -15,8 +15,13 @@ const { createLogger, isDebugEnabled } = require("../shared/logger");
 const { archiveIfOversize, pruneOlderThan } = require("../shared/log-rotation"); // Task43
 const paths = require("../shared/paths");
 
+// Phase87 STEP2（P4 E2）: 一時ファイルはこのテストファイル専用の mkdtemp ディレクトリに置き、
+// 終了時にディレクトリごと削除する（途中で失敗しても %TEMP% に残骸を残さない）。
+const TEST_TMP_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "aor-shared-test-"));
+after(() => fs.rmSync(TEST_TMP_DIR, { recursive: true, force: true }));
+
 function tmpFile(name) {
-  return path.join(os.tmpdir(), `aor-shared-test-${process.pid}-${name}`);
+  return path.join(TEST_TMP_DIR, name);
 }
 
 test("json-file: writeJson→readJsonの往復で内容が一致する", () => {
@@ -185,6 +190,16 @@ test("paths: OUTPUT_DIR/LOGS_DIR/PROMPTS_DIRがscripts/generator/配下を指す
 // 実際のscripts/generator/logs/配下のファイルには一切触れず、os.tmpdir()配下の
 // 一時ファイルのみを対象にする。
 // ---------------------------------------------------------------------------
+
+// Phase87 STEP2（P4 E2）: 一時ファイルは %TEMP% 直下ではなく、このテストプロセス専用の
+// mkdtemp ディレクトリに置く（rename が EPERM で落ちても残骸を %TEMP% に残さない）
+test("tmpFile: 一時ファイルは%TEMP%直下ではなく、このテストファイル専用のmkdtempディレクトリ配下に作られる", () => {
+  const dir = path.dirname(tmpFile("probe.jsonl"));
+  assert.notEqual(dir, os.tmpdir(), "%TEMP% 直下に置いてはならない");
+  assert.equal(path.dirname(dir), os.tmpdir());
+  assert.ok(path.basename(dir).startsWith("aor-shared-test-"), "mkdtemp の専用ディレクトリのはず");
+  assert.ok(fs.statSync(dir).isDirectory());
+});
 
 test("log-rotation: archiveIfOversizeはサイズが閾値未満なら何もしない", () => {
   const file = tmpFile("archive-under-threshold.jsonl");

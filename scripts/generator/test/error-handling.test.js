@@ -8,11 +8,19 @@
  * shared/cli-utils.jsのDEBUG時stack表示・job-runner.jsの起動時復旧）を対象にする。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
+
+// Phase87 STEP2（P4 J1）: job-runner の runtime-state / history はこのテストファイル専用の
+// 一時ディレクトリに書く（実 scripts/generator/logs/ を他のテストファイル・他プロセスと共有しない）。
+const TEST_LOGS_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "aor-error-handling-logs-"));
+require("../jobs/job-runner").configure({ logsDir: TEST_LOGS_DIR });
+const removeTestLogsDir = () => fs.rmSync(TEST_LOGS_DIR, { recursive: true, force: true });
+after(removeTestLogsDir);
+process.on("exit", removeTestLogsDir); // after() 後に遅れて書き込みがあっても残さない
 
 const { readJson } = require("../shared/json-file");
 const { redactSecrets } = require("../shared/redact");
@@ -221,6 +229,56 @@ test("job-runner: recoverInterruptedJobs()は実行中マークが残ってい�
 
   // 2回目は復旧対象なし
   assert.equal(runner.recoverInterruptedJobs(), 0);
+});
+
+// Phase87 STEP2（P4 J1）: configure({logsDir}) で runtime-state / history の置き場所を差し替えられる
+test("job-runner: configure({logsDir})指定時はruntime-state/historyを指定ディレクトリにだけ書き、実logs/には書かない", (t) => {
+  const runner = require("../jobs/job-runner");
+  const { readJsonLines } = require("../shared/json-file");
+  const { LOGS_DIR } = require("../shared/paths");
+
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "aor-job-runner-logs-"));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  const previousLogsDir = runner.getLogsDir();
+  runner.configure({ logsDir: dir });
+  t.after(() => runner.configure({ logsDir: previousLogsDir }));
+
+  const fakeId = `job-test-logsdir-${process.pid}-${Date.now()}`;
+  fs.mkdirSync(path.dirname(runner.RUNTIME_STATE_PATH), { recursive: true });
+  fs.writeFileSync(
+    runner.RUNTIME_STATE_PATH,
+    JSON.stringify({ [fakeId]: { type: "quality-check", params: {}, started_at: new Date().toISOString() } })
+  );
+  assert.equal(runner.recoverInterruptedJobs(), 1);
+
+  // 一時ディレクトリ側に runtime-state（復旧後は空）と history（interrupted 記録）が作られる
+  assert.equal(runner.RUNTIME_STATE_PATH, path.join(dir, "job-runtime-state.json"));
+  assert.equal(runner.HISTORY_PATH, path.join(dir, "job-history.jsonl"));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, "job-runtime-state.json"), "utf-8")), {});
+  const tmpHistory = readJsonLines(path.join(dir, "job-history.jsonl"));
+  assert.deepEqual(tmpHistory.map((e) => [e.job_id, e.status]), [[fakeId, "interrupted"]]);
+  assert.equal(runner.readHistory(5)[0].job_id, fakeId, "readHistory() も同じ logsDir を読む");
+
+  // 実 logs/ にはこのテストの記録が一切残らない（他プロセスの書き込みに左右されないよう fakeId で判定）
+  const realHistory = path.join(LOGS_DIR, "job-history.jsonl");
+  const realState = path.join(LOGS_DIR, "job-runtime-state.json");
+  [realHistory, realState].forEach((p) => {
+    if (fs.existsSync(p)) assert.ok(!fs.readFileSync(p, "utf-8").includes(fakeId), `${p} に書き込まれてはならない`);
+  });
+});
+
+test("job-runner: configure()をlogsDir無しで呼ぶと既定のlogs/に戻る（後方互換）", () => {
+  const runner = require("../jobs/job-runner");
+  const { LOGS_DIR } = require("../shared/paths");
+  const previousLogsDir = runner.getLogsDir();
+  try {
+    runner.configure();
+    assert.equal(runner.getLogsDir(), LOGS_DIR);
+    assert.equal(runner.HISTORY_PATH, path.join(LOGS_DIR, "job-history.jsonl"));
+    assert.equal(runner.RUNTIME_STATE_PATH, path.join(LOGS_DIR, "job-runtime-state.json"));
+  } finally {
+    runner.configure({ logsDir: previousLogsDir });
+  }
 });
 
 // ---------------------------------------------------------------------------
