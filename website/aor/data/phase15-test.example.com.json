@@ -1,0 +1,508 @@
+{
+  "id": "generated-phase15-test.example.com",
+  "meta": {
+    "schema_version": "2.4",
+    "generated_at": "2026-08-11T17:47:38.835Z",
+    "pipeline_version": "phase1-generator-v0.3-llm",
+    "industry_category": "中小企業",
+    "note": "scripts/generator/generate-company-report.js により自動生成。Task11でAI分析をllm-client.js経由の実LLM接続に対応（今回はLLM_PROVIDER=deepseekで生成）。fetch-government/fetch-industry/fetch-news/fetch-statisticsはTask12（Web検索連携）が未実装のため、引き続きシミュレーションデータ。情報収集はmerge/normalize/deduplicate/scoreを経てスコア上位20件に絞り込み済み。"
+  },
+  "company_profile": {
+    "name": "Example Domain",
+    "name_is_ai_estimated": true,
+    "domain": "example.com",
+    "industry_label": "中小企業",
+    "industry_is_ai_estimated": true,
+    "business_summary": "Example Domain Example Domain This domain is for use in documentation examples without needing permission. Avoid use in operations. Learn more",
+    "business_summary_is_ai_estimated": true,
+    "location": "不明（Task9時点では未取得）",
+    "founded_year": null,
+    "employee_range": "不明（Task9時点では未取得）",
+    "business_type": "不明",
+    "listed_status": "不明"
+  },
+  "source_pages": [
+    {
+      "id": "src-1",
+      "source_type": "company",
+      "source_role": "company_fact",
+      "evidence_strength": "primary",
+      "label": "Example Domain",
+      "url": "https://example.com",
+      "published_at": "2026-08-08T02:07:29.000Z",
+      "score": 100
+    },
+    {
+      "id": "src-2",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "対象外に注意！サーバー代やドメイン費用は補助金で落ちる？ - 長野・群馬ホームページ制作会社比較サイト",
+      "url": "https://naganogunmacreators.jp/guide/subsidy-non-eligible-expenses",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-3",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "人気の補助金 | 経済産業省 中小企業庁",
+      "url": "https://mirasapo-plus.go.jp/subsidy",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-4",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "範例︰在補助金上實行支出限制",
+      "url": "https://doc.workday.com/admin-guide/zh-tw/education-and-government/-/-4/example--implement-spend-restrictions-on-grants.html?toc=1.7.21",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-5",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "ホームページ制作に使える補助金・助成金一覧まとめ【2025年最新】｜バリューノート",
+      "url": "https://www.value-domain.com/media/subsidy-homepage",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-6",
+      "source_type": "government",
+      "source_role": "market_change",
+      "evidence_strength": "primary",
+      "label": "ホームページ制作で申請可能な補助金・助成金 | 制作時の注意点やおすすめツールも紹介｜BiND CAMP | ホームページ作成・Webデザインのノウハウブログ",
+      "url": "https://bindup.jp/camp/post/38446",
+      "published_at": null,
+      "score": 100
+    },
+    {
+      "id": "src-7",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "インターネット用語1分解説～ドメイン名マーケットプレイスとは～ - JPNIC",
+      "url": "https://www.nic.ad.jp/ja/basics/terms/DomainName-market-place.html",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-8",
+      "source_type": "statistics",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": ".marketドメイン｜ドメイン取るならお名前.com",
+      "url": "https://www.onamae.com/service/domain/market",
+      "published_at": null,
+      "score": 95
+    },
+    {
+      "id": "src-9",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "ドメイン名市場規模、シェア | 2035 年までの業界予測",
+      "url": "https://www.marketgrowthreports.com/jp/market-reports/domain-name-market-112894",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-10",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "ドメイン名登録市場規模, 成長とトレンド, 業界Outlookに 2031",
+      "url": "https://www.intellectualmarketinsights.com/jp/report/domain-name-register-market-size-and-share/imi-006483",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-11",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "ドメイン名登録事業者市場の規模、シェア、成長率、分析（2034年まで）",
+      "url": "https://straitsresearch.com/jp/report/domain-name-registrar-market",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-12",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "ドメイン名トレンド2026レポート | CSC",
+      "url": "https://www.cscdbs.com/jp/resources/domain-name-trends-2026",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-13",
+      "source_type": "industry_association",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "ドメイン名レジストラ市場インサイト、シェアおよび2035年予測",
+      "url": "https://www.businessresearchinsights.com/jp/market-reports/domain-name-registrar-market-120518",
+      "published_at": null,
+      "score": 90
+    },
+    {
+      "id": "src-14",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "What Is a Domain Type? (Definition, 5 Types and Examples)",
+      "url": "https://www.indeed.com/career-advice/career-development/domains-types",
+      "published_at": null,
+      "score": 87
+    },
+    {
+      "id": "src-15",
+      "source_type": "technology",
+      "source_role": "industry_trend",
+      "evidence_strength": "secondary",
+      "label": "Domain Name System - Wikipedia",
+      "url": "https://en.wikipedia.org/wiki/Domain_Name_System",
+      "published_at": null,
+      "score": 87
+    },
+    {
+      "id": "src-16",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "ドメイン名重要ニュース | ドメイン名関連情報 | JPRS",
+      "url": "https://jprs.jp/related-info/important/2025/251219.html",
+      "published_at": null,
+      "score": 80
+    },
+    {
+      "id": "src-17",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "ドメインニュース – あなたの知らないドメインの世界",
+      "url": "https://xn--l8je4fxbbxc7s3i7myivhl858f.xn--rhqv96g/category/news",
+      "published_at": null,
+      "score": 80
+    },
+    {
+      "id": "src-18",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "ドメイン名に関する最近のニュースと今からできる悪用への対策 | ユーザー投稿 | Web担当者Forum",
+      "url": "https://webtan.impress.co.jp/u/2021/07/23/41083",
+      "published_at": null,
+      "score": 80
+    },
+    {
+      "id": "src-19",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "Domain Name Wire | Domain Name News - Domain Name Industry News",
+      "url": "https://domainnamewire.com",
+      "published_at": null,
+      "score": 80
+    },
+    {
+      "id": "src-20",
+      "source_type": "news",
+      "source_role": "evidence",
+      "evidence_strength": "reference",
+      "label": "ドメイン業界ニュース＆最新情報 | NiceNIC Blog",
+      "url": "https://nicenic.com/ja/news/Category-Domain-Dispute",
+      "published_at": null,
+      "score": 45
+    }
+  ],
+  "ai_pipeline": {
+    "note": "Task11でAI分析（free_opportunity/locked_opportunities/paid_analysis）をllm-client.js経由に変更。company_profileの推定・fetch-government等はTask11の対象外で従来通り。",
+    "company_context_generated_at": "2026-08-11T17:47:38.835Z",
+    "pipeline_stats": {
+      "fetched_total": 26,
+      "normalized_total": 26,
+      "duplicates_removed": 6,
+      "after_dedupe": 20,
+      "selected_for_ai": 20,
+      "max_sources_for_ai": 20
+    },
+    "llm": {
+      "provider": "deepseek",
+      "display_name": "DeepSeek",
+      "model": "deepseek-chat",
+      "usage": {
+        "input_tokens": 33527,
+        "output_tokens": 2213,
+        "estimated_cost": 0.005313
+      }
+    }
+  },
+  "free_opportunity": {
+    "title": "補助金申請支援サービスを軸に、中小企業のホームページ制作・DX導入を促進する",
+    "why_now": "2026年現在、中小企業向けの補助金制度が多数存在し、ホームページ制作やITツール導入に活用できます。経済産業省中小企業庁のミラサポplusでは、ものづくり補助金、デジタル化・AI導入補助金（旧IT導入補助金）、小規模事業者持続化補助金などが紹介されています（src-3）。また、ホームページ制作に補助金を活用する企業が増えており、補助金は後払いであるため自己資金の初期投資が課題となっています（src-5）。",
+    "why_company": "対象企業は中小企業であり、補助金を活用したホームページ制作やIT導入のニーズが高いと考えられます。補助金の申請には事業計画書や成果物の提出が必要で、専門的な知識が求められます（src-5）。このような支援ニーズに応えることで、企業のデジタル化を促進できます。",
+    "market_change": "中小企業向けの補助金制度が拡充され、ホームページ制作やITツール導入に活用できるようになっています（src-3）。また、ノーコードツールやAIの進化により、ホームページ制作のハードルが下がり、予約・決済などのDX機能が求められるようになっています（src-6）。",
+    "evidence": [
+      {
+        "source_id": "src-3",
+        "quote": "ものづくり補助金、デジタル化・AI導入補助金（旧IT導入補助金）、小規模事業者持続化補助金などが紹介されています。"
+      },
+      {
+        "source_id": "src-5",
+        "quote": "補助金は後払いでも、コアサーバーなら初期投資を最小限に抑えてすぐに事業をスタートできます。"
+      },
+      {
+        "source_id": "src-6",
+        "quote": "ノーコードやAI活用で自社制作が容易に。予約・決済等のDX機能実装が鍵となる"
+      },
+      {
+        "source_id": "src-2",
+        "quote": "小規模事業者持続化補助金では、サーバー・ドメイン費用は「委託費」ではなく「広報費」等の区分で見ることがありますが、それでも補助対象期間内に発生する数ヶ月分に限られるなど、非常に限定的です。"
+      }
+    ],
+    "first_action": "補助金申請支援サービスを立ち上げ、まずは小規模事業者持続化補助金とデジタル化・AI導入補助金に焦点を当て、ホームページ制作とITツール導入の申請代行・コンサルティングを提供する。",
+    "extended_analysis": {
+      "market_size": "中小企業向け補助金市場は、ものづくり補助金、デジタル化・AI導入補助金、小規模事業者持続化補助金など複数の制度があり、対象企業は全国の中小企業です。市場規模は明確な数値はありませんが、補助金申請を希望する企業は多いと推測されます。",
+      "competition": "補助金申請支援サービスは多くの企業が提供しており、競争が激しい分野です。差別化には、ホームページ制作とIT導入に特化した専門性や、地域密着型のサポートが有効と考えられます。",
+      "risks": "補助金制度は毎年変わるため、最新情報の追従が必要です。また、申請が不採択となるリスクがあり、顧客満足度に影響する可能性があります。",
+      "priority": "補助金申請支援は、中小企業のデジタル化ニーズに直結し、政府の後押しもあるため、優先度が高いテーマです。",
+      "case_examples": "具体的な事例は情報源に含まれていませんが、補助金を活用したホームページ制作の事例は一般的に存在します。",
+      "confidence_note": "経済産業省中小企業庁の公式情報（src-3）と、ホームページ制作に関する専門メディア（src-5, src-6）を組み合わせて分析しました。補助金制度は毎年更新されるため、最新情報の確認が必要です。"
+    }
+  },
+  "locked_opportunities": [
+    {
+      "id": "locked-1",
+      "title": "ドメイン名管理・セキュリティサービス"
+    },
+    {
+      "id": "locked-2",
+      "title": "中小企業向けDXコンサルティング"
+    }
+  ],
+  "paid_analysis": {
+    "decision_summary": {
+      "recommendation": "補助金申請支援サービスを軸に、ホームページ制作とIT導入をワンストップで提供する。",
+      "recommended_timing": "2026年度の補助金申請スケジュールに合わせ、早急にサービスを開始する。",
+      "expected_impact": "中小企業のデジタル化を促進し、自社の売上拡大と顧客の事業成長に貢献できる。",
+      "investment_level": "中程度（人材、マーケティング、システム開発など）",
+      "reason": [
+        "政府が中小企業のデジタル化を後押ししており、補助金制度が充実している（src-3）。",
+        "ホームページ制作の需要は高く、補助金活用で初期費用を抑えられる（src-5）。",
+        "ノーコードやAIの進化により、制作のハードルが下がり、DX機能が求められている（src-6）。"
+      ]
+    },
+    "additional_opportunities": [
+      {
+        "id": "locked-1",
+        "title": "ドメイン名管理・セキュリティサービス",
+        "summary": "ドメイン名の登録・管理・セキュリティ対策を提供する。ドメイン名市場は成長しており、中小企業のオンラインプレゼンス強化に不可欠です。",
+        "expected_effect": "顧客のブランド保護とセキュリティ強化に貢献し、継続的な収益が見込める。",
+        "relevance": "中"
+      },
+      {
+        "id": "locked-2",
+        "title": "中小企業向けDXコンサルティング",
+        "summary": "中小企業の業務効率化やデジタル化を支援するコンサルティングサービス。補助金申請支援と組み合わせることで、包括的な支援が可能です。",
+        "expected_effect": "顧客の生産性向上に寄与し、長期的な関係構築につながる。",
+        "relevance": "中"
+      },
+      {
+        "id": "add-3",
+        "title": "ドメイン名投資・転売サービス",
+        "summary": "ドメイン名の投資・転売市場は成長しており、プレミアムドメインの売買で収益を得られる可能性があります。",
+        "expected_effect": "新たな収益源の開拓と、ドメイン名市場でのプレゼンス向上。",
+        "relevance": "低"
+      }
+    ],
+    "priority_matrix": {
+      "quadrants": {
+        "high_impact_low_effort": {
+          "label": "高効果・低工数（最優先）",
+          "opportunity_ids": [
+            "locked-1"
+          ]
+        },
+        "high_impact_high_effort": {
+          "label": "高効果・高工数（計画的に着手）",
+          "opportunity_ids": [
+            "locked-2"
+          ]
+        },
+        "low_impact_low_effort": {
+          "label": "低効果・低工数（余力があれば）",
+          "opportunity_ids": [
+            "add-3"
+          ]
+        },
+        "low_impact_high_effort": {
+          "label": "低効果・高工数（非推奨）",
+          "opportunity_ids": []
+        }
+      }
+    },
+    "roadmap": {
+      "day_30": {
+        "actions": [
+          "補助金申請支援サービスの企画・体制構築",
+          "ターゲット顧客の選定とマーケティング開始"
+        ],
+        "expected_outcome": "サービス開始の準備が整い、初回の問い合わせが発生する。"
+      },
+      "day_60": {
+        "actions": [
+          "補助金申請の代行・コンサルティングを開始",
+          "ホームページ制作・IT導入のパートナー企業と連携"
+        ],
+        "expected_outcome": "最初の顧客獲得と、補助金申請の実績を積む。"
+      },
+      "day_90": {
+        "actions": [
+          "サービスを本格展開し、ドメイン管理・DXコンサルティングも開始",
+          "顧客の成功事例を創出し、マーケティングに活用"
+        ],
+        "expected_outcome": "安定した受注と、リピート顧客の獲得。"
+      }
+    },
+    "execution_support": [
+      {
+        "label": "追加調査",
+        "description": "補助金制度の最新情報や申請手続きの詳細を調査し、サービス内容を具体化する。"
+      }
+    ],
+    "monitoring": [
+      {
+        "theme": "法改正",
+        "description": "補助金制度の変更や新設に注意し、サービス内容を適宜更新する。"
+      }
+    ]
+  },
+  "send_target": {
+    "email": "info@example.com",
+    "acquisition_route": "official_site_public_contact",
+    "acquisition_route_label": "企業公式サイトの公開連絡先（03_lead_generation.mdの適用除外に該当）",
+    "opt_in_recorded": false,
+    "opt_in_recorded_note": "送信前段階のため未記録。"
+  },
+  "human_review": {
+    "status": "pending_review",
+    "reviewer": null,
+    "reviewed_at": null,
+    "review_duration_minutes": null,
+    "checklist": {
+      "company_info_accurate": null,
+      "citations_current_and_accurate": null,
+      "no_logical_leap_in_opportunity": null,
+      "recipient_source_is_lawful": null,
+      "no_duplicate_send": null
+    },
+    "notes": "AI生成直後の状態。人間によるレビュー・承認が完了するまで配信不可。",
+    "review_history": [
+      {
+        "at": "2026-08-11T17:47:38.835Z",
+        "actor": "generate-company-report.js",
+        "action": "submitted_for_review"
+      }
+    ]
+  },
+  "evaluation": {
+    "score": 93,
+    "grade": "A",
+    "status": "PASS",
+    "reasons": [
+      "情報源数: 20件（8/8点）",
+      "情報源の種類数: 6種類（8/8点）",
+      "政府/統計情報: あり（6/6点）",
+      "企業情報: あり（6/6点）",
+      "業界情報: あり（6/6点）",
+      "ニュース比率: 25%（8/8点）",
+      "有効な引用文: 4件（8/8点）",
+      "source_type偏り: 最大偏り25%（8/8点）",
+      "source_role偏り: 最大偏り45%（8/8点）",
+      "evidence件数: 4件（8/8点）"
+    ],
+    "warnings": [],
+    "improvements": [
+      "human_reviewが未着手（pending_review）です。配信前に人間レビューを完了してください"
+    ],
+    "breakdown": {
+      "source_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源数: 20件"
+      },
+      "type_balance": {
+        "points": 8,
+        "max": 8,
+        "detail": "情報源の種類数: 6種類",
+        "distinctTypes": 6
+      },
+      "government_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "政府/統計情報: あり",
+        "present": true
+      },
+      "company_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "企業情報: あり",
+        "present": true
+      },
+      "industry_presence": {
+        "points": 6,
+        "max": 6,
+        "detail": "業界情報: あり",
+        "present": true
+      },
+      "news_overreliance": {
+        "points": 8,
+        "max": 8,
+        "detail": "ニュース比率: 25%",
+        "newsRatio": 0.25
+      },
+      "citation_quality": {
+        "points": 8,
+        "max": 8,
+        "detail": "有効な引用文: 4件",
+        "quotedCount": 4
+      },
+      "average_source_score": {
+        "points": 13,
+        "max": 15,
+        "detail": "情報源scoreの平均: 89.0点",
+        "average": 89
+      },
+      "type_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_type偏り: 最大偏り25%",
+        "maxShare": 0.25
+      },
+      "role_skew": {
+        "points": 8,
+        "max": 8,
+        "detail": "source_role偏り: 最大偏り45%",
+        "maxShare": 0.45
+      },
+      "evidence_count": {
+        "points": 8,
+        "max": 8,
+        "detail": "evidence件数: 4件"
+      },
+      "human_review_status": {
+        "points": 6,
+        "max": 11,
+        "detail": "human_review.status: pending_review"
+      }
+    }
+  }
+}
