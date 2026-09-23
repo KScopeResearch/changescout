@@ -54,10 +54,11 @@ function getBackend() {
  * 初期状態を返す（review-engine.jsのloadReview()と同じ既存契約を踏襲する）。
  * @param {string} slug
  * @param {string} [reportIdForNew] - review未存在時に使うreport_id
+ * @param {{client?:Object}} [options] - S3使用時、テスト用のモッククライアントを注入するためのフック（省略可。report-store.jsと同型）
  * @returns {Promise<Object>}
  */
-async function loadReview(slug, reportIdForNew) {
-  const review = await getBackend().readReview(slug);
+async function loadReview(slug, reportIdForNew, options = {}) {
+  const review = await getBackend().readReview(slug, options);
   return review || createEmptyReview(reportIdForNew);
 }
 
@@ -65,10 +66,11 @@ async function loadReview(slug, reportIdForNew) {
  * company_slugに対応するreviewを保存する（I/O）。
  * @param {string} slug
  * @param {Object} review
+ * @param {{client?:Object}} [options] - S3使用時、テスト用のモッククライアントを注入するためのフック（省略可）
  * @returns {Promise<void>}
  */
-async function saveReview(slug, review) {
-  await getBackend().writeReview(slug, review);
+async function saveReview(slug, review, options = {}) {
+  await getBackend().writeReview(slug, review, options);
 }
 
 module.exports = { loadReview, saveReview };

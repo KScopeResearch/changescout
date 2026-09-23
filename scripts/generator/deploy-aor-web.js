@@ -307,7 +307,7 @@ async function classifyPublishedArtifact(slug, storeOptions = {}) {
   // review-store は「未存在」でも createEmptyReview() を返す（既存契約）。
   // 未存在かどうかは createEmptyReview() と厳密一致するかで判定する（loadReview の実装契約そのもの）。
   const emptyReview = reviewEngine.createEmptyReview(report.id);
-  const review = await reviewStore.loadReview(slug, report.id);
+  const review = await reviewStore.loadReview(slug, report.id, storeOptions);
   const reviewAbsent = JSON.stringify(review) === JSON.stringify(emptyReview);
   if (reviewAbsent) {
     return {

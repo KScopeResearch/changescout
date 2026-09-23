@@ -301,3 +301,69 @@ test("s3-backend(review): read/write中にconsole.log/console.errorが一切呼�
 
   assert.equal(calls.length, 0);
 });
+
+// ---------------------------------------------------------------------------
+// Phase86 P3: review-store.js の options（{client}）DI が backend まで伝播すること
+// （report-store.js の loadReport(slug, options)/saveReport(slug, report, options) と同型）。
+// 伝播しない場合に defaultClient()（実AWS）へ落ちないよう、backend をガードで包む。
+// ---------------------------------------------------------------------------
+
+/**
+ * s3Backend の read/write を「options.client 未指定なら即 throw」するガードで包む
+ * （修正前コードで実 S3Client が生成・送信されることを防ぐ）。
+ * @param {import("node:test").TestContext} t
+ */
+function guardS3BackendRequiresClient(t) {
+  const origRead = s3Backend.readReview;
+  const origWrite = s3Backend.writeReview;
+  t.mock.method(s3Backend, "readReview", async (slug, options = {}) => {
+    if (!options.client) throw new Error("options.client が review backend へ伝播していません");
+    return origRead(slug, options);
+  });
+  t.mock.method(s3Backend, "writeReview", async (slug, review, options = {}) => {
+    if (!options.client) throw new Error("options.client が review backend へ伝播していません");
+    return origWrite(slug, review, options);
+  });
+}
+
+test("Phase86 P3: review-store.loadReview(slug, reportId, {client}) は client を S3 backend へ渡す", async (t) => {
+  withS3Config(t);
+  process.env.REVIEW_STORE_BACKEND = "s3";
+  t.after(() => delete process.env.REVIEW_STORE_BACKEND);
+  guardS3BackendRequiresClient(t);
+
+  const slug = "test-review-store-p3-load";
+  const stored = approve(createEmptyReview("report-p3"), { reviewer: "p3-tester", now: "2026-01-01T00:00:00Z" });
+  const client = createFakeS3Client({ objects: { [`reviews/${slug}.json`]: JSON.stringify(stored) } });
+
+  const review = await reviewStore.loadReview(slug, "report-p3", { client });
+  assert.deepEqual(review, stored);
+  assert.equal(client.calls.length, 1);
+});
+
+test("Phase86 P3: review-store.loadReview は client 経由で未存在の場合も createEmptyReview() を返す（既存契約維持）", async (t) => {
+  withS3Config(t);
+  process.env.REVIEW_STORE_BACKEND = "s3";
+  t.after(() => delete process.env.REVIEW_STORE_BACKEND);
+  guardS3BackendRequiresClient(t);
+
+  const client = createFakeS3Client();
+  const review = await reviewStore.loadReview("test-review-store-p3-missing", "report-p3-missing", { client });
+  assert.deepEqual(review, createEmptyReview("report-p3-missing"));
+  assert.equal(client.calls.length, 1);
+});
+
+test("Phase86 P3: review-store.saveReview(slug, review, {client}) は client を S3 backend へ渡す", async (t) => {
+  withS3Config(t);
+  process.env.REVIEW_STORE_BACKEND = "s3";
+  t.after(() => delete process.env.REVIEW_STORE_BACKEND);
+  guardS3BackendRequiresClient(t);
+
+  const slug = "test-review-store-p3-save";
+  const review = createEmptyReview("report-p3-save");
+  const client = createFakeS3Client();
+
+  await reviewStore.saveReview(slug, review, { client });
+  assert.deepEqual(Object.keys(client.objects), [`reviews/${slug}.json`]);
+  assert.deepEqual(JSON.parse(client.objects[`reviews/${slug}.json`]), review);
+});

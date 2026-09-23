@@ -936,3 +936,107 @@ test("Phase84 sourceDir-7: 存在しない sourceDir は throw する（fail-clo
   const missing = path.join(os.tmpdir(), `aor-site-missing-${process.pid}-${Date.now()}`);
   await assert.rejects(() => deployAorWeb({ bucket: "b", region: "r" }, { sourceDir: missing }), /ENOENT|存在しません/);
 });
+
+// ===========================================================================
+// Phase86 P3 — storeOptions DI が review-store まで伝播すること
+// ===========================================================================
+// reconcilePublishedReports({ storeOptions }) → classifyPublishedArtifact(slug, storeOptions) →
+// reportStore.loadReport(slug, storeOptions) / reviewStore.loadReview(slug, reportId, storeOptions)。
+// REPORT/REVIEW_STORE_BACKEND=s3 + 疑似S3クライアントで、current report/review の双方が
+// 同じ client から読まれることを確認する。review backend は「client 未指定なら throw」で包み、
+// 伝播漏れ時に実AWS（defaultClient）へ接続しないようにする。
+
+const reviewS3Backend = require("../review/backends/s3-backend");
+
+const P3_ENV_VARS = [
+  "REPORT_STORE_BACKEND",
+  "REVIEW_STORE_BACKEND",
+  "REPORT_STORE_S3_BUCKET",
+  "REPORT_STORE_S3_PREFIX",
+  "REVIEW_STORE_S3_BUCKET",
+  "REVIEW_STORE_S3_PREFIX",
+  "AWS_REGION",
+];
+
+/** @param {import("node:test").TestContext} t */
+function withS3StoreBackends(t) {
+  const snap = {};
+  P3_ENV_VARS.forEach((name) => (snap[name] = process.env[name]));
+  t.after(() => {
+    P3_ENV_VARS.forEach((name) => {
+      if (snap[name] === undefined) delete process.env[name];
+      else process.env[name] = snap[name];
+    });
+  });
+  process.env.REPORT_STORE_BACKEND = "s3";
+  process.env.REVIEW_STORE_BACKEND = "s3";
+  process.env.REPORT_STORE_S3_BUCKET = "test-report-bucket";
+  process.env.REVIEW_STORE_S3_BUCKET = "test-review-bucket";
+  process.env.AWS_REGION = "ap-northeast-1";
+  delete process.env.REPORT_STORE_S3_PREFIX;
+  delete process.env.REVIEW_STORE_S3_PREFIX;
+
+  const origRead = reviewS3Backend.readReview;
+  t.mock.method(reviewS3Backend, "readReview", async (slug, options = {}) => {
+    if (!options.client) throw new Error("storeOptions.client が review backend へ伝播していません");
+    return origRead(slug, options);
+  });
+}
+
+/** GetObject のみ対応するインメモリ疑似S3クライアント（report/review 共用。キーは prefix で分離）。 */
+function createFakeStoreS3Client(objects) {
+  const calls = [];
+  const send = async (command) => {
+    calls.push(command.input.Key);
+    if (command.constructor.name !== "GetObjectCommand") throw new Error(`未対応のコマンド: ${command.constructor.name}`);
+    if (!(command.input.Key in objects)) {
+      const err = new Error("The specified key does not exist.");
+      err.name = "NoSuchKey";
+      throw err;
+    }
+    return { Body: { transformToString: async () => objects[command.input.Key] } };
+  };
+  return { send, calls };
+}
+
+/** @param {string} slug */
+function p3StoreObjects(slug) {
+  const report = {
+    id: `generated-${slug}`,
+    meta: { schema_version: "2.4", generated_at: "2026-01-01T00:00:00.000Z" },
+    evaluation: { score: 85, grade: "B", status: "PASS", reasons: [], warnings: [], improvements: [] },
+  };
+  const review = engine.approve(engine.createEmptyReview(report.id), { reviewer: "tester" });
+  return {
+    [`reports/${slug}.json`]: JSON.stringify(report),
+    [`reviews/${slug}.json`]: JSON.stringify(review),
+  };
+}
+
+test("Phase86 P3: classifyPublishedArtifact(slug, {client}) は report/review の双方を同じ client から読む → DEPLOY_ELIGIBLE", async (t) => {
+  withS3StoreBackends(t);
+  const slug = "test-recon-p3-classify.corp";
+  const client = createFakeStoreS3Client(p3StoreObjects(slug));
+
+  const r = await classifyPublishedArtifact(slug, { client });
+  assert.equal(r.classification, RECONCILIATION_CLASS.DEPLOY_ELIGIBLE);
+  assert.deepEqual(client.calls, [`reports/${slug}.json`, `reviews/${slug}.json`]);
+});
+
+test("Phase86 P3: reconcilePublishedReports({storeOptions}) の client が review-store まで伝播する", async (t) => {
+  withS3StoreBackends(t);
+  const slug = "test-recon-p3-reconcile.corp";
+  const client = createFakeStoreS3Client(p3StoreObjects(slug));
+  const tmp = makeTmpSourceWithPublished(slug);
+  t.after(() => fs.rmSync(tmp, { recursive: true, force: true }));
+
+  const r = await reconcilePublishedReports({
+    relativeKeys: [`data/${slug}.json`],
+    sourceDir: tmp,
+    storeOptions: { client },
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.eligible.length, 1);
+  assert.equal(r.eligible[0].slug, slug);
+  assert.ok(client.calls.includes(`reviews/${slug}.json`), "review も storeOptions.client から読まれるはず");
+});
