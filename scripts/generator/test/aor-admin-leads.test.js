@@ -9,10 +9,11 @@
  * 実HTTPで疎通確認する）を踏襲する。実AWS（SES/S3）へは一切接続しない。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { spawn } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const http = require("http");
 
@@ -24,6 +25,15 @@ const SERVER_PATH = path.join(__dirname, "..", "..", "..", "website", "aor-admin
 const ADMIN_USER = "aor-admin-leads-test";
 const ADMIN_PASSWORD = "aor-admin-leads-test-password";
 const TEST_SLUG_PREFIX = "test-aor-admin-leads-";
+
+// Phase88 STEP4（P6b）: 子プロセスの server.js が admin-audit.jsonl / job-history.jsonl /
+// job-runtime-state.json を書く先をこのテストファイル専用の一時ディレクトリへ向ける
+// （security.test.js と同じ方式。実 scripts/generator/logs/ には書かせない）。
+const TEST_TMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "aor-admin-leads-test-"));
+const SERVER_LOGS_DIR = path.join(TEST_TMP_ROOT, "logs");
+const removeTestTmpRoot = () => fs.rmSync(TEST_TMP_ROOT, { recursive: true, force: true });
+after(removeTestTmpRoot);
+process.on("exit", removeTestTmpRoot); // after() 後に遅れて書き込みがあっても残さない
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -72,6 +82,7 @@ async function startServer(config) {
       ADMIN_USER,
       ADMIN_PASSWORD,
       ADMIN_PORT: String(config.port),
+      ADMIN_LOGS_DIR: SERVER_LOGS_DIR,
       JOB_SCHEDULER_ENABLED: "false",
       LLM_PROVIDER: "mock",
       SEARCH_PROVIDER: "mock",
