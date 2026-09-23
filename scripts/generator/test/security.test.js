@@ -13,12 +13,27 @@
  * CSRF拒否のテストはこれまでどこにも自動テストが無かった）。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { spawn } = require("child_process");
 const http = require("http");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+
+// Phase87 STEP4（P4 J1）: job-runner の runtime-state / history はこのテストファイル専用の
+// 一時ディレクトリに書く（実 scripts/generator/logs/ を他のテストファイル・他プロセスと共有しない）。
+// ※ 子プロセスとして起動する website/aor-admin/server.js には configure() が及ばない。
+const jobRunner = require("../jobs/job-runner");
+const TEST_TMP_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "aor-security-test-"));
+const previousJobRunnerLogsDir = jobRunner.getLogsDir();
+jobRunner.configure({ logsDir: path.join(TEST_TMP_ROOT, "logs") });
+const removeTestTmpRoot = () => fs.rmSync(TEST_TMP_ROOT, { recursive: true, force: true });
+after(() => {
+  jobRunner.configure({ logsDir: previousJobRunnerLogsDir });
+  removeTestTmpRoot();
+});
+process.on("exit", removeTestTmpRoot); // after() 後に遅れて書き込みがあっても残さない
 
 const { redactSecrets } = require("../shared/redact");
 const { GENERATOR_DIR, OUTPUT_DIR } = require("../shared/paths");
