@@ -70,7 +70,21 @@
  *   （status:"report_generated"の全Leadを対象に一括処理する）
  */
 
-const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked, isDeliveryApproved } = require("./lead-store");
+const fs = require("fs");
+const path = require("path");
+
+const {
+  readLead,
+  updateLead,
+  appendHistory,
+  listLeads,
+  applyPatch,
+  withHistoryEvent,
+  isDeliveryBlocked,
+  isDeliveryApproved,
+} = require("./lead-store");
+const { readJson, writeJson } = require("../shared/json-file");
+const { validateSlug, isWithinDir } = require("../shared/path-safety");
 // publishedStoreはモジュールオブジェクトごとrequireし、呼び出し時にプロパティ経由で参照する
 // （分割代入で関数を先に取り出すと、テストがpublishedStore.isPublished/loadPublishedを
 // 差し替えても反映されない。publish-report.jsのisPublished()と同じ呼び出しパターン）。
@@ -89,6 +103,56 @@ const mailClient = require("./blastengine-client");
 // common.js の LEAD_API_BASE_URL / OPERATOR_EMAIL と同じ「配置ごとに設定する」方針を踏襲する
 // （本番のAOR公開URLは本実装時点で未確定のため、決め打ちにしない）。
 const SITE_CONFIG_VARS = ["AOR_SITE_BASE_URL"];
+
+// options.leadsDir未指定時の既定ストア（従来どおりlead-store経由、LEAD_STORE_BACKENDに従う）。
+const DEFAULT_STORE = { readLead, updateLead, appendHistory, listLeads };
+
+/**
+ * options.leadsDirで指定した1ディレクトリだけを読み書きするLeadストアを返す
+ * （Phase92 P6e: テスト隔離用。process-validated.jsのdirStore()（Phase89 P6c）と同じ実装の
+ * 局所コピー。lead-store.jsのI/O関数は保存先がshared/paths.jsのLEADS_DIR固定のため、ここで
+ * 同じインタフェースを組み立てる。状態の組み立てはlead-store.jsのPure Function
+ * （applyPatch/withHistoryEvent）をそのまま使い、ファイル形式・パス検証は
+ * filesystem-backend.jsと同じjson-file/path-safetyに揃える）。
+ * @param {string} leadsDir
+ */
+function dirStore(leadsDir) {
+  const leadFilePath = (leadId) => {
+    const check = validateSlug(leadId);
+    if (!check.ok) throw new Error(`不正なlead_idです: ${check.error}`);
+    const filePath = path.join(leadsDir, `${leadId}.json`);
+    if (!isWithinDir(filePath, leadsDir)) throw new Error("不正なlead_idです（パス検証に失敗しました）");
+    return filePath;
+  };
+  const read = async (leadId) => {
+    const filePath = leadFilePath(leadId);
+    return fs.existsSync(filePath) ? readJson(filePath) : null;
+  };
+  const modify = async (leadId, fn) => {
+    const lead = await read(leadId);
+    if (!lead) throw new Error(`存在しないlead_idです: ${leadId}`);
+    const updated = fn(lead);
+    writeJson(leadFilePath(leadId), updated);
+    return updated;
+  };
+  return {
+    readLead: read,
+    updateLead: (leadId, patch) => modify(leadId, (lead) => applyPatch(lead, patch)),
+    appendHistory: (leadId, event, metadata) => modify(leadId, (lead) => withHistoryEvent(lead, event, metadata)),
+    listLeads: async () => {
+      if (!fs.existsSync(leadsDir)) return [];
+      return fs
+        .readdirSync(leadsDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map((entry) => readJson(path.join(leadsDir, entry.name)));
+    },
+  };
+}
+
+/** @param {{leadsDir?: string}} options */
+function resolveStore(options) {
+  return options.leadsDir ? dirStore(options.leadsDir) : DEFAULT_STORE;
+}
 
 /** @returns {string[]} */
 function missingSiteConfig() {
@@ -129,7 +193,7 @@ function buildEmailContent({ report, reportUrl, unsubscribeUrl }) {
 /**
  * 1件のLeadへ初期レポートメールを送信する。
  * @param {string} leadId
- * @param {{sendEmail?: (params:Object) => Promise<{messageId:string}>}} [options] -
+ * @param {{sendEmail?: (params:Object) => Promise<{messageId:string}>, leadsDir?: string}} [options] -
  *   sendEmailはテスト時にblastengine-client.jsを差し替えるためのフック（省略時は実際の
  *   mailClient.sendEmail()を使う。実HTTP通信・実API認証を伴うため、テストでは
  *   ネットワーク非依存のダミー関数に差し替える。process-validated.jsの
@@ -138,8 +202,11 @@ function buildEmailContent({ report, reportUrl, unsubscribeUrl }) {
  */
 async function sendInitialReportForLead(leadId, options = {}) {
   const sendEmailFn = options.sendEmail || mailClient.sendEmail;
+  // Phase92 P6e: leadsDir指定時はそのディレクトリだけを読み書きする（テスト隔離用）。
+  // 未指定時は従来どおりlead-store経由。
+  const store = resolveStore(options);
 
-  const lead = await readLead(leadId);
+  const lead = await store.readLead(leadId);
   if (!lead) {
     return { ok: false, leadId, error: `存在しないlead_idです: ${leadId}` };
   }
@@ -237,8 +304,8 @@ async function sendInitialReportForLead(leadId, options = {}) {
   }
 
   // ここからキュー投入。以降の失敗はinitial_report_failedとして必ずhistoryに残す。
-  await updateLead(leadId, { status: "initial_report_queued" });
-  await appendHistory(leadId, "initial_report_queued");
+  await store.updateLead(leadId, { status: "initial_report_queued" });
+  await store.appendHistory(leadId, "initial_report_queued");
 
   try {
     // message tag（lead_idのみ）を付与する。emailやreport_tokenはtagに含めない。
@@ -251,14 +318,14 @@ async function sendInitialReportForLead(leadId, options = {}) {
       unsubscribe,
     });
 
-    await updateLead(leadId, { status: "initial_report_sent" });
-    await appendHistory(leadId, "initial_report_sent", { message_id: result.messageId });
+    await store.updateLead(leadId, { status: "initial_report_sent" });
+    await store.appendHistory(leadId, "initial_report_sent", { message_id: result.messageId });
     return { ok: true, leadId, messageId: result.messageId };
   } catch (err) {
-    await updateLead(leadId, { status: "initial_report_failed" });
+    await store.updateLead(leadId, { status: "initial_report_failed" });
     // API認証情報・report_token・emailはerrに含まれない構造（blastengine-client.jsのコメント参照）。
     // 念のためjob-runner.js（Task23）と同じくredactSecrets()を通してからhistoryへ保存する。
-    await appendHistory(leadId, "initial_report_failed", {
+    await store.appendHistory(leadId, "initial_report_failed", {
       error: redactSecrets(err.message),
       code: err.code || null,
       retryable: !!err.retryable,
@@ -269,11 +336,14 @@ async function sendInitialReportForLead(leadId, options = {}) {
 
 /**
  * status:"report_generated"の全Leadへ、1件ずつ初期レポートメールを送信する。
- * @param {Object} [options] - sendInitialReportForLead()と同じ
+ * @param {Object} [options] - sendInitialReportForLead()と同じ。options.leadsDirを指定すると
+ *   そのディレクトリだけを走査・更新する（テスト隔離用、Phase92 P6e: 共有のlogs/leads/を
+ *   全件走査すると並行実行中の他テストのLeadへ書き込んでしまうため）。省略時は従来どおり
+ *   lead-storeのlistLeads()で全件を走査する。
  * @returns {Promise<{summary:{total:number, sent:number, skipped:number, failed:number}, results:Array<Object>}>}
  */
 async function sendInitialReportsForAllReportGenerated(options = {}) {
-  const candidates = (await listLeads()).filter((lead) => lead.status === "report_generated");
+  const candidates = (await resolveStore(options).listLeads()).filter((lead) => lead.status === "report_generated");
   const results = [];
 
   for (const lead of candidates) {

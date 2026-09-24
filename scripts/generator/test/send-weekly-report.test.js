@@ -7,9 +7,10 @@
  * が別途カバーする。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const {
@@ -17,7 +18,8 @@ const {
   sendWeeklyReportsForAllEligibleLeads,
   buildWeeklyEmailContent,
 } = require("../leads/send-weekly-report");
-const { createLead, readLead, updateLead, appendHistory, LEADS_DIR } = require("../leads/lead-store");
+const { createLead, readLead, updateLead, appendHistory, buildNewLead, applyPatch, LEADS_DIR } = require("../leads/lead-store");
+const { readJson, writeJson } = require("../shared/json-file");
 const publishedStore = require("../published-store");
 const { AOR_DATA_DIR } = require("../publish-report");
 
@@ -98,6 +100,101 @@ function withSiteConfig(t) {
     if (original === undefined) delete process.env.AOR_SITE_BASE_URL;
     else process.env.AOR_SITE_BASE_URL = original;
   });
+}
+
+// 【Phase92 P6e】一括処理（sendWeeklyReportsForAllEligibleLeads）のテストは、共有の
+// scripts/generator/logs/leads/を全件走査すると並行実行中の他テストファイルのLead
+// （blastengine-webhook-suppression-integration.test.jsのconsent済みLead等）へ書き込みうる
+// （send-initial-report.test.jsと同じ2 writer問題）。一括処理のテストは専用の
+// <tmp>/logs/leads/へfixtureを置き、options.leadsDirで渡す。tmpはt.after()と、
+// 異常終了時の保険のprocess.on("exit")で削除する。
+const tmpRoots = new Set();
+function removeTmpRoots() {
+  for (const root of tmpRoots) fs.rmSync(root, { recursive: true, force: true });
+  tmpRoots.clear();
+}
+after(removeTmpRoots);
+process.on("exit", removeTmpRoots);
+
+/**
+ * テスト専用の<tmp>/logs/leads/を作り、テスト終了時に削除する。
+ * @param {import("node:test").TestContext} t
+ * @returns {string} leadsDir
+ */
+function makeLeadsDir(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "p92-p6e-send-weekly-"));
+  tmpRoots.add(root);
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    tmpRoots.delete(root);
+  });
+  const leadsDir = path.join(root, "logs", "leads");
+  fs.mkdirSync(leadsDir, { recursive: true });
+  return leadsDir;
+}
+
+/**
+ * tmpのleadsDirへ、createEligibleLead()と同じ状態（consent済み・initial_report_sent・
+ * company_slug確定）のLeadを直接置く（共有LEADS_DIRを使うcreateLead()は使わない）。
+ * @param {string} leadsDir
+ * @param {{overrides?:Object, patch?:Object}} [opts]
+ * @returns {Object} lead
+ */
+function createTmpEligibleLead(leadsDir, opts = {}) {
+  let lead = buildNewLead(sampleParams(opts.overrides));
+  const slug = `${TEST_SLUG_PREFIX}${lead.lead_id.slice(0, 12)}`;
+  lead = applyPatch(lead, {
+    company_slug: slug,
+    status: "initial_report_sent",
+    weekly_report_consent: true,
+    ...opts.patch,
+  });
+  writeJson(path.join(leadsDir, `${lead.lead_id}.json`), lead);
+  return lead;
+}
+
+/** @returns {Object|null} */
+function readTmpLead(leadsDir, leadId) {
+  const filePath = path.join(leadsDir, `${leadId}.json`);
+  return fs.existsSync(filePath) ? readJson(filePath) : null;
+}
+
+/**
+ * fnの実行中に、このプロセスが共有LEADS_DIR配下へ行ったfsアクセスを記録する
+ * （send-initial-report.test.jsと同じ。書き込み系は実行せず記録だけ行う）。
+ * @param {Function} fn
+ * @returns {Promise<{result:*, reads:string[], writes:string[]}>}
+ */
+async function traceSharedLeadsAccess(fn) {
+  const sharedDir = path.resolve(LEADS_DIR);
+  const underShared = (p) => typeof p === "string" && path.resolve(p).startsWith(sharedDir);
+  const reads = [];
+  const writes = [];
+  const spied = { existsSync: reads, readdirSync: reads, readFileSync: reads, statSync: reads };
+  const blocked = ["writeFileSync", "renameSync", "rmSync", "unlinkSync", "mkdirSync", "appendFileSync"];
+  const originals = {};
+  for (const [name, log] of Object.entries(spied)) {
+    originals[name] = fs[name];
+    fs[name] = function spy(p, ...rest) {
+      if (underShared(p)) log.push(`${name}:${p}`);
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  for (const name of blocked) {
+    originals[name] = fs[name];
+    fs[name] = function intercepted(p, ...rest) {
+      if (underShared(p)) {
+        writes.push(`${name}:${p}`);
+        return undefined;
+      }
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  try {
+    return { result: await fn(), reads, writes };
+  } finally {
+    Object.assign(fs, originals);
+  }
 }
 
 const GENERATED_AT_1 = "2026-08-12T01:52:35.000Z";
@@ -565,39 +662,39 @@ test("Scenario D. SES失敗: last_weekly_sent_report_generated_atを更新せず
 
 // ---------------------------------------------------------------------------
 // sendWeeklyReportsForAllEligibleLeads: 全件処理
+// 【Phase92 P6e】tmpのleadsDirで隔離したため、以前は並行テスト間競合を避けるために
+// 緩めていたassert（total >= 2）を、厳密な一致へ戻した。
 // ---------------------------------------------------------------------------
 
 test("sendWeeklyReportsForAllEligibleLeads: 複数Lead・複数companyを独立して処理する（1件の失敗が他に波及しない）", async (t) => {
   withSiteConfig(t);
-  // sampleParams()はemail/company_urlを固定値で返すため、overridesを指定せずに
-  // createEligibleLead()を複数回呼ぶと、P0-1の email×company_url 同一性判定により
-  // 3件とも同一Leadに収束してしまう（send-initial-report.test.jsの既存の教訓と同じ）。
-  // 独立した3件として検証するため、それぞれ異なるemail・company_urlを明示的に渡す。
-  const eligible = await createEligibleLead({
+  const leadsDir = makeLeadsDir(t);
+  const eligible = createTmpEligibleLead(leadsDir, {
     overrides: { email: "send-weekly-report-eligible-test@example.invalid", company_url: "https://send-weekly-report-eligible-test.example" },
   });
-  const notConsented = await createEligibleLead({
+  const notConsented = createTmpEligibleLead(leadsDir, {
     overrides: { email: "send-weekly-report-not-consented-test@example.invalid", company_url: "https://send-weekly-report-not-consented-test.example" },
     patch: { weekly_report_consent: false },
   });
-  const noPublished = await createEligibleLead({
+  const noPublished = createTmpEligibleLead(leadsDir, {
     overrides: { email: "send-weekly-report-no-published-test@example.invalid", company_url: "https://send-weekly-report-no-published-test.example" },
   });
 
   t.after(() => {
-    [eligible, notConsented, noPublished].forEach((l) => {
-      cleanupLead(l.lead_id);
-      cleanupPublished(l.company_slug);
-    });
+    [eligible, notConsented, noPublished].forEach((l) => cleanupPublished(l.company_slug));
   });
 
   await publishTestReport(eligible.company_slug, { generatedAt: GENERATED_AT_1 });
   // noPublishedはpublishedデータを作らない（Case5相当のskipを1件混ぜる）
 
   const { fn, calls } = fakeSendEmail({ messageId: "ses-msg-all" });
-  const result = await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn });
+  const result = await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn, leadsDir });
 
-  assert.ok(result.summary.total >= 2, "consent済みLead（eligible, noPublished）のみが候補に入るはず");
+  assert.equal(result.summary.total, 2, "consent済みLead（eligible, noPublished）のみが候補に入るはず");
+  assert.deepEqual(
+    result.results.map((r) => r.leadId).sort(),
+    [eligible.lead_id, noPublished.lead_id].sort()
+  );
   assert.equal(calls.length, 1, "publishedがあるeligibleのみSESへ到達するはず");
 
   const eligibleResult = result.results.find((r) => r.leadId === eligible.lead_id);
@@ -605,6 +702,7 @@ test("sendWeeklyReportsForAllEligibleLeads: 複数Lead・複数companyを独立�
   const noPublishedResult = result.results.find((r) => r.leadId === noPublished.lead_id);
   assert.equal(noPublishedResult.ok, false);
   assert.equal(noPublishedResult.skipped, true);
+  assert.equal(readTmpLead(leadsDir, eligible.lead_id).last_weekly_sent_report_generated_at, GENERATED_AT_1);
 
   // weekly_report_consent!==falseのLeadは候補にすら入らない
   assert.equal(
@@ -615,17 +713,88 @@ test("sendWeeklyReportsForAllEligibleLeads: 複数Lead・複数companyを独立�
 
 test("sendWeeklyReportsForAllEligibleLeads: 対象Leadなし → total=0", async (t) => {
   withSiteConfig(t);
-  const nonEligible = await createEligibleLead({ patch: { weekly_report_consent: false } });
-  t.after(() => cleanupLead(nonEligible.lead_id));
+  const leadsDir = makeLeadsDir(t);
+  createTmpEligibleLead(leadsDir, { patch: { weekly_report_consent: false } });
 
   const { fn, calls } = fakeSendEmail();
-  const result = await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn });
+  const result = await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn, leadsDir });
 
-  assert.equal(
-    result.results.some((r) => r.leadId === nonEligible.lead_id),
-    false
-  );
+  assert.deepEqual(result.results, [], "consentなしのLeadしか無いため候補は0件のはず");
+  assert.equal(result.summary.total, 0);
   assert.equal(calls.length, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Phase92 P6e: options.leadsDirによる一括処理の隔離
+// ---------------------------------------------------------------------------
+
+test("[P6e-T2] sendWeeklyReportsForAllEligibleLeads({leadsDir}): tmpのLeadだけを処理し、別ディレクトリのconsent済みLeadは1バイトも変わらない", async (t) => {
+  withSiteConfig(t);
+  const leadsDir = makeLeadsDir(t);
+  // 「並行実行中の他テストファイルが作ったconsent済み・initial_report_sentなLead」の代役
+  // （blastengine-webhook-suppression-integration.test.jsのLead相当。共有LEADS_DIRには書かない）
+  const otherDir = makeLeadsDir(t);
+
+  const target = createTmpEligibleLead(leadsDir, {
+    overrides: { email: "p6e-t2-target@example.invalid", company_url: "https://p6e-t2-target.example" },
+  });
+  const bystander = createTmpEligibleLead(otherDir, {
+    overrides: { email: "p6e-t2-bystander@example.invalid", company_url: "https://p6e-t2-bystander.example" },
+  });
+  t.after(() => {
+    cleanupPublished(target.company_slug);
+    cleanupPublished(bystander.company_slug);
+  });
+  await publishTestReport(target.company_slug, { generatedAt: GENERATED_AT_1 });
+  await publishTestReport(bystander.company_slug, { generatedAt: GENERATED_AT_1 });
+  const bystanderFile = path.join(otherDir, `${bystander.lead_id}.json`);
+  const bystanderBefore = fs.readFileSync(bystanderFile, "utf8");
+
+  const { fn, calls } = fakeSendEmail({ messageId: "p6e-t2-mid" });
+  const result = await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn, leadsDir });
+
+  assert.deepEqual(result.results.map((r) => r.leadId), [target.lead_id], "tmp leadsDirのLeadだけが処理対象のはず");
+  assert.equal(calls.length, 1);
+  const updated = readTmpLead(leadsDir, target.lead_id);
+  assert.equal(updated.last_weekly_sent_report_generated_at, GENERATED_AT_1, "更新はtmpのLeadへ書かれるはず");
+  assert.equal(updated.history[updated.history.length - 1].event, "weekly_report_sent");
+  assert.equal(fs.readFileSync(bystanderFile, "utf8"), bystanderBefore, "別ディレクトリのLeadは1バイトも変わらないはず");
+});
+
+test("[P6e-T5] leadsDir指定時は、一括処理（全件走査・各Leadのread/write）の共有LEADS_DIRへのfsアクセスが0件", async (t) => {
+  withSiteConfig(t);
+  const { sendInitialReportsForAllReportGenerated } = require("../leads/send-initial-report");
+  const leadsDir = makeLeadsDir(t);
+
+  const weeklyLead = createTmpEligibleLead(leadsDir, {
+    overrides: { email: "p6e-t5-weekly@example.invalid", company_url: "https://p6e-t5-weekly.example" },
+  });
+  // Initial一括の対象（report_generated・approved）も同じtmpへ置く
+  let initialLead = buildNewLead(sampleParams({ email: "p6e-t5-initial@example.invalid", company_url: "https://p6e-t5-initial.example" }));
+  initialLead = applyPatch(initialLead, {
+    company_slug: `${TEST_SLUG_PREFIX}${initialLead.lead_id.slice(0, 12)}`,
+    status: "report_generated",
+    delivery_approval_status: "approved",
+  });
+  writeJson(path.join(leadsDir, `${initialLead.lead_id}.json`), initialLead);
+  t.after(() => {
+    cleanupPublished(weeklyLead.company_slug);
+    cleanupPublished(initialLead.company_slug);
+  });
+  await publishTestReport(weeklyLead.company_slug, { generatedAt: GENERATED_AT_1 });
+  await publishTestReport(initialLead.company_slug, { generatedAt: GENERATED_AT_1 });
+
+  const { fn } = fakeSendEmail();
+  const { result, reads, writes } = await traceSharedLeadsAccess(async () => ({
+    weekly: await sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn, leadsDir }),
+    initial: await sendInitialReportsForAllReportGenerated({ sendEmail: fn, leadsDir }),
+  }));
+
+  assert.deepEqual(result.weekly.results.map((r) => [r.leadId, r.ok]), [[weeklyLead.lead_id, true]]);
+  assert.deepEqual(result.initial.results.map((r) => [r.leadId, r.ok]), [[initialLead.lead_id, true]]);
+  assert.deepEqual(reads, [], "共有LEADS_DIRを一切読まないはず");
+  assert.deepEqual(writes, [], "共有LEADS_DIRへ一切書かないはず");
+  assert.equal(readTmpLead(leadsDir, initialLead.lead_id).status, "initial_report_sent", "Lead JSONの更新はtmpにだけ残るはず");
 });
 
 // ---------------------------------------------------------------------------

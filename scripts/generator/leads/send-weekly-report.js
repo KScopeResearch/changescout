@@ -43,7 +43,20 @@
  *   （weekly_report_consent===true かつ status:"initial_report_sent" の全Leadを対象に処理する）
  */
 
-const { readLead, updateLead, appendHistory, listLeads, isDeliveryBlocked } = require("./lead-store");
+const fs = require("fs");
+const path = require("path");
+
+const {
+  readLead,
+  updateLead,
+  appendHistory,
+  listLeads,
+  applyPatch,
+  withHistoryEvent,
+  isDeliveryBlocked,
+} = require("./lead-store");
+const { readJson, writeJson } = require("../shared/json-file");
+const { validateSlug, isWithinDir } = require("../shared/path-safety");
 const publishedStore = require("../published-store");
 const { buildReportUrl, missingSiteConfig } = require("./send-initial-report"); // report URL生成・サイト設定チェックを再利用
 const { buildUnsubscribeUrl, buildListUnsubscribeHeaders } = require("./unsubscribe-url"); // Provider非依存の配信停止URL/ヘッダー生成
@@ -53,6 +66,53 @@ const { runCli } = require("../shared/cli-utils");
 const sesClient = require("./ses-client");
 const { buildTeaser } = require("../shared/report-teaser");
 const { renderWeeklyReportEmail } = require("./email-render");
+
+// options.leadsDir未指定時の既定ストア（従来どおりlead-store経由、LEAD_STORE_BACKENDに従う）。
+const DEFAULT_STORE = { readLead, updateLead, appendHistory, listLeads };
+
+/**
+ * options.leadsDirで指定した1ディレクトリだけを読み書きするLeadストアを返す
+ * （Phase92 P6e: テスト隔離用。process-validated.js（Phase89 P6c）・send-initial-report.jsの
+ * dirStore()と同じ実装の局所コピー。詳細はprocess-validated.jsのコメント参照）。
+ * @param {string} leadsDir
+ */
+function dirStore(leadsDir) {
+  const leadFilePath = (leadId) => {
+    const check = validateSlug(leadId);
+    if (!check.ok) throw new Error(`不正なlead_idです: ${check.error}`);
+    const filePath = path.join(leadsDir, `${leadId}.json`);
+    if (!isWithinDir(filePath, leadsDir)) throw new Error("不正なlead_idです（パス検証に失敗しました）");
+    return filePath;
+  };
+  const read = async (leadId) => {
+    const filePath = leadFilePath(leadId);
+    return fs.existsSync(filePath) ? readJson(filePath) : null;
+  };
+  const modify = async (leadId, fn) => {
+    const lead = await read(leadId);
+    if (!lead) throw new Error(`存在しないlead_idです: ${leadId}`);
+    const updated = fn(lead);
+    writeJson(leadFilePath(leadId), updated);
+    return updated;
+  };
+  return {
+    readLead: read,
+    updateLead: (leadId, patch) => modify(leadId, (lead) => applyPatch(lead, patch)),
+    appendHistory: (leadId, event, metadata) => modify(leadId, (lead) => withHistoryEvent(lead, event, metadata)),
+    listLeads: async () => {
+      if (!fs.existsSync(leadsDir)) return [];
+      return fs
+        .readdirSync(leadsDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map((entry) => readJson(path.join(leadsDir, entry.name)));
+    },
+  };
+}
+
+/** @param {{leadsDir?: string}} options */
+function resolveStore(options) {
+  return options.leadsDir ? dirStore(options.leadsDir) : DEFAULT_STORE;
+}
 
 /**
  * Weeklyメール本文（件名・text・html）を組み立てる（Pure Function・Phase55 STEP4）。
@@ -78,7 +138,7 @@ function buildWeeklyEmailContent({ report, companyName, reportUrl, unsubscribeUr
 /**
  * 1件のLeadへWeekly（最新レポート更新）メールを送信する。
  * @param {string} leadId
- * @param {{sendEmail?: (params:Object) => Promise<{messageId:string}>, client?:Object}} [options] -
+ * @param {{sendEmail?: (params:Object) => Promise<{messageId:string}>, client?:Object, leadsDir?:string}} [options] -
  *   sendEmailはテスト時にses-client.jsを差し替えるためのフック（send-initial-report.jsと同じ
  *   依存性注入パターン）。clientはpublishedStore.loadPublished()へ渡すテスト用S3クライアント
  *   （省略可、published-store.jsの既存DIパターンに合わせる）。
@@ -89,10 +149,13 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
   // 【Phase24】SES送信成功後の永続化失敗（updateLead/appendHistory）をテストで個別に
   // 再現できるよう、options経由の差し替えフックを追加した（既存のoptions.sendEmailと
   // 同じDIパターン。デフォルトは実際のlead-store.js関数のため、本番動作は変更なし）。
-  const updateLeadFn = options.updateLead || updateLead;
-  const appendHistoryFn = options.appendHistory || appendHistory;
+  // Phase92 P6e: leadsDir指定時はそのディレクトリだけを読み書きする（テスト隔離用）。
+  // 未指定時は従来どおりlead-store経由。既存のupdateLead/appendHistoryフックはストアより優先する。
+  const store = resolveStore(options);
+  const updateLeadFn = options.updateLead || store.updateLead;
+  const appendHistoryFn = options.appendHistory || store.appendHistory;
 
-  const lead = await readLead(leadId);
+  const lead = await store.readLead(leadId);
   if (!lead) {
     return { ok: false, leadId, error: `存在しないlead_idです: ${leadId}` };
   }
@@ -206,7 +269,7 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
     // SES送信成功後の後続処理（updateLead/appendHistory）はここでは扱わない
     // （Phase24: 「送信成功」と「送信後の永続化失敗」を同じ"送信失敗"として扱わないため、
     // 意図的に別のtry/catchへ分離した）。
-    await appendHistory(leadId, "weekly_report_failed", {
+    await store.appendHistory(leadId, "weekly_report_failed", {
       error: redactSecrets(err.message),
       code: err.code || null,
       retryable: !!err.retryable,
@@ -264,13 +327,15 @@ async function sendWeeklyReportForLead(leadId, options = {}) {
 /**
  * weekly_report_consent===true かつ status:"initial_report_sent" の全Leadへ、1件ずつ
  * Weeklyメールを送信する。
- * @param {Object} [options] - sendWeeklyReportForLead()と同じ
+ * @param {Object} [options] - sendWeeklyReportForLead()と同じ。options.leadsDirを指定すると
+ *   そのディレクトリだけを走査・更新する（テスト隔離用、Phase92 P6e）。省略時は従来どおり
+ *   lead-storeのlistLeads()で全件を走査する。
  * @returns {Promise<{summary:{total:number, sent:number, skipped:number, failed:number}, results:Array<Object>}>}
  */
 async function sendWeeklyReportsForAllEligibleLeads(options = {}) {
   // ここでの絞り込みは軽量なフィールド比較のみ（consent・status）。published/generated_atの
   // 比較を含む正式な判定はsendWeeklyReportForLead()内部で行う（判定ロジックの二重実装を避ける）。
-  const candidates = (await listLeads()).filter(
+  const candidates = (await resolveStore(options).listLeads()).filter(
     (lead) => lead.weekly_report_consent === true && lead.status === "initial_report_sent"
   );
   const results = [];

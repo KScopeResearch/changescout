@@ -14,9 +14,10 @@
  * 本ファイルの全テストをasync/awaitへ変更した（既定のfilesystemバックエンドのまま）。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const {
@@ -26,10 +27,112 @@ const {
   buildEmailContent,
   missingSiteConfig,
 } = require("../leads/send-initial-report");
-const { createLead, readLead, updateLead, appendHistory, LEADS_DIR } = require("../leads/lead-store");
+const {
+  createLead,
+  readLead,
+  updateLead,
+  appendHistory,
+  buildNewLead,
+  applyPatch,
+  withHistoryEvent,
+  LEADS_DIR,
+} = require("../leads/lead-store");
+const { readJson, writeJson } = require("../shared/json-file");
 const { AOR_DATA_DIR } = require("../publish-report");
 
 const TEST_SLUG_PREFIX = "test-send-initial-report-";
+
+// 【Phase92 P6e】一括処理（sendInitialReportsForAllReportGenerated）のテストは、共有の
+// scripts/generator/logs/leads/を全件走査すると並行実行中の他テストファイルのLead
+// （aor-admin-leads.test.jsのE2E等）へ書き込んでしまい、JSON破損レースの原因になっていた
+// （Phase91 STEP3で観測）。一括処理のテストは専用の<tmp>/logs/leads/へfixtureを置き、
+// options.leadsDirで渡す。tmpはt.after()と、異常終了時の保険のprocess.on("exit")で削除する。
+const tmpRoots = new Set();
+function removeTmpRoots() {
+  for (const root of tmpRoots) fs.rmSync(root, { recursive: true, force: true });
+  tmpRoots.clear();
+}
+after(removeTmpRoots);
+process.on("exit", removeTmpRoots);
+
+/**
+ * テスト専用の<tmp>/logs/leads/を作り、テスト終了時に削除する。
+ * @param {import("node:test").TestContext} t
+ * @returns {string} leadsDir
+ */
+function makeLeadsDir(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "p92-p6e-send-initial-"));
+  tmpRoots.add(root);
+  t.after(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+    tmpRoots.delete(root);
+  });
+  const leadsDir = path.join(root, "logs", "leads");
+  fs.mkdirSync(leadsDir, { recursive: true });
+  return leadsDir;
+}
+
+/**
+ * tmpのleadsDirへ、createReportGeneratedLead()と同じ状態（report_generated・company_slug確定・
+ * approved）のLeadを直接置く（共有LEADS_DIRを使うcreateLead()は使わない）。
+ * @param {string} leadsDir
+ * @param {{overrides?:Object, patch?:Object}} [opts]
+ * @returns {Object} lead
+ */
+function createTmpReportGeneratedLead(leadsDir, opts = {}) {
+  let lead = buildNewLead(sampleParams(opts.overrides));
+  const slug = `${TEST_SLUG_PREFIX}${lead.lead_id.slice(0, 12)}`;
+  lead = applyPatch(lead, { company_slug: slug, status: "report_generated", delivery_approval_status: "approved" });
+  lead = withHistoryEvent(lead, "report_generated", { slug });
+  if (opts.patch) lead = applyPatch(lead, opts.patch);
+  writeJson(path.join(leadsDir, `${lead.lead_id}.json`), lead);
+  return lead;
+}
+
+/** @returns {Object|null} */
+function readTmpLead(leadsDir, leadId) {
+  const filePath = path.join(leadsDir, `${leadId}.json`);
+  return fs.existsSync(filePath) ? readJson(filePath) : null;
+}
+
+/**
+ * fnの実行中に、このプロセスが共有LEADS_DIR配下へ行ったfsアクセスを記録する（P6cの
+ * process-validated.test.jsと同じ方式。他テストファイルは別プロセスなので、記録されるのは
+ * 本テスト自身のアクセスだけ）。書き込み系は実行せずに記録だけ行う（失敗時も共有側に触れない）。
+ * @param {Function} fn
+ * @returns {Promise<{result:*, reads:string[], writes:string[]}>}
+ */
+async function traceSharedLeadsAccess(fn) {
+  const sharedDir = path.resolve(LEADS_DIR);
+  const underShared = (p) => typeof p === "string" && path.resolve(p).startsWith(sharedDir);
+  const reads = [];
+  const writes = [];
+  const spied = { existsSync: reads, readdirSync: reads, readFileSync: reads, statSync: reads };
+  const blocked = ["writeFileSync", "renameSync", "rmSync", "unlinkSync", "mkdirSync", "appendFileSync"];
+  const originals = {};
+  for (const [name, log] of Object.entries(spied)) {
+    originals[name] = fs[name];
+    fs[name] = function spy(p, ...rest) {
+      if (underShared(p)) log.push(`${name}:${p}`);
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  for (const name of blocked) {
+    originals[name] = fs[name];
+    fs[name] = function intercepted(p, ...rest) {
+      if (underShared(p)) {
+        writes.push(`${name}:${p}`);
+        return undefined;
+      }
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  try {
+    return { result: await fn(), reads, writes };
+  } finally {
+    Object.assign(fs, originals);
+  }
+}
 
 /** @param {string} leadId */
 function cleanupLead(leadId) {
@@ -799,68 +902,52 @@ test("AOR_SITE_BASE_URL未設定時はエラーになり、statusを変更しな
 
 // ---------------------------------------------------------------------------
 // sendInitialReportsForAllReportGenerated(): 一括処理
+// 【Phase92 P6e】tmpのleadsDirで隔離したため、以前は並行テスト間競合を避けるために
+// 緩めていたassert（includes / >= 1）を、厳密な一致へ戻した。
 // ---------------------------------------------------------------------------
 
 test("sendInitialReportsForAllReportGenerated: report_generatedなLeadだけを対象にする", async (t) => {
   withSiteConfig(t);
+  const leadsDir = makeLeadsDir(t);
 
-  const targetLead = await createReportGeneratedLead();
-  t.after(() => {
-    cleanupLead(targetLead.lead_id);
-    cleanupPublished(targetLead.company_slug);
-  });
+  const targetLead = createTmpReportGeneratedLead(leadsDir);
+  t.after(() => cleanupPublished(targetLead.company_slug));
   publishTestCompanyData(targetLead.company_slug);
 
-  const collectedLead = await createLead(sampleParams({ email: "batch-collected@example.invalid" }));
-  t.after(() => cleanupLead(collectedLead.lead_id));
   // collectedLeadはstatus変更なし（"collected"のまま）
+  const collectedLead = buildNewLead(sampleParams({ email: "batch-collected@example.invalid" }));
+  writeJson(path.join(leadsDir, `${collectedLead.lead_id}.json`), collectedLead);
 
   const { fn, calls } = fakeSendEmail();
-  const result = await sendInitialReportsForAllReportGenerated({ sendEmail: fn });
+  const result = await sendInitialReportsForAllReportGenerated({ sendEmail: fn, leadsDir });
 
-  const processedIds = result.results.map((r) => r.leadId);
-  assert.ok(processedIds.includes(targetLead.lead_id));
-  assert.ok(!processedIds.includes(collectedLead.lead_id), "collectedのLeadは対象に含まれないはず");
-  // 既知の並行テスト間競合（scripts/generator/logs/leads/を複数テストファイルが並行して
-  // 読み書きする際、他ファイルが同時に作成したreport_generatedなLeadを一時的に拾って
-  // しまうことがある）を悪化させないよう、calls.length等の厳密な総数ではなく、
-  // 自分が作成したtargetLeadに対して実際にSESが呼ばれたかどうかだけを確認する。
-  const callsForTarget = calls.filter((c) => c.tags[0].Value === targetLead.lead_id);
-  assert.equal(callsForTarget.length, 1, "targetLeadに対して1回だけSESが呼ばれるはず");
-  assert.equal((await readLead(targetLead.lead_id)).status, "initial_report_sent");
-  assert.equal((await readLead(collectedLead.lead_id)).status, "collected", "触れられていないはず");
+  assert.deepEqual(result.results.map((r) => r.leadId), [targetLead.lead_id], "report_generatedの自テストLeadだけが対象のはず");
+  assert.deepEqual(result.summary, { total: 1, sent: 1, skipped: 0, failed: 0 });
+  assert.equal(calls.length, 1, "targetLeadに対して1回だけSESが呼ばれるはず");
+  assert.equal(calls[0].tags[0].Value, targetLead.lead_id);
+  assert.equal(readTmpLead(leadsDir, targetLead.lead_id).status, "initial_report_sent");
+  assert.equal(readTmpLead(leadsDir, collectedLead.lead_id).status, "collected", "触れられていないはず");
 });
 
 test("sendInitialReportsForAllReportGenerated: sent/skipped/failedがLeadごとに正しく判定される", async (t) => {
   withSiteConfig(t);
+  const leadsDir = makeLeadsDir(t);
 
-  // sampleParams()はemail/company_urlを固定値で返すため、overridesを指定せずに
-  // createReportGeneratedLead()を複数回呼ぶと、P0-1で確定したemail×company_url同一性判定
-  // により3件とも同一Leadに収束してしまう（resubmittedが記録されるだけで新規Leadにならない）。
-  // sent/skipped/failedを独立した3件のLeadとして検証するため、それぞれ異なる
-  // email・company_urlを明示的に渡す。
-  const sentLead = await createReportGeneratedLead({
+  const sentLead = createTmpReportGeneratedLead(leadsDir, {
     overrides: { email: "send-initial-report-sent-test@example.invalid", company_url: "https://send-initial-report-sent-test.example" },
   });
-  t.after(() => {
-    cleanupLead(sentLead.lead_id);
-    cleanupPublished(sentLead.company_slug);
-  });
+  t.after(() => cleanupPublished(sentLead.company_slug));
   publishTestCompanyData(sentLead.company_slug);
 
-  const skippedLead = await createReportGeneratedLead({
+  // skippedLeadは公開しない → skip対象
+  const skippedLead = createTmpReportGeneratedLead(leadsDir, {
     overrides: { email: "send-initial-report-skipped-test@example.invalid", company_url: "https://send-initial-report-skipped-test.example" },
   });
-  t.after(() => cleanupLead(skippedLead.lead_id));
-  // skippedLeadは公開しない → skip対象
 
-  const failedLead = await createReportGeneratedLead({
+  const failedLead = createTmpReportGeneratedLead(leadsDir, {
     overrides: { email: "send-initial-report-failed-test@example.invalid", company_url: "https://send-initial-report-failed-test.example" },
   });
-  t.after(() => {
-    cleanupLead(failedLead.lead_id);
-    cleanupPublished(failedLead.company_slug);
-  });
+  t.after(() => cleanupPublished(failedLead.company_slug));
   publishTestCompanyData(failedLead.company_slug);
 
   const sendEmail = async (params) => {
@@ -870,19 +957,102 @@ test("sendInitialReportsForAllReportGenerated: sent/skipped/failedがLeadごと�
     return { messageId: "mid" };
   };
 
-  const result = await sendInitialReportsForAllReportGenerated({ sendEmail });
+  const result = await sendInitialReportsForAllReportGenerated({ sendEmail, leadsDir });
 
-  // 既知の並行テスト間競合（他テストファイルが同時に作成したLeadを一時的に拾ってしまい
-  // うる）があるため、result.summaryの厳密な総数ではなく、自分が作成した3件それぞれの
-  // 個別の判定結果で検証する。summary集計自体（sent/skipped/failedへの振り分けロジック）は
-  // これで十分に検証できる。
   const byId = Object.fromEntries(result.results.map((r) => [r.leadId, r]));
+  assert.equal(result.results.length, 3, "自テストの3件だけが候補のはず");
   assert.equal(byId[sentLead.lead_id].ok, true);
   assert.equal(byId[skippedLead.lead_id].ok, false);
   assert.equal(byId[skippedLead.lead_id].skipped, true);
   assert.equal(byId[failedLead.lead_id].ok, false);
   assert.equal(byId[failedLead.lead_id].skipped, undefined);
-  assert.ok(result.summary.sent >= 1);
-  assert.ok(result.summary.skipped >= 1);
-  assert.ok(result.summary.failed >= 1);
+  assert.deepEqual(result.summary, { total: 3, sent: 1, skipped: 1, failed: 1 });
+  assert.equal(readTmpLead(leadsDir, sentLead.lead_id).status, "initial_report_sent");
+  assert.equal(readTmpLead(leadsDir, skippedLead.lead_id).status, "report_generated");
+  assert.equal(readTmpLead(leadsDir, failedLead.lead_id).status, "initial_report_failed");
+});
+
+// ---------------------------------------------------------------------------
+// Phase92 P6e: options.leadsDirによる一括処理の隔離
+// ---------------------------------------------------------------------------
+
+test("[P6e-T1] sendInitialReportsForAllReportGenerated({leadsDir}): tmpのLeadだけを読み、共有LEADS_DIRは読まない", async (t) => {
+  withSiteConfig(t);
+  const leadsDir = makeLeadsDir(t);
+  const lead = createTmpReportGeneratedLead(leadsDir, {
+    overrides: { email: "p6e-t1@example.invalid", company_url: "https://p6e-t1.example" },
+  });
+  t.after(() => cleanupPublished(lead.company_slug));
+  publishTestCompanyData(lead.company_slug);
+
+  const { fn } = fakeSendEmail();
+  const { result, reads, writes } = await traceSharedLeadsAccess(() =>
+    sendInitialReportsForAllReportGenerated({ sendEmail: fn, leadsDir })
+  );
+
+  assert.deepEqual(result.results.map((r) => r.leadId), [lead.lead_id], "tmp leadsDirのLeadが処理対象になるはず");
+  assert.deepEqual(reads, [], "共有LEADS_DIRを一切読まないはず");
+  assert.deepEqual(writes, [], "共有LEADS_DIRへ一切書かないはず");
+});
+
+test("[P6e-T3] 更新先の隔離: tmpのLeadだけがreport_generated→initial_report_sentになり、別ディレクトリのLeadは1バイトも変わらない", async (t) => {
+  withSiteConfig(t);
+  const leadsDir = makeLeadsDir(t);
+  // 「並行実行中の他テストファイルが作ったreport_generated（approved・published）なLead」の代役
+  // （aor-admin-leads.test.jsのE2E Lead相当。共有LEADS_DIRには書かない）
+  const otherDir = makeLeadsDir(t);
+
+  const target = createTmpReportGeneratedLead(leadsDir, {
+    overrides: { email: "p6e-t3-target@example.invalid", company_url: "https://p6e-t3-target.example" },
+  });
+  const bystander = createTmpReportGeneratedLead(otherDir, {
+    overrides: { email: "p6e-t3-bystander@example.invalid", company_url: "https://p6e-t3-bystander.example" },
+  });
+  t.after(() => {
+    cleanupPublished(target.company_slug);
+    cleanupPublished(bystander.company_slug);
+  });
+  publishTestCompanyData(target.company_slug);
+  publishTestCompanyData(bystander.company_slug);
+  const bystanderFile = path.join(otherDir, `${bystander.lead_id}.json`);
+  const bystanderBefore = fs.readFileSync(bystanderFile, "utf8");
+
+  const { fn, calls } = fakeSendEmail({ messageId: "p6e-t3-mid" });
+  const result = await sendInitialReportsForAllReportGenerated({ sendEmail: fn, leadsDir });
+
+  assert.deepEqual(result.results.map((r) => r.leadId), [target.lead_id]);
+  assert.deepEqual(calls.map((c) => c.tags[0].Value), [target.lead_id], "対象Leadだけが送信されるはず");
+  const updated = readTmpLead(leadsDir, target.lead_id);
+  assert.equal(updated.status, "initial_report_sent");
+  assert.deepEqual(
+    updated.history.map((h) => h.event),
+    ["collected", "report_generated", "initial_report_queued", "initial_report_sent"]
+  );
+  assert.equal(updated.history[3].metadata.message_id, "p6e-t3-mid");
+  assert.equal(fs.readFileSync(bystanderFile, "utf8"), bystanderBefore, "別ディレクトリのLeadは1バイトも変わらないはず");
+});
+
+test("[P6e-T4] 後方互換: leadsDir未指定の送信（一括・単体・Weekly一括・Weekly単体）は従来どおりlead-store（LEAD_STORE_BACKEND）経由になる", async (t) => {
+  // 既定経路を実際の共有LEADS_DIRで走らせると、それ自体がP6eの原因（他テストのLeadへの
+  // 書き込み）になる。LEAD_STORE_BACKENDに未知の値を入れ、lead-store.getBackend()の既存エラーが
+  // 返ること＝既定経路がlead-storeへ委譲されていることを、ディスクに触れずに確認する
+  // （process-validated.test.jsのP6c-T4と同じ方式。envは本テスト内だけで元に戻す）。
+  const { sendWeeklyReportsForAllEligibleLeads, sendWeeklyReportForLead } = require("../leads/send-weekly-report");
+  const saved = process.env.LEAD_STORE_BACKEND;
+  process.env.LEAD_STORE_BACKEND = "p6e-backward-compat-probe";
+  t.after(() => {
+    if (saved === undefined) delete process.env.LEAD_STORE_BACKEND;
+    else process.env.LEAD_STORE_BACKEND = saved;
+  });
+  const probe = /未知のLEAD_STORE_BACKENDです: "p6e-backward-compat-probe"/;
+  const { fn } = fakeSendEmail();
+
+  const { reads, writes } = await traceSharedLeadsAccess(async () => {
+    await assert.rejects(sendInitialReportsForAllReportGenerated({ sendEmail: fn }), probe);
+    await assert.rejects(sendInitialReportForLead("p6e-backward-compat-lead", { sendEmail: fn }), probe);
+    await assert.rejects(sendWeeklyReportsForAllEligibleLeads({ sendEmail: fn }), probe);
+    await assert.rejects(sendWeeklyReportForLead("p6e-backward-compat-lead", { sendEmail: fn }), probe);
+  });
+  assert.deepEqual(reads, []);
+  assert.deepEqual(writes, []);
 });
