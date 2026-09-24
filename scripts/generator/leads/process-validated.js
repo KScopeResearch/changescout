@@ -39,27 +39,84 @@
  *   （listLeads()による全件走査を行わず、readLead(leadId)で対象1件のみを取得する）。）
  */
 
+const fs = require("fs");
+const path = require("path");
+
 const { generateCompanyReport } = require("../generate-company-report");
 const { runCli } = require("../shared/cli-utils");
-const { readLead, updateLead, appendHistory, listLeads } = require("./lead-store");
+const { readJson, writeJson } = require("../shared/json-file");
+const { validateSlug, isWithinDir } = require("../shared/path-safety");
+const { readLead, updateLead, appendHistory, listLeads, applyPatch, withHistoryEvent } = require("./lead-store");
+
+// options.leadsDir未指定時の既定ストア（従来どおりlead-store経由、LEAD_STORE_BACKENDに従う）。
+const DEFAULT_STORE = { readLead, updateLead, appendHistory, listLeads };
+
+/**
+ * options.leadsDirで指定した1ディレクトリだけを読み書きするLeadストアを返す
+ * （Phase89 P6c: テスト隔離用。lead-store.jsのI/O関数は保存先がshared/paths.jsの
+ * LEADS_DIR固定のため、ここで同じインタフェースを組み立てる。状態の組み立ては
+ * lead-store.jsのPure Function（applyPatch/withHistoryEvent）をそのまま使い、
+ * ファイル形式・パス検証はfilesystem-backend.jsと同じjson-file/path-safetyに揃える）。
+ * @param {string} leadsDir
+ */
+function dirStore(leadsDir) {
+  const leadFilePath = (leadId) => {
+    const check = validateSlug(leadId);
+    if (!check.ok) throw new Error(`不正なlead_idです: ${check.error}`);
+    const filePath = path.join(leadsDir, `${leadId}.json`);
+    if (!isWithinDir(filePath, leadsDir)) throw new Error("不正なlead_idです（パス検証に失敗しました）");
+    return filePath;
+  };
+  const read = async (leadId) => {
+    const filePath = leadFilePath(leadId);
+    return fs.existsSync(filePath) ? readJson(filePath) : null;
+  };
+  const modify = async (leadId, fn) => {
+    const lead = await read(leadId);
+    if (!lead) throw new Error(`存在しないlead_idです: ${leadId}`);
+    const updated = fn(lead);
+    writeJson(leadFilePath(leadId), updated);
+    return updated;
+  };
+  return {
+    readLead: read,
+    updateLead: (leadId, patch) => modify(leadId, (lead) => applyPatch(lead, patch)),
+    appendHistory: (leadId, event, metadata) => modify(leadId, (lead) => withHistoryEvent(lead, event, metadata)),
+    listLeads: async () => {
+      if (!fs.existsSync(leadsDir)) return [];
+      return fs
+        .readdirSync(leadsDir, { withFileTypes: true })
+        .filter((entry) => entry.isFile() && entry.name.endsWith(".json"))
+        .map((entry) => readJson(path.join(leadsDir, entry.name)));
+    },
+  };
+}
+
+/** @param {{leadsDir?: string}} options */
+function resolveStore(options) {
+  return options.leadsDir ? dirStore(options.leadsDir) : DEFAULT_STORE;
+}
 
 /**
  * 1件のvalidated Leadを処理する。
  * @param {string} leadId
- * @param {{generateReport?: (companyUrl:string) => Promise<Object>}} [options] -
+ * @param {{generateReport?: (companyUrl:string) => Promise<Object>, leadsDir?: string}} [options] -
  *   generateReportはテスト時に差し替えるためのフック（省略時は実際の
  *   generateCompanyReport()を使う。実HTTP取得を伴うため、テストでは
  *   ネットワーク非依存のダミー関数に差し替える）。
+ *   leadsDirを指定するとそのディレクトリのLeadだけを読み書きする（テスト隔離用、
+ *   Phase89 P6c。省略時は従来どおりlead-store経由）。
  * @returns {Promise<{ok:boolean, leadId:string, slug?:string, error?:string}>}
  */
 async function processValidatedLead(leadId, options = {}) {
   const generateReport = options.generateReport || generateCompanyReport;
+  const store = resolveStore(options);
 
   if (typeof leadId !== "string" || !leadId) {
     return { ok: false, leadId, error: "leadId（文字列）が必須です" };
   }
 
-  const lead = await readLead(leadId);
+  const lead = await store.readLead(leadId);
   if (!lead) {
     return { ok: false, leadId, error: `存在しないlead_idです: ${leadId}` };
   }
@@ -90,19 +147,22 @@ async function processValidatedLead(leadId, options = {}) {
 
   // company_slugは既存パイプラインの正式なslug生成結果（generateCompanyReport()の
   // 戻り値のslug、内部ではslugFromUrl()由来）をそのまま使う。独自に推測・生成しない。
-  await updateLead(leadId, { company_slug: result.slug, status: "report_generated" });
-  await appendHistory(leadId, "report_generated", { slug: result.slug });
+  await store.updateLead(leadId, { company_slug: result.slug, status: "report_generated" });
+  await store.appendHistory(leadId, "report_generated", { slug: result.slug });
 
   return { ok: true, leadId, slug: result.slug };
 }
 
 /**
  * status:"validated"の全Leadを1件ずつ処理する。
- * @param {{generateReport?: Function}} [options]
+ * @param {{generateReport?: Function, leadsDir?: string}} [options] -
+ *   leadsDirを指定するとそのディレクトリだけを走査・更新する（テスト隔離用、Phase89 P6c:
+ *   共有のlogs/leads/を全件走査すると並行実行中の他テストのLeadへ書き込んでしまうため）。
+ *   省略時は従来どおりlead-storeのlistLeads()で全件を走査する。
  * @returns {Promise<{summary:{total:number, succeeded:number, failed:number}, results:Array<Object>}>}
  */
 async function processAllValidatedLeads(options = {}) {
-  const candidates = (await listLeads()).filter((lead) => lead.status === "validated");
+  const candidates = (await resolveStore(options).listLeads()).filter((lead) => lead.status === "validated");
   const results = [];
 
   // 直列実行にする（同時にJob Runnerや他のプロセスがLeadファイルを触ることを
