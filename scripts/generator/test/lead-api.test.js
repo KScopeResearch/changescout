@@ -26,14 +26,16 @@
  * 実データには一切触れない）。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const { spawn } = require("child_process");
 const http = require("http");
+const crypto = require("crypto");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
-const { GENERATOR_DIR, OUTPUT_DIR } = require("../shared/paths");
+const { GENERATOR_DIR, OUTPUT_DIR, LOGS_DIR } = require("../shared/paths");
 const { readJsonLines } = require("../shared/json-file");
 const { createLead, readLead, updateLead, findLeadByEmailAndCompanyUrl, LEADS_DIR } = require("../leads/lead-store");
 const { saveCompanyContext } = require("../company-context-store");
@@ -41,6 +43,46 @@ const { saveCompanyContext } = require("../company-context-store");
 const SERVER_PATH = path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server.js");
 const leadApi = require(path.join(GENERATOR_DIR, "..", "..", "website", "aor-lead-api", "server"));
 const { LEADS_PATH, LEADS_AUDIT_PATH, validateEmail, validateConsent, LEAD_SOURCE, LEAD_COLLECTION_METHOD } = leadApi;
+
+// 【Phase91 P6d-2】leads-audit.jsonl（実運用の監査ログ）を汚さないよう、本ファイルは専用の
+// <tmp>/logs/を使う。サーバーは子プロセスとして起動するため、configure()ではなく
+// LEAD_API_LOGS_DIR環境変数で渡す（serverEnv()参照。aor-adminのADMIN_LOGS_DIRと同じ方式）。
+// 同一プロセス内のleadApiもconfigure()でtmpへ向ける。
+// 後片付けはファイル終了時のafter()と、異常終了時の保険のprocess.on("exit")の両方で行う
+// （cleanupの登録はconfigure()より前に行う: configure()が例外を投げても片付けが残るように）。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p91-p6d2-lead-api-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+const TEST_LEADS_AUDIT_PATH = path.join(TEST_LOGS_DIR, "leads-audit.jsonl");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+function cleanupTestLogs() {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  leadApi.configure();
+}
+after(cleanupTestLogs);
+process.on("exit", cleanupTestLogs);
+leadApi.configure({ logsDir: TEST_LOGS_DIR });
+
+/**
+ * テスト用サーバー（子プロセス）の環境変数。全spawnでこれを使い、leads-audit.jsonlを
+ * tmpへ向ける。
+ * @param {Object} [extra]
+ */
+function serverEnv(extra = {}) {
+  return { ...process.env, LEAD_API_LOGS_DIR: TEST_LOGS_DIR, ...extra };
+}
+
+/**
+ * 実運用のleads-audit.jsonlのsize/mtime/sha256（存在しなければnull）。
+ * leads-audit.jsonlへ書くテストは本ファイルだけで、本ファイルの全spawnはtmpを使うため、
+ * 前後比較は並行実行の影響を受けない。
+ * @returns {?{size:number, mtimeMs:number, sha256:string}}
+ */
+function sharedAuditFingerprint() {
+  if (!fs.existsSync(LEADS_AUDIT_PATH)) return null;
+  const stat = fs.statSync(LEADS_AUDIT_PATH);
+  const sha256 = crypto.createHash("sha256").update(fs.readFileSync(LEADS_AUDIT_PATH)).digest("hex");
+  return { size: stat.size, mtimeMs: stat.mtimeMs, sha256 };
+}
 
 const TEST_SLUG_PREFIX = "test-lead-api-";
 
@@ -75,29 +117,24 @@ function cleanupLeadFile(leadId) {
 }
 
 /**
- * テスト実行前のleads.jsonl/leads-audit.jsonlの内容をスナップショットし、テスト後に
- * バイト単位で復元するためのヘルパー。company_slugでの内容フィルタ方式だと、不正slug・
- * レート制限ブロック時のようにcompany_slugがnullで記録される行（意図的な仕様）を
- * 取りこぼすため、スナップショット方式にしている（unpublish-report.test.jsのような
- * ディレクトリ単位のsetup/cleanupと同じ「テスト前後で実データに触れない」原則を、
- * 追記型JSON Linesファイルに合わせた形で適用したもの）。
- * @returns {{leadsExisted:boolean, leads:string, auditExisted:boolean, audit:string}}
+ * テスト実行前のleads.jsonlの内容をスナップショットし、テスト後にバイト単位で復元する
+ * ためのヘルパー（unpublish-report.test.jsのようなディレクトリ単位のsetup/cleanupと同じ
+ * 「テスト前後で実データに触れない」原則を、追記型JSON Linesファイルに合わせた形で適用したもの）。
+ * 【Phase91 P6d-2】leads-audit.jsonlは本ファイルではtmpへ書かれるため対象から外した
+ * （実運用ファイルを書き戻すとmtimeが変わってしまうため）。
+ * @returns {{leadsExisted:boolean, leads:string}}
  */
 function snapshotLeadFiles() {
   return {
     leadsExisted: fs.existsSync(LEADS_PATH),
     leads: fs.existsSync(LEADS_PATH) ? fs.readFileSync(LEADS_PATH, "utf-8") : "",
-    auditExisted: fs.existsSync(LEADS_AUDIT_PATH),
-    audit: fs.existsSync(LEADS_AUDIT_PATH) ? fs.readFileSync(LEADS_AUDIT_PATH, "utf-8") : "",
   };
 }
 
-/** @param {{leadsExisted:boolean, leads:string, auditExisted:boolean, audit:string}} snapshot */
+/** @param {{leadsExisted:boolean, leads:string}} snapshot */
 function restoreLeadFiles(snapshot) {
   if (snapshot.leadsExisted) fs.writeFileSync(LEADS_PATH, snapshot.leads, "utf-8");
   else fs.rmSync(LEADS_PATH, { force: true });
-  if (snapshot.auditExisted) fs.writeFileSync(LEADS_AUDIT_PATH, snapshot.audit, "utf-8");
-  else fs.rmSync(LEADS_AUDIT_PATH, { force: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +248,7 @@ function httpRequest(options) {
  */
 async function startTestServer(port, t) {
   const child = spawn(process.execPath, [SERVER_PATH], {
-    env: { ...process.env, LEAD_API_PORT: String(port) },
+    env: serverEnv({ LEAD_API_PORT: String(port) }),
     stdio: "pipe",
   });
   const output = { stdout: "", stderr: "" };
@@ -426,7 +463,7 @@ test("POST /api/leads: 保存失敗（lead-store.jsのcreateLead()が例外を�
   // getBackend().listLeads()/writeLead()がresolveConfig()で同期的に例外を投げる状態を作る
   // （実AWSへは一切接続しない。leads/backends/s3-backend.jsの既存のガード節を利用するだけ）。
   const child = spawn(process.execPath, [SERVER_PATH], {
-    env: { ...process.env, LEAD_API_PORT: String(port), LEAD_STORE_BACKEND: "s3" },
+    env: serverEnv({ LEAD_API_PORT: String(port), LEAD_STORE_BACKEND: "s3" }),
     stdio: "pipe",
   });
   const output = { stdout: "", stderr: "" };
@@ -508,7 +545,7 @@ test("CORS: 既定の許可リストに含まれるOriginにはAccess-Control-Al
 test("CORS: LEAD_API_ALLOWED_ORIGINS環境変数（カンマ区切り）で許可Originを追加できる", async (t) => {
   const port = 4709;
   const child = spawn(process.execPath, [SERVER_PATH], {
-    env: { ...process.env, LEAD_API_PORT: String(port), LEAD_API_ALLOWED_ORIGINS: "https://aor.example.jp, https://www.aor.example.jp" },
+    env: serverEnv({ LEAD_API_PORT: String(port), LEAD_API_ALLOWED_ORIGINS: "https://aor.example.jp, https://www.aor.example.jp" }),
     stdio: "pipe",
   });
   t.after(() => child.kill());
@@ -609,7 +646,7 @@ test("ハニーポット: hp_websiteに値が入っていると、保存され�
   const lead = await findLeadByEmailAndCompanyUrl(email, `https://${slug}`);
   assert.equal(lead, null, "ハニーポット検知時はLeadが作成されないはず");
 
-  const auditRecords = readJsonLines(LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered");
+  const auditRecords = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered");
   assert.ok(auditRecords.length >= 1, "leads-audit.jsonlにlead_honeypot_triggeredが記録されるはず");
 });
 
@@ -674,9 +711,9 @@ test("PII非漏洩確認: 登録したメールアドレスはLead本体（leads
   t.after(() => cleanupLeadFile(lead.lead_id));
 
   // leads-audit.jsonlには出現してはならない
-  const auditRaw = fs.existsSync(LEADS_AUDIT_PATH) ? fs.readFileSync(LEADS_AUDIT_PATH, "utf-8") : "";
+  const auditRaw = fs.existsSync(TEST_LEADS_AUDIT_PATH) ? fs.readFileSync(TEST_LEADS_AUDIT_PATH, "utf-8") : "";
   assert.ok(!auditRaw.includes(secretEmail), "leads-audit.jsonlにメールアドレスが漏洩している");
-  const auditRecords = readJsonLines(LEADS_AUDIT_PATH).filter((r) => r.company_slug === slug);
+  const auditRecords = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.company_slug === slug);
   assert.ok(auditRecords.some((r) => r.action === "lead_captured" && r.success === true));
   assert.ok(auditRecords.some((r) => r.action === "lead_rejected" && r.success === false));
 
@@ -1212,4 +1249,135 @@ test("PUT /api/leads/unsubscribe: 未対応メソッドは405になり、Allow�
   const res = await httpRequest({ path: "/api/leads/unsubscribe", method: "PUT", port, body: JSON.stringify({}) });
   assert.equal(res.status, 405);
   assert.equal(res.headers["allow"], "POST, OPTIONS");
+});
+
+// ---------------------------------------------------------------------------
+// Phase91 P6d-2: leads-audit.jsonlのlogsDir DI（子プロセスはLEAD_API_LOGS_DIR）
+// ---------------------------------------------------------------------------
+
+test("[P6d2-T1] lead作成: leads-audit.jsonlはtmpにだけ書かれ、実運用ログは変化しない", async (t) => {
+  const sharedBefore = sharedAuditFingerprint();
+  const port = 4760;
+  await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}p6d2-t1`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const email = "lead-api-test-p6d2-t1@example.invalid";
+  const res = await httpRequest({ path: "/api/leads", method: "POST", port, body: validBody({ email, company_slug: slug }) });
+  assert.equal(res.status, 201);
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead);
+  t.after(() => cleanupLeadFile(lead.lead_id));
+
+  const records = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.company_slug === slug);
+  assert.deepEqual(records.map((r) => [r.action, r.success]), [["lead_captured", true]], "tmpのleads-audit.jsonlに記録されるはず");
+  assert.deepEqual(sharedAuditFingerprint(), sharedBefore, "実運用のleads-audit.jsonlは変化しないはず");
+});
+
+test("[P6d2-T2] 重複lead（resubmitted）: 2回とも記録はtmpにだけ書かれ、実運用ログは変化しない", async (t) => {
+  const sharedBefore = sharedAuditFingerprint();
+  const port = 4761;
+  await startTestServer(port, t);
+
+  const slug = `${TEST_SLUG_PREFIX}p6d2-t2`;
+  const companyUrl = `https://${slug}`;
+  await setupCompanyContextFixture(slug, companyUrl);
+  t.after(() => cleanupCompanyContextFixture(slug));
+
+  const email = "lead-api-test-p6d2-t2@example.invalid";
+  const body = validBody({ email, company_slug: slug });
+  assert.equal((await httpRequest({ path: "/api/leads", method: "POST", port, body })).status, 201);
+  assert.equal((await httpRequest({ path: "/api/leads", method: "POST", port, body })).status, 201);
+  const lead = await findLeadByEmailAndCompanyUrl(email, companyUrl);
+  assert.ok(lead);
+  t.after(() => cleanupLeadFile(lead.lead_id));
+  assert.ok(lead.history.some((h) => h.event === "resubmitted"), "前提: 2回目は重複（resubmitted）として扱われる");
+
+  const records = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.company_slug === slug);
+  assert.equal(records.filter((r) => r.action === "lead_captured").length, 2, "2回ともtmpに記録されるはず");
+  assert.deepEqual(sharedAuditFingerprint(), sharedBefore, "実運用のleads-audit.jsonlは変化しないはず");
+});
+
+test("[P6d2-T3] unsubscribe: leads-audit.jsonlへは記録しない仕様のまま（tmp・実運用とも変化しない）", async (t) => {
+  const sharedBefore = sharedAuditFingerprint();
+  const port = 4762;
+  await startTestServer(port, t);
+  const lead = await createTestLead();
+  t.after(() => cleanupLead(lead.lead_id));
+  const tmpLinesBefore = readJsonLines(TEST_LEADS_AUDIT_PATH).length;
+
+  const res = await httpRequest({
+    path: "/api/leads/unsubscribe",
+    method: "POST",
+    port,
+    body: JSON.stringify({ lead_id: lead.lead_id, token: lead.report_token }),
+  });
+  assert.equal(res.status, 200);
+  assert.equal((await readLead(lead.lead_id)).delivery_status, "unsubscribed", "前提: unsubscribeが実際に処理されている");
+
+  assert.equal(readJsonLines(TEST_LEADS_AUDIT_PATH).length, tmpLinesBefore, "unsubscribeはleads-audit.jsonlへ記録しない（server.jsの既存仕様）");
+  assert.deepEqual(sharedAuditFingerprint(), sharedBefore, "実運用のleads-audit.jsonlは変化しないはず");
+});
+
+test("[P6d2-T4] configure(): logsDirとleads-audit.jsonlのパスを切り替え、configure()で既定へ戻る（LEADS_AUDIT_PATHのexportは既定パスのまま）", (t) => {
+  t.after(() => leadApi.configure({ logsDir: TEST_LOGS_DIR }));
+  const defaultAuditPath = path.join(LOGS_DIR, "leads-audit.jsonl");
+
+  assert.equal(leadApi.getLogsDir(), TEST_LOGS_DIR, "前提: 本ファイルはtmpへ向いている");
+  assert.equal(leadApi.getLeadsAuditPath(), TEST_LEADS_AUDIT_PATH);
+
+  leadApi.configure();
+  assert.equal(leadApi.getLogsDir(), LOGS_DIR);
+  assert.equal(leadApi.getLeadsAuditPath(), defaultAuditPath);
+
+  leadApi.configure({ logsDir: TEST_LOGS_DIR });
+  leadApi.configure({});
+  assert.equal(leadApi.getLogsDir(), LOGS_DIR, "logsDir省略でも既定へ戻るはず");
+
+  assert.equal(LEADS_AUDIT_PATH, defaultAuditPath, "後方互換: exportされた定数は従来どおり既定パス");
+});
+
+test("[P6d2-T5] 子プロセス: LEAD_API_LOGS_DIRを渡すとtmpのleads-audit.jsonlへ書き、渡さなければ既定パスを使う", async (t) => {
+  const sharedBefore = sharedAuditFingerprint();
+
+  // env あり: ハニーポット（company_context不要）でleads-audit.jsonlへ1行書かせる
+  const port = 4763;
+  const output = await startTestServer(port, t);
+  const tmpBefore = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered").length;
+  const res = await httpRequest({
+    path: "/api/leads",
+    method: "POST",
+    port,
+    body: JSON.stringify({
+      email: "lead-api-test-p6d2-t5@example.invalid",
+      company_slug: `${TEST_SLUG_PREFIX}p6d2-t5`,
+      consent: true,
+      hp_website: "http://bot.example",
+    }),
+  });
+  assert.equal(res.status, 201);
+  const tmpAfter = readJsonLines(TEST_LEADS_AUDIT_PATH).filter((r) => r.action === "lead_honeypot_triggered").length;
+  assert.equal(tmpAfter, tmpBefore + 1, "子プロセスはtmpのleads-audit.jsonlへ書くはず");
+  assert.ok(output.stdout.includes(TEST_LEADS_AUDIT_PATH), `起動ログのイベントログ出力先がtmpのはず: ${output.stdout}`);
+  assert.deepEqual(sharedAuditFingerprint(), sharedBefore, "実運用のleads-audit.jsonlは変化しないはず");
+
+  // env なし: 起動ログで既定パスを使うことだけを確認する（POSTはしない＝実運用ログへは書かない）
+  const defaultPort = 4764;
+  const env = { ...process.env, LEAD_API_PORT: String(defaultPort) };
+  delete env.LEAD_API_LOGS_DIR;
+  const child = spawn(process.execPath, [SERVER_PATH], { env, stdio: "pipe" });
+  let stdout = "";
+  child.stdout.on("data", (chunk) => (stdout += chunk.toString()));
+  t.after(() => child.kill());
+  for (let i = 0; i < 25 && !stdout.includes("イベントログ:"); i++) {
+    await sleep(200);
+  }
+  assert.ok(
+    stdout.includes(`イベントログ: ${path.join(LOGS_DIR, "leads-audit.jsonl")}`),
+    `LEAD_API_LOGS_DIR未指定なら既定パスのはず: ${stdout}`
+  );
+  assert.deepEqual(sharedAuditFingerprint(), sharedBefore, "env なしのサーバーも、リクエストしなければ実運用ログへ書かない");
 });

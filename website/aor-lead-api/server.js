@@ -112,7 +112,34 @@ const PORT = Number(process.env.LEAD_API_PORT) || 4700;
 // P0-2以降、新規Leadの保存先ではない（lead-store.jsのLEADS_DIRへ移行済み）。
 // 過去データの残置確認・回帰テスト（「新規追記されないこと」の検証）用に定数のみ残す。
 const LEADS_PATH = path.join(LOGS_DIR, "leads.jsonl");
-const LEADS_AUDIT_PATH = path.join(LOGS_DIR, "leads-audit.jsonl");
+// Phase91 P6d-2: logs の置き場所は configure({logsDir}) で差し替えられる（テストの隔離用。
+// llm-client.js / job-runner.js / aor-admin の auth.js と同じパターン）。未指定時は従来どおり
+// scripts/generator/logs/。子プロセスとして起動するテストは LEAD_API_LOGS_DIR 環境変数で渡す
+// （require.main ブロック参照。Lambda アダプターは requestListener だけを使うため影響しない）。
+const DEFAULT_LOGS_DIR = LOGS_DIR;
+let logsDir = DEFAULT_LOGS_DIR;
+const LEADS_AUDIT_FILENAME = "leads-audit.jsonl";
+// 既定の leads-audit.jsonl パス（後方互換のため export は従来どおりこの定数。実際の書き込み先は
+// getLeadsAuditPath() が現在の logsDir から決める）。
+const LEADS_AUDIT_PATH = path.join(DEFAULT_LOGS_DIR, LEADS_AUDIT_FILENAME);
+
+/**
+ * logs の置き場所を設定する。logsDir 省略時は既定（scripts/generator/logs/）に戻す。
+ * @param {{logsDir?:string}} [options]
+ */
+function configure(options = {}) {
+  logsDir = options.logsDir || DEFAULT_LOGS_DIR;
+}
+
+/** @returns {string} 現在の logs ディレクトリ */
+function getLogsDir() {
+  return logsDir;
+}
+
+/** @returns {string} leads-audit.jsonl のパス（現在の logsDir 基準） */
+function getLeadsAuditPath() {
+  return path.join(logsDir, LEADS_AUDIT_FILENAME);
+}
 
 // P0-2: 公開フォーム由来Leadのsource/collection_method固定値。collection_methodは
 // 既存の全Lead生成経路（import-leads.js等）が使っている"public_website"を再利用する
@@ -274,8 +301,9 @@ function logLeadEvent(entry) {
     success: !!entry.success,
   };
   try {
-    archiveIfOversize(LEADS_AUDIT_PATH, AUDIT_ARCHIVE_SIZE_BYTES); // Task43のパターンを踏襲
-    appendJsonLine(LEADS_AUDIT_PATH, record);
+    const auditPath = getLeadsAuditPath();
+    archiveIfOversize(auditPath, AUDIT_ARCHIVE_SIZE_BYTES); // Task43のパターンを踏襲
+    appendJsonLine(auditPath, record);
   } catch (e) {
     logger.error(`リードイベントログの書き込みに失敗しました: ${e.message}`); // emailを含まない固定文言
   }
@@ -654,13 +682,18 @@ function startServer() {
   server.listen(PORT, () => {
     console.log(`AOR Lead API: http://localhost:${PORT}`);
     console.log(`  保存先: ${LEADS_DIR}`);
-    console.log(`  イベントログ: ${LEADS_AUDIT_PATH}`);
+    console.log(`  イベントログ: ${getLeadsAuditPath()}`);
   });
 
   return server;
 }
 
 if (require.main === module) {
+  // Phase91 P6d-2: LEAD_API_LOGS_DIR が設定されていれば leads-audit.jsonl をそこへ向ける
+  // （子プロセスとして起動するテストの隔離用）。未設定時は従来どおり scripts/generator/logs/。
+  if (process.env.LEAD_API_LOGS_DIR) {
+    configure({ logsDir: process.env.LEAD_API_LOGS_DIR });
+  }
   startServer();
 }
 
@@ -672,6 +705,9 @@ module.exports = {
   PORT,
   LEADS_PATH,
   LEADS_AUDIT_PATH,
+  configure, // Phase91 P6d-2
+  getLogsDir, // Phase91 P6d-2
+  getLeadsAuditPath, // Phase91 P6d-2
   HONEYPOT_FIELD,
   ALLOWED_ORIGINS,
   LEAD_SOURCE,
