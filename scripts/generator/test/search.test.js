@@ -4,10 +4,65 @@
  * 誤った重複統合」バグの回帰テストを含む。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
-const { search, getProvider } = require("../search/search-client");
+const searchClient = require("../search/search-client");
+const llmClient = require("../llm/llm-client");
+const { search, getProvider } = searchClient;
+const { LOGS_DIR } = require("../shared/paths");
+
+// 【Phase90 P6d-1】本ファイルのテストがsearch-usage.jsonl（コスト分析用の実運用ログ）を
+// 汚さないよう、ファイル全体を専用の<tmp>/logs/へ向ける（llm.test.jsと同じ方式）。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p90-p6d1-search-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+function cleanupTestLogs() {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  searchClient.configure();
+  llmClient.configure();
+}
+after(cleanupTestLogs);
+process.on("exit", cleanupTestLogs);
+searchClient.configure({ logsDir: TEST_LOGS_DIR });
+llmClient.configure({ logsDir: TEST_LOGS_DIR });
+
+/**
+ * fnの実行中、共有LOGS_DIR配下への書き込み系fs呼び出しを記録し、実際には実行しない
+ * （llm.test.jsと同じ。テストが失敗しても実運用ログに触れないため）。
+ * @param {Function} fn
+ * @returns {Promise<{result:*, sharedWrites:string[]}>}
+ */
+async function interceptSharedLogWrites(fn) {
+  const sharedDir = path.resolve(LOGS_DIR) + path.sep;
+  const sharedWrites = [];
+  const names = ["appendFileSync", "writeFileSync", "renameSync", "mkdirSync", "copyFileSync"];
+  const originals = {};
+  for (const name of names) {
+    originals[name] = fs[name];
+    fs[name] = function intercepted(p, ...rest) {
+      if (typeof p === "string" && (path.resolve(p) + path.sep).startsWith(sharedDir)) {
+        sharedWrites.push(`${name}:${path.resolve(p)}`);
+        return undefined;
+      }
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  try {
+    return { result: await fn(), sharedWrites };
+  } finally {
+    Object.assign(fs, originals);
+  }
+}
+
+/** @returns {Object[]} */
+function readLogLines(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+  return fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
+}
 const { buildQueries, buildQueriesForCategory } = require("../search/query-builder");
 const { isDuplicate, dedupeSourcesByExactUrl, deduplicateSources } = require("../deduplicate-sources");
 
@@ -288,4 +343,56 @@ test("deduplicateSources: 重複がなければ company も generic も全件そ
   const { deduplicated, removedCount } = deduplicateSources([company, gov]);
   assert.equal(deduplicated.length, 2);
   assert.equal(removedCount, 0);
+});
+
+// ---------------------------------------------------------------------------
+// Phase90 P6d-1: search-usage.jsonlのlogsDir DI
+// ---------------------------------------------------------------------------
+
+test("[P6d-T2] configure({logsDir})後のsearchはtmpのsearch-usage.jsonlだけに書き、実運用ログには書かない", async () => {
+  const tmpLog = path.join(TEST_LOGS_DIR, "search-usage.jsonl");
+  const before = readLogLines(tmpLog).length;
+
+  const { result, sharedWrites } = await interceptSharedLogWrites(() =>
+    search("p6d-t2 query", { providerId: "mock", sourceType: "news", sourceRole: "market_signal" })
+  );
+
+  assert.equal(result.provider, "mock");
+  const lines = readLogLines(tmpLog);
+  assert.equal(lines.length, before + 1, "tmpのsearch-usage.jsonlに1行追記されるはず");
+  assert.equal(lines[lines.length - 1].query, "p6d-t2 query");
+  assert.deepEqual(sharedWrites, [], "実運用のscripts/generator/logs/へは書かないはず");
+});
+
+test("[P6d-T3] search-client: configure()でlogsDirが既定のLOGS_DIRへ戻る", (t) => {
+  t.after(() => searchClient.configure({ logsDir: TEST_LOGS_DIR }));
+  assert.equal(searchClient.getLogsDir(), TEST_LOGS_DIR, "前提: 本ファイルはtmpへ向いている");
+
+  searchClient.configure();
+  assert.equal(searchClient.getLogsDir(), LOGS_DIR);
+
+  searchClient.configure({ logsDir: TEST_LOGS_DIR });
+  searchClient.configure({});
+  assert.equal(searchClient.getLogsDir(), LOGS_DIR, "logsDir省略でも既定へ戻るはず");
+});
+
+test("[P6d-T4] search-client: tmpへ向けている間は実運用logs/配下へのfs書き込みが0件（ローテーション含む）", async () => {
+  const { sharedWrites } = await interceptSharedLogWrites(async () => {
+    await search("p6d-t4 query a", { providerId: "mock" });
+    await search("p6d-t4 query b", { providerId: "mock" });
+  });
+  assert.deepEqual(sharedWrites, []);
+});
+
+test("[P6d-T5] search-client後方互換: configureしない（既定）経路は従来どおりLOGS_DIR/search-usage.jsonlへ書こうとする", async (t) => {
+  t.after(() => searchClient.configure({ logsDir: TEST_LOGS_DIR }));
+  searchClient.configure();
+
+  // 実運用ログへは実際には書かず、書き込み先だけを確認する
+  const { sharedWrites } = await interceptSharedLogWrites(() => search("p6d-t5 query", { providerId: "mock" }));
+
+  assert.ok(
+    sharedWrites.includes(`appendFileSync:${path.join(LOGS_DIR, "search-usage.jsonl")}`),
+    `既定のLOGS_DIR/search-usage.jsonlへの追記のはず（実際: ${JSON.stringify(sharedWrites)}）`
+  );
 });

@@ -16,13 +16,32 @@
  * 再現する。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const { createLeadFromEmail } = require("../leads/create-lead-from-email");
 const { LEADS_DIR, readLead, createLead, updateLead } = require("../leads/lead-store");
+const llmClient = require("../llm/llm-client");
+const searchClient = require("../search/search-client");
+
+// 【Phase90 P6d-1】company-inference.js経由のsearch()がsearch-usage.jsonl（コスト分析用の
+// 実運用ログ）を汚さないよう、ファイル全体を専用の<tmp>/logs/へ向ける。
+// 後片付けはファイル終了時のafter()と、異常終了時の保険のprocess.on("exit")の両方で行う。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p90-p6d1-create-lead-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+function cleanupTestLogs() {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  llmClient.configure();
+  searchClient.configure();
+}
+after(cleanupTestLogs);
+process.on("exit", cleanupTestLogs);
+llmClient.configure({ logsDir: TEST_LOGS_DIR });
+searchClient.configure({ logsDir: TEST_LOGS_DIR });
 
 /** @param {string} leadId */
 function cleanupLead(leadId) {

@@ -15,7 +15,30 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
+
+const llmClient = require("../llm/llm-client");
+const searchClient = require("../search/search-client");
+
+// 【Phase90 P6d-1】本ファイルのテストがllm-usage.jsonl / search-usage.jsonl（コスト分析用の
+// 実運用ログ）を汚さないよう、ファイル全体を専用の<tmp>/logs/へ向ける。
+// 【after()で元に戻さない理由】下記NETWORK_TEST_NAMEのテストがtimeout(30000ms)に達すると、
+// node:testはafterフックを実行するが、generateCompanyReport()のPromiseチェインは止まらず
+// バックグラウンドで続き、その後にwriteLog()する（SEARCH_PROVIDERをt.after()で戻さない理由と
+// 同じ事象）。ここでconfigure()を既定へ戻す・tmpを消すと、その遅れた書き込みが実運用ログへ
+// 向かってしまう。そのため後片付けはプロセス終了時（process.on("exit")）だけで行う
+// （node --testはファイル単位で別プロセスのため、他ファイルへの影響はない）。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p90-p6d1-generator-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+process.on("exit", () => {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  llmClient.configure();
+  searchClient.configure();
+});
+llmClient.configure({ logsDir: TEST_LOGS_DIR });
+searchClient.configure({ logsDir: TEST_LOGS_DIR });
 
 const {
   generateCompanyReport,

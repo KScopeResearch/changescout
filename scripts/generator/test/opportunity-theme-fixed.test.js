@@ -11,17 +11,38 @@
  *   + parseArgs / buildUserPrompt / assertFixedThemeIntegrity / mock-provider / provenance
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
+const llmClient = require("../llm/llm-client");
+const searchClient = require("../search/search-client");
 const {
   buildUserPrompt,
   buildFixedThemeBlock,
   assertFixedThemeIntegrity,
   generateAnalysis,
   getProvider,
-} = require("../llm/llm-client");
+} = llmClient;
 const { buildReport, parseArgs } = require("../generate-company-report");
+
+// 【Phase90 P6d-1】本ファイルのテストがllm-usage.jsonl（コスト分析用の実運用ログ）を
+// 汚さないよう、ファイル全体を専用の<tmp>/logs/へ向ける。
+// 後片付けはファイル終了時のafter()と、異常終了時の保険のprocess.on("exit")の両方で行う。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p90-p6d1-theme-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+function cleanupTestLogs() {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  llmClient.configure();
+  searchClient.configure();
+}
+after(cleanupTestLogs);
+process.on("exit", cleanupTestLogs);
+llmClient.configure({ logsDir: TEST_LOGS_DIR });
+searchClient.configure({ logsDir: TEST_LOGS_DIR });
 
 // §10: 実 LLM / 実 Tavily を絶対に呼ばない。node --test はテストファイル単位で別プロセスを
 // 起動するため、ここでの process.env 変更は本ファイル内だけに閉じる（他テストへ波及しない）。

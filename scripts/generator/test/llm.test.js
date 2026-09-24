@@ -2,11 +2,90 @@
  * llm.test.js — Task18: llm/llm-client.js（mock providerのみ、APIキー不要）の自動テスト。
  */
 
-const { test } = require("node:test");
+const { test, after } = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 
-const { generateAnalysis, getProvider, resolveProviderId, providerIds } = require("../llm/llm-client");
+const llmClient = require("../llm/llm-client");
+const searchClient = require("../search/search-client");
+const { generateAnalysis, getProvider, resolveProviderId, providerIds } = llmClient;
 const { buildCompanyContext } = require("../company-context");
+const { LOGS_DIR } = require("../shared/paths");
+
+// 【Phase90 P6d-1】本ファイルのテストがllm-usage.jsonl / search-usage.jsonl（コスト分析用の
+// 実運用ログ）を汚さないよう、ファイル全体を専用の<tmp>/logs/へ向ける。
+// 後片付けはファイル終了時のafter()と、異常終了時の保険のprocess.on("exit")の両方で行う。
+const TEST_LOGS_ROOT = fs.mkdtempSync(path.join(os.tmpdir(), "p90-p6d1-llm-"));
+const TEST_LOGS_DIR = path.join(TEST_LOGS_ROOT, "logs");
+fs.mkdirSync(TEST_LOGS_DIR, { recursive: true });
+function cleanupTestLogs() {
+  fs.rmSync(TEST_LOGS_ROOT, { recursive: true, force: true });
+  llmClient.configure();
+  searchClient.configure();
+}
+after(cleanupTestLogs);
+process.on("exit", cleanupTestLogs);
+llmClient.configure({ logsDir: TEST_LOGS_DIR });
+searchClient.configure({ logsDir: TEST_LOGS_DIR });
+
+/** generateAnalysis(mock)を通せる最小のcompany_context（ネットワーク・検索を使わない）。 */
+function fakeContext() {
+  return {
+    input_url: "https://example.com",
+    industry_hint: "テスト業界",
+    company_fetch_ok: true,
+    generated_at: new Date().toISOString(),
+    sources: [
+      {
+        id: "src-1",
+        source_type: "company",
+        title: "Example 株式会社",
+        url: "https://example.com",
+        summary: "製造業向けの支援を行う会社です。",
+        quote: "製造業向けの支援を行う会社です。",
+        score: 92,
+        evidence_strength: "primary",
+      },
+    ],
+  };
+}
+
+/**
+ * fnの実行中、共有LOGS_DIR配下への書き込み系fs呼び出しを記録し、実際には実行しない
+ * （テストが失敗した場合でも実運用ログに触れないため）。それ以外のパスはそのまま通す。
+ * 他テストファイルは別プロセスなので、記録されるのは本テスト自身の呼び出しだけ。
+ * @param {Function} fn
+ * @returns {Promise<{result:*, sharedWrites:string[]}>}
+ */
+async function interceptSharedLogWrites(fn) {
+  const sharedDir = path.resolve(LOGS_DIR) + path.sep;
+  const sharedWrites = [];
+  const names = ["appendFileSync", "writeFileSync", "renameSync", "mkdirSync", "copyFileSync"];
+  const originals = {};
+  for (const name of names) {
+    originals[name] = fs[name];
+    fs[name] = function intercepted(p, ...rest) {
+      if (typeof p === "string" && (path.resolve(p) + path.sep).startsWith(sharedDir)) {
+        sharedWrites.push(`${name}:${path.resolve(p)}`);
+        return undefined;
+      }
+      return originals[name].call(this, p, ...rest);
+    };
+  }
+  try {
+    return { result: await fn(), sharedWrites };
+  } finally {
+    Object.assign(fs, originals);
+  }
+}
+
+/** @returns {Object[]} */
+function readLogLines(filePath) {
+  if (!fs.existsSync(filePath)) return [];
+  return fs.readFileSync(filePath, "utf-8").split("\n").filter(Boolean).map((line) => JSON.parse(line));
+}
 
 test("providerIds: mock/openai/deepseek/qwenの4種が登録されている", () => {
   assert.deepEqual(providerIds.sort(), ["deepseek", "mock", "openai", "qwen"].sort());
@@ -92,5 +171,57 @@ test("generateAnalysis: 未知のprovider idは例外を投げる", async () => 
   await assert.rejects(
     () => generateAnalysis({ sources: [] }, { providerId: "no-such-provider" }),
     /未知のLLM_PROVIDER/
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Phase90 P6d-1: llm-usage.jsonlのlogsDir DI
+// ---------------------------------------------------------------------------
+
+test("[P6d-T1] configure({logsDir})後のgenerateAnalysisはtmpのllm-usage.jsonlだけに書き、実運用ログには書かない", async () => {
+  const tmpLog = path.join(TEST_LOGS_DIR, "llm-usage.jsonl");
+  const before = readLogLines(tmpLog).length;
+
+  const { result, sharedWrites } = await interceptSharedLogWrites(() =>
+    generateAnalysis(fakeContext(), { providerId: "mock" })
+  );
+
+  assert.equal(result.provider.id, "mock");
+  const lines = readLogLines(tmpLog);
+  assert.equal(lines.length, before + 1, "tmpのllm-usage.jsonlに1行追記されるはず");
+  assert.equal(lines[lines.length - 1].provider, "mock");
+  assert.deepEqual(sharedWrites, [], "実運用のscripts/generator/logs/へは書かないはず");
+});
+
+test("[P6d-T3] llm-client: configure()でlogsDirが既定のLOGS_DIRへ戻る", (t) => {
+  t.after(() => llmClient.configure({ logsDir: TEST_LOGS_DIR }));
+  assert.equal(llmClient.getLogsDir(), TEST_LOGS_DIR, "前提: 本ファイルはtmpへ向いている");
+
+  llmClient.configure();
+  assert.equal(llmClient.getLogsDir(), LOGS_DIR);
+
+  llmClient.configure({ logsDir: TEST_LOGS_DIR });
+  llmClient.configure({});
+  assert.equal(llmClient.getLogsDir(), LOGS_DIR, "logsDir省略でも既定へ戻るはず");
+});
+
+test("[P6d-T4] llm-client: tmpへ向けている間は実運用logs/配下へのfs書き込みが0件（ローテーション含む）", async () => {
+  const { sharedWrites } = await interceptSharedLogWrites(async () => {
+    await generateAnalysis(fakeContext(), { providerId: "mock" });
+    await generateAnalysis(fakeContext(), { providerId: "mock" });
+  });
+  assert.deepEqual(sharedWrites, []);
+});
+
+test("[P6d-T5] llm-client後方互換: configureしない（既定）経路は従来どおりLOGS_DIR/llm-usage.jsonlへ書こうとする", async (t) => {
+  t.after(() => llmClient.configure({ logsDir: TEST_LOGS_DIR }));
+  llmClient.configure();
+
+  // 実運用ログへは実際には書かず、書き込み先だけを確認する
+  const { sharedWrites } = await interceptSharedLogWrites(() => generateAnalysis(fakeContext(), { providerId: "mock" }));
+
+  assert.ok(
+    sharedWrites.includes(`appendFileSync:${path.join(LOGS_DIR, "llm-usage.jsonl")}`),
+    `既定のLOGS_DIR/llm-usage.jsonlへの追記のはず（実際: ${JSON.stringify(sharedWrites)}）`
   );
 });

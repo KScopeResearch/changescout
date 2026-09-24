@@ -44,9 +44,31 @@ const DEFAULT_MAX_RETRIES = Number.isFinite(Number(process.env.SEARCH_MAX_RETRIE
   ? Number(process.env.SEARCH_MAX_RETRIES)
   : 2;
 
-const LOG_FILE = path.join(LOGS_DIR, "search-usage.jsonl");
+// Phase90 P6d-1: logs の置き場所は configure({logsDir}) で差し替えられる（テストの隔離用。
+// llm-client.js と同じ。未指定時は従来どおり scripts/generator/logs/）。
+const DEFAULT_LOGS_DIR = LOGS_DIR;
+let logsDir = DEFAULT_LOGS_DIR;
+const LOG_FILENAME = "search-usage.jsonl";
 // Task43: コスト分析用途のため自動削除はしない。サイズ超過時はアーカイブのみ（Task42方針）。
 const ARCHIVE_SIZE_BYTES = 10 * 1024 * 1024; // 10MB
+
+/**
+ * logs の置き場所を設定する。logsDir 省略時は既定（scripts/generator/logs/）に戻す。
+ * @param {{logsDir?:string}} [options]
+ */
+function configure(options = {}) {
+  logsDir = options.logsDir || DEFAULT_LOGS_DIR;
+}
+
+/** @returns {string} 現在の logs ディレクトリ */
+function getLogsDir() {
+  return logsDir;
+}
+
+/** @returns {string} search-usage.jsonl のパス（現在の logsDir 基準） */
+function logFilePath() {
+  return path.join(logsDir, LOG_FILENAME);
+}
 
 /**
  * SEARCH_PROVIDER環境変数からprovider idを決定する。未設定時はmock。
@@ -105,8 +127,9 @@ function callWithRetryAndTimeout(provider, query, options, { timeoutMs, maxRetri
  */
 function writeLog(entry) {
   try {
-    archiveIfOversize(LOG_FILE, ARCHIVE_SIZE_BYTES); // Task43
-    appendJsonLine(LOG_FILE, entry);
+    const logFile = logFilePath();
+    archiveIfOversize(logFile, ARCHIVE_SIZE_BYTES); // Task43
+    appendJsonLine(logFile, entry);
   } catch (err) {
     logger.warn(`search-usage.jsonlへの追記に失敗しました（使用量ログのみ、検索結果には影響しません）: ${err.message}`);
   }
@@ -170,4 +193,6 @@ module.exports = {
   resolveProviderId,
   getProvider,
   providerIds: Object.keys(PROVIDERS),
+  configure, // Phase90 P6d-1
+  getLogsDir, // Phase90 P6d-1
 };
